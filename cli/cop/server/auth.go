@@ -67,7 +67,7 @@ func (ah *copAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Handle performs authentication
 func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	log.Debug("Enter copAuthHandler.Handle")
+	log.Infof("Received request\n%s", util.HTTPRequestToString(r))
 	cfg := config.CFG
 	if !cfg.Authentication {
 		log.Debug("authentication is disabled")

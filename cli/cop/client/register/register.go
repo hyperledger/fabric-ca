@@ -2,11 +2,12 @@ package register
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	cop "github.com/hyperledger/fabric-cop/api"
+	cutil "github.com/hyperledger/fabric-cop/cli/cop/client"
+	"github.com/hyperledger/fabric-cop/idp"
 
-	lib "github.com/hyperledger/fabric-cop/lib/defaultImpl"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
@@ -40,26 +41,27 @@ func myMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
+	_ = callerID
 
-	regReq := new(cop.RegisterRequest)
+	regReq := new(idp.RegistrationRequest)
 	err = json.Unmarshal(buf, regReq)
 	if err != nil {
 		return err
 	}
-
-	regReq.CallerID = callerID
 
 	copServer, _, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
 	}
 
-	// mgr := cop.Mgr
-	mgr, _ := lib.NewMgr()
-	cop.SetMgr(mgr)
-	client := cop.NewClient()
-	client.SetServerAddr(copServer)
-	err = client.Register(regReq)
+	client, err := cutil.NewClient(copServer)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Register(regReq)
+	if err != nil {
+		fmt.Printf("%+v", resp)
+	}
 
 	return err
 }

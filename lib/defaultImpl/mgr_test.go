@@ -18,20 +18,6 @@ package defaultImpl
 
 import "testing"
 
-// func TestNewServer(t *testing.T) {
-// 	s := NewServer()
-// 	if s == nil {
-// 		t.Error("failed to create new server")
-// 	}
-// }
-
-func TestNewClient(t *testing.T) {
-	c := NewClient()
-	if c == nil {
-		t.Error("failed to create new client")
-	}
-}
-
 func TestNewCertMgr(t *testing.T) {
 	cm := NewCertMgr()
 	if cm == nil {

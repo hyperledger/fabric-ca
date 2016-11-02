@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rand"
@@ -28,16 +29,19 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"math/big"
+	mrand "math/rand"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/cop/config"
 	"github.com/jmoiron/sqlx"
-	"io/ioutil"
-	"math/big"
-	mrand "math/rand"
-	"os"
-	"strings"
-	"time"
 )
 
 var rnd = mrand.NewSource(time.Now().UnixNano())
@@ -349,4 +353,12 @@ func CreateTables(cfg *config.Config) (*sqlx.DB, error) {
 	}
 
 	return db, nil
+}
+
+// HTTPRequestToString returns a string for an HTTP request for debuggging
+func HTTPRequestToString(req *http.Request) string {
+	body, _ := ioutil.ReadAll(req.Body)
+	req.Body = ioutil.NopCloser(bytes.NewReader(body))
+	return fmt.Sprintf("%s %s\nAuthorization: %s\n%s",
+		req.Method, req.URL, req.Header["authorization"], string(body))
 }

@@ -18,11 +18,6 @@ type Mgr interface {
 	real.Mgr
 }
 
-// Client is a COP client
-type Client interface {
-	real.Client
-}
-
 // CertMgr is a COP certificate manager
 type CertMgr interface {
 	real.CertMgr
@@ -116,11 +111,6 @@ func init() {
 		fmt.Printf("invalid COP provider: %s\n", provider)
 		os.Exit(1)
 	}
-}
-
-// NewClient creates a COP client
-func NewClient() Client {
-	return real.NewClient()
 }
 
 // NewCertMgr creates a COP certificate manager

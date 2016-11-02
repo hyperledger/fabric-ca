@@ -40,11 +40,6 @@ func (m *Mgr) GetFeatures() []string {
 	return []string{"server", "ecerts", "tcerts"}
 }
 
-// NewClient creates a new COP client
-func (m *Mgr) NewClient() cop.Client {
-	return NewClient()
-}
-
 // NewCertMgr creates a certificate handler
 func (m *Mgr) NewCertMgr() cop.CertMgr {
 	return new(CertMgr)

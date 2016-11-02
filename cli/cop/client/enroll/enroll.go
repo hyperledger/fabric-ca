@@ -5,9 +5,9 @@ import (
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
+	cutil "github.com/hyperledger/fabric-cop/cli/cop/client"
 	"github.com/hyperledger/fabric-cop/cli/cop/config"
-	lib "github.com/hyperledger/fabric-cop/lib/defaultImpl"
+	"github.com/hyperledger/fabric-cop/idp"
 )
 
 var usageText = `cop client enroll -- Enroll with COP server
@@ -48,6 +48,7 @@ func myMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
+	_ = csrJSON // TODO: Make csrJSON optional arg and add to EnrollmentRequest below if present
 
 	copServer, args, err := cli.PopFirstArgument(args)
 	if err != nil {
@@ -56,16 +57,16 @@ func myMain(args []string, c cli.Config) error {
 
 	_ = args
 
-	req := &cop.EnrollRequest{
-		User:  id,
-		Token: []byte(secret),
+	req := &idp.EnrollmentRequest{
+		Name:   id,
+		Secret: secret,
 	}
 
-	mgr, _ := lib.NewMgr()
-	cop.SetMgr(mgr)
-	client := cop.NewClient()
-	client.SetServerAddr(copServer)
-	_, err = client.Enroll(req, csrJSON)
+	client, err := cutil.NewClient(copServer)
+	if err != nil {
+		return err
+	}
+	_, err = client.Enroll(req)
 
 	return err
 }

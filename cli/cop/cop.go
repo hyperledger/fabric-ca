@@ -86,6 +86,8 @@ func serverCommand() {
 	serve.SetWrapHandler(server.NewAuthWrapper)
 	// Add the "register" route/endpoint
 	serve.SetEndpoint("register", server.NewRegisterHandler)
+	// Add the "enroll" route/endpoint
+	serve.SetEndpoint("enroll", server.NewEnrollHandler)
 	// Add the "gettcertbatch" route/endpoint
 	serve.SetEndpoint("gettcertbatch", gettcertbatch.NewTcertHandler)
 	// If the CLI returns an error, exit with an appropriate status code.

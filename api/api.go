@@ -8,9 +8,6 @@ package api
 // Mgr is the main interface to COP functionality
 type Mgr interface {
 
-	// NewClient creates a COP client
-	NewClient() Client
-
 	// NewCertMgr creates a COP certificate manager
 	NewCertMgr() CertMgr
 }
@@ -18,7 +15,7 @@ type Mgr interface {
 // Client is a COP client
 type Client interface {
 	//GetTcertBatch gets a batch of tcerts
-	GetTcertBatch(jsonString string, signatureJSON string)(string, error)
+	GetTcertBatch(jsonString string, signatureJSON string) (string, error)
 	// GetHomeDir returns the home directory
 	GetHomeDir() string
 
@@ -207,11 +204,6 @@ var mgr Mgr
 // SetMgr sets the COP manager
 func SetMgr(m Mgr) {
 	mgr = m
-}
-
-// NewClient creates a COP client
-func NewClient() Client {
-	return mgr.NewClient()
 }
 
 // NewCertMgr creates a COP certificate manager

@@ -58,7 +58,7 @@ type ChaincodeAPI interface {
 type Identity interface {
 
 	// Name returns the identity name
-	Name() string
+	GetName() string
 
 	// GetPublicSigner returns the public signer for this identity
 	GetPublicSigner() TemporalSigner
