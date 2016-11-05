@@ -19,11 +19,15 @@
 # This makefile defines the following targets
 #
 #   - all (default) - builds all targets and runs all tests
+#   - license - check all go files for license headers
 #   - cop - builds the cop executable
 #   - tests - runs all the cop tests
 #   - unit-tests - runs the go-test based unit tests
 
-all: cop tests unit-tests
+all: license cop tests unit-tests
+
+license: .FORCE
+	@scripts/license_check && exit
 
 cop:
 	@echo "Building cop in bin directory ..."
@@ -36,3 +40,5 @@ unit-tests: cop
 	@echo "Running cop unit tests ..."
 	@go test `go list ./... | grep -v "/vendor/"`
 	@echo "Completed cop unit tests"
+
+.FORCE:
