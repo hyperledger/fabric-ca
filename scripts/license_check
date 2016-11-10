@@ -1,8 +1,0 @@
-echo "Checking go files for license headers ..."
-missing=`grep -l -L "Apache License" \`find . -name "*.go"\` |grep -v "./vendor"`
-if [ $? -eq 0 ]; then
-   echo "The following files are missing license headers:"
-   echo "$missing"
-   exit 1
-fi
-echo "All go files have license headers"

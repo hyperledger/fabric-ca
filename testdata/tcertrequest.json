@@ -1,0 +1,37 @@
+{
+	"TCertBatchRequest": {
+		"TS":"ghi",
+		"CertSerialNumber":"abc",
+		"RootPreKey" : "123" ,
+		"Num":"1",
+		"attribute-encryption_enabled" : false,
+	  "AttributeSet":[
+			{
+				"AttributeName":"HAPPY",
+				"AttributeValue":"bIRTHDAY"
+			},
+			{
+				 "AttributeName":"GOOD",
+				 "AttributeValue":"dEAL"
+			 },
+			{
+				"AttributeName":"Sun",
+				"AttributeValue":"Rise"
+				}
+			],
+			"CerificateRequestData" :
+			{
+
+
+            "C": "US",
+            "L": "RTP",
+            "O": "IBM",
+            "OU": "WWW",
+            "ST": "NC",
+						"CN" : "www.doit.com" ,
+						"validityPeriod" : 1
+        },
+        "CertificateType" : 1
+
+			}
+   }

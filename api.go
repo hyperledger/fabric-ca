@@ -21,13 +21,7 @@ limitations under the License.
 
 package cop
 
-import (
-	"fmt"
-	"os"
-
-	real "github.com/hyperledger/fabric-cop/api"
-	def "github.com/hyperledger/fabric-cop/lib/defaultImpl"
-)
+import real "github.com/hyperledger/fabric-cop/api"
 
 // Mgr is the main interface to COP functionality
 type Mgr interface {
@@ -83,14 +77,12 @@ type RegisterRequest struct {
 	real.RegisterRequest
 }
 
+// EnrollRequest is an enroll request
 type EnrollRequest struct {
 	real.EnrollRequest
 }
 
-type Attribute struct {
-	real.Attribute
-}
-
+// UserRecord is a user's record
 type UserRecord struct {
 	real.UserRecord
 }
@@ -114,22 +106,4 @@ const (
 // Error is an interface with a Code method
 type Error interface {
 	real.Error
-}
-
-func init() {
-	provider := os.Getenv("COP.PROVIDER")
-	if provider == "" {
-		provider = "default"
-	}
-	if provider == "default" {
-		real.SetMgr(new(def.Mgr))
-	} else {
-		fmt.Printf("invalid COP provider: %s\n", provider)
-		os.Exit(1)
-	}
-}
-
-// NewCertMgr creates a COP certificate manager
-func NewCertMgr() CertMgr {
-	return real.NewCertMgr()
 }

@@ -40,7 +40,6 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/cop/config"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -137,6 +136,16 @@ func Unmarshal(from []byte, to interface{}, what string) cop.Error {
 		return cop.WrapError(err, cop.UnmarshallError, "error unmarshalling %s", what)
 	}
 	return nil
+}
+
+// DERCertToPEM converts DER to PEM format
+func DERCertToPEM(der []byte) []byte {
+	return pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: der,
+		},
+	)
 }
 
 // CreateToken creates a JWT-like token.
@@ -326,21 +335,21 @@ func GetDB(driver string, dbPath string) (*sqlx.DB, error) {
 // StrContained returns true if 'str' is in 'strs'; otherwise return false
 func StrContained(str string, strs []string) bool {
 	for _, s := range strs {
-		if s == str {
+		if strings.ToLower(s) == strings.ToLower(str) {
 			return true
 		}
 	}
 	return false
 }
 
-//CreateTables creates Table certificates
-func CreateTables(cfg *config.Config) (*sqlx.DB, error) {
-	db, err := GetDB(cfg.DBdriver, cfg.DataSource)
+//CreateTables creates user, group, and certificate tables
+func CreateTables(DBdriver string, dataSrouce string) (*sqlx.DB, error) {
+	db, err := GetDB(DBdriver, dataSrouce)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Users (id VARCHAR(64), enrollmentId VARCHAR(100), token BLOB, metadata VARCHAR(256), state INTEGER, key BLOB)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Users (id VARCHAR(64), enrollmentId VARCHAR(100), token BLOB, type VARCHAR(64), metadata VARCHAR(256), state INTEGER, key BLOB)"); err != nil {
 		return nil, err
 	}
 
@@ -348,7 +357,7 @@ func CreateTables(cfg *config.Config) (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	if _, err := db.Exec("CREATE TABLE certificates (serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return nil, err
 	}
 
@@ -360,5 +369,20 @@ func HTTPRequestToString(req *http.Request) string {
 	body, _ := ioutil.ReadAll(req.Body)
 	req.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return fmt.Sprintf("%s %s\nAuthorization: %s\n%s",
-		req.Method, req.URL, req.Header["authorization"], string(body))
+		req.Method, req.URL, req.Header.Get("authorization"), string(body))
+}
+
+// GetDefaultHomeDir returns the default cop home
+func GetDefaultHomeDir() string {
+	home := os.Getenv("COP_HOME")
+	if home == "" {
+		home = os.Getenv("HOME")
+		if home != "" {
+			home = home + "/.cop"
+		}
+	}
+	if home == "" {
+		home = "/var/hyperledger/production/.cop"
+	}
+	return home
 }

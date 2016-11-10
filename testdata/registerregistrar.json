@@ -1,0 +1,8 @@
+{
+ "groups": {
+   "banks_and_institutions": {
+     "banks": ["bank_a", "bank_b", "bank_c"],
+     "institutions": ["institution_a"]
+   }
+ }
+}

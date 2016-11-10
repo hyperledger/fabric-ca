@@ -97,8 +97,6 @@ func newCertificateFromSpec(spec *CertificateSpec) ([]byte, error) {
 	return raw, err
 }
 
-
-
 // GetCommonName returns the spec's Common Name field/value
 //
 func (spec *CertificateSpec) GetCommonName() string {

@@ -24,21 +24,31 @@
 #   - tests - runs all the cop tests
 #   - unit-tests - runs the go-test based unit tests
 
-all: license cop tests unit-tests
+all: license vet lint format imports cop tests unit-tests
 
 license: .FORCE
-	@scripts/license_check && exit
+	@scripts/check_license
+
+format: .FORCE
+	@scripts/check_format
+
+imports: .FORCE
+	@scripts/check_imports
+
+lint: .FORCE
+	@scripts/check_lint
+
+vet: .FORCE
+	@scripts/check_vet
 
 cop:
 	@echo "Building cop in bin directory ..."
-	@mkdir -p bin && cd cli/cop && go build -o ../../bin/cop
+	@mkdir -p bin && cd cli && go build -o ../bin/cop
 	@echo "Built bin/cop"
 
 tests: cop unit-tests
 
 unit-tests: cop
-	@echo "Running cop unit tests ..."
-	@go test `go list ./... | grep -v "/vendor/"`
-	@echo "Completed cop unit tests"
+	@scripts/run_tests
 
 .FORCE:

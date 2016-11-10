@@ -14,24 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
- * This file is simply a mirror of the interfaces in interfaces/interfaces.go.
- * This was done in order to prevent an import cycle.
- */
-
-package cop
+package server
 
 import (
-	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/lib"
+	"errors"
 )
 
-// NewClient creates a COP client
-func NewClient(config string) (idp.ClientAPI, error) {
-	return lib.NewClient(config)
-}
-
-// NewIdentity creates a new identity
-func NewIdentity() (*lib.Identity, error) {
-	return new(lib.Identity), nil
-}
+var (
+	errNoAuthHdr           = errors.New("No Authorization header was found")
+	errNoBasicAuthHdr      = errors.New("No Basic Authorization header was found")
+	errNoTokenAuthHdr      = errors.New("No Token Authorization header was found")
+	errBasicAuthNotAllowed = errors.New("Basic authorization is not permitted")
+	errTokenAuthNotAllowed = errors.New("Token authorization is not permitted")
+	errInvalidUserPass     = errors.New("Invalid user name or password")
+	errInputNotSeeker      = errors.New("Input stream was not a seeker")
+)

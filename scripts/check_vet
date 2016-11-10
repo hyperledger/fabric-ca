@@ -1,0 +1,27 @@
+#!/bin/bash
+function runvet {
+ {
+   go vet *.go
+   for dir in `ls`
+   do
+      if [ -d $dir ]; then
+        case "$dir" in
+          vendor|bin|testdata|scripts)
+          ;;
+        *)
+          go tool vet $dir
+          ;;
+        esac
+      fi
+   done
+ } 2>&1
+}
+
+echo "Running go vet ..."
+found=$(runvet)
+if [ "$found" != "" ]; then
+   echo "YOU MUST FIX THE FOLLOWING GO VET PROBLEMS:"
+   echo "$found"
+   exit 1
+fi
+echo "No 'go vet' problems were found"

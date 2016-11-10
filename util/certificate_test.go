@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
-	
 )
 
 const (
@@ -35,7 +34,7 @@ const (
 //Testing for self signed cert
 func TestSelfSignedCert(t *testing.T) {
 
-	jsonString := ConvertJSONFileToJSONString("../testdata/TCertRequest.json")
+	jsonString := ConvertJSONFileToJSONString("../testdata/tcertrequest.json")
 
 	privKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
@@ -56,7 +55,7 @@ func TestSelfSignedCert(t *testing.T) {
 	rawcert, _ := newCertificateFromSpec(certSpec)
 	if rawcert != nil {
 
-		err := ioutil.WriteFile("testCert.der", rawcert, 0777)
+		err := ioutil.WriteFile("testcert.der", rawcert, 0777)
 		if err != nil {
 			t.Fatalf("Problem in writing file")
 		}

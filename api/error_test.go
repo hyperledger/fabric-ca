@@ -18,12 +18,17 @@ package api
 
 import (
 	"testing"
+
+	cfsslErr "github.com/cloudflare/cfssl/errors"
 )
 
 func TestNewError(t *testing.T) {
 	err := NewError(InvalidProviderName, "invalid factory name: %s", "foo")
 	if err == nil {
 		t.Error("Error creation failed.")
+	}
+	if err.Error() == "" {
+		t.Errorf("returned empty error")
 	}
 	if err.Code() != 100004 {
 		t.Errorf("invalid error code; expecting 100003 but found %d", err.ErrorCode)
@@ -39,5 +44,16 @@ func TestWrapError(t *testing.T) {
 	err = WrapError(err, NotImplemented, "feature 'foo' has not implemented")
 	if err == nil {
 		t.Error("Wrap creation failed.")
+	}
+}
+
+func TestCfsslWrapError(t *testing.T) {
+	err := cfsslErr.New(cfsslErr.CertificateError, cfsslErr.Unknown)
+	if err == nil {
+		t.Fatal("CFSSL Error creation failed.")
+	}
+	err2 := WrapCFSSLError(err, 1, "wrapped error")
+	if err2 == nil {
+		t.Fatal("COP Error creation failed.")
 	}
 }

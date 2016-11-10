@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ ! -f $GOPATH/bin/goimports ]; then
+   echo "Installing goimports ..."
+   go get golang.org/x/tools/cmd/goimports
+fi
+
+echo "Checking imports ..."
+found=`goimports -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
+if [ "$found" != "" ]; then
+   echo "The following files have import problems:"
+   echo "$found"
+   echo "You may run 'goimports -w <file>' to fix each file."
+   exit 1
+fi
+echo "All files are properly formatted"

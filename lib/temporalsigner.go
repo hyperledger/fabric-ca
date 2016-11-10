@@ -14,24 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
- * This file is simply a mirror of the interfaces in interfaces/interfaces.go.
- * This was done in order to prevent an import cycle.
- */
+package lib
 
-package cop
+import "errors"
 
-import (
-	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/lib"
-)
-
-// NewClient creates a COP client
-func NewClient(config string) (idp.ClientAPI, error) {
-	return lib.NewClient(config)
+func newTemporalSigner(key []byte, cert []byte) *TemporalSigner {
+	return &TemporalSigner{newSigner(key, cert)}
 }
 
-// NewIdentity creates a new identity
-func NewIdentity() (*lib.Identity, error) {
-	return new(lib.Identity), nil
+// TemporalSigner implements idp.TemporalSigner
+type TemporalSigner struct {
+	Signer
+}
+
+// Renew renews the signer's certificate
+func (ts *TemporalSigner) Renew() error {
+	return errors.New("NotImplemented")
+}
+
+// Revoke revokes the signer's certificate
+func (ts *TemporalSigner) Revoke() error {
+	return errors.New("NotImplemented")
 }

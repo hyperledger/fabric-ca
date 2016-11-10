@@ -23,9 +23,8 @@ import (
 )
 
 // The following are all the error codes returned by COP.
-// COP's errors begin with 100,000 to avoid an overlap with CFSSL`errors.
-// Add all new errors to the end of the current list in order to maintain
-// backwards compatibility with earlier versions of this file.
+// COP's errors start from 100,000 to avoid an overlap with CFSSL Toolkit's errors.
+// Append new errors to the end of the below list for backward compatibility.
 const (
 	// NotImplemented means not yet implemented but plans to support
 	NotImplemented int = 100000 + iota
@@ -45,6 +44,9 @@ const (
 	Input
 	Output
 	UserStoreError
+	EnrollingUserError
+	RegisteringUserError
+	AuthorizationError
 )
 
 // Error is an interface with a Code method

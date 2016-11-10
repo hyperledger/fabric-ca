@@ -89,7 +89,7 @@ type Identity interface {
 	Delete() error
 
 	// Serialize an identity
-	Serialize() []byte
+	Serialize() ([]byte, error)
 }
 
 // TemporalSigner is a signer which can be renewed and revoked
@@ -137,7 +137,7 @@ type Verifier interface {
 	VerifyAttributes(proof [][]byte, spec *AttributeProofSpec) error
 
 	// Serialize verifier
-	Serialize() []byte
+	Serialize() ([]byte, error)
 }
 
 // RegistrationRequest for a new identity
@@ -197,8 +197,8 @@ type SignatureOpts interface {
 
 // Attribute is an arbitrary name/value pair
 type Attribute struct {
-	Name  string   `json:"name"`
-	Value []string `json:"value"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 // AttributeProofSpec is an attribute proof specification
