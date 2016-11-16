@@ -18,7 +18,9 @@ package server
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 
 	"github.com/jmoiron/sqlx"
@@ -33,8 +35,8 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO Users (id, enrollmentId, token, type, metadata, state, key)
-	VALUES (:id, :enrollmentId, :token, :type, :metadata, :state, :key);`
+INSERT INTO Users (id, enrollment_id, token, type, metadata, state, serial_number)
+	VALUES (:id, :enrollment_id, :token, :type, :metadata, :state, :serial_number);`
 
 	deleteUser = `
 DELETE FROM Users
@@ -50,7 +52,7 @@ SELECT * FROM Users
 	WHERE (id = ?)`
 
 	insertGroup = `
-INSERT INTO Groups (name, parentID)
+INSERT INTO Groups (name, parent_id)
 	VALUES ($1, $2)`
 
 	deleteGroup = `
@@ -70,7 +72,7 @@ type Accessor struct {
 // Group defines a group name and its parent
 type Group struct {
 	Name     string `db:"name"`
-	ParentID string `db:"parentID"`
+	ParentID string `db:"parent_id"`
 }
 
 func (d *Accessor) checkDB() error {
@@ -93,6 +95,7 @@ func (d *Accessor) SetDB(db *sqlx.DB) {
 
 // InsertUser inserts user into database
 func (d *Accessor) InsertUser(user cop.UserRecord) error {
+	log.Debugf("DB: Insert User (%s) to database", user.ID)
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -105,24 +108,33 @@ func (d *Accessor) InsertUser(user cop.UserRecord) error {
 		Type:         user.Type,
 		Metadata:     user.Metadata,
 		State:        user.State,
-		Key:          user.Key,
+		SerialNumber: user.SerialNumber,
 	})
 
 	if err != nil {
+		log.Error("Error during inserting of user, error: ", err)
 		return err
 	}
 
 	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
 
 	if numRowsAffected == 0 {
-		return cop.NewError(cop.UserStoreError, "failed to insert the user record")
+		msg := "Failed to insert the user record"
+		log.Error(msg)
+		return cop.NewError(cop.UserStoreError, msg)
 	}
 
 	if numRowsAffected != 1 {
-		return cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
+		msg := fmt.Sprintf("%d rows are affected, should be 1 row", numRowsAffected)
+		log.Error(msg)
+		return cop.NewError(cop.UserStoreError, msg)
 	}
 
-	return err
+	log.Debug("User inserted into database successfully")
+	return nil
 
 }
 
@@ -191,6 +203,7 @@ func (d *Accessor) GetUser(id string) (cop.UserRecord, error) {
 
 // InsertGroup inserts group into database
 func (d *Accessor) InsertGroup(name string, parentID string) error {
+	log.Debugf("DB - Insert Group (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -220,6 +233,7 @@ func (d *Accessor) DeleteGroup(name string) error {
 
 // GetGroup gets group from database
 func (d *Accessor) GetGroup(name string) (string, string, error) {
+	log.Debugf("DB - Get Group (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return "", "", err

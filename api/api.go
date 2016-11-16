@@ -196,12 +196,12 @@ type Enrollment struct {
 // UserRecord used for inserting into database
 type UserRecord struct {
 	ID           string `db:"id"`
-	EnrollmentID string `db:"enrollmentId"`
+	EnrollmentID string `db:"enrollment_id"`
 	Token        string `db:"token"`
 	Type         string `db:"type"`
 	Metadata     string `db:"metadata"`
 	State        int    `db:"state"`
-	Key          int    `db:"key"`
+	SerialNumber string `db:"serial_number"`
 }
 
 // Accessor abstracts the CRUD of certdb objects from a DB.

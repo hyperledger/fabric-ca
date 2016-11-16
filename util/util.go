@@ -342,28 +342,6 @@ func StrContained(str string, strs []string) bool {
 	return false
 }
 
-//CreateTables creates user, group, and certificate tables
-func CreateTables(DBdriver string, dataSrouce string) (*sqlx.DB, error) {
-	db, err := GetDB(DBdriver, dataSrouce)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Users (id VARCHAR(64), enrollmentId VARCHAR(100), token BLOB, type VARCHAR(64), metadata VARCHAR(256), state INTEGER, key BLOB)"); err != nil {
-		return nil, err
-	}
-
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS Groups (name VARCHAR(64), parentID VARCHAR(64))"); err != nil {
-		return nil, err
-	}
-
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
 // HTTPRequestToString returns a string for an HTTP request for debuggging
 func HTTPRequestToString(req *http.Request) string {
 	body, _ := ioutil.ReadAll(req.Body)

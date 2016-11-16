@@ -20,14 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/util"
-	"github.com/jmoiron/sqlx"
 )
 
 type Admin struct {
@@ -41,7 +39,7 @@ type Admin struct {
 var (
 	NotRegistrar = Admin{User: "testUser2", Pass: []byte("pass"), Type: "User", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "client"}}}
 	Registrar    = Admin{User: "admin", Pass: []byte("adminpw"), Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "hf.Registrar.DelegateRoles", Value: "client,user,auditor"}}}
-	testUser     = cop.RegisterRequest{User: "testUser", Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
+	testUser     = cop.RegisterRequest{User: "testUser1", Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testAuditor  = cop.RegisterRequest{User: "testAuditor", Type: "Auditor", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "auditor"}}}
 	testClient1  = cop.RegisterRequest{User: "testClient1", Type: "Client", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testPeer     = cop.RegisterRequest{User: "testPeer", Type: "Peer", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
@@ -63,19 +61,23 @@ func prepRegister() {
 	}
 
 	cfg := new(cli.Config)
-	// cfg.ConfigFile = "../../../testdata/registerRegistrar.json"
-	cfg.DBConfigFile = "../../testdata/registertest.json"
+	cfg.ConfigFile = "../../testdata/testconfig.json"
 	configInit(cfg)
 
 	regCFG := CFG
 	regCFG.Home = regPath
-	dataSource := filepath.Join(regCFG.Home, regCFG.DataSource)
-	db, _ := util.CreateTables(regCFG.DBdriver, dataSource)
-	bootstrap(db, regCFG)
+	db, err := GetDB(regCFG)
+	if err != nil {
+		log.Error(err)
+	}
+	CFG.DB = db
+	CFG.DBAccessor = NewDBAccessor()
+	CFG.DBAccessor.SetDB(db)
+	bootstrap()
 }
 
-func bootstrap(db *sqlx.DB, cfg *Config) {
-	b := BootstrapDB(db, cfg)
+func bootstrap() {
+	b := BootstrapDB()
 	b.PopulateGroupsTable()
 	bootstrapUsers()
 }

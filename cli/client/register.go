@@ -73,7 +73,6 @@ func registerMain(args []string, c cli.Config) error {
 		log.Error(err)
 		return err
 	}
-	fmt.Printf("id: %+v", id)
 
 	copServer, _, err := cli.PopFirstArgument(args)
 	if err != nil {

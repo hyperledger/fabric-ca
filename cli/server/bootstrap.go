@@ -23,24 +23,18 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
 )
 
 // Bootstrap is used for bootstrapping database
 type Bootstrap struct {
-	db         *sqlx.DB
-	dbAccessor *Accessor
-	cfg        *Config
+	cfg *Config
 }
 
 // BootstrapDB is a constructor to bootstrap the database at server startup
-func BootstrapDB(db *sqlx.DB, cfg *Config) *Bootstrap {
+func BootstrapDB() *Bootstrap {
 	b := new(Bootstrap)
-	b.db = db
-	b.dbAccessor = NewDBAccessor()
-	b.dbAccessor.SetDB(b.db)
-	b.cfg = cfg
+	b.cfg = CFG
 	return b
 }
 
@@ -63,19 +57,19 @@ func (b *Bootstrap) PopulateUsersTable() error {
 	return nil
 }
 
-func (b *Bootstrap) populateGroup(name, parent, key string, level int, db *sqlx.DB) {
-	registerGroup(name, parent, db)
+func (b *Bootstrap) populateGroup(name, parent, key string, level int) {
+	b.registerGroup(name, parent)
 	newKey := key + "." + name
 
 	if level == 0 {
 		affiliationGroups := viper.GetStringSlice(newKey)
 		for ci := range affiliationGroups {
-			registerGroup(affiliationGroups[ci], name, db)
+			b.registerGroup(affiliationGroups[ci], name)
 		}
 	} else {
 		affiliationGroups := viper.GetStringMapString(newKey)
 		for childName := range affiliationGroups {
-			b.populateGroup(childName, name, newKey, level-1, db)
+			b.populateGroup(childName, name, newKey, level-1)
 		}
 	}
 }
@@ -103,28 +97,28 @@ func (b *Bootstrap) PopulateGroupsTable() {
 
 	key := "groups"
 	affiliationGroups := viper.GetStringMapString(key)
+	if len(affiliationGroups) == 0 {
+		log.Info("No groups specified in configuration file")
+	}
 	for name := range affiliationGroups {
-		b.populateGroup(name, "", key, 1, b.db)
+		b.populateGroup(name, "", key, 1)
 	}
 }
 
-func registerGroup(name string, parentName string, db *sqlx.DB) error {
+func (b *Bootstrap) registerGroup(name string, parentName string) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
 	log.Debug("Registering affiliation group " + name + " parent " + parentName + ".")
 
-	dbAccessor := NewDBAccessor()
-	dbAccessor.SetDB(db)
-
 	var err error
-	_, _, err = dbAccessor.GetGroup(name)
+	_, _, err = b.cfg.DBAccessor.GetGroup(name)
 	if err == nil {
 		log.Error("Group already registered")
 		return errors.New("Group already registered")
 	}
 
-	err = dbAccessor.InsertGroup(name, parentName)
+	err = b.cfg.DBAccessor.InsertGroup(name, parentName)
 	if err != nil {
 		log.Error(err)
 	}

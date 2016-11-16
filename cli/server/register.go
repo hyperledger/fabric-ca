@@ -21,12 +21,10 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/jmoiron/sqlx"
 
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/idp"
@@ -79,8 +77,7 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 // Register for registering a user
 type Register struct {
-	DB         *sqlx.DB
-	DbAccessor *Accessor
+	cfg *Config
 }
 
 const (
@@ -93,12 +90,7 @@ const (
 // NewRegisterUser is a constructor
 func NewRegisterUser() *Register {
 	r := new(Register)
-	cfg := CFG
-	home := cfg.Home
-	dataSource := filepath.Join(home, cfg.DataSource)
-	r.DB, _ = util.GetDB(cfg.DBdriver, dataSource)
-	r.DbAccessor = NewDBAccessor()
-	r.DbAccessor.SetDB(r.DB)
+	r.cfg = CFG
 	return r
 }
 
@@ -200,12 +192,12 @@ func (r *Register) registerUserWithEnrollID(id string, enrollID string, userType
 		State:        0,
 	}
 
-	_, err := r.DbAccessor.GetUser(id)
+	_, err := r.cfg.DBAccessor.GetUser(id)
 	if err == nil {
 		log.Error("User is already registered")
 		return "", errors.New("User is already registered")
 	}
-	err = r.DbAccessor.InsertUser(insert)
+	err = r.cfg.DBAccessor.InsertUser(insert)
 	if err != nil {
 		return "", err
 	}
@@ -217,9 +209,10 @@ func (r *Register) isValidGroup(group string) (bool, error) {
 	log.Debug("Validating group: " + group)
 	// Check cop.yaml to see if group is valid
 
-	_, _, err := r.DbAccessor.GetGroup(group)
+	_, _, err := r.cfg.DBAccessor.GetGroup(group)
 	if err != nil {
-		return false, nil
+		log.Error("Error occured getting group: ", err)
+		return false, err
 	}
 
 	return true, nil
@@ -249,7 +242,7 @@ func (r *Register) canRegister(registrar string, userType string) error {
 		return errors.New("Can't Register: " + err.Error())
 	}
 
-	registrarUser, _ := r.DbAccessor.GetUser(registrar)
+	registrarUser, _ := r.cfg.DBAccessor.GetUser(registrar)
 
 	var metaData []idp.Attribute
 	json.Unmarshal([]byte(registrarUser.Metadata), &metaData)
@@ -271,7 +264,7 @@ func (r *Register) canRegister(registrar string, userType string) error {
 func (r *Register) isRegistrar(registrar string) (bool, error) {
 	log.Debugf("isRegistrar - Check if specified registrar (%s) has appropriate permissions", registrar)
 
-	checkUser, err := r.DbAccessor.GetUser(registrar)
+	checkUser, err := r.cfg.DBAccessor.GetUser(registrar)
 	if err != nil {
 		return false, errors.New("Registrar does not exist")
 	}

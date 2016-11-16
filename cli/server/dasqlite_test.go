@@ -17,12 +17,12 @@ limitations under the License.
 package server
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	api "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/util"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -55,7 +55,11 @@ func TestSQLite(t *testing.T) {
 		os.MkdirAll(dbPath, 0755)
 	}
 
-	db, err := util.CreateTables("sqlite3", dbPath+"/testing.db")
+	var cfg Config
+	cfg.DBdriver = "sqlite3"
+	cfg.DataSource = dbPath + "/cop.db"
+	fmt.Println("cfg: ", cfg)
+	db, err := GetDB(&cfg)
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,11 +85,6 @@ func Truncate(db *sqlx.DB) {
 			panic(err)
 		}
 	}
-}
-
-func createTables(db *sqlx.DB) {
-	db.Exec("CREATE TABLE IF NOT EXISTS Users (id TEXT, enrollmentId TEXT, token BLOB, metadata TEXT, state INTEGER, key BLOB)")
-	db.Exec("CREATE TABLE IF NOT EXISTS Groups (name TEXT, parentID TEXT)")
 }
 
 func removeDatabase() {

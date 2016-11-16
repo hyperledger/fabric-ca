@@ -128,16 +128,6 @@ func TestRemoveQuotesNone(t *testing.T) {
 	}
 }
 
-func TestCreateTables(t *testing.T) {
-	dbDriver := "sqlite3"
-	datasource := "../testdata/test.db"
-	_, err := CreateTables(dbDriver, datasource)
-	if err != nil {
-		t.Error("Failed to create tables, error: ", err)
-	}
-	os.Remove(datasource)
-}
-
 func TestGetDefaultHomeDir(t *testing.T) {
 	os.Setenv("COP_HOME", "")
 	os.Setenv("HOME", "")

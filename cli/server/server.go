@@ -24,8 +24,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/util"
-	"github.com/jmoiron/sqlx"
+	cop "github.com/hyperledger/fabric-cop/api"
 )
 
 // Usage text of 'cfssl serve'
@@ -102,23 +101,10 @@ func (s *Server) CreateHome() (string, error) {
 	return home, nil
 }
 
-// ConfigureDB creates Database and Tables if they don't exist
-func (s *Server) ConfigureDB(dataSource string, cfg *Config) error {
-	log.Debug("Configure DB")
-	db, err := util.CreateTables(cfg.DBdriver, dataSource)
-	if err != nil {
-		return err
-	}
-
-	s.BootstrapDB(db, cfg)
-
-	return nil
-}
-
 // BootstrapDB loads the database based on config file
-func (s *Server) BootstrapDB(db *sqlx.DB, cfg *Config) error {
+func (s *Server) BootstrapDB(cfg *Config) error {
 	log.Debug("Bootstrap DB")
-	b := BootstrapDB(db, cfg)
+	b := BootstrapDB()
 	b.PopulateGroupsTable()
 	b.PopulateUsersTable()
 
@@ -138,19 +124,24 @@ func startMain(args []string, c cli.Config) error {
 	configInit(&c)
 	cfg := CFG
 	cfg.Home = home
-	dataSource := filepath.Join(home, cfg.DataSource)
-	log.Debug("Datasource: ", dataSource)
-	if cfg.DataSource != "" {
-		// Check if database exists if not create it and bootstrap it based on the config file
-		if _, err := os.Stat(dataSource); err != nil {
-			if os.IsNotExist(err) {
-				err = s.ConfigureDB(dataSource, cfg)
-				if err != nil {
-					return err
-				}
-			}
-		}
+
+	if cfg.DataSource == "" {
+		msg := "No database specified, a database is needed to run COP server"
+		log.Fatal(msg)
+		return cop.NewError(cop.DatabaseError, msg)
 	}
+
+	db, err := GetDB(cfg)
+	if err != nil {
+		log.Error("Failed to open database")
+		return err
+	}
+
+	cfg.DB = db
+	cfg.DBAccessor = NewDBAccessor()
+	cfg.DBAccessor.SetDB(db)
+
+	s.BootstrapDB(cfg)
 
 	return serve.Command.Main(args, c)
 }
@@ -162,8 +153,7 @@ func Start(dir string) {
 	cert := filepath.Join(dir, "ec.pem")
 	key := filepath.Join(dir, "ec-key.pem")
 	config := filepath.Join(dir, "testconfig.json")
-	dbconfig := filepath.Join(dir, "cop-db.json")
-	os.Args = []string{"server", "start", "-ca", cert, "-ca-key", key, "-config", config, "-db-config", dbconfig}
+	os.Args = []string{"server", "start", "-ca", cert, "-ca-key", key, "-config", config}
 	Command()
 	os.Args = osArgs
 }

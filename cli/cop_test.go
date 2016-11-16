@@ -42,7 +42,7 @@ type Admin struct {
 const (
 	CERT     string = "../testdata/ec.pem"
 	KEY      string = "../testdata/ec-key.pem"
-	CFG      string = "../testdata/cop.json"
+	CFG      string = "../testdata/testconfig.json"
 	CSR      string = "../testdata/csr.json"
 	REG      string = "../testdata/registerrequest.json"
 	DBCONFIG string = "../testdata/enrolltest.json"

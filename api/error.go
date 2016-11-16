@@ -47,6 +47,7 @@ const (
 	EnrollingUserError
 	RegisteringUserError
 	AuthorizationError
+	DatabaseError
 )
 
 // Error is an interface with a Code method

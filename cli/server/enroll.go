@@ -21,7 +21,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/cli"
@@ -31,7 +30,6 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
-	"github.com/jmoiron/sqlx"
 )
 
 // enrollHandler for register requests
@@ -64,10 +62,7 @@ func (h *enrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return cerr.NewBadRequest(errors.New("missing authorization header"))
 	}
 
-	enroll, err := NewEnrollUser()
-	if err != nil {
-		return cerr.NewBadRequest(err)
-	}
+	enroll := NewEnrollUser()
 	cert, err := enroll.Enroll(user, []byte(token), body)
 	if err != nil {
 		return cerr.NewBadRequest(err)
@@ -78,35 +73,24 @@ func (h *enrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 // Enroll is for enrolling a user
 type Enroll struct {
-	DB         *sqlx.DB
-	DbAccessor *Accessor
-	cfg        *Config
+	cfg *Config
 }
 
 // NewEnrollUser returns an pointer to an allocated enroll struct, populated
 // with the DB information (that set in the config) or nil on error.
-func NewEnrollUser() (*Enroll, error) {
+func NewEnrollUser() *Enroll {
 	e := new(Enroll)
 	e.cfg = CFG
-	home := e.cfg.Home
-	dataSource := filepath.Join(home, e.cfg.DataSource)
-	db, err := util.GetDB(e.cfg.DBdriver, dataSource)
-	if err != nil {
-		return nil, err
-	}
-	e.DB = db
-	e.DbAccessor = NewDBAccessor()
-	e.DbAccessor.SetDB(e.DB)
-	return e, nil
+	return e
 }
 
-// Enroll will enroll a user
+// Enroll will enroll an already registered user and provided an enrollment cert
 func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Error) {
 	log.Debugf("Received request to enroll user with id: %s\n", id)
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	user, err := e.DbAccessor.GetUser(id)
+	user, err := e.cfg.DBAccessor.GetUser(id)
 	if err != nil {
 		log.Error("User not registered")
 		return nil, cop.WrapError(err, cop.EnrollingUserError, "User not registered")
@@ -134,7 +118,7 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 			State:    1,
 		}
 
-		err = e.DbAccessor.UpdateUser(updateState)
+		err = e.cfg.DBAccessor.UpdateUser(updateState)
 		if err != nil {
 			return nil, cop.WrapError(err, cop.EnrollingUserError, "Failed to updates user state")
 		}
@@ -144,13 +128,12 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 	return nil, cop.NewError(cop.EnrollingUserError, "User was already enrolled")
 }
 
-// func (e *Enroll) signKey(csrPEM []byte, remoteHost string) ([]byte, cop.Error) {
 func (e *Enroll) signKey(csrPEM []byte) ([]byte, cop.Error) {
 	log.Debugf("signKey")
 	var cfg cli.Config
 	cfg.CAFile = e.cfg.CACert
 	cfg.CAKeyFile = e.cfg.CAKey
-	s, err := sign.SignerFromConfigAndDB(cfg, e.DB)
+	s, err := sign.SignerFromConfigAndDB(cfg, e.cfg.DB)
 	if err != nil {
 		log.Errorf("SignerFromConfig error: %s", err)
 		return nil, cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfig")

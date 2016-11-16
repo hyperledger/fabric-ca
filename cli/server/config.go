@@ -25,6 +25,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
 
@@ -36,10 +37,11 @@ type Config struct {
 	DBdriver       string           `json:"driver"`
 	DataSource     string           `json:"data_source"`
 	Home           string
-	DBConfigFile   string
 	ConfigFile     string
 	CACert         string
 	CAKey          string
+	DB             *sqlx.DB
+	DBAccessor     *Accessor
 }
 
 // User information
@@ -73,23 +75,12 @@ func configInit(cfg *cli.Config) {
 	}
 	if cfg.ConfigFile != "" {
 		CFG.ConfigFile = cfg.ConfigFile
+		cfg.DBConfigFile = cfg.ConfigFile
 		body, err := ioutil.ReadFile(cfg.ConfigFile)
 		if err != nil {
 			panic(err.Error())
 		}
 		log.Debugf("config.Init contents=%+v", body)
-		err = json.Unmarshal(body, CFG)
-		if err != nil {
-			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))
-		}
-	}
-
-	if cfg.DBConfigFile != "" {
-		CFG.DBConfigFile = cfg.DBConfigFile
-		body, err := ioutil.ReadFile(cfg.DBConfigFile)
-		if err != nil {
-			panic(err.Error())
-		}
 		err = json.Unmarshal(body, CFG)
 		if err != nil {
 			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))

@@ -121,6 +121,27 @@ The following command gets an ecert for the admin user.
 # ./cop client enroll admin adminpw ../testdata/csr.json http://localhost:8888
 ```
 
+
+### Register a new user
+
+Create a JSON file as defined below for the user being registered.
+
+```
+registerRequest.json:
+{
+  "id": "User1",
+  "type": "client",
+  "group": "bank_a",
+  "attrs": [{"name":"AttributeName","value":"AttributeValue"}]
+}
+```
+
+The following command will register the user.
+```
+# cd $COP/bin
+# ./cop client register ../testdata/registerRequest.json http://localhost:8888
+```
+
 ### Run the COP tests
 
 To run the COP test, do the following.

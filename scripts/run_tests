@@ -2,6 +2,7 @@
 
 echo "Running all tests ..."
 {
+export PATH=$PATH:$GOPATH/bin
 
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
