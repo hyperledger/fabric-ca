@@ -18,6 +18,7 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -25,6 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/sign"
+	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cop "github.com/hyperledger/fabric-cop/api"
@@ -51,20 +53,24 @@ func (h *enrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return err
+		log.Errorf("failed to read body: %s", err)
+		return cerr.NewBadRequest(errors.New("failed to read request body"))
 	}
 	r.Body.Close()
 
 	user, token, ok := r.BasicAuth()
 	if !ok {
 		log.Error("No authorization header set")
-		return cop.NewError(cop.EnrollingUserError, "No authorization header set")
+		return cerr.NewBadRequest(errors.New("missing authorization header"))
 	}
 
-	enroll := NewEnrollUser()
+	enroll, err := NewEnrollUser()
+	if err != nil {
+		return cerr.NewBadRequest(err)
+	}
 	cert, err := enroll.Enroll(user, []byte(token), body)
 	if err != nil {
-		return err
+		return cerr.NewBadRequest(err)
 	}
 
 	return api.SendResponse(w, cert)
@@ -77,16 +83,21 @@ type Enroll struct {
 	cfg        *Config
 }
 
-// NewEnrollUser is a constructor
-func NewEnrollUser() *Enroll {
+// NewEnrollUser returns an pointer to an allocated enroll struct, populated
+// with the DB information (that set in the config) or nil on error.
+func NewEnrollUser() (*Enroll, error) {
 	e := new(Enroll)
 	e.cfg = CFG
 	home := e.cfg.Home
 	dataSource := filepath.Join(home, e.cfg.DataSource)
-	e.DB, _ = util.GetDB(e.cfg.DBdriver, dataSource)
+	db, err := util.GetDB(e.cfg.DBdriver, dataSource)
+	if err != nil {
+		return nil, err
+	}
+	e.DB = db
 	e.DbAccessor = NewDBAccessor()
 	e.DbAccessor.SetDB(e.DB)
-	return e
+	return e, nil
 }
 
 // Enroll will enroll a user
@@ -101,12 +112,13 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 		return nil, cop.WrapError(err, cop.EnrollingUserError, "User not registered")
 	}
 
-	if !bytes.Equal(token, []byte(user.Token)) {
-		log.Error("Identity or token does not match")
-		return nil, cop.NewError(cop.EnrollingUserError, "Identity or token does not match")
-	}
-
 	if user.State == 0 {
+
+		if !bytes.Equal(token, []byte(user.Token)) {
+			log.Errorf("User name or password does not match: %s != %s", token, user.Token)
+			return nil, cop.NewError(cop.EnrollingUserError, "User name or password does not match")
+		}
+
 		cert, signErr := e.signKey(csrPEM)
 		if signErr != nil {
 			log.Error("Failed to sign CSR")
@@ -129,7 +141,7 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 
 		return cert, nil
 	}
-	return nil, cop.NewError(cop.EnrollingUserError, "User was not enrolled")
+	return nil, cop.NewError(cop.EnrollingUserError, "User was already enrolled")
 }
 
 // func (e *Enroll) signKey(csrPEM []byte, remoteHost string) ([]byte, cop.Error) {

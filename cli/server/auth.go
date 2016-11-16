@@ -19,17 +19,13 @@ package server
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
+	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-cop/util"
-)
-
-const (
-	debug = true
 )
 
 // AuthHandler
@@ -38,6 +34,8 @@ type copAuthHandler struct {
 	token bool
 	next  http.Handler
 }
+
+var authError = cerr.NewBadRequest(errors.New("authorization failure"))
 
 // NewAuthWrapper is auth wrapper constructor
 // Only the "sign" and "enroll" URIs use basic auth for the enrollment secret
@@ -85,31 +83,34 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	log.Infof("Received request\n%s", util.HTTPRequestToString(r))
 	cfg := CFG
 	if !cfg.Authentication {
-		log.Debug("authentication is disabled")
+		log.Debug("Authentication is disabled")
 		return nil
 	}
 	authHdr := r.Header.Get("authorization")
 	if authHdr == "" {
-		log.Debug("no authorization header")
-		return errNoAuthHdr
+		log.Debug("No authorization header")
+		return authError
 	}
 	user, pwd, ok := r.BasicAuth()
 	if ok {
 		if !ah.basic {
-			log.Debugf("basic auth is not allowed; found %s", authHdr)
-			return errBasicAuthNotAllowed
+			log.Debugf("Basic auth is not allowed; found %s", authHdr)
+			return authError
 		}
 		if cfg.Users == nil {
-			return invalidUserPassErr("user '%s' not found: no users", user)
+			log.Debug("No users are defined")
+			return authError
 		}
 		user := cfg.Users[user]
 		if user == nil {
-			return invalidUserPassErr("user '%s' not found", user)
+			log.Debug("User not found")
+			return authError
 		}
 		if user.Pass != pwd {
-			return invalidUserPassErr("incorrect password for '%s'; received %s but expected %s", user, pwd, user.Pass)
+			log.Debug("Invalid password")
+			return authError
 		}
-		log.Debug("user/pass was correct")
+		log.Debug("User/pass was correct")
 		// TODO: Do the following
 		// 1) Check state of 'user' in DB.  Fail if user was found and already enrolled.
 		// 2) Update state of 'user' in DB as enrolled and return true.
@@ -118,24 +119,18 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	// Perform token verification
 	if ah.token {
 		body, err := ioutil.ReadAll(r.Body)
-		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 		if err != nil {
-			return err
+			return authError
 		}
-		return util.VerifyToken(authHdr, body)
+		r.Body = ioutil.NopCloser(bytes.NewReader(body))
+		err2 := util.VerifyToken(authHdr, body)
+		if err2 != nil {
+			return authError
+		}
 	}
 	return nil
 }
 
 func wrappedPath(path string) string {
 	return "/api/v1/cfssl/" + path
-}
-
-func invalidUserPassErr(format string, args ...interface{}) error {
-	msg := fmt.Sprintf(format, args)
-	log.Debug(msg)
-	if debug {
-		return errors.New(msg)
-	}
-	return errInvalidUserPass
 }

@@ -74,8 +74,9 @@ func (e *ErrorImpl) Code() int {
 
 // NewError constructor for COP errors
 func NewError(code int, format string, args ...interface{}) *ErrorImpl {
-	msg := fmt.Sprintf(format, args)
-	return &ErrorImpl{ErrorCode: code, Message: msg}
+	msg := fmt.Sprintf(format, args...)
+	err := &ErrorImpl{ErrorCode: code, Message: msg}
+	return err
 }
 
 // WrapError another COP error

@@ -22,6 +22,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,6 +90,7 @@ func TestAllClient(t *testing.T) {
 	testRegisterWithoutRegistrar(c, t)
 	testEnrollIncorrectPassword(c, t)
 	testEnroll(c, t)
+	testDoubleEnroll(c, t)
 }
 
 func testRegister(c idp.ClientAPI, t *testing.T) {
@@ -135,7 +138,10 @@ func testEnrollIncorrectPassword(c idp.ClientAPI, t *testing.T) {
 		Secret: "incorrect",
 	}
 
-	c.Enroll(req)
+	_, err := c.Enroll(req)
+	if err == nil {
+		t.Error("Enroll with incorrect password passed but should have failed")
+	}
 }
 
 func testEnroll(c idp.ClientAPI, t *testing.T) {
@@ -145,7 +151,36 @@ func testEnroll(c idp.ClientAPI, t *testing.T) {
 		Secret: "user1",
 	}
 
-	c.Enroll(req)
+	_, err := c.Enroll(req)
+	if err != nil {
+		t.Errorf("Enroll failed: %s", err)
+	}
+}
+
+func testDoubleEnroll(c idp.ClientAPI, t *testing.T) {
+
+	req := &idp.EnrollmentRequest{
+		Name:   "testUser",
+		Secret: "user1",
+	}
+
+	_, err := c.Enroll(req)
+	if err == nil {
+		t.Error("Double enroll should have failed but passed")
+	}
+
+	msg := err.Error()
+	parts := strings.Split(msg, ":")
+	if len(parts) < 2 {
+		t.Errorf("Invalid error message (%s); only %d parts", msg, len(parts))
+	}
+
+	code := parts[0]
+	_, err2 := strconv.Atoi(code)
+	if err2 != nil {
+		t.Errorf("Invalid error message (%s); %s is not an integer; %s", msg, code, err2.Error())
+	}
+
 }
 
 func TestDeserializeIdentity(t *testing.T) {

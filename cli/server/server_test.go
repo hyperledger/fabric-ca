@@ -123,7 +123,10 @@ func TestCreateHome(t *testing.T) {
 
 func TestEnroll(t *testing.T) {
 
-	e := NewEnrollUser()
+	e, err := NewEnrollUser()
+	if err != nil {
+		t.Errorf("NewEnrollUser failed: %s", err)
+	}
 	testUnregisteredUser(e, t)
 	testIncorrectToken(e, t)
 	testEnrollingUser(e, t)
