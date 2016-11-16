@@ -1,0 +1,13 @@
+{
+    "CN": "Transaction Certificate Authority",
+    "key": {
+        "algo": "ecdsa",
+        "size": 384
+    },
+    "names": [
+        {
+            "C": "US",
+            "O": "Hyperledger"
+        }
+    ]
+}

@@ -60,6 +60,7 @@ type Server struct {
 func Command() {
 	// The server commands
 	cmds := map[string]*cli.Command{
+		"init":  InitServerCommand,
 		"start": StartCommand,
 	}
 	// Set the authentication handler
