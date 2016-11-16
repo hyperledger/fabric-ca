@@ -128,7 +128,7 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			return authError
 		}
 		r.Body = ioutil.NopCloser(bytes.NewReader(body))
-		err2 := util.VerifyToken(authHdr, body)
+		_, err2 := util.VerifyToken(authHdr, body)
 		if err2 != nil {
 			return authError
 		}

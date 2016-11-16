@@ -22,10 +22,8 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/lib"
 
 	"github.com/hyperledger/fabric-cop/util"
 )
@@ -61,18 +59,6 @@ func registerMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
-	home := util.GetDefaultHomeDir()
-	identity, err := util.ReadFile(home + "/client.json")
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	id := new(lib.Identity)
-	err = util.Unmarshal(identity, id, "idp.Identity")
-	if err != nil {
-		log.Error(err)
-		return err
-	}
 
 	copServer, _, err := cli.PopFirstArgument(args)
 	if err != nil {
@@ -83,6 +69,8 @@ func registerMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
+
+	id, err := client.LoadMyIdentity()
 	regReq.Registrar = id
 	resp, err := client.Register(regReq)
 	if err != nil {
@@ -94,7 +82,7 @@ func registerMain(args []string, c cli.Config) error {
 		cop.WrapError(err, cop.EnrollingUserError, "Failed to decode string to bytes")
 	}
 
-	fmt.Printf("One time Password: %s\n", string(secretBytes))
+	fmt.Printf("One time password: %s\n", string(secretBytes))
 
 	return nil
 }

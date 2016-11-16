@@ -32,9 +32,9 @@ func TestECCreateToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreatToken failed: %s", err)
 	}
-	ECverified := VerifyToken(ECtoken, body)
-	if ECverified != nil {
-		t.Fatalf("VerifyToken failed: %s", ECverified)
+	_, err = VerifyToken(ECtoken, body)
+	if err != nil {
+		t.Fatalf("VerifyToken failed: %s", err)
 	}
 }
 
@@ -46,9 +46,9 @@ func TestRSACreateToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreatToken failed: %s", err)
 	}
-	RSAverified := VerifyToken(RSAtoken, body)
-	if RSAverified != nil {
-		t.Fatalf("VerifyToken failed: %s", RSAverified)
+	_, err = VerifyToken(RSAtoken, body)
+	if err != nil {
+		t.Fatalf("VerifyToken failed: %s", err)
 	}
 }
 
@@ -74,7 +74,7 @@ func TestCreateTokenDiffKey2(t *testing.T) {
 
 func TestEmptyToken(t *testing.T) {
 	body := []byte("request byte array")
-	err := VerifyToken("", body)
+	_, err := VerifyToken("", body)
 	if err == nil {
 		t.Fatalf("TestEmptyToken passed but should have failed")
 	}

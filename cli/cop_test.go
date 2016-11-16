@@ -24,11 +24,8 @@ import (
 	"time"
 
 	cop "github.com/hyperledger/fabric-cop/api"
-	cutil "github.com/hyperledger/fabric-cop/cli/client"
 	server "github.com/hyperledger/fabric-cop/cli/server"
 	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/util"
-	"github.com/jmoiron/sqlx"
 )
 
 type Admin struct {
@@ -60,101 +57,67 @@ const (
 	enrollPath = "/tmp/enrolltest"
 )
 
-func prepEnrollTest() *sqlx.DB {
-	if _, err := os.Stat(enrollPath); err != nil {
-		if os.IsNotExist(err) {
-			os.MkdirAll(enrollPath, 0755)
-		}
-	} else {
-		os.RemoveAll(enrollPath)
-		os.MkdirAll(enrollPath, 0755)
-	}
-	return nil
-}
-
 // Test the server start command
 func TestStartServer(t *testing.T) {
+	fmt.Println("running TestStartServer ...")
 	os.RemoveAll("/tmp/enrollTest")
 	rtn := startServer()
 	if rtn != 0 {
 		t.Errorf("Failed to start server with return code: %d", rtn)
 		t.FailNow()
 	}
-}
-
-func TestEnrollBootstrapUser(t *testing.T) {
-	client, err := cutil.NewClient("http://127.0.0.1:8888")
-	if err != nil {
-		t.Error("Failed to create client")
-	}
-
-	req := &idp.EnrollmentRequest{
-		Name:   Registrar.User,
-		Secret: string(Registrar.Pass),
-	}
-
-	ID, err := client.Enroll(req)
-	if err != nil {
-		t.Log("Error: ", err)
-		t.Error("Failed to enroll")
-	}
-	idByte, err := ID.Serialize()
-	if err != nil {
-		t.Log("Error: ", err)
-	}
-
-	home := util.GetDefaultHomeDir()
-	util.WriteFile(home+"/client.json", idByte, 0644)
-
+	fmt.Println("passed TestStartServer")
 }
 
 func TestRegister(t *testing.T) {
-	rtn := register(REG)
-	if rtn != 0 {
-		t.Errorf("Failed to register with return code: %d", rtn)
-	}
-
-}
-
-func TestRegisterAndEnrollUser(t *testing.T) {
+	fmt.Println("running TestRegister ...")
 	r := server.NewRegisterUser()
 	metaDataBytes, _ := json.Marshal(testEnroll.Attributes)
 	metaData := string(metaDataBytes)
 	// user.CallerID = Registrar.User
-	tok, err := r.RegisterUser(testEnroll.User, testEnroll.Type, testEnroll.Group, metaData, Registrar.User)
+	_, err := r.RegisterUser(testEnroll.User, testEnroll.Type, testEnroll.Group, metaData, Registrar.User)
 	if err != nil {
+		fmt.Printf("RegisterUser failed: %s\n", err)
 		t.Errorf("Failed to register user: %s, err: %s", testEnroll.User, err)
 	}
+	fmt.Println("passed TestRegister")
+}
 
-	rtn := enroll(testEnroll.User, tok)
+func TestEnroll(t *testing.T) {
+	fmt.Println("running TestEnroll ...")
+	rtn := enroll("admin", "adminpw")
 	if rtn != 0 {
+		fmt.Printf("enroll failed: rtn=%d\n", rtn)
 		t.Errorf("Failed to enroll with return code: %d", rtn)
 	}
-
+	fmt.Println("passed TestEnroll")
 }
 
-func TestClientCFSSL(t *testing.T) {
-	os.Setenv("COP_DEBUG", "true")
-	rtn := COPMain([]string{"cop", "cfssl", "version"})
+func TestReenroll(t *testing.T) {
+	fmt.Println("running TestReenroll ...")
+	rtn := reenroll()
 	if rtn != 0 {
-		t.Errorf("TestClientCFSSL failed: %d", rtn)
+		fmt.Printf("reenroll failed: rtn=%d\n", rtn)
+		t.Errorf("Failed to reenroll with return code: %d", rtn)
 	}
+	fmt.Println("passed TestReenroll")
 }
 
-func TestBogus(t *testing.T) {
+func TestCFSSL(t *testing.T) {
+	fmt.Println("running TestCFSSL ...")
+	rtn := cfssl()
+	if rtn != 0 {
+		fmt.Printf("TestCFSSL failed: rtn=%d\n", rtn)
+		t.Errorf("Failed to test CFSSL with return code: %d", rtn)
+	}
+	fmt.Println("passed TestCFSSL")
+}
+
+func TestBogusCommand(t *testing.T) {
 	rtn := COPMain([]string{"cop", "bogus"})
 	if rtn == 0 {
-		t.Error("TestBogus should have failed but did not")
+		t.Error("TestBogusCommand passed but should have failed")
 	}
-}
-
-func TestNoArg(t *testing.T) {
-	rtn := COPMain([]string{"cop"})
-	if rtn == 0 {
-		t.Error("TestNoArg should have failed but did not")
-	}
-
-	os.RemoveAll(enrollPath)
 }
 
 func startServer() int {
@@ -179,8 +142,22 @@ func runServer() {
 
 func enroll(user, pass string) int {
 	fmt.Printf("enrolling user '%s' with password '%s' ...\n", user, pass)
-	rtn := COPMain([]string{"cop", "client", "enroll", user, pass, "http://localhost:8888", CSR, "loglevel=0"})
+	rtn := COPMain([]string{"cop", "client", "enroll", user, pass, "http://localhost:8888", CSR})
 	fmt.Printf("enroll result is '%d'\n", rtn)
+	return rtn
+}
+
+func reenroll() int {
+	fmt.Println("reenrolling ...")
+	rtn := COPMain([]string{"cop", "client", "reenroll", "http://localhost:8888", CSR})
+	fmt.Printf("reenroll result is '%d'\n", rtn)
+	return rtn
+}
+
+func cfssl() int {
+	fmt.Println("cfssl ...")
+	rtn := COPMain([]string{"cop", "cfssl", "version"})
+	fmt.Printf("cfssl result is '%d'\n", rtn)
 	return rtn
 }
 

@@ -70,7 +70,7 @@ func runServer() {
 func TestRegisterUser(t *testing.T) {
 	startServer()
 
-	copServer := `{"serverAddr":"http://localhost:8888"}`
+	copServer := `{"serverURL":"http://localhost:8888"}`
 	c, _ := factory.NewClient(copServer)
 
 	req := &idp.RegistrationRequest{
@@ -91,7 +91,7 @@ func TestRegisterUser(t *testing.T) {
 }
 
 func TestEnrollUser(t *testing.T) {
-	copServer := `{"serverAddr":"http://localhost:8888"}`
+	copServer := `{"serverURL":"http://localhost:8888"}`
 	c, _ := factory.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -99,7 +99,21 @@ func TestEnrollUser(t *testing.T) {
 		Secret: "user1",
 	}
 
-	c.Enroll(req)
+	id, err := c.Enroll(req)
+	if err != nil {
+		t.Error("enroll of user 'testUser' with password 'user1' failed")
+		return
+	}
+
+	reenrollReq := &idp.ReenrollmentRequest{
+		ID: id,
+	}
+
+	_, err = c.Reenroll(reenrollReq)
+	if err != nil {
+		t.Error("reenroll of user 'testUser' failed")
+		return
+	}
 }
 
 func TestCreateHome(t *testing.T) {

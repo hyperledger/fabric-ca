@@ -26,6 +26,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -43,22 +45,30 @@ const (
 )
 
 // NewClient is the constructor for the COP client API
-func NewClient(config string) (idp.ClientAPI, error) {
-	if config == "" {
-		return nil, errors.New("NewClient requires a non-empty config argument")
-	}
+func NewClient(config string) (*Client, error) {
 	c := new(Client)
-	err := util.Unmarshal([]byte(config), c, "NewClient")
-	if err != nil {
-		return nil, err
+	// Set defaults
+	c.ServerURL = "http://localhost:8888"
+	c.HomeDir = util.GetDefaultHomeDir()
+	c.MyIDFile = "client.json"
+	if config != "" {
+		// Override any defaults
+		err := util.Unmarshal([]byte(config), c, "NewClient")
+		if err != nil {
+			return nil, err
+		}
 	}
 	return c, nil
 }
 
-// Client is COP's implementation of the idp.ClientAPI interface which is the
-// client-side of an identity provider (IDP)
+// Client is the COP client object
 type Client struct {
-	ServerAddr string `json:"serverAddr"`
+	// ServerURL is the URL of the server
+	ServerURL string `json:"serverURL,omitempty"`
+	// HomeDir is the home directory
+	HomeDir string `json:"homeDir,omitempty"`
+	// MyIDFIle is the name of ID file which gets loaded by LoadMyIdentity
+	MyIDFile string `json:"fileName,omitempty"`
 }
 
 // Capabilities returns the capabilities COP
@@ -78,6 +88,15 @@ func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationRespon
 	log.Debugf("Register %+v", req)
 	// Send a post to the "register" endpoint with req as body
 
+	if req.Name == "" {
+		return nil, errors.New("Register was called without a Name set")
+	}
+	if req.Group == "" {
+		return nil, errors.New("Register was called without a Group set")
+	}
+	if req.Registrar == nil {
+		return nil, errors.New("Register was called without a Registrar identity set")
+	}
 	var request cop.RegisterRequest
 	request.User = req.Name
 	request.Type = req.Type
@@ -85,13 +104,19 @@ func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationRespon
 	request.Attributes = req.Attributes
 	request.CallerID = req.Registrar.GetName()
 
-	newID := newIdentity(c, req.Registrar.GetName(), req.Registrar.(*Identity).getMyKey(), req.Registrar.(*Identity).getMyCert())
+	newID := newIdentity(c, req.Registrar.GetName(), req.Registrar.(*Identity).GetMyKey(), req.Registrar.(*Identity).GetMyCert())
 	req.Registrar = newID
 
-	buf, err := req.Registrar.(*Identity).post("register", request)
+	reqBody, err := util.Marshal(request, "RegistrationRequest")
 	if err != nil {
 		log.Error(err)
 		return nil, err
+	}
+
+	buf, err2 := req.Registrar.(*Identity).Post("register", reqBody)
+	if err2 != nil {
+		log.Error(err2)
+		return nil, err2
 	}
 
 	var response api.Response
@@ -99,28 +124,23 @@ func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationRespon
 	resp := new(idp.RegistrationResponse)
 	resp.Secret = response.Result.(string)
 
-	log.Debug("Register success")
+	log.Debug("The register request completely successfully")
 	return resp, nil
 }
 
 // Enroll enrolls a new identity
 // @param req The enrollment request
-func (c *Client) Enroll(req *idp.EnrollmentRequest) (idp.Identity, error) {
+func (c *Client) Enroll(req *idp.EnrollmentRequest) (*Identity, error) {
 	log.Debugf("Enrolling %+v", req)
 
-	cr := req.CR
-	if cr == nil {
-		cr = csr.New()
-		cr.CN = req.Name
-		cr.Hosts = req.Hosts
-	}
-
-	csrPEM, key, err := csr.ParseRequest(cr)
+	// Generate the CSR
+	csrPEM, key, err := c.GenCSR(req.CSR, req.Name)
 	if err != nil {
-		log.Debugf("enroll failure parsing request: %s", err)
+		log.Debugf("enroll failure generating CSR: %s", err)
 		return nil, err
 	}
 
+	// Send the CSR to the COP server
 	post, err := c.newPost("enroll", csrPEM)
 	if err != nil {
 		return nil, err
@@ -132,8 +152,45 @@ func (c *Client) Enroll(req *idp.EnrollmentRequest) (idp.Identity, error) {
 		return nil, err
 	}
 
+	// Create an identity from the key and certificate in the response
+	return c.newIdentityFromResponse(req.Name, cert, key)
+}
+
+// Reenroll reenrolls an existing Identity and returns a new Identity
+// @param req The reenrollment request
+func (c *Client) Reenroll(req *idp.ReenrollmentRequest) (*Identity, error) {
+	log.Debugf("Reenrolling %+v", req)
+
+	if req.ID == nil {
+		return nil, errors.New("ReenrollmentRequest.ID was not set")
+	}
+
+	id := req.ID.(*Identity)
+
+	csrPEM, key, err := c.GenCSR(req.CSR, id.GetName())
+	if err != nil {
+		log.Debugf("reenroll failure parsing request: %s", err)
+		return nil, err
+	}
+
+	cert, err := id.Post("reenroll", csrPEM)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+
+	return c.newIdentityFromResponse(id.GetName(), cert, key)
+}
+
+// newIdentityFromResponse returns an Identity for enroll and reenroll responses
+// @param id Name of identity being enrolled or reenrolled
+// @param cert The certificate which was issued
+// @param key The private key which was used to sign the request
+func (c *Client) newIdentityFromResponse(id string, cert, key []byte) (*Identity, error) {
+	log.Debugf("newIdentityFromResponse %s", id)
+
 	var resp api.Response
-	err = json.Unmarshal(cert, &resp)
+	err := json.Unmarshal(cert, &resp)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -142,17 +199,60 @@ func (c *Client) Enroll(req *idp.EnrollmentRequest) (idp.Identity, error) {
 	certByte, _ := base64.StdEncoding.DecodeString(resp.Result.(string))
 
 	if resp.Result != nil && resp.Success == true {
-		log.Debug("Enroll success")
-		return newIdentity(c, req.Name, key, certByte), nil
+		log.Debugf("newIdentityFromResponse success for %s", id)
+		return newIdentity(c, id, key, certByte), nil
 	}
 
-	return nil, cop.NewError(cop.EnrollingUserError, "Failed to enroll User")
+	return nil, cop.NewError(cop.EnrollingUserError, "Failed to reenroll user")
 }
 
 // RegisterAndEnroll registers and enrolls a new identity
 // @param req The registration request
-func (c *Client) RegisterAndEnroll(req *idp.RegistrationRequest) (idp.Identity, error) {
+func (c *Client) RegisterAndEnroll(req *idp.RegistrationRequest) (*Identity, error) {
 	return nil, errors.New("NotImplemented")
+}
+
+// GenCSR generates a CSR (Certificate Signing Request)
+func (c *Client) GenCSR(req *idp.CSRInfo, id string) ([]byte, []byte, error) {
+	log.Debugf("GenCSR %+v", req)
+
+	cr := c.newCertificateRequest(req)
+	cr.CN = id
+
+	csrPEM, key, err := csr.ParseRequest(cr)
+	if err != nil {
+		log.Debugf("failed generating CSR: %s", err)
+		return nil, nil, err
+	}
+
+	return csrPEM, key, nil
+}
+
+// newCertificateRequest creates a certificate request which is used to generate
+// a CSR (Certificate Signing Request)
+func (c *Client) newCertificateRequest(req *idp.CSRInfo) *csr.CertificateRequest {
+	cr := csr.CertificateRequest{}
+	if req != nil && req.Names != nil {
+		cr.Names = req.Names
+	}
+	if req != nil && req.Hosts != nil {
+		cr.Hosts = req.Hosts
+	} else {
+		// Default requested hosts are local hostname
+		hostname, _ := os.Hostname()
+		if hostname != "" {
+			cr.Hosts = make([]string, 1)
+			cr.Hosts[0] = hostname
+		}
+	}
+	if req != nil && req.KeyRequest != nil {
+		cr.KeyRequest = req.KeyRequest
+	}
+	if req != nil {
+		cr.CA = req.CA
+		cr.SerialNumber = req.SerialNumber
+	}
+	return &cr
 }
 
 // ImportSigner imports a signer from an external CA
@@ -161,10 +261,46 @@ func (c *Client) ImportSigner(req *idp.ImportSignerRequest) (idp.Signer, error) 
 	return nil, errors.New("NotImplemented")
 }
 
+// LoadMyIdentity loads the client's identity from disk
+func (c *Client) LoadMyIdentity() (*Identity, error) {
+	return c.LoadIdentity(c.GetMyIdentityFile())
+}
+
+// GetMyIdentityFile returns the path to this identity's ID file
+func (c *Client) GetMyIdentityFile() string {
+	return path.Join(c.HomeDir, c.MyIDFile)
+}
+
+// LoadIdentity loads an identity from a file on disk at path
+func (c *Client) LoadIdentity(path string) (*Identity, error) {
+	buf, err := util.ReadFile(path)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return c.DeserializeIdentity(buf)
+}
+
+// LoadCSRInfo reads CSR (Certificate Signing Request) from a file
+// @parameter path The path to the file contains CSR info in JSON format
+func (c *Client) LoadCSRInfo(path string) (*idp.CSRInfo, error) {
+	csrJSON, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var csrInfo idp.CSRInfo
+	err = util.Unmarshal(csrJSON, &csrInfo, "LoadCSRInfo")
+	if err != nil {
+		return nil, err
+	}
+	return &csrInfo, nil
+}
+
 // DeserializeIdentity deserializes an identity
-func (c *Client) DeserializeIdentity(buf []byte) (idp.Identity, error) {
+func (c *Client) DeserializeIdentity(buf []byte) (*Identity, error) {
 	id := new(Identity)
 	err := util.Unmarshal(buf, id, "Identity")
+	id.client = c
 	return id, err
 }
 
@@ -220,7 +356,7 @@ func (c *Client) sendPost(req *http.Request) (respBody []byte, err error) {
 }
 
 func (c *Client) getURL(endpoint string) (string, cop.Error) {
-	nurl, err := normalizeURL(c.ServerAddr)
+	nurl, err := normalizeURL(c.ServerURL)
 	if err != nil {
 		log.Debugf("error getting server URL: %s", err)
 		return "", cop.WrapError(err, cop.CFSSL, "error getting URL for %s", endpoint)

@@ -1,5 +1,4 @@
 {
- "authentication": false,
  "users": {
     "admin": {
       "pass": "adminpw",

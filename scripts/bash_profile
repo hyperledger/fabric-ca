@@ -160,6 +160,8 @@ function initvars {
    export REPO_DIR=$PROJECT_DIR/$REPO
 }
 
-function coverage {
+# Generate the coverage report
+function gencov {
+   cdr
    gocov test `go list ./... | grep -v "/vendor/"` | gocov-html > /tmp/coverage.html
 }

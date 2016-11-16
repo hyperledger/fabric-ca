@@ -16,12 +16,9 @@ limitations under the License.
 
 package client
 
-import (
-	cop "github.com/hyperledger/fabric-cop"
-	"github.com/hyperledger/fabric-cop/idp"
-)
+import "github.com/hyperledger/fabric-cop/lib"
 
-// NewClient returns a client given a serverAddr
-func NewClient(serverAddr string) (idp.ClientAPI, error) {
-	return cop.NewClient(`{"serverAddr":"` + serverAddr + `"}`)
+// NewClient returns a client given a url
+func NewClient(url string) (*lib.Client, error) {
+	return lib.NewClient(`{"serverURL":"` + url + `"}`)
 }

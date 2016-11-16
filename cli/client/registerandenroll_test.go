@@ -75,6 +75,18 @@ func TestEnrollCLI(t *testing.T) {
 
 }
 
+func TestReenrollCLI(t *testing.T) {
+	c := new(cli.Config)
+
+	args := []string{"http://localhost:8888"}
+
+	err := reenrollMain(args, *c)
+	if err != nil {
+		t.Error("Failed to reenroll, err: ", err)
+	}
+
+}
+
 func TestRegisterCLI(t *testing.T) {
 
 	// os.Setenv("COP_HOME", "../../testdata")
@@ -148,6 +160,19 @@ func TestEnrollCLIWithCSR(t *testing.T) {
 	err := enrollMain(args, *c)
 	if err != nil {
 		t.Error("Failed to enroll, err: ", err)
+	}
+
+}
+
+func TestReenrollCLIWithCSR(t *testing.T) {
+
+	c := new(cli.Config)
+
+	args := []string{"http://localhost:8888", "../../testdata/csr.json"}
+
+	err := reenrollMain(args, *c)
+	if err != nil {
+		t.Error("Failed to reenroll, err: ", err)
 	}
 
 	os.RemoveAll(clientPath)

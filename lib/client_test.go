@@ -71,7 +71,8 @@ func TestGetTCertBatch(t *testing.T) {
 */
 
 func prepTest() {
-	if _, err := os.Stat(HOME); err != nil {
+	_, err := os.Stat(HOME)
+	if err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(HOME, 0755)
 		}
@@ -91,11 +92,16 @@ func TestAllClient(t *testing.T) {
 	testEnrollIncorrectPassword(c, t)
 	testEnroll(c, t)
 	testDoubleEnroll(c, t)
+	testReenroll(c, t)
+	testLoadCSRInfo(c, t)
+	testLoadNoCSRInfo(c, t)
+	testLoadBadCSRInfo(c, t)
+	testCapabilities(c, t)
 }
 
-func testRegister(c idp.ClientAPI, t *testing.T) {
+func testRegister(c *Client, t *testing.T) {
 
-	identity, err := util.ReadFile("../testdata" + "/client.json")
+	identity, err := util.ReadFile("../testdata/client.json")
 	if err != nil {
 		t.Error(err)
 	}
@@ -106,24 +112,25 @@ func testRegister(c idp.ClientAPI, t *testing.T) {
 	}
 
 	req := &idp.RegistrationRequest{
-		Name: "TestUser",
-		Type: "Client",
+		Name:  "TestUser",
+		Type:  "Client",
+		Group: "bank_a",
 	}
 
 	req.Registrar = id
 
-	c.Register(req)
+	_, err2 := c.Register(req)
+	if err2 != nil {
+		t.Errorf("Register failed: %s", err2)
+	}
 }
 
-func testRegisterWithoutRegistrar(c idp.ClientAPI, t *testing.T) {
+func testRegisterWithoutRegistrar(c *Client, t *testing.T) {
 
 	req := &idp.RegistrationRequest{
 		Name: "TestUser",
 		Type: "Client",
 	}
-
-	id := newIdentity(nil, "test", nil, nil)
-	req.Registrar = id
 
 	_, err := c.Register(req)
 	if err == nil {
@@ -131,7 +138,7 @@ func testRegisterWithoutRegistrar(c idp.ClientAPI, t *testing.T) {
 	}
 }
 
-func testEnrollIncorrectPassword(c idp.ClientAPI, t *testing.T) {
+func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 
 	req := &idp.EnrollmentRequest{
 		Name:   "testUser",
@@ -144,20 +151,26 @@ func testEnrollIncorrectPassword(c idp.ClientAPI, t *testing.T) {
 	}
 }
 
-func testEnroll(c idp.ClientAPI, t *testing.T) {
+func testEnroll(c *Client, t *testing.T) {
 
 	req := &idp.EnrollmentRequest{
 		Name:   "testUser",
 		Secret: "user1",
 	}
 
-	_, err := c.Enroll(req)
+	id, err := c.Enroll(req)
 	if err != nil {
 		t.Errorf("Enroll failed: %s", err)
 	}
+
+	err = id.Store()
+	if err != nil {
+		t.Errorf("testEnroll: store failed: %s", err)
+	}
+
 }
 
-func testDoubleEnroll(c idp.ClientAPI, t *testing.T) {
+func testDoubleEnroll(c *Client, t *testing.T) {
 
 	req := &idp.EnrollmentRequest{
 		Name:   "testUser",
@@ -183,8 +196,53 @@ func testDoubleEnroll(c idp.ClientAPI, t *testing.T) {
 
 }
 
+func testReenroll(c *Client, t *testing.T) {
+	id, err := c.LoadMyIdentity()
+	if err != nil {
+		t.Errorf("testReenroll: failed LoadMyIdentity: %s", err)
+		return
+	}
+	id, err = c.Reenroll(&idp.ReenrollmentRequest{ID: id})
+	if err != nil {
+		t.Errorf("testReenroll: failed reenroll: %s", err)
+		return
+	}
+	err = id.Store()
+	if err != nil {
+		t.Errorf("testReenroll: failed Store: %s", err)
+	}
+}
+
+func testLoadCSRInfo(c *Client, t *testing.T) {
+	_, err := c.LoadCSRInfo("../testdata/csr.json")
+	if err != nil {
+		t.Errorf("testLoadCSRInfo failed: %s", err)
+	}
+}
+
+func testLoadNoCSRInfo(c *Client, t *testing.T) {
+	_, err := c.LoadCSRInfo("nofile")
+	if err == nil {
+		t.Error("testLoadNoCSRInfo passed but should have failed")
+	}
+}
+
+func testLoadBadCSRInfo(c *Client, t *testing.T) {
+	_, err := c.LoadCSRInfo("../testdata/config.json")
+	if err == nil {
+		t.Error("testLoadBadCSRInfo passed but should have failed")
+	}
+}
+
+func testCapabilities(c *Client, t *testing.T) {
+	caps := c.Capabilities()
+	if caps == nil {
+		t.Error("testCapabilities failed")
+	}
+}
+
 func TestDeserializeIdentity(t *testing.T) {
-	config := `{"serverAddr":"http://localhost:8888"}`
+	config := `{"serverURL":"http://localhost:8888"}`
 	c, err := NewClient(config)
 	if err != nil {
 		t.Error("Failed to create client object")
@@ -212,13 +270,12 @@ func TestSendBadPost(t *testing.T) {
 	}
 }
 
-func getClient() idp.ClientAPI {
-	copServer := `{"serverAddr":"http://localhost:8888"}`
+func getClient() *Client {
+	copServer := `{"serverURL":"http://localhost:8888"}`
 	c, err := NewClient(copServer)
 	if err != nil {
-		log.Errorf("Error occured: %s", err)
+		log.Errorf("getClient failed: %s", err)
 	}
-
 	return c
 }
 

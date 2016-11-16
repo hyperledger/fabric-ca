@@ -23,6 +23,7 @@ import (
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/serve"
+	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 )
@@ -68,6 +69,8 @@ func Command() {
 	serve.SetEndpoint("register", NewRegisterHandler)
 	// Add the "enroll" route/endpoint
 	serve.SetEndpoint("enroll", NewEnrollHandler)
+	// Add the "reenroll" route/endpoint
+	serve.SetEndpoint("reenroll", NewReenrollHandler)
 
 	// If the CLI returns an error, exit with an appropriate status code.
 	err := cli.Start(cmds)
@@ -140,6 +143,16 @@ func startMain(args []string, c cli.Config) error {
 	cfg.DB = db
 	cfg.DBAccessor = NewDBAccessor()
 	cfg.DBAccessor.SetDB(db)
+
+	var cfsslCfg cli.Config
+	cfsslCfg.CAFile = cfg.CACert
+	cfsslCfg.CAKeyFile = cfg.CAKey
+	mySigner, err := sign.SignerFromConfigAndDB(cfsslCfg, db)
+	if err != nil {
+		log.Errorf("SignerFromConfigAndDB error: %s", err)
+		return cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfigAndDB")
+	}
+	cfg.Signer = mySigner
 
 	s.BootstrapDB(cfg)
 

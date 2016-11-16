@@ -1,5 +1,4 @@
 {
- "authentication": true,
  "driver":"sqlite3",
  "data_source":"cop.db",
  "users": {
@@ -23,6 +22,12 @@
     },
     "testUser2": {
       "pass": "user2",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": []
+    },
+    "testUser3": {
+      "pass": "user3",
       "type": "client",
       "group": "bank_a",
       "attrs": []

@@ -166,12 +166,26 @@ type EnrollmentRequest struct {
 	Name string `json:"name"`
 	// The secret returned via Register
 	Secret string `json:"secret,omitempty"`
-	// The hosts
-	Hosts []string `json:"hosts,omitempty"`
-	// The certificate request
-	CR *csr.CertificateRequest `json:"cr,omitempty"`
-	// The attributes to include in the enrollment certificate (optional)
-	Attributes []Attribute `json:"attrs,omitempty"`
+	// CSR is Certificate Signing Request info
+	CSR *CSRInfo `json:"csr,omitempty"`
+}
+
+// ReenrollmentRequest is a request to enroll an identity
+type ReenrollmentRequest struct {
+	// The identity being reenrolled
+	ID Identity `json:"id"`
+	// CSR is Certificate Signing Request info
+	CSR *CSRInfo `json:"csr,omitempty"`
+}
+
+// CSRInfo is Certificate Signing Request information
+type CSRInfo struct {
+	CN           string               `json:"CN"`
+	Names        []csr.Name           `json:"names,omitempty"`
+	Hosts        []string             `json:"hosts,omitempty"`
+	KeyRequest   *csr.BasicKeyRequest `json:"key,omitempty"`
+	CA           *csr.CAConfig        `json:"ca,omitempty"`
+	SerialNumber string               `json:"serialnumber,omitempty"`
 }
 
 // ImportSignerRequest is required when importing a signer from an external CA

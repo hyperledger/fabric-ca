@@ -28,7 +28,7 @@ func TestNewClient(t *testing.T) {
 
 // TestNewClient tests constructing a client
 func TestNewClientBadConfig(t *testing.T) {
-	_, err := NewClient("")
+	_, err := NewClient("foobar")
 	if err == nil {
 		t.Error("TestNewClientBadConfig did not fail but should have")
 	}

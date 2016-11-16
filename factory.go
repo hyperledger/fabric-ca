@@ -21,13 +21,10 @@ limitations under the License.
 
 package cop
 
-import (
-	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/lib"
-)
+import "github.com/hyperledger/fabric-cop/lib"
 
 // NewClient creates a COP client
-func NewClient(config string) (idp.ClientAPI, error) {
+func NewClient(config string) (*lib.Client, error) {
 	return lib.NewClient(config)
 }
 

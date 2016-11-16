@@ -118,9 +118,23 @@ The following command gets an ecert for the admin user.
 
 ```
 # cd $COP/bin
-# ./cop client enroll admin adminpw ../testdata/csr.json http://localhost:8888
+# ./cop client enroll admin adminpw http://localhost:8888
 ```
 
+The enrollment material is stored in the `$COP_HOME/client.json` file.
+
+### Reenroll the admin client
+
+The following command renews the enrollment certificate of a client.
+
+```
+# cd $COP/bin
+# ./cop client reenroll http://localhost:8888
+```
+
+Note that this updates the enrollment material in the `$COP_HOME/client.json` file.
+
+### Run the cop tests
 
 ### Register a new user
 

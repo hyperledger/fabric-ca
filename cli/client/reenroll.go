@@ -25,44 +25,26 @@ import (
 	"github.com/hyperledger/fabric-cop/idp"
 )
 
-var enrollUsageText = `cop client enroll -- Enroll with COP server
+var reenrollUsageText = `cop client reenroll -- Reenroll with COP server
 
 Usage of client enroll command:
-    Enroll a client and get an ecert:
-        cop client enroll ID SECRET COP-SERVER-ADDR
+   cop client reenroll COP-SERVER-ADDR
 
 Arguments:
-        ID:               Enrollment ID
-        SECRET:           Enrollment secret returned by register
         COP-SERVER-ADDR:  COP server address
-	CSRJSON:          Certificate Signing Request JSON information (Optional)
+		  CSRJSON:          Certificate Signing Request JSON information (Optional)
 
 Flags:
 `
 
-var enrollFlags = []string{}
+var reenrollFlags = []string{}
 
-func enrollMain(args []string, c cli.Config) error {
-	log.Debug("Entering cli/client/enrollMain")
-
-	id, args, err := cli.PopFirstArgument(args)
-	if err != nil {
-		return err
-	}
-
-	secret, args, err := cli.PopFirstArgument(args)
-	if err != nil {
-		return err
-	}
+func reenrollMain(args []string, c cli.Config) error {
+	log.Debug("Entering cli/client/reenrollMain")
 
 	copServer, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
-	}
-
-	req := &idp.EnrollmentRequest{
-		Name:   id,
-		Secret: secret,
 	}
 
 	client, err := NewClient(copServer)
@@ -70,7 +52,13 @@ func enrollMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	// Read the CSR JSON file if provided
+	id, err := client.LoadMyIdentity()
+	if err != nil {
+		return fmt.Errorf("Client is not yet enrolled: %s", err)
+	}
+
+	req := &idp.ReenrollmentRequest{ID: id}
+
 	if len(args) > 0 {
 		path, _, err2 := cli.PopFirstArgument(args)
 		if err2 != nil {
@@ -82,14 +70,14 @@ func enrollMain(args []string, c cli.Config) error {
 		}
 	}
 
-	ID, err := client.Enroll(req)
-	if err != nil {
-		return err
-	}
-
-	err = ID.Store()
+	newID, err := client.Reenroll(req)
 	if err != nil {
 		return fmt.Errorf("failed to store enrollment information: %s", err)
+	}
+
+	err = newID.Store()
+	if err != nil {
+		return err
 	}
 
 	log.Infof("enrollment information was successfully stored in %s", client.GetMyIdentityFile())
@@ -97,5 +85,5 @@ func enrollMain(args []string, c cli.Config) error {
 	return nil
 }
 
-// EnrollCommand is the enroll command
-var EnrollCommand = &cli.Command{UsageText: enrollUsageText, Flags: enrollFlags, Main: enrollMain}
+// ReenrollCommand is the enroll command
+var ReenrollCommand = &cli.Command{UsageText: reenrollUsageText, Flags: reenrollFlags, Main: reenrollMain}

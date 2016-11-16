@@ -66,21 +66,39 @@ func (i *Identity) Delete() error {
 	return errors.New("NotImplemented")
 }
 
-// Serialize an identity
+// Store write my identity info to my identity file
+func (i *Identity) Store() error {
+	return i.StorePath(i.client.GetMyIdentityFile())
+}
+
+// StorePath stores my identity info to a file located at path
+func (i *Identity) StorePath(path string) error {
+	idByte, err := i.Serialize()
+	if err != nil {
+		return err
+	}
+	err = util.WriteFile(path, idByte, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Serialize this identity
 func (i *Identity) Serialize() ([]byte, error) {
 	return util.Marshal(i, "identity")
 }
 
-func (i *Identity) post(endpoint string, reqBody interface{}) ([]byte, error) {
-	reqBodyBytes, cerr := util.Marshal(reqBody, endpoint)
-	if cerr != nil {
-		return nil, cerr
-	}
-	req, err := i.client.newPost(endpoint, reqBodyBytes)
+// Post sends arbtrary request body (reqBody) to an endpoint.
+// This adds an authorization header which contains the signature
+// of this identity over the body and non-signature part of the authorization header.
+// The return value is the body of the response.
+func (i *Identity) Post(endpoint string, reqBody []byte) ([]byte, error) {
+	req, err := i.client.newPost(endpoint, reqBody)
 	if err != nil {
 		return nil, err
 	}
-	err = i.addTokenAuthHdr(req, reqBodyBytes)
+	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +107,8 @@ func (i *Identity) post(endpoint string, reqBody interface{}) ([]byte, error) {
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("addTokenAuthHdr begin")
-	cert := i.getMyCert()
-	key := i.getMyKey() // TODO: Will change for BCCSP since we can't see key
+	cert := i.GetMyCert()
+	key := i.GetMyKey() // TODO: Will change for BCCSP since we can't see key
 	if cert == nil || key == nil {
 		return cop.NewError(cop.AuthorizationError, "Failed to set authorization header token")
 	}
@@ -104,10 +122,12 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	return nil
 }
 
-func (i *Identity) getMyCert() []byte {
+// GetMyCert returns the PEM-encoded cert
+func (i *Identity) GetMyCert() []byte {
 	return i.PublicSigner.GetMyCert()
 }
 
-func (i *Identity) getMyKey() []byte {
+// GetMyKey returns the PEM-encoded key
+func (i *Identity) GetMyKey() []byte {
 	return i.PublicSigner.getMyKey()
 }

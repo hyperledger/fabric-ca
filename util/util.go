@@ -164,27 +164,26 @@ func DERCertToPEM(der []byte) []byte {
 func CreateToken(cert []byte, key []byte, body []byte) (string, error) {
 	block, _ := pem.Decode(cert)
 	if block == nil {
-		return "Failed to generate token", errors.New("Error in decoding x509 cert given PEM-encoded cert")
+		return "", errors.New("Failed to PEM decode certificate")
 	}
 	x509Cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return "Failed to generate token", errors.New("Error in parsing x509 cert given Block Bytes")
+		return "", fmt.Errorf("Error from x509.ParseCertificate: %s", err)
 	}
 	publicKey := x509Cert.PublicKey
 
 	var token string
-	var tokenerr error
 
 	switch publicKey.(type) {
 	case *rsa.PublicKey:
-		token, tokenerr = GenRSAToken(cert, key, body)
-		if tokenerr != nil {
-			return "Failed to generate token", errors.New(tokenerr.Error())
+		token, err = GenRSAToken(cert, key, body)
+		if err != nil {
+			return "", err
 		}
 	case *ecdsa.PublicKey:
-		token, tokenerr = GenECDSAToken(cert, key, body)
-		if tokenerr != nil {
-			return "Failed to generate token", errors.New(tokenerr.Error())
+		token, err = GenECDSAToken(cert, key, body)
+		if err != nil {
+			return "", err
 		}
 	}
 	return token, nil
@@ -194,7 +193,7 @@ func CreateToken(cert []byte, key []byte, body []byte) (string, error) {
 func GenRSAToken(cert []byte, key []byte, body []byte) (string, error) {
 	privKey, err := GetRSAPrivateKey(key)
 	if err != nil {
-		return "Failed to generate RSA token", errors.New("Expecting RSA private key from PEM-encoded key to verify x509 cert: " + err.Error())
+		return "", err
 	}
 	b64body := B64Encode(body)
 	b64cert := B64Encode(cert)
@@ -202,9 +201,9 @@ func GenRSAToken(cert []byte, key []byte, body []byte) (string, error) {
 	hash := sha512.New384()
 	hash.Write([]byte(bodyAndcert))
 	h := hash.Sum(nil)
-	RSAsignature, signerr := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA384, h[:])
-	if signerr != nil {
-		return "Error in RSA signing", errors.New("rsa.SignPKCS1v15 failed to generate signature: " + signerr.Error())
+	RSAsignature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA384, h[:])
+	if err != nil {
+		return "", fmt.Errorf("Error from rsa.SignPKCS1v15: %s", err)
 	}
 	b64sig := B64Encode(RSAsignature)
 	token := b64cert + "." + b64sig
@@ -216,7 +215,7 @@ func GenRSAToken(cert []byte, key []byte, body []byte) (string, error) {
 func GenECDSAToken(cert []byte, key []byte, body []byte) (string, error) {
 	privKey, err := GetECPrivateKey(key)
 	if err != nil {
-		return "Failed to generate ECDSA token", errors.New("Expecting EC private key from PEM-encoded key to verify x509 cert: " + err.Error())
+		return "", err
 	}
 	b64body := B64Encode(body)
 	b64cert := B64Encode(cert)
@@ -224,13 +223,13 @@ func GenECDSAToken(cert []byte, key []byte, body []byte) (string, error) {
 	hash := sha512.New384()
 	hash.Write([]byte(bodyAndcert))
 	h := hash.Sum(nil)
-	r, s, signerr := ecdsa.Sign(rand.Reader, privKey, h)
-	if signerr != nil {
-		return "Error in ECDSA signing", errors.New("ecdsa.Sign failed to generate values R and S")
+	r, s, err := ecdsa.Sign(rand.Reader, privKey, h)
+	if err != nil {
+		return "", fmt.Errorf("Failed in ecdsa.Sign: %s", err)
 	}
-	ECsignature, marshalerr := asn1.Marshal(ECDSASignature{r, s})
-	if marshalerr != nil {
-		return "Error in generating EC signature", errors.New("asn1.Marshal failed to marshal R and S")
+	ECsignature, err := asn1.Marshal(ECDSASignature{r, s})
+	if err != nil {
+		return "", fmt.Errorf("Failed in asn1.Marshal: %s", err)
 	}
 	b64sig := B64Encode(ECsignature)
 	token := b64cert + "." + b64sig
@@ -239,34 +238,35 @@ func GenECDSAToken(cert []byte, key []byte, body []byte) (string, error) {
 
 }
 
-//VerifyToken verifies token signed by either ECDSA or RSA
-func VerifyToken(token string, body []byte) error {
+// VerifyToken verifies token signed by either ECDSA or RSA and
+// returns the associated user ID
+func VerifyToken(token string, body []byte) (string, error) {
 	if token == "" {
-		return errors.New("Token cannot be an empty string")
+		return "", errors.New("Failed to verify token because it is the empty string")
 	}
 	parts := strings.Split(token, ".")
 	if len(parts) != 2 {
-		return errors.New("Invalid token format; expecting 2 parts separated by '.'")
+		return "", errors.New("Invalid token format; expecting 2 parts separated by '.'")
 	}
 	b64Body := B64Encode(body)
 	b64cert := parts[0]
 	b64sig, err := B64Decode(parts[1])
 	if err != nil {
-		return errors.New("Failed to decode base64 encoded signature")
+		return "", fmt.Errorf("Failed to decode base64 encoded signature: %s", err)
 	}
 	certDecoded, err := B64Decode(b64cert)
 	if err != nil {
-		return errors.New("Failed to decode base64 encoded x509 cert")
+		return "", fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
 	}
 	sigString := b64Body + "." + b64cert
 
 	block, _ := pem.Decode(certDecoded)
 	if block == nil {
-		return errors.New("Error in creating cert block")
+		return "", errors.New("Failed to PEM decode the certificate")
 	}
 	x509Cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return errors.New("Error in parsing x509 cert given Block Bytes")
+		return "", fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
 	}
 	publicKey := x509Cert.PublicKey
 	hash := sha512.New384()
@@ -276,19 +276,21 @@ func VerifyToken(token string, body []byte) error {
 	switch publicKey.(type) {
 	case *rsa.PublicKey:
 		err := rsa.VerifyPKCS1v15(publicKey.(*rsa.PublicKey), crypto.SHA384, h[:], b64sig)
-		return err
+		if err != nil {
+			return "", err
+		}
 	case *ecdsa.PublicKey:
 		ecdsaSignature := new(ECDSASignature)
 		_, err := asn1.Unmarshal(b64sig, ecdsaSignature)
 		if err != nil {
-			return errors.New("Failed to unmarshal EC signature to R and S")
+			return "", fmt.Errorf("Failed to unmarshal EC signature to R and S: %s", err)
 		}
 		verified := ecdsa.Verify(publicKey.(*ecdsa.PublicKey), h, ecdsaSignature.R, ecdsaSignature.S)
-		if verified == true {
-			return nil
+		if !verified {
+			return "", errors.New("token verification failed (ecdsa.Verify failed)")
 		}
 	}
-	return errors.New("Token verification failed")
+	return x509Cert.Subject.CommonName, nil
 }
 
 //GetECPrivateKey get *ecdsa.PrivateKey from key pem
@@ -299,7 +301,7 @@ func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
 	}
 	ECprivKey, err := x509.ParseECPrivateKey(decoded.Bytes)
 	if err != nil {
-		return nil, errors.New("Error in parsing EC PKCS1 PrivateKey")
+		return nil, fmt.Errorf("x509.ParseECPrivateKey failed: %s", err)
 	}
 	return ECprivKey, nil
 }
@@ -312,7 +314,7 @@ func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	}
 	RSAprivKey, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
 	if err != nil {
-		return nil, errors.New("Error in parsing RSA PKCS1 PrivateKey")
+		return nil, fmt.Errorf("Failure in x509.ParsePKCS1PrivateKey: %s", err)
 	}
 	return RSAprivKey, nil
 }

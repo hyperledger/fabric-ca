@@ -29,7 +29,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/util"
 )
 
 // enrollHandler for register requests
@@ -105,23 +104,23 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 
 		cert, signErr := e.signKey(csrPEM)
 		if signErr != nil {
-			log.Error("Failed to sign CSR")
+			log.Errorf("Failed to sign CSR: %s", signErr)
 			return nil, signErr
 		}
 
-		tok := util.RandomString(12)
-
 		updateState := cop.UserRecord{
 			ID:       user.ID,
-			Token:    tok,
+			Token:    "",
 			Metadata: user.Metadata,
 			State:    1,
 		}
 
 		err = e.cfg.DBAccessor.UpdateUser(updateState)
 		if err != nil {
-			return nil, cop.WrapError(err, cop.EnrollingUserError, "Failed to updates user state")
+			return nil, cop.WrapError(err, cop.EnrollingUserError, "Failed to update user state")
 		}
+
+		log.Debugf("Successfully enrolled user %s\n", id)
 
 		return cert, nil
 	}
