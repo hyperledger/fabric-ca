@@ -2,3 +2,4 @@ bin
 cli/cop/cop
 *.csr
 *.der
+coverage.xml

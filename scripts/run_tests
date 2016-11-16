@@ -2,10 +2,14 @@
 
 echo "Running all tests ..."
 {
+
+go get github.com/axw/gocov/...
+go get github.com/AlekSi/gocov-xml
+
 for file in `find . | egrep -v "vendor|.git|bin|scripts|testdata|idp"`
 do
   if [ -d $file ]; then
-     go test $file -cover 
+     gocov test $file | gocov-xml > coverage.xml
   fi
 done
 } | tee /tmp/test.results
