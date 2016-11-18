@@ -133,7 +133,7 @@ func (d *Accessor) InsertUser(user cop.UserRecord) error {
 		return cop.NewError(cop.UserStoreError, msg)
 	}
 
-	log.Debug("User inserted into database successfully")
+	log.Debugf("User %s inserted into database successfully", user.ID)
 	return nil
 
 }

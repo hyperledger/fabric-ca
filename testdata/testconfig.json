@@ -10,6 +10,14 @@
                 {"name":"hf.Registrar.DelegateRoles", "value": "client"},
                 {"name":"hf.Revoker", "value": "true"}]
     },
+    "admin2": {
+      "pass": "adminpw2",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"},
+                {"name":"hf.Registrar.DelegateRoles", "value": "client"},
+                {"name":"hf.Revoker", "value": "true"}]
+    },
     "revoker": {
       "pass": "revokerpw",
       "type": "client",

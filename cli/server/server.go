@@ -134,8 +134,13 @@ func (s *Server) CreateHome() (string, error) {
 }
 
 // BootstrapDB loads the database based on config file
-func (s *Server) BootstrapDB(cfg *Config) error {
-	log.Debug("Entering BootstrapDB ...")
+func (s *Server) BootstrapDB(db *sqlx.DB) error {
+	log.Debug("Bootstrap DB")
+
+	CFG.DB = db
+	CFG.DBAccessor = NewDBAccessor()
+	CFG.DBAccessor.SetDB(db)
+
 	b := BootstrapDB()
 	b.PopulateGroupsTable()
 	b.PopulateUsersTable()
@@ -184,7 +189,7 @@ func startMain(args []string, c cli.Config) error {
 	}
 	cfg.Signer = mySigner
 
-	s.BootstrapDB(cfg)
+	s.BootstrapDB(db)
 
 	return serverMain(args, c)
 }

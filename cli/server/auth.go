@@ -100,10 +100,6 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			log.Debugf("Basic auth is not allowed; found %s", authHdr)
 			return authError
 		}
-		if cfg.Users == nil {
-			log.Debug("No users are defined")
-			return authError
-		}
 		userRecord, err := cfg.DBAccessor.GetUser(user)
 		if err != nil {
 			log.Errorf("Failed to get user [error: %s]", err)

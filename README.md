@@ -138,10 +138,19 @@ Note that this updates the enrollment material in the `$COP_HOME/client.json` fi
 
 ### Register a new user
 
-Create a JSON file as defined below for the user being registered.
+The user performing the register request must be currently enrolled, and also this registrar must have the proper authority to register the type of user being registered. The registrar must have been enrolled with attribute "hf.Registrar.DelegateRoles". The DelegateRoles attribute specifies the types this registrar is allowed to register.
+
+For example, the attributes for a registrar might look like this:
 
 ```
-registerRequest.json:
+"attrs": [{"name":"hf.Registrar.DelegateRoles", "value":"client,user"}]
+
+```
+
+The registrar should then create a JSON file as defined below for the user being registered.
+
+registerrequest.json:
+```
 {
   "id": "User1",
   "type": "client",
@@ -153,10 +162,52 @@ registerRequest.json:
 The following command will register the user.
 ```
 # cd $COP/bin
-# ./cop client register ../testdata/registerRequest.json http://localhost:8888
+# ./cop client register ../testdata/registerrequest.json http://localhost:8888
 ```
 
-### Run the COP tests
+### Setting up a cluster
+
+#### Postgres
+
+Set up a proxy server. Haproxy is used in this example. Below is a basic configuration file that can be used to get haproxy up and running. Change hostname and port to reflect the settings of your COP servers.
+
+haproxy.conf
+
+```
+global
+      maxconn 4096
+      daemon
+
+defaults
+      mode http
+      maxconn 2000
+      timeout connect 5000
+      timeout client 50000
+      timeout server 50000
+
+listen http-in
+      bind *:8888
+      balance roundrobin
+      server server1 <hostname:port>
+      server server2 <hostname:port>
+      server server3 <hostname:port>
+```
+
+When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present:
+
+cop.json
+```
+...
+"driver":"postgres",
+"data_source":"host=localhost port=5432 user=Username password=Password dbname=cop sslmode=disable",
+...
+```
+
+Change "host" and "dbname" to reflect where your database is located and the database you would like to connect to. Default port is used if none is specified. Enter username and password for a user that has permission to connect to the database.
+
+Once your proxy, COP servers, and Postgres server are all running you can have your client direct traffic to the proxy server which will load balance and direct traffic to the appropriate COP server which will read/write from the Postgres database.  
+
+### Run the cop tests
 
 To run the COP test, do the following.
 

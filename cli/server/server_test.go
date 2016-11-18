@@ -68,27 +68,57 @@ func runServer() {
 	Start("../../testdata")
 }
 
+func TestPostgresFail(t *testing.T) {
+	cfg := new(Config)
+	cfg.DataSource = "dbname=cop sslmode=disable"
+	_, err := postgres(cfg)
+	if err == nil {
+		t.Error("No postgres server running, this should have failed")
+	}
+}
+
 func TestRegisterUser(t *testing.T) {
 	startServer()
 
 	copServer := `{"serverURL":"http://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
-	req := &idp.RegistrationRequest{
-		Name: "TestUser1",
-		Type: "Client",
+	regReq := &idp.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	}
+
+	ID, err := c.Enroll(regReq)
+	if err != nil {
+		t.Error("enroll of user 'admin' with password 'adminpw' failed")
+		return
+	}
+
+	err = ID.Store()
+	if err != nil {
+		t.Errorf("failed to store enrollment information: %s", err)
+		return
+	}
+
+	enrollReq := &idp.RegistrationRequest{
+		Name:  "TestUser1",
+		Type:  "Client",
+		Group: "bank_a",
 	}
 
 	id, _ := factory.NewIdentity()
-	identity, err := ioutil.ReadFile("../../testdata/client.json")
+	identity, err := ioutil.ReadFile("/tmp/home/client.json")
 	if err != nil {
 		t.Error(err)
 	}
 	util.Unmarshal(identity, id, "identity")
 
-	req.Registrar = id
+	enrollReq.Registrar = id
 
-	c.Register(req)
+	_, err = c.Register(enrollReq)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestEnrollUser(t *testing.T) {
@@ -128,19 +158,19 @@ func TestRevoke(t *testing.T) {
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
-		Name:   "admin",
-		Secret: "adminpw",
+		Name:   "admin2",
+		Secret: "adminpw2",
 	}
 
 	id, err := c.Enroll(req)
 	if err != nil {
-		t.Error("enroll of user 'admin' with password 'adminpw' failed")
+		t.Error("enroll of user 'admin2' with password 'adminpw2' failed")
 		return
 	}
 
 	err = id.RevokeSelf()
 	if err != nil {
-		t.Error("revoke of user 'admin' failed")
+		t.Error("revoke of user 'admin2' failed")
 		return
 	}
 
@@ -164,6 +194,7 @@ func TestRevoke(t *testing.T) {
 func TestCreateHome(t *testing.T) {
 	s := createServer()
 	t.Log("Test Creating Home Directory")
+	os.Unsetenv("COP_HOME")
 	os.Setenv("HOME", "/tmp/test")
 
 	_, err := s.CreateHome()
@@ -181,13 +212,13 @@ func TestCreateHome(t *testing.T) {
 }
 
 func TestEnroll(t *testing.T) {
-
 	e := NewEnrollUser()
 
 	testUnregisteredUser(e, t)
 	testIncorrectToken(e, t)
 	testEnrollingUser(e, t)
 
+	os.RemoveAll(homeDir)
 }
 
 func testUnregisteredUser(e *Enroll, t *testing.T) {
@@ -213,6 +244,4 @@ func testEnrollingUser(e *Enroll, t *testing.T) {
 	if err != nil {
 		t.Error("Failed to enroll user")
 	}
-
-	os.RemoveAll(homeDir)
 }

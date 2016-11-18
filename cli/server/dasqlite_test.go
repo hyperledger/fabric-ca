@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -58,8 +57,8 @@ func TestSQLite(t *testing.T) {
 	var cfg Config
 	cfg.DBdriver = "sqlite3"
 	cfg.DataSource = dbPath + "/cop.db"
-	fmt.Println("cfg: ", cfg)
 	db, err := GetDB(&cfg)
+
 	if err != nil {
 		t.Error(err)
 	}
