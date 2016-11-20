@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -38,7 +39,7 @@ Arguments:
         ID:               Enrollment ID
         SECRET:           Enrollment secret returned by register
         COP-SERVER-ADDR:  COP server address
-				CSRJSON:          Certificate Signing Request JSON information (Optional)
+		  CSRJSON:          Certificate Signing Request JSON information (Optional)
 
 Flags:
 `
@@ -46,7 +47,7 @@ Flags:
 var enrollFlags = []string{}
 
 func enrollMain(args []string, c cli.Config) error {
-	log.Debug("in myMain of 'cop client enroll'")
+	log.Debug("Entering cli/client/enrollMain")
 
 	id, args, err := cli.PopFirstArgument(args)
 	if err != nil {
@@ -70,13 +71,13 @@ func enrollMain(args []string, c cli.Config) error {
 
 	if len(args) > 0 {
 		if filepath.Ext(args[0]) == ".json" {
-			csrJSON, _, err := cli.PopFirstArgument(args)
-			if err != nil {
-				return err
+			csrJSON, _, err2 := cli.PopFirstArgument(args)
+			if err2 != nil {
+				return err2
 			}
-			csrJSONBytes, err := ioutil.ReadFile(csrJSON)
-			if err != nil {
-				return err
+			csrJSONBytes, err2 := ioutil.ReadFile(csrJSON)
+			if err2 != nil {
+				return err2
 			}
 
 			var CertRequest csr.CertificateRequest
@@ -101,11 +102,14 @@ func enrollMain(args []string, c cli.Config) error {
 	if err != nil {
 		return err
 	}
-	home := util.GetDefaultHomeDir()
-	err = util.WriteFile(home+"/client.json", idByte, 0644)
+
+	clientFile := util.GetDefaultHomeDir() + "/client.json"
+	err = util.WriteFile(clientFile, idByte, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to store enrollment information: %s", err)
 	}
+
+	fmt.Printf("Enrollment information was successfully stored in %s\n", clientFile)
 
 	return nil
 }

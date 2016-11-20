@@ -37,6 +37,11 @@ import (
 	"github.com/hyperledger/fabric-cop/util"
 )
 
+const (
+	// defaultServerPort is the default CFSSL listening port
+	defaultServerPort = "8888"
+)
+
 // NewClient is the constructor for the COP client API
 func NewClient(config string) (idp.ClientAPI, error) {
 	if config == "" {
@@ -194,12 +199,22 @@ func (c *Client) sendPost(req *http.Request) (respBody []byte, err error) {
 	if err != nil {
 		msg := fmt.Sprintf("failed to read response: %v", err)
 		log.Debug(msg)
-		return respBody, cop.NewError(cop.CFSSL, msg)
+		return nil, cop.NewError(cop.CFSSL, msg)
 	}
-	if resp.StatusCode != http.StatusOK {
-		msg := fmt.Sprintf("http error code %d", resp.StatusCode)
-		log.Debug(msg)
-		return respBody, cop.NewError(cop.CFSSL, msg)
+	if resp.StatusCode >= 400 {
+		body := new(api.Response)
+		err = json.Unmarshal(respBody, body)
+		if err != nil {
+			err = fmt.Errorf("failed unmarshalling response body from server: error=%s, body=%s",
+				err, string(respBody))
+		} else if len(body.Errors) > 0 {
+			berr := body.Errors[0]
+			err = errors.New(berr.Message)
+		} else {
+			err = fmt.Errorf("HTTP response status code: %d", resp.StatusCode)
+		}
+		log.Debugf("Error received from server: %s", err)
+		return nil, err
 	}
 	return respBody, nil
 }
@@ -224,7 +239,7 @@ func normalizeURL(addr string) (*url.URL, error) {
 		u.Host = net.JoinHostPort(u.Scheme, u.Opaque)
 		u.Opaque = ""
 	} else if u.Path != "" && !strings.Contains(u.Path, ":") {
-		u.Host = net.JoinHostPort(u.Path, "8888")
+		u.Host = net.JoinHostPort(u.Path, defaultServerPort)
 		u.Path = ""
 	} else if u.Scheme == "" {
 		u.Host = u.Path
@@ -235,7 +250,7 @@ func normalizeURL(addr string) (*url.URL, error) {
 	}
 	_, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		_, port, err = net.SplitHostPort(u.Host + ":8888")
+		_, port, err = net.SplitHostPort(u.Host + ":" + defaultServerPort)
 		if err != nil {
 			return nil, err
 		}

@@ -1,5 +1,6 @@
 bin
 cli/cop/cop
+testdata/client.json
 *.csr
 *.der
 coverage.xml
