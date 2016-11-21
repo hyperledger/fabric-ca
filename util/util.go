@@ -35,7 +35,6 @@ import (
 	mrand "math/rand"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -374,24 +373,4 @@ func GetDefaultHomeDir() string {
 		home = "/var/hyperledger/production/.cop"
 	}
 	return home
-}
-
-// GetDBName gets database name from connection string
-func GetDBName(dataSource string) string {
-	re := regexp.MustCompile(`(dbname=)([^\s]+)`)
-	getName := re.FindStringSubmatch(dataSource)
-	var dbName string
-
-	if getName != nil {
-		dbName = getName[2]
-	}
-
-	return dbName
-}
-
-// GetConnStr gets connection string without database
-func GetConnStr(dataSource string) string {
-	re := regexp.MustCompile(`(dbname=)([^\s]+)`)
-	connStr := re.ReplaceAllString(dataSource, "")
-	return connStr
 }

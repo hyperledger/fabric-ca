@@ -10,6 +10,7 @@ go get github.com/AlekSi/gocov-xml
 PKGS=`go list github.com/hyperledger/fabric-cop/... | grep -v /vendor/`
 
 gocov test $PKGS | gocov-xml > coverage.xml
+
 } | tee /tmp/test.results
 echo "Finished running all tests"
 SC=0

@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
+	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 )
 
 // var testDB *sqlx.DB
@@ -30,7 +31,7 @@ const (
 	bootPath = "/tmp/bootstraptest"
 )
 
-func prepBootstrap() *Bootstrap {
+func prepBootstrap() (*Bootstrap, error) {
 	if _, err := os.Stat(bootPath); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(bootPath, 0755)
@@ -47,18 +48,24 @@ func prepBootstrap() *Bootstrap {
 	bootCFG = CFG
 	bootCFG.Home = bootPath
 
-	db, _ := GetDB(bootCFG)
+	db, err := dbutil.GetDB(bootCFG.Home, bootCFG.DBdriver, bootCFG.DataSource)
+	if err != nil {
+		return nil, err
+	}
 
 	CFG.DB = db
 	CFG.DBAccessor = NewDBAccessor()
 	CFG.DBAccessor.SetDB(db)
 
 	b := BootstrapDB()
-	return b
+	return b, nil
 }
 
 func TestAllBootstrap(t *testing.T) {
-	b := prepBootstrap()
+	b, err := prepBootstrap()
+	if err != nil {
+		t.Fatal("Failed to open connection to database")
+	}
 
 	testBootstrapGroup(b, t)
 	testBootstrapUsers(b, t)

@@ -19,7 +19,6 @@ package util
 import (
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -191,28 +190,12 @@ func getPath(file string) string {
 	return "../testdata/" + file
 }
 
-func TestGetDBName(t *testing.T) {
-	testString := "dbname=cop sslmode=disable"
-	result := GetDBName(testString)
-	if result != "cop" {
-		t.Error("Incorrect DB name returned")
-	}
-}
-
 func TestStrContained(t *testing.T) {
 	strs := []string{"one", "two", "three"}
 	str := "one"
 	result := StrContained(str, strs)
 	if result != true {
 		t.Error("Should have result in true")
-	}
-}
-
-func TestGetConnStr(t *testing.T) {
-	testString := "dbname=cop sslmode=disable"
-	result := GetConnStr(testString)
-	if strings.Contains(result, "dbname=cop") {
-		t.Error("Incorrect connect string returned")
 	}
 }
 

@@ -53,7 +53,7 @@ SELECT * FROM Users
 
 	insertGroup = `
 INSERT INTO Groups (name, parent_id)
-	VALUES ($1, $2)`
+	VALUES (?, ?)`
 
 	deleteGroup = `
 DELETE FROM Groups
@@ -208,7 +208,7 @@ func (d *Accessor) InsertGroup(name string, parentID string) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(insertGroup, name, parentID)
+	_, err = d.db.Exec(d.db.Rebind(insertGroup), name, parentID)
 	if err != nil {
 		return err
 	}

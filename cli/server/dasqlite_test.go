@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	api "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -57,11 +58,12 @@ func TestSQLite(t *testing.T) {
 	var cfg Config
 	cfg.DBdriver = "sqlite3"
 	cfg.DataSource = dbPath + "/cop.db"
-	db, err := GetDB(&cfg)
 
+	db, err := dbutil.GetDB(cfg.Home, cfg.DBdriver, cfg.DataSource)
 	if err != nil {
 		t.Error(err)
 	}
+
 	ta := TestAccessor{
 		Accessor: NewDBAccessor(),
 		DB:       db,

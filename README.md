@@ -167,8 +167,6 @@ The following command will register the user.
 
 ### Setting up a cluster
 
-#### Postgres
-
 Set up a proxy server. Haproxy is used in this example. Below is a basic configuration file that can be used to get haproxy up and running. Change hostname and port to reflect the settings of your COP servers.
 
 haproxy.conf
@@ -193,7 +191,9 @@ listen http-in
       server server3 <hostname:port>
 ```
 
-When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present:
+#### Postgres
+
+When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present for a Postgres database:
 
 cop.json
 ```
@@ -206,6 +206,22 @@ cop.json
 Change "host" and "dbname" to reflect where your database is located and the database you would like to connect to. Default port is used if none is specified. Enter username and password for a user that has permission to connect to the database.
 
 Once your proxy, COP servers, and Postgres server are all running you can have your client direct traffic to the proxy server which will load balance and direct traffic to the appropriate COP server which will read/write from the Postgres database.  
+
+#### MySQL
+
+When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present for a Postgres database:
+
+cop.json
+```
+...
+"driver":"mysql",
+"data_source":"root:root@tcp(localhost:3306)/cop?parseTime=true",
+...
+```
+
+Change the host to reflect where your database is located. The database is specified after the '/', specify the database you would like to connect to. Default port is used if none is specified.
+
+Once your proxy, COP servers, and database servers are all running you can have your clients direct traffic to the proxy server which will load balance and direct traffic to the appropriate COP server which will read/write from the database.  
 
 ### Run the cop tests
 

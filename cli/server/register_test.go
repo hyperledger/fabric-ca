@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/idp"
 )
 
@@ -50,7 +50,7 @@ const (
 	regPath = "/tmp/registertest"
 )
 
-func prepRegister() {
+func prepRegister() error {
 	if _, err := os.Stat(regPath); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(regPath, 0755)
@@ -66,14 +66,17 @@ func prepRegister() {
 
 	regCFG := CFG
 	regCFG.Home = regPath
-	db, err := GetDB(regCFG)
+	db, err := dbutil.GetDB(regCFG.Home, regCFG.DBdriver, regCFG.DataSource)
 	if err != nil {
-		log.Error(err)
+		return err
 	}
+
 	CFG.DB = db
 	CFG.DBAccessor = NewDBAccessor()
 	CFG.DBAccessor.SetDB(db)
 	bootstrap()
+
+	return nil
 }
 
 func bootstrap() {
@@ -120,7 +123,10 @@ func registerUser(registrar Admin, user *cop.RegisterRequest) (string, error) {
 }
 
 func TestAll_Register(t *testing.T) {
-	prepRegister()
+	err := prepRegister()
+	if err != nil {
+		t.Fatal("Failed to bootstrap database")
+	}
 
 	testRegisterUser(t)
 	testRegisterDuplicateUser(t)

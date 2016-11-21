@@ -25,6 +25,7 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	factory "github.com/hyperledger/fabric-cop"
+	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/lib"
 	"github.com/hyperledger/fabric-cop/util"
@@ -69,9 +70,7 @@ func runServer() {
 }
 
 func TestPostgresFail(t *testing.T) {
-	cfg := new(Config)
-	cfg.DataSource = "dbname=cop sslmode=disable"
-	_, err := postgres(cfg)
+	_, err := dbutil.GetDB("", "postgres", "dbname=cop sslmode=disable")
 	if err == nil {
 		t.Error("No postgres server running, this should have failed")
 	}
