@@ -21,10 +21,12 @@
 #   - all (default) - builds all targets and runs all tests
 #   - license - check all go files for license headers
 #   - cop - builds the cop executable
-#   - tests - runs all the cop tests
-#   - unit-tests - runs the go-test based unit tests
+#   - unit-tests - Performs checks first and runs the go-test based unit tests
+#   - checks - runs all check conditions (license, format, imports, lint and vet)
 
-all: license vet lint format imports cop tests unit-tests
+all: checks cop unit-tests
+
+checks: license vet lint format imports
 
 license: .FORCE
 	@scripts/check_license
@@ -46,9 +48,7 @@ cop:
 	@mkdir -p bin && cd cli && go build -o ../bin/cop
 	@echo "Built bin/cop"
 
-tests: cop unit-tests
-
-unit-tests: cop
+unit-tests: checks cop
 	@scripts/run_tests
 
 .FORCE:
