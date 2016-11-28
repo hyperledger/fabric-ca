@@ -70,7 +70,7 @@ func runServer() {
 }
 
 func TestPostgresFail(t *testing.T) {
-	_, err := dbutil.GetDB("", "postgres", "dbname=cop sslmode=disable")
+	_, err := dbutil.GetDB("postgres", "dbname=cop sslmode=disable")
 	if err == nil {
 		t.Error("No postgres server running, this should have failed")
 	}

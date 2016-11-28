@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"path/filepath"
 	"strings"
@@ -42,17 +41,9 @@ func BootstrapDB() *Bootstrap {
 func (b *Bootstrap) PopulateUsersTable() error {
 	log.Debug("populateUsersTable")
 	for name, info := range b.cfg.Users {
-		metaDataBytes, _ := json.Marshal(info.Attributes)
-
-		id := name
-		userType := info.Type
-		group := info.Group
-		metadata := string(metaDataBytes)
-		registrar := ""
-		pass := info.Pass
 
 		reg := NewRegisterUser()
-		reg.RegisterUser(id, userType, group, metadata, registrar, pass)
+		reg.RegisterUser(name, info.Type, info.Group, info.Attributes, "", info.Pass)
 	}
 	return nil
 }
@@ -109,16 +100,16 @@ func (b *Bootstrap) registerGroup(name string, parentName string) error {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	log.Debug("Registering affiliation group " + name + " parent " + parentName + ".")
+	log.Debugf("Registering affiliation group (%s) with parent (%s)", name, parentName)
 
 	var err error
-	_, _, err = b.cfg.DBAccessor.GetGroup(name)
+	_, err = b.cfg.UserRegistery.GetGroup(name)
 	if err == nil {
 		log.Error("Group already registered")
 		return errors.New("Group already registered")
 	}
 
-	err = b.cfg.DBAccessor.InsertGroup(name, parentName)
+	err = b.cfg.UserRegistery.InsertGroup(name, parentName)
 	if err != nil {
 		log.Error(err)
 	}

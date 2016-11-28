@@ -82,11 +82,6 @@ type EnrollRequest struct {
 	real.EnrollRequest
 }
 
-// UserRecord is a user's record
-type UserRecord struct {
-	real.UserRecord
-}
-
 // Identity is any type of identity which is opaque for now
 type Identity real.Identity
 

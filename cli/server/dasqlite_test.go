@@ -21,8 +21,9 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
+	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -37,7 +38,7 @@ DELETE FROM Groups;
 )
 
 type TestAccessor struct {
-	Accessor *Accessor
+	Accessor spi.UserRegistry
 	DB       *sqlx.DB
 }
 
@@ -55,20 +56,23 @@ func TestSQLite(t *testing.T) {
 		os.MkdirAll(dbPath, 0755)
 	}
 
-	var cfg Config
+	var cfg = new(Config)
 	cfg.DBdriver = "sqlite3"
 	cfg.DataSource = dbPath + "/cop.db"
 
-	db, err := dbutil.GetDB(cfg.Home, cfg.DBdriver, cfg.DataSource)
+	accessor, err := NewUserRegistry(cfg.DBdriver, cfg.DataSource)
 	if err != nil {
-		t.Error(err)
+		t.Error("Failed to get new user registery")
+	}
+	db, err := dbutil.GetDB(cfg.DBdriver, cfg.DataSource)
+	if err != nil {
+		t.Error("Failed to open connection to DB")
 	}
 
 	ta := TestAccessor{
-		Accessor: NewDBAccessor(),
+		Accessor: accessor,
 		DB:       db,
 	}
-	ta.Accessor.SetDB(db)
 	testEverything(ta, t)
 	removeDatabase()
 }
@@ -104,28 +108,28 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 	t.Log("TestInsertAndGetUser")
 	ta.Truncate()
 
-	insert := api.UserRecord{
-		ID:           "testId",
-		EnrollmentID: "testId//IBM",
-		Token:        "123456",
-		Metadata:     "",
-		State:        0,
+	insert := spi.UserInfo{
+		Name:       "testId",
+		Pass:       "123456",
+		Type:       "client",
+		Attributes: []idp.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	result, err := ta.Accessor.GetUser(insert.ID)
-
+	result, err := ta.Accessor.GetUser(insert.Name)
 	if err != nil {
-		t.Errorf("Error occured during querying of id: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
 	}
-	if result.ID == "" {
+	userInfo := result.(*spi.UserInfo)
+
+	if userInfo.Name == "" {
 		t.Error("No results returned")
 	}
-	if result.ID != insert.ID {
+	if userInfo.Name != insert.Name {
 		t.Error("Incorrect ID retrieved")
 	}
 }
@@ -134,25 +138,24 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 	t.Log("TestDeleteUser")
 	ta.Truncate()
 
-	insert := api.UserRecord{
-		ID:           "deleteID",
-		EnrollmentID: "deleteID//IBM",
-		Token:        "123456",
-		Metadata:     "",
-		State:        0,
+	insert := spi.UserInfo{
+		Name:       "testId",
+		Pass:       "123456",
+		Type:       "client",
+		Attributes: []idp.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of id: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during insert query of id: %s, error: %s", insert.Name, err)
 	}
 
-	err = ta.Accessor.DeleteUser(insert.ID)
+	err = ta.Accessor.DeleteUser(insert.Name)
 	if err != nil {
-		t.Errorf("Error occured during deletion of ID: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during deletion of ID: %s, error: %s", insert.Name, err)
 	}
 
-	_, err = ta.Accessor.GetUser(insert.ID)
+	_, err = ta.Accessor.GetUser(insert.Name)
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}
@@ -162,31 +165,33 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 	t.Log("TestUpdateUser")
 	ta.Truncate()
 
-	insert := api.UserRecord{
-		ID:           "testID",
-		EnrollmentID: "testId//IBM",
-		Token:        "123456",
-		Metadata:     "",
-		State:        0,
-	}
-	err := ta.Accessor.InsertUser(insert)
-	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.ID, err)
+	insert := spi.UserInfo{
+		Name:       "testId",
+		Pass:       "123456",
+		Type:       "client",
+		Attributes: []idp.Attribute{},
 	}
 
-	insert.Token = "654321"
+	err := ta.Accessor.InsertUser(insert)
+	if err != nil {
+		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+	}
+
+	insert.Pass = "654321"
 
 	ta.Accessor.UpdateUser(insert)
 	if err != nil {
-		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	result, err := ta.Accessor.GetUser(insert.ID)
+	result, err := ta.Accessor.GetUser(insert.Name)
 	if err != nil {
-		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.ID, err)
+		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.Name, err)
 	}
 
-	if result.Token != insert.Token {
+	userInfo := result.(*spi.UserInfo)
+
+	if userInfo.Pass != insert.Pass {
 		t.Error("Failed to update user")
 	}
 
@@ -200,14 +205,15 @@ func testInsertAndGetGroup(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
 	}
 
-	name, parentID, err := ta.Accessor.GetGroup("Bank1")
+	group, err := ta.Accessor.GetGroup("Bank1")
 	if err != nil {
 		t.Errorf("Error occured during querying of name: %s, error: %s", "Bank1", err)
 	}
 
-	if name != "Bank1" || parentID != "Banks" {
+	if group.GetName() != "Bank1" || group.GetParent() != "Banks" {
 		t.Error("Failed to query")
 	}
+
 }
 
 func testDeleteGroup(ta TestAccessor, t *testing.T) {
@@ -223,7 +229,7 @@ func testDeleteGroup(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during deletion of group: %s, error: %s", "Bank2", err)
 	}
 
-	_, _, err = ta.Accessor.GetGroup("Bank2")
+	_, err = ta.Accessor.GetGroup("Bank2")
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 )
 
 // var testDB *sqlx.DB
@@ -40,6 +39,7 @@ func prepBootstrap() (*Bootstrap, error) {
 		os.RemoveAll(bootPath)
 		os.MkdirAll(bootPath, 0755)
 	}
+	var err error
 
 	cfg := new(cli.Config)
 	cfg.ConfigFile = "../../testdata/testconfig.json"
@@ -47,15 +47,12 @@ func prepBootstrap() (*Bootstrap, error) {
 
 	bootCFG = CFG
 	bootCFG.Home = bootPath
+	bootCFG.DataSource = bootCFG.Home + "/cop.db"
 
-	db, err := dbutil.GetDB(bootCFG.Home, bootCFG.DBdriver, bootCFG.DataSource)
+	CFG.UserRegistery, err = NewUserRegistry(bootCFG.DBdriver, bootCFG.DataSource)
 	if err != nil {
 		return nil, err
 	}
-
-	CFG.DB = db
-	CFG.DBAccessor = NewDBAccessor()
-	CFG.DBAccessor.SetDB(db)
 
 	b := BootstrapDB()
 	return b, nil
@@ -76,7 +73,7 @@ func TestAllBootstrap(t *testing.T) {
 func testBootstrapGroup(b *Bootstrap, t *testing.T) {
 	b.PopulateGroupsTable()
 
-	_, _, err := b.cfg.DBAccessor.GetGroup("bank_b")
+	_, err := b.cfg.UserRegistery.GetGroup("bank_b")
 
 	if err != nil {
 		t.Error("Failed bootstrapping groups table")
@@ -86,7 +83,7 @@ func testBootstrapGroup(b *Bootstrap, t *testing.T) {
 func testBootstrapUsers(b *Bootstrap, t *testing.T) {
 	b.PopulateUsersTable()
 
-	_, err := b.cfg.DBAccessor.GetUser("admin")
+	_, err := b.cfg.UserRegistery.GetUser("admin")
 
 	if err != nil {
 		t.Error("Failed bootstrapping users table")

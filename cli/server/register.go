@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 
 	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/cli/server/spi"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/util"
 )
@@ -62,10 +63,10 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	attributes, _ := json.Marshal(req.Attributes)
+	// attributes, _ := json.Marshal(req.Attributes)
 
 	// Register User
-	tok, err := reg.RegisterUser(req.User, req.Type, req.Group, string(attributes), req.CallerID)
+	tok, err := reg.RegisterUser(req.User, req.Type, req.Group, req.Attributes, req.CallerID)
 	if err != nil {
 		log.Error("Error occured during register of user, error: ", err)
 		return err
@@ -95,16 +96,11 @@ func NewRegisterUser() *Register {
 }
 
 // RegisterUser will register a user
-func (r *Register) RegisterUser(id string, userType string, group string, metadata string, registrar string, opt ...string) (string, error) {
-	log.Debugf("Received request to register user with id: %s, group: %s, metadata: %s, registrar: %s\n",
-		id, group, metadata, registrar)
+func (r *Register) RegisterUser(id string, userType string, group string, attributes []idp.Attribute, registrar string, opt ...string) (string, error) {
+	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %s, registrar: %s\n",
+		id, group, attributes, registrar)
 
-	var attributes []idp.Attribute
-	if err := json.Unmarshal([]byte(metadata), &attributes); err != nil {
-		return "", err
-	}
-
-	var enrollID, tok string
+	var tok string
 	var err error
 
 	if registrar != "" {
@@ -115,13 +111,12 @@ func (r *Register) RegisterUser(id string, userType string, group string, metada
 		}
 	}
 
-	// enrollID, err = r.validateAndGenerateEnrollID(id, group, attributes)
-	enrollID, err = r.validateAndGenerateEnrollID(id, userType, group)
-
+	err = r.validateID(id, userType, group)
 	if err != nil {
 		return "", err
 	}
-	tok, err = r.registerUserWithEnrollID(id, enrollID, userType, metadata, opt...)
+
+	tok, err = r.registerUserID(id, userType, attributes, opt...)
 	if err != nil {
 		return "", err
 	}
@@ -130,9 +125,8 @@ func (r *Register) RegisterUser(id string, userType string, group string, metada
 }
 
 // func (r *Register) validateAndGenerateEnrollID(id, group string, attr []idp.Attribute) (string, error) {
-func (r *Register) validateAndGenerateEnrollID(id string, userType string, group string) (string, error) {
-
-	log.Debug("validateAndGenerateEnrollID")
+func (r *Register) validateID(id string, userType string, group string) error {
+	log.Debug("Validate ID")
 	// Check whether the group is required for the current user.
 
 	// group is required if the type is client or peer.
@@ -140,41 +134,23 @@ func (r *Register) validateAndGenerateEnrollID(id string, userType string, group
 	if r.requireGroup(userType) {
 		valid, err := r.isValidGroup(group)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		if !valid {
-			return "", errors.New("Invalid type " + userType)
+			return errors.New("Invalid type " + userType)
 
 		}
-
-		return r.generateEnrollID(id, group)
 	}
 
-	return "", nil
+	return nil
 }
 
-func (r *Register) generateEnrollID(id string, group string) (string, error) {
-	log.Debug("generateEnrollID")
-	if id == "" || group == "" {
-		return "", errors.New("Please provide all the input parameters, id and role")
-
-	}
-
-	if strings.Contains(id, "\\") || strings.Contains(group, "\\") {
-		return "", errors.New("Do not include the escape character \\ as part of the values")
-	}
-
-	return id + "\\" + group, nil
-}
-
-// registerUserWithEnrollID registers a new user and its enrollmentID, role and state
-func (r *Register) registerUserWithEnrollID(id string, enrollID string, userType string, metadata string, opt ...string) (string, error) {
-	log.Debug("registerUserWithEnrollID")
+// registerUserID registers a new user and its enrollmentID, role and state
+func (r *Register) registerUserID(id string, userType string, attributes []idp.Attribute, opt ...string) (string, error) {
+	log.Debugf("Registering user id: %s\n", id)
 	mutex.Lock()
 	defer mutex.Unlock()
-
-	log.Debugf("Registering user id: %s, enrollID: %s\n", id, enrollID)
 
 	var tok string
 	if len(opt) > 0 && len(opt[0]) > 0 {
@@ -183,21 +159,19 @@ func (r *Register) registerUserWithEnrollID(id string, enrollID string, userType
 		tok = util.RandomString(12)
 	}
 
-	insert := cop.UserRecord{
-		ID:           id,
-		EnrollmentID: enrollID,
-		Token:        tok,
-		Type:         userType,
-		Metadata:     metadata,
-		State:        0,
+	insert := spi.UserInfo{
+		Name:       id,
+		Pass:       tok,
+		Type:       userType,
+		Attributes: attributes,
 	}
 
-	_, err := r.cfg.DBAccessor.GetUser(id)
+	_, err := r.cfg.UserRegistery.GetUser(id)
 	if err == nil {
 		log.Error("User is already registered")
 		return "", errors.New("User is already registered")
 	}
-	err = r.cfg.DBAccessor.InsertUser(insert)
+	err = r.cfg.UserRegistery.InsertUser(insert)
 	if err != nil {
 		return "", err
 	}
@@ -209,7 +183,7 @@ func (r *Register) isValidGroup(group string) (bool, error) {
 	log.Debug("Validating group: " + group)
 	// Check cop.yaml to see if group is valid
 
-	_, _, err := r.cfg.DBAccessor.GetGroup(group)
+	_, err := r.cfg.UserRegistery.GetGroup(group)
 	if err != nil {
 		log.Error("Error occured getting group: ", err)
 		return false, err
@@ -219,7 +193,7 @@ func (r *Register) isValidGroup(group string) (bool, error) {
 }
 
 func (r *Register) requireGroup(userType string) bool {
-	log.Debug("requireGroup, userType: ", userType)
+	log.Debug("Check if group required for user type: ", userType)
 
 	userType = strings.ToLower(userType)
 
@@ -233,7 +207,7 @@ func (r *Register) requireGroup(userType string) bool {
 func (r *Register) canRegister(registrar string, userType string) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
-	check, err := r.isRegistrar(registrar)
+	user, check, err := r.isRegistrar(registrar)
 	if err != nil {
 		return errors.New("Can't Register: " + err.Error())
 	}
@@ -242,12 +216,12 @@ func (r *Register) canRegister(registrar string, userType string) error {
 		return errors.New("Can't Register: " + err.Error())
 	}
 
-	registrarUser, _ := r.cfg.DBAccessor.GetUser(registrar)
+	attributes, err := user.GetAttributes()
+	if err != nil {
+		return err
+	}
 
-	var metaData []idp.Attribute
-	json.Unmarshal([]byte(registrarUser.Metadata), &metaData)
-
-	for _, rAttr := range metaData {
+	for _, rAttr := range attributes {
 
 		if strings.ToLower(rAttr.Name) == strings.ToLower(delegateRoles) {
 			registrarRoles := strings.Split(rAttr.Value, ",")
@@ -261,22 +235,22 @@ func (r *Register) canRegister(registrar string, userType string) error {
 }
 
 // Check if specified registrar has appropriate permissions
-func (r *Register) isRegistrar(registrar string) (bool, error) {
+func (r *Register) isRegistrar(registrar string) (spi.User, bool, error) {
 	log.Debugf("isRegistrar - Check if specified registrar (%s) has appropriate permissions", registrar)
 
-	checkUser, err := r.cfg.DBAccessor.GetUser(registrar)
+	user, err := r.cfg.UserRegistery.GetUser(registrar)
 	if err != nil {
-		return false, errors.New("Registrar does not exist")
+		return nil, false, errors.New("Registrar does not exist")
 	}
 	var attributes []idp.Attribute
-	json.Unmarshal([]byte(checkUser.Metadata), &attributes)
+	attributes, _ = user.GetAttributes()
 
 	for _, attr := range attributes {
 		if attr.Name == delegateRoles && attr.Value != "" {
-			return true, nil
+			return user, true, nil
 		}
 	}
 
 	log.Errorf("%s is not a registrar", registrar)
-	return false, errors.New("Is not registrar")
+	return nil, false, errors.New("Is not registrar")
 }
