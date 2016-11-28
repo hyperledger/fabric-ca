@@ -18,7 +18,9 @@ package server
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -111,6 +113,11 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			log.Debug("User '%s' not found", user)
 			return cop.NewError(cop.EnrollingUserError, "User '%s' not found", user)
 		}
+		if userRecord.State != 0 {
+			err := fmt.Errorf("User '%s' is in state %d", user, userRecord.State)
+			log.Debug("%s", err)
+			return err
+		}
 		if userRecord.Token != pwd {
 			log.Debug("Incorrect password for '%s'; received %s but expected %s", userRecord.ID, pwd, userRecord.Token)
 			return cop.NewError(cop.EnrollingUserError, "Incorrect password for '%s'; received %s but expected %s", userRecord.ID, pwd, userRecord.Token)
@@ -123,13 +130,31 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	}
 	// Perform token verification
 	if ah.token {
+		// read body
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			return authError
 		}
 		r.Body = ioutil.NopCloser(bytes.NewReader(body))
-		_, err2 := util.VerifyToken(authHdr, body)
+		// verify token
+		cert, err2 := util.VerifyToken(authHdr, body)
 		if err2 != nil {
+			return authError
+		}
+		// check status of certificate
+		serial := cert.SerialNumber.String()
+		aki := hex.EncodeToString(cert.AuthorityKeyId)
+		certs, err := CFG.certDBAccessor.GetCertificate(serial, aki)
+		if err != nil {
+			log.Debugf("GetCertificate failed: %s", err)
+			return authError
+		}
+		if len(certs) != 1 {
+			log.Debugf("Expecting 1 certificate but found %d; serial=%s, aki=%s", len(certs), serial, aki)
+			return authError
+		}
+		if certs[0].Status != "good" {
+			log.Debugf("Auth failure - certificate status is %s", certs[0].Status)
 			return authError
 		}
 	}

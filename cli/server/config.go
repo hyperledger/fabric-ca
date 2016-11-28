@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -43,6 +44,7 @@ type Config struct {
 	CAKey          string
 	DB             *sqlx.DB
 	DBAccessor     *Accessor
+	certDBAccessor certdb.Accessor
 	Signer         signer.Signer
 }
 

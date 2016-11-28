@@ -154,6 +154,23 @@ type RegistrationRequest struct {
 	Registrar Identity `json:"registrar"`
 }
 
+// RevocationRequest is a revocation request for a single certificate or all certificates
+// associated with an identity.
+// associated with an identity
+type RevocationRequest struct {
+	// Name of the identity whose certificates should be revoked
+	// If this field is omitted, then Serial must be specified
+	Name string `json:"id,omitempty"`
+	// Serial number of the certificate to be revoked
+	// If this is omitted, then Name must be specified
+	Serial string `json:"serial,omitempty"`
+	// AKI (Authority Key Identifier) of the certificate to be revoked
+	AKI string `json:"aki,omitempty"`
+	// Reason is the reason for revocation.  See https://godoc.org/golang.org/x/crypto/ocsp for
+	// valid values.  The default value is 0 (ocsp.Unspecified).
+	Reason int `json:"reason,omitempty"`
+}
+
 // RegistrationResponse is a registration response
 type RegistrationResponse struct {
 	// The optional secret returned from a registration response

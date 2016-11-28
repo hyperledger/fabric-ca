@@ -64,35 +64,25 @@ func COPMain(args []string) int {
 	flag.Usage = nil // this is set to nil for testabilty
 	cmd := args[1]
 	os.Args = args[1:]
+	var err error
 	switch cmd {
 	case "client":
-		clientCommand()
+		err = client.Command()
 	case "server":
-		server.Command()
+		err = server.Command()
 	case "cfssl":
-		return cfsslCommand()
+		err = cfsslCommand()
 	default:
 		fmt.Println(usage)
 		return 1
 	}
-
+	if err != nil {
+		return 1
+	}
 	return 0
 }
 
-func clientCommand() {
-	cmds := map[string]*cli.Command{
-		"register": client.RegisterCommand,
-		"enroll":   client.EnrollCommand,
-		"reenroll": client.ReenrollCommand,
-	}
-	// If the CLI returns an error, exit with an appropriate status code.
-	err := cli.Start(cmds)
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
-func cfsslCommand() int {
+func cfsslCommand() error {
 	cmds := map[string]*cli.Command{
 		"bundle":         bundle.Command,
 		"certinfo":       certinfo.Command,
@@ -118,14 +108,7 @@ func cfsslCommand() int {
 		cmd.UsageText = strings.Replace(cmd.UsageText, "cfssl", "cop cfssl", -1)
 	}
 
-	// If the CLI returns an error, exit with an appropriate status code.
-	err := cli.Start(cmds)
-	if err != nil {
-		return 1
-	}
-
-	return 0
-
+	return cli.Start(cmds)
 }
 
 func main() {

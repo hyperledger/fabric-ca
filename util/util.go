@@ -240,33 +240,33 @@ func GenECDSAToken(cert []byte, key []byte, body []byte) (string, error) {
 
 // VerifyToken verifies token signed by either ECDSA or RSA and
 // returns the associated user ID
-func VerifyToken(token string, body []byte) (string, error) {
+func VerifyToken(token string, body []byte) (*x509.Certificate, error) {
 	if token == "" {
-		return "", errors.New("Failed to verify token because it is the empty string")
+		return nil, errors.New("Failed to verify token because it is the empty string")
 	}
 	parts := strings.Split(token, ".")
 	if len(parts) != 2 {
-		return "", errors.New("Invalid token format; expecting 2 parts separated by '.'")
+		return nil, errors.New("Invalid token format; expecting 2 parts separated by '.'")
 	}
 	b64Body := B64Encode(body)
 	b64cert := parts[0]
 	b64sig, err := B64Decode(parts[1])
 	if err != nil {
-		return "", fmt.Errorf("Failed to decode base64 encoded signature: %s", err)
+		return nil, fmt.Errorf("Failed to decode base64 encoded signature: %s", err)
 	}
 	certDecoded, err := B64Decode(b64cert)
 	if err != nil {
-		return "", fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
+		return nil, fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
 	}
 	sigString := b64Body + "." + b64cert
 
 	block, _ := pem.Decode(certDecoded)
 	if block == nil {
-		return "", errors.New("Failed to PEM decode the certificate")
+		return nil, errors.New("Failed to PEM decode the certificate")
 	}
 	x509Cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
+		return nil, fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
 	}
 	publicKey := x509Cert.PublicKey
 	hash := sha512.New384()
@@ -277,20 +277,20 @@ func VerifyToken(token string, body []byte) (string, error) {
 	case *rsa.PublicKey:
 		err := rsa.VerifyPKCS1v15(publicKey.(*rsa.PublicKey), crypto.SHA384, h[:], b64sig)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	case *ecdsa.PublicKey:
 		ecdsaSignature := new(ECDSASignature)
 		_, err := asn1.Unmarshal(b64sig, ecdsaSignature)
 		if err != nil {
-			return "", fmt.Errorf("Failed to unmarshal EC signature to R and S: %s", err)
+			return nil, fmt.Errorf("Failed to unmarshal EC signature to R and S: %s", err)
 		}
 		verified := ecdsa.Verify(publicKey.(*ecdsa.PublicKey), h, ecdsaSignature.R, ecdsaSignature.S)
 		if !verified {
-			return "", errors.New("token verification failed (ecdsa.Verify failed)")
+			return nil, errors.New("token verification failed (ecdsa.Verify failed)")
 		}
 	}
-	return x509Cert.Subject.CommonName, nil
+	return x509Cert, nil
 }
 
 //GetECPrivateKey get *ecdsa.PrivateKey from key pem
@@ -350,6 +350,14 @@ func HTTPRequestToString(req *http.Request) string {
 	req.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return fmt.Sprintf("%s %s\nAuthorization: %s\n%s",
 		req.Method, req.URL, req.Header.Get("authorization"), string(body))
+}
+
+// HTTPResponseToString returns a string for an HTTP response for debuggging
+func HTTPResponseToString(resp *http.Response) string {
+	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
+	return fmt.Sprintf("statusCode=%d (%s)\n%s",
+		resp.StatusCode, resp.Status, string(body))
 }
 
 // GetDefaultHomeDir returns the default cop home

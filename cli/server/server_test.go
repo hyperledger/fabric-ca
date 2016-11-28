@@ -26,6 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	factory "github.com/hyperledger/fabric-cop"
 	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/lib"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
@@ -71,7 +72,7 @@ func TestRegisterUser(t *testing.T) {
 	startServer()
 
 	copServer := `{"serverURL":"http://localhost:8888"}`
-	c, _ := factory.NewClient(copServer)
+	c, _ := lib.NewClient(copServer)
 
 	req := &idp.RegistrationRequest{
 		Name: "TestUser1",
@@ -92,7 +93,7 @@ func TestRegisterUser(t *testing.T) {
 
 func TestEnrollUser(t *testing.T) {
 	copServer := `{"serverURL":"http://localhost:8888"}`
-	c, _ := factory.NewClient(copServer)
+	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
 		Name:   "testUser",
@@ -114,6 +115,50 @@ func TestEnrollUser(t *testing.T) {
 		t.Error("reenroll of user 'testUser' failed")
 		return
 	}
+
+	err = id.RevokeSelf()
+	if err == nil {
+		t.Error("revoke of user 'testUser' passed but should have failed since has no 'hf.Revoker' attribute")
+	}
+
+}
+
+func TestRevoke(t *testing.T) {
+	copServer := `{"serverURL":"http://localhost:8888"}`
+	c, _ := lib.NewClient(copServer)
+
+	req := &idp.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	}
+
+	id, err := c.Enroll(req)
+	if err != nil {
+		t.Error("enroll of user 'admin' with password 'adminpw' failed")
+		return
+	}
+
+	err = id.RevokeSelf()
+	if err != nil {
+		t.Error("revoke of user 'admin' failed")
+		return
+	}
+
+	err = id.RevokeSelf()
+	if err == nil {
+		t.Error("RevokeSelf twice should have failed but did not")
+	}
+
+	err = id.Revoke(&idp.RevocationRequest{})
+	if err == nil {
+		t.Error("Revoke with no args should have failed but did not")
+	}
+
+	err = id.Revoke(&idp.RevocationRequest{Serial: "foo", AKI: "bar"})
+	if err == nil {
+		t.Error("Revoke with with bogus serial and AKI should have failed but did not")
+	}
+
 }
 
 func TestCreateHome(t *testing.T) {

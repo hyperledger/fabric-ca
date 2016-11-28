@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
@@ -57,7 +58,7 @@ type Server struct {
 }
 
 // Command defines the command will start the server and registers endpoints
-func Command() {
+func Command() error {
 	// The server commands
 	cmds := map[string]*cli.Command{
 		"init":  InitServerCommand,
@@ -71,12 +72,10 @@ func Command() {
 	serve.SetEndpoint("enroll", NewEnrollHandler)
 	// Add the "reenroll" route/endpoint
 	serve.SetEndpoint("reenroll", NewReenrollHandler)
+	// Add the "revoke" route/endpoint
+	serve.SetEndpoint("revoke", NewRevokeHandler)
 
-	// If the CLI returns an error, exit with an appropriate status code.
-	err := cli.Start(cmds)
-	if err != nil {
-		os.Exit(1)
-	}
+	return cli.Start(cmds)
 }
 
 // CreateHome will create a home directory if it does not exist
@@ -143,6 +142,7 @@ func startMain(args []string, c cli.Config) error {
 	cfg.DB = db
 	cfg.DBAccessor = NewDBAccessor()
 	cfg.DBAccessor.SetDB(db)
+	cfg.certDBAccessor = sql.NewAccessor(db)
 
 	var cfsslCfg cli.Config
 	cfsslCfg.CAFile = cfg.CACert

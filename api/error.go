@@ -40,13 +40,13 @@ const (
 	NotInitialized
 	AlreadyEnrolled
 	ServerAddrNotSet
-	TokenAuthorizationFailure
+	AuthorizationFailure
+	IOError
 	Input
 	Output
 	UserStoreError
 	EnrollingUserError
 	RegisteringUserError
-	AuthorizationError
 	DatabaseError
 )
 

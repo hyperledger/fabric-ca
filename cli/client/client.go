@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		 http://www.apache.org/licenses/LICENSE-2.0
+                 http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,12 +16,21 @@ limitations under the License.
 
 package client
 
-import "testing"
+import (
+	"github.com/cloudflare/cfssl/cli"
 
-// TestNewClient tests constructing a client
-func TestNewClient(t *testing.T) {
-	_, err := NewClient("http://127.0.0.1:8888")
-	if err != nil {
-		t.Errorf("Failed to create a client: %s", err)
+	_ "github.com/go-sql-driver/mysql" // import to support MySQL
+	_ "github.com/lib/pq"              // import to support Postgres
+	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
+)
+
+// Command are the client commands
+func Command() error {
+	cmds := map[string]*cli.Command{
+		"register": RegisterCommand,
+		"enroll":   EnrollCommand,
+		"reenroll": ReenrollCommand,
+		"revoke":   RevokeCommand,
 	}
+	return cli.Start(cmds)
 }

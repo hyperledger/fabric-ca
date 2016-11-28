@@ -35,7 +35,7 @@ Arguments:
         ID:               Enrollment ID
         SECRET:           Enrollment secret returned by register
         COP-SERVER-ADDR:  COP server address
-	CSRJSON:          Certificate Signing Request JSON information (Optional)
+	     CSRJSON:          Certificate Signing Request JSON information (Optional)
 
 Flags:
 `

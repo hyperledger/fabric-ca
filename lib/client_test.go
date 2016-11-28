@@ -22,15 +22,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-cop/cli/server"
 	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/hyperledger/fabric-cop/util"
 )
 
 const (
@@ -46,29 +43,6 @@ const (
 
 var serverStarted bool
 var serverExitCode = 0
-
-/* Ash/Pho TODO: commenting out this test until working (Keith)
-   Some quick comments:
-   1) You can't hardcode URL to localhost in client.go
-   2) See the "post" function in client.go
-   3) For tests that assume a server is running, the test should go in cop_test.go
-
-import (
-	"github.com/hyperledger/fabric-cop/util"
-	"testing"
-)
-
-func TestGetTCertBatch(t *testing.T) {
-	c := NewClient()
-	jsonString := util.ConvertJSONFileToJSONString("../../testdata/TCertRequest.json")
-	signatureJSON := util.ConvertJSONFileToJSONString("../../testdata/Signature.json")
-	//c.GetTCertBatch makes call to COP server to obtain a batch of transaction certificate
-	_, err := c.GetTcertBatch(jsonString, signatureJSON)
-	if err != nil {
-		t.Fatalf("Failed to get tcerts: ", err)
-	}
-}
-*/
 
 func prepTest() {
 	_, err := os.Stat(HOME)
@@ -93,6 +67,8 @@ func TestAllClient(t *testing.T) {
 	testEnroll(c, t)
 	testDoubleEnroll(c, t)
 	testReenroll(c, t)
+	testRevocation(c, t, "revoker", "revokerpw", true)
+	testRevocation(c, t, "notadmin", "pass", false)
 	testLoadCSRInfo(c, t)
 	testLoadNoCSRInfo(c, t)
 	testLoadBadCSRInfo(c, t)
@@ -101,27 +77,28 @@ func TestAllClient(t *testing.T) {
 
 func testRegister(c *Client, t *testing.T) {
 
-	identity, err := util.ReadFile("../testdata/client.json")
+	// Enroll admin
+	enrollReq := &idp.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	}
+
+	id, err := c.Enroll(enrollReq)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("testRegister enroll of admin failed: %s", err)
 	}
-	id := new(Identity)
-	err = util.Unmarshal(identity, id, "idp.Identity")
+
+	// Register as admin
+	registerReq := &idp.RegistrationRequest{
+		Name:      "TestUser",
+		Type:      "Client",
+		Group:     "bank_a",
+		Registrar: id,
+	}
+
+	_, err = c.Register(registerReq)
 	if err != nil {
-		t.Error(err)
-	}
-
-	req := &idp.RegistrationRequest{
-		Name:  "TestUser",
-		Type:  "Client",
-		Group: "bank_a",
-	}
-
-	req.Registrar = id
-
-	_, err2 := c.Register(req)
-	if err2 != nil {
-		t.Errorf("Register failed: %s", err2)
+		t.Errorf("Register failed: %s", err)
 	}
 }
 
@@ -182,18 +159,6 @@ func testDoubleEnroll(c *Client, t *testing.T) {
 		t.Error("Double enroll should have failed but passed")
 	}
 
-	msg := err.Error()
-	parts := strings.Split(msg, ":")
-	if len(parts) < 2 {
-		t.Errorf("Invalid error message (%s); only %d parts", msg, len(parts))
-	}
-
-	code := parts[0]
-	_, err2 := strconv.Atoi(code)
-	if err2 != nil {
-		t.Errorf("Invalid error message (%s); %s is not an integer; %s", msg, code, err2.Error())
-	}
-
 }
 
 func testReenroll(c *Client, t *testing.T) {
@@ -210,6 +175,24 @@ func testReenroll(c *Client, t *testing.T) {
 	err = id.Store()
 	if err != nil {
 		t.Errorf("testReenroll: failed Store: %s", err)
+	}
+}
+
+func testRevocation(c *Client, t *testing.T, user, secret string, shouldPass bool) {
+	req := &idp.EnrollmentRequest{
+		Name:   user,
+		Secret: secret,
+	}
+	id, err := c.Enroll(req)
+	if err != nil {
+		t.Errorf("enroll of user '%s' with password '%s' failed", user, secret)
+		return
+	}
+	err = id.RevokeSelf()
+	if shouldPass && err != nil {
+		t.Errorf("testRevocation failed for user %s: %s", user, err)
+	} else if !shouldPass && err == nil {
+		t.Errorf("testRevocation for user %s passed but should have failed", user)
 	}
 }
 

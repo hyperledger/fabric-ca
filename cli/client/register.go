@@ -71,6 +71,10 @@ func registerMain(args []string, c cli.Config) error {
 	}
 
 	id, err := client.LoadMyIdentity()
+	if err != nil {
+		return err
+	}
+
 	regReq.Registrar = id
 	resp, err := client.Register(regReq)
 	if err != nil {

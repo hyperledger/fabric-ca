@@ -33,32 +33,12 @@ const (
 	clientPath = "/tmp/clientTesting"
 )
 
-func runServer() {
-	os.Setenv("COP_DEBUG", "true")
-	server.Start("../../testdata")
-}
-
-func startServer() int {
-	if _, err := os.Stat(clientPath); err != nil {
-		if os.IsNotExist(err) {
-			os.MkdirAll(clientPath, 0755)
-		}
-	} else {
-		os.RemoveAll(clientPath)
-		os.MkdirAll(clientPath, 0755)
+// TestNewClient tests constructing a client
+func TestNewClient(t *testing.T) {
+	_, err := NewClient("http://127.0.0.1:8888")
+	if err != nil {
+		t.Errorf("Failed to create a client: %s", err)
 	}
-
-	if !serverStarted {
-		serverStarted = true
-		fmt.Println("starting COP server ...")
-		os.Setenv("COP_HOME", clientPath)
-		go runServer()
-		time.Sleep(5 * time.Second)
-		fmt.Println("COP server started")
-	} else {
-		fmt.Println("COP server already started")
-	}
-	return serverExitCode
 }
 
 func TestEnrollCLI(t *testing.T) {
@@ -87,9 +67,8 @@ func TestReenrollCLI(t *testing.T) {
 
 }
 
-func TestRegisterCLI(t *testing.T) {
+func TestRegister(t *testing.T) {
 
-	// os.Setenv("COP_HOME", "../../testdata")
 	c := new(cli.Config)
 
 	args := []string{"../../testdata/registerrequest.json", "http://localhost:8888"}
@@ -138,6 +117,19 @@ func TestRegisterMissingRegistrar(t *testing.T) {
 
 }
 
+func TestRevoke(t *testing.T) {
+
+	c := new(cli.Config)
+
+	args := []string{"http://localhost:8888", "admin"}
+
+	err := revokeMain(args, *c)
+	if err != nil {
+		t.Errorf("TestRevoke failed: %s", err)
+	}
+
+}
+
 func TestEnrollCLINotEnoughArgs(t *testing.T) {
 
 	c := new(cli.Config)
@@ -174,6 +166,65 @@ func TestReenrollCLIWithCSR(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to reenroll, err: ", err)
 	}
+}
+
+func TestRevokeNoArg(t *testing.T) {
+
+	c := new(cli.Config)
+
+	args := []string{"http://localhost:8888"}
+
+	err := revokeMain(args, *c)
+	if err == nil {
+		t.Error("TestRevokeNoArg succeeded but should have failed")
+	}
+}
+
+func TestRevokeNotAdmin(t *testing.T) {
+
+	c := new(cli.Config)
+
+	args := []string{"http://localhost:8888", "admin"}
+
+	err := revokeMain(args, *c)
+	if err == nil {
+		t.Error("TestRevokeNotAdmin should have failed but didn't")
+	}
 
 	os.RemoveAll(clientPath)
+}
+
+func TestBogusCommand(t *testing.T) {
+	err := Command()
+	if err == nil {
+		t.Error("TestBogusCommand passed but should have failed")
+	}
+}
+
+func runServer() {
+	os.Setenv("COP_DEBUG", "true")
+	server.Start("../../testdata")
+}
+
+func startServer() int {
+	if _, err := os.Stat(clientPath); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(clientPath, 0755)
+		}
+	} else {
+		os.RemoveAll(clientPath)
+		os.MkdirAll(clientPath, 0755)
+	}
+
+	if !serverStarted {
+		serverStarted = true
+		fmt.Println("starting COP server ...")
+		os.Setenv("COP_HOME", clientPath)
+		go runServer()
+		time.Sleep(5 * time.Second)
+		fmt.Println("COP server started")
+	} else {
+		fmt.Println("COP server already started")
+	}
+	return serverExitCode
 }

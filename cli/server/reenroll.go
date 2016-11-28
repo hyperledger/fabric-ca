@@ -52,8 +52,8 @@ func (h *reenrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	cert, err := CFG.Signer.Sign(req)
 	if err != nil {
-		log.Errorf("Sign error: %s", err)
-		return cop.WrapError(err, cop.CFSSL, "failed in Sign")
+		log.Errorf("Sign error during reenroll: %s", err)
+		return cop.WrapError(err, cop.CFSSL, "reenroll failed in Sign")
 	}
 	log.Debug("Sign success")
 	return api.SendResponse(w, cert)

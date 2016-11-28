@@ -109,13 +109,11 @@ func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationRespon
 
 	reqBody, err := util.Marshal(request, "RegistrationRequest")
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
 	buf, err2 := req.Registrar.(*Identity).Post("register", reqBody)
 	if err2 != nil {
-		log.Error(err2)
 		return nil, err2
 	}
 
@@ -148,7 +146,6 @@ func (c *Client) Enroll(req *idp.EnrollmentRequest) (*Identity, error) {
 	post.SetBasicAuth(req.Name, req.Secret)
 	cert, err := c.sendPost(post)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
@@ -169,13 +166,11 @@ func (c *Client) Reenroll(req *idp.ReenrollmentRequest) (*Identity, error) {
 
 	csrPEM, key, err := c.GenCSR(req.CSR, id.GetName())
 	if err != nil {
-		log.Debugf("reenroll failure parsing request: %s", err)
 		return nil, err
 	}
 
 	cert, err := id.Post("reenroll", csrPEM)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
@@ -192,7 +187,6 @@ func (c *Client) newIdentityFromResponse(id string, cert, key []byte) (*Identity
 	var resp api.Response
 	err := json.Unmarshal(cert, &resp)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 
@@ -263,7 +257,11 @@ func (c *Client) ImportSigner(req *idp.ImportSignerRequest) (idp.Signer, error) 
 
 // LoadMyIdentity loads the client's identity from disk
 func (c *Client) LoadMyIdentity() (*Identity, error) {
-	return c.LoadIdentity(c.GetMyIdentityFile())
+	myIDFile := c.GetMyIdentityFile()
+	if !util.FileExists(myIDFile) {
+		return nil, fmt.Errorf("client is not enrolled; '%s' is not an existing file", myIDFile)
+	}
+	return c.LoadIdentity(myIDFile)
 }
 
 // GetMyIdentityFile returns the path to this identity's ID file
@@ -275,7 +273,6 @@ func (c *Client) GetMyIdentityFile() string {
 func (c *Client) LoadIdentity(path string) (*Identity, error) {
 	buf, err := util.ReadFile(path)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 	return c.DeserializeIdentity(buf)
@@ -326,31 +323,32 @@ func (c *Client) sendPost(req *http.Request) (respBody []byte, err error) {
 	// TODO: Add TLS
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		msg := fmt.Sprintf("failed POST: %v", err)
+		msg := fmt.Sprintf("POST failed: %v", err)
 		log.Debug(msg)
-		return nil, cop.NewError(cop.CFSSL, msg)
+		return nil, errors.New(msg)
 	}
-	defer resp.Body.Close()
-	respBody, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		msg := fmt.Sprintf("failed to read response: %v", err)
-		log.Debug(msg)
-		return nil, cop.NewError(cop.CFSSL, msg)
+	if resp.Body != nil {
+		respBody, err = ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if err != nil {
+			msg := fmt.Sprintf("failed to read response: %v", err)
+			log.Debug(msg)
+			return nil, errors.New(msg)
+		}
+		log.Debugf("Received response\n%s", util.HTTPResponseToString(resp))
 	}
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= 300 {
+		var msg string
 		body := new(api.Response)
 		err = json.Unmarshal(respBody, body)
-		if err != nil {
-			err = fmt.Errorf("failed unmarshalling response body from server: error=%s, body=%s",
-				err, string(respBody))
-		} else if len(body.Errors) > 0 {
-			berr := body.Errors[0]
-			err = errors.New(berr.Message)
+		if err != nil && len(body.Errors) > 0 {
+			msg = body.Errors[0].Message
 		} else {
-			err = fmt.Errorf("HTTP response status code: %d", resp.StatusCode)
+			msg = fmt.Sprintf("HTTP status code=%d; %s", resp.StatusCode, string(respBody))
 		}
-		log.Debugf("Error received from server: %s", err)
-		return nil, err
+		msg = fmt.Sprintf("Error response from COP server; %s", msg)
+		log.Debugf("%s", msg)
+		return nil, errors.New(msg)
 	}
 	return respBody, nil
 }

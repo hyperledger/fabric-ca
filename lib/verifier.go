@@ -17,8 +17,12 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
 	"errors"
 
+	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/util"
 )
@@ -60,4 +64,30 @@ func (v *Verifier) Serialize() ([]byte, error) {
 // GetMyCert will return certificate in PEM encoding
 func (v *Verifier) GetMyCert() []byte {
 	return v.Cert
+}
+
+// GetX509Cert will return X509 certificate
+func (v *Verifier) GetX509Cert() (*x509.Certificate, error) {
+	dcert, _ := pem.Decode(v.Cert)
+	if dcert == nil {
+		log.Debug("GetX509Cert.decode failed")
+		return nil, errors.New("pem decode failed")
+	}
+	cert, err := x509.ParseCertificate(dcert.Bytes)
+	if err != nil {
+		log.Debugf("GetX509Cert.parse err=%s", err)
+		return nil, err
+	}
+	return cert, err
+}
+
+// GetSerial returns the serial number and AKI (Authority Key ID)
+func (v *Verifier) GetSerial() (string, string, error) {
+	cert, err := v.GetX509Cert()
+	if err != nil {
+		return "", "", err
+	}
+	serial := cert.SerialNumber.String()
+	aki := hex.EncodeToString(cert.AuthorityKeyId)
+	return serial, aki, nil
 }

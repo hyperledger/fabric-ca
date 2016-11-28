@@ -17,7 +17,14 @@ limitations under the License.
 package server
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+
+	"github.com/cloudflare/cfssl/api"
+	cerr "github.com/cloudflare/cfssl/errors"
+	"github.com/cloudflare/cfssl/log"
+	cop "github.com/hyperledger/fabric-cop/api"
 )
 
 var (
@@ -29,3 +36,31 @@ var (
 	errInvalidUserPass     = errors.New("Invalid user name or password")
 	errInputNotSeeker      = errors.New("Input stream was not a seeker")
 )
+
+func badRequest(w http.ResponseWriter, err error) error {
+	return httpError(w, 400, cop.IOError, err.Error())
+}
+
+func authErr(w http.ResponseWriter, err error) error {
+	return httpError(w, 401, cop.AuthorizationFailure, err.Error())
+}
+
+func notFound(w http.ResponseWriter, err error) error {
+	return httpError(w, 404, cerr.RecordNotFound, err.Error())
+}
+
+func dbErr(w http.ResponseWriter, err error) error {
+	return httpError(w, 500, cop.IOError, err.Error())
+}
+
+func httpError(w http.ResponseWriter, scode, code int, msg string) error {
+	response := api.NewErrorResponse(msg, code)
+	jsonMessage, err := json.Marshal(response)
+	if err != nil {
+		log.Errorf("Failed to marshal JSON: %v", err)
+	} else {
+		msg = string(jsonMessage)
+	}
+	http.Error(w, msg, scode)
+	return nil
+}
