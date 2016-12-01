@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,58 +38,66 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO Users (id, token, type, attributes, state, serial_number, authority_key_identifier)
-	VALUES (:id, :token, :type, :attributes, :state, :serial_number, :authority_key_identifier);`
+INSERT INTO users (id, token, type, user_group, attributes, state, max_enrollments, serial_number, authority_key_identifier)
+	VALUES (:id, :token, :type, :user_group, :attributes, :state, :max_enrollments, :serial_number, :authority_key_identifier);`
 
 	deleteUser = `
-DELETE FROM Users
+DELETE FROM users
 	WHERE (id = ?);`
 
 	updateUser = `
-UPDATE Users
-	SET token = :token, type = :type, attributes = :attributes
+UPDATE users
+	SET token = :token, type = :type, user_group = :user_group, attributes = :attributes
 	WHERE (id = :id);`
 
 	getUser = `
-SELECT * FROM Users
+SELECT * FROM users
 	WHERE (id = ?)`
 
 	insertGroup = `
-INSERT INTO Groups (name, parent_id)
+INSERT INTO groups (name, parent_id)
 	VALUES (?, ?)`
 
 	deleteGroup = `
-DELETE FROM Groups
+DELETE FROM groups
 	WHERE (name = ?)`
 
 	getGroup = `
-SELECT name, parent_id FROM Groups
+SELECT name, parent_id FROM groups
 	WHERE (name = ?)`
 )
 
 const (
-	password = iota
-	state
-	serialNumber
+	serialNumber = iota
 	aki
+	prekey
+	maxEnrollments
+	state
 )
 
 // UserRecord defines the properties of a user
 type UserRecord struct {
-	Name         string `db:"id"`
-	Pass         string `db:"token"`
-	Type         string `db:"type"`
-	Attributes   string `db:"attributes"`
-	State        int    `db:"state"`
-	SerialNumber string `db:"serial_number"`
-	AKI          string `db:"authority_key_identifier"`
+	Name           string `db:"id"`
+	Pass           string `db:"token"`
+	Type           string `db:"type"`
+	Group          string `db:"user_group"`
+	Attributes     string `db:"attributes"`
+	State          int    `db:"state"`
+	MaxEnrollments int    `db:"max_enrollments"`
+	SerialNumber   string `db:"serial_number"`
+	AKI            string `db:"authority_key_identifier"`
+}
+
+// GroupRecord defines the properties of a group
+type GroupRecord struct {
+	Name     string `db:"name"`
+	ParentID string `db:"parent_id"`
+	Prekey   string `db:"prekey"`
 }
 
 // Accessor implements db.Accessor interface.
 type Accessor struct {
-	state        int
-	serialNumber string
-	db           *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewDBAccessor is a constructor for the database API
@@ -125,15 +132,39 @@ func (d *Accessor) LoginUserBasicAuth(user, pass string) (spi.User, error) {
 	userInfo := convertToUserInfo(&userRec)
 
 	if userRec.Pass == pass {
-		if userRec.State == 0 {
+		if userRec.State >= 0 && userRec.State < userRec.MaxEnrollments {
+			state := userRec.State + 1
+			res, err := d.db.Exec("UPDATE users SET state = ? WHERE (id = ?)", state, user)
+			if err != nil {
+				return nil, err
+			}
+
+			numRowsAffected, err := res.RowsAffected()
+
+			if err != nil {
+				return nil, err
+			}
+
+			if numRowsAffected == 0 {
+				return nil, cop.NewError(cop.UserStoreError, "Failed to update the user record")
+			}
+
+			if numRowsAffected != 1 {
+				return nil, cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
+			}
+
 			return userInfo, nil
+		}
+		_, err := d.db.Exec("UPDATE users SET token = ? WHERE (id = ?)", "", user)
+		if err != nil {
+			return nil, err
 		}
 		log.Errorf("User (%s) has already been enrolled", user)
 		return nil, cop.NewError(cop.AuthorizationFailure, "User has already been enrolled")
 	}
 
-	log.Errorf("Incorrect password provided for user (%s)", user)
-	return nil, cop.NewError(cop.AuthorizationFailure, "Incorrect password provided for user (%s)", user)
+	log.Errorf("Incorrect username/password provided")
+	return nil, cop.NewError(cop.AuthorizationFailure, "Incorrect username/password provided)")
 }
 
 // InsertUser inserts user into database
@@ -154,6 +185,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 		Name:       user.Name,
 		Pass:       user.Pass,
 		Type:       user.Type,
+		Group:      user.Group,
 		Attributes: string(attrBytes),
 	})
 
@@ -218,6 +250,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 		Name:       user.Name,
 		Pass:       user.Pass,
 		Type:       user.Type,
+		Group:      user.Group,
 		Attributes: string(attributes),
 	})
 
@@ -247,21 +280,35 @@ func (d *Accessor) UpdateField(id string, field int, value interface{}) error {
 		return err
 	}
 
-	var res sql.Result
-
 	switch field {
-	case password:
-		log.Debug("DB: Updating field: token")
-		v := value.(string)
-		res, err = d.db.Exec("UPDATE Users SET token = ? WHERE (id = ?)", v, id)
+	case serialNumber:
+		log.Debug("Update serial number")
+		val := value.(string)
+		_, err = d.db.Exec("UPDATE users SET serial_number = ? WHERE (id = ?)", val, id)
 		if err != nil {
 			return err
 		}
-	case field:
-		log.Debug("DB: Updating field: state")
-		v := value.(int)
-		res, err = d.db.Exec("UPDATE Users SET state = ? WHERE (id = ?)", v, id)
+	case aki:
+		log.Debug("Update authority key idenitifier")
+		val := value.(string)
+		_, err = d.db.Exec("UPDATE users SET authority_key_identifier = ? WHERE (id = ?)", val, id)
 		if err != nil {
+			return err
+		}
+	case maxEnrollments:
+		log.Debug("Update max enrollments")
+		val := value.(int)
+		_, err = d.db.Exec("UPDATE users SET max_enrollments = ? WHERE (id = ?)", val, id)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+	case state:
+		log.Debug("Update state")
+		val := value.(int)
+		_, err = d.db.Exec("UPDATE users SET state = ? WHERE (id = ?)", val, id)
+		if err != nil {
+			log.Error(err)
 			return err
 		}
 	default:
@@ -269,17 +316,46 @@ func (d *Accessor) UpdateField(id string, field int, value interface{}) error {
 		return cop.NewError(cop.DatabaseError, "DB: Specified field does not exist or cannot be updated")
 	}
 
-	numRowsAffected, err := res.RowsAffected()
-
-	if numRowsAffected == 0 {
-		return cop.NewError(cop.UserStoreError, "Failed to update the user record")
-	}
-
-	if numRowsAffected != 1 {
-		return cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
-	}
-
 	return err
+}
+
+// GetField updates a specific field in database
+func (d *Accessor) GetField(id string, field int) (interface{}, error) {
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	switch field {
+	case prekey:
+		log.Debug("Get prekey")
+		var groupRec GroupRecord
+		err = d.db.Get(&groupRec, "SELECT prekey FROM groups WHERE (name = ?)", id)
+		if err != nil {
+			return nil, err
+		}
+		return groupRec.Prekey, nil
+	case serialNumber:
+		log.Debug("Get serial number")
+		var userRec UserRecord
+		err = d.db.Get(&userRec, "SELECT serial_number FROM users WHERE (id = ?)", id)
+		if err != nil {
+			return nil, err
+		}
+		return userRec.SerialNumber, nil
+	case aki:
+		log.Debug("Get authority key idenitifier")
+		var userRec UserRecord
+		err = d.db.Get(&userRec, "SELECT authority_key_identifier FROM users WHERE (id = ?)", id)
+		if err != nil {
+			return nil, err
+		}
+		return userRec.AKI, nil
+	default:
+		log.Error("DB: Specified field does not exist or cannot be retrieved")
+		return nil, cop.NewError(cop.DatabaseError, "DB: Specified field does not exist or cannot be retrieved")
+	}
+
 }
 
 // GetUser gets user from database
@@ -313,6 +389,15 @@ func (d *Accessor) InsertGroup(name string, parentID string) error {
 	if err != nil {
 		return err
 	}
+
+	/*
+		preKeyString := crypto.CreateRootPreKey()
+
+		_, err = d.db.Exec("UPDATE groups SET prekey = ? WHERE (name = ?)", preKeyString, name)
+		if err != nil {
+			return err
+		}
+	*/
 
 	return nil
 }

@@ -55,7 +55,7 @@ func getUserAttrValue(username, attrname string) (string, error) {
 // getUserAttrs returns a user's attributes
 func getUserAttrs(username string) ([]idp.Attribute, error) {
 	log.Debugf("getUserAttributes %s", username)
-	user, err := CFG.UserRegistery.GetUser(username)
+	user, err := CFG.UserRegistry.GetUser(username)
 	if err != nil {
 		return nil, fmt.Errorf("user '%s' not found", username)
 	}

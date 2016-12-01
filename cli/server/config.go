@@ -39,6 +39,7 @@ type Config struct {
 	Users          map[string]*User `json:"users,omitempty"`
 	DBdriver       string           `json:"driver"`
 	DataSource     string           `json:"data_source"`
+	UsrReg         UserReg          `json:"user_registry"`
 	Home           string
 	ConfigFile     string
 	CACert         string
@@ -46,7 +47,12 @@ type Config struct {
 	DB             *sqlx.DB
 	certDBAccessor certdb.Accessor
 	Signer         signer.Signer
-	UserRegistery  spi.UserRegistry
+	UserRegistry   spi.UserRegistry
+}
+
+// UserReg defines the user registry properties
+type UserReg struct {
+	MaxEnrollments int `json:"max_enrollments"`
 }
 
 // User information
@@ -90,6 +96,10 @@ func configInit(cfg *cli.Config) {
 		if err != nil {
 			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))
 		}
+	}
+
+	if CFG.UsrReg.MaxEnrollments == 0 {
+		CFG.UsrReg.MaxEnrollments = 1
 	}
 
 	dbg := os.Getenv("COP_DEBUG")

@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetAttributes(t *testing.T) {
-	userInfo := &UserInfo{"TestUser1", "User1", "Client", []idp.Attribute{idp.Attribute{Name: "testName", Value: "testValue"}}}
+	userInfo := &UserInfo{"TestUser1", "User1", "Client", "bank_a", []idp.Attribute{idp.Attribute{Name: "testName", Value: "testValue"}}}
 	user := NewUser(userInfo)
 	attributes, err := user.GetAttributes()
 	if err != nil {

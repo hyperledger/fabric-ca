@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -82,12 +83,12 @@ func TestRegisterUser(t *testing.T) {
 	copServer := `{"serverURL":"http://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
-	regReq := &idp.EnrollmentRequest{
+	enrollReq := &idp.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
 	}
 
-	ID, err := c.Enroll(regReq)
+	ID, err := c.Enroll(enrollReq)
 	if err != nil {
 		t.Error("enroll of user 'admin' with password 'adminpw' failed")
 		return
@@ -99,7 +100,7 @@ func TestRegisterUser(t *testing.T) {
 		return
 	}
 
-	enrollReq := &idp.RegistrationRequest{
+	regReq := &idp.RegistrationRequest{
 		Name:  "TestUser1",
 		Type:  "Client",
 		Group: "bank_a",
@@ -112,9 +113,9 @@ func TestRegisterUser(t *testing.T) {
 	}
 	util.Unmarshal(identity, id, "identity")
 
-	enrollReq.Registrar = id
+	regReq.Registrar = id
 
-	_, err = c.Register(enrollReq)
+	_, err = c.Register(regReq)
 	if err != nil {
 		t.Error(err)
 	}
@@ -186,6 +187,58 @@ func TestRevoke(t *testing.T) {
 	err = id.Revoke(&idp.RevocationRequest{Serial: "foo", AKI: "bar"})
 	if err == nil {
 		t.Error("Revoke with with bogus serial and AKI should have failed but did not")
+	}
+}
+
+func TestMaxEnrollment(t *testing.T) {
+	CFG.UsrReg.MaxEnrollments = 2
+
+	copServer := `{"serverURL":"http://localhost:8888"}`
+	c, _ := lib.NewClient(copServer)
+
+	regReq := &idp.RegistrationRequest{
+		Name:  "MaxTestUser",
+		Type:  "Client",
+		Group: "bank_a",
+	}
+
+	id, _ := factory.NewIdentity()
+	identity, err := ioutil.ReadFile("/tmp/home/client.json")
+	if err != nil {
+		t.Error(err)
+	}
+	util.Unmarshal(identity, id, "identity")
+
+	regReq.Registrar = id
+
+	resp, err := c.Register(regReq)
+	if err != nil {
+		t.Error(err)
+	}
+
+	secretBytes, err := base64.StdEncoding.DecodeString(resp.Secret)
+
+	enrollReq := &idp.EnrollmentRequest{
+		Name:   "MaxTestUser",
+		Secret: string(secretBytes),
+	}
+
+	_, err = c.Enroll(enrollReq)
+	if err != nil {
+		t.Error("Enroll of user 'MaxTestUser' failed")
+		return
+	}
+
+	_, err = c.Enroll(enrollReq)
+	if err != nil {
+		t.Error("Enroll of user 'MaxTestUser' failed")
+		return
+	}
+
+	_, err = c.Enroll(enrollReq)
+	if err == nil {
+		t.Error("Enroll of user should have failed, max enrollment reached")
+		return
 	}
 
 }

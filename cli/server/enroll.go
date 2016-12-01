@@ -28,7 +28,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/util"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -94,20 +93,6 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 	if signErr != nil {
 		log.Error("Failed to sign CSR - Enroll Failed")
 		return nil, signErr
-	}
-
-	tok := util.RandomString(12)
-
-	err := e.cfg.UserRegistery.UpdateField(id, password, tok)
-	if err != nil {
-		log.Errorf("Failed to update user token - Enroll Failed [error: %s]", err)
-		return nil, cop.WrapError(err, cop.EnrollingUserError, "Failed to update user token - Enroll Failed")
-	}
-
-	err = e.cfg.UserRegistery.UpdateField(id, state, 1)
-	if err != nil {
-		log.Errorf("Failed to update user state - Enroll Failed [error: %s]", err)
-		return nil, cop.WrapError(err, cop.EnrollingUserError, "Failed to update user state - Enroll Failed")
 	}
 
 	return cert, nil

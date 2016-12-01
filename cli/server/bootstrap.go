@@ -27,20 +27,18 @@ import (
 
 // Bootstrap is used for bootstrapping database
 type Bootstrap struct {
-	cfg *Config
 }
 
 // BootstrapDB is a constructor to bootstrap the database at server startup
 func BootstrapDB() *Bootstrap {
 	b := new(Bootstrap)
-	b.cfg = CFG
 	return b
 }
 
 // PopulateUsersTable populates the user table with the users defined in the server configuration file
 func (b *Bootstrap) PopulateUsersTable() error {
 	log.Debug("populateUsersTable")
-	for name, info := range b.cfg.Users {
+	for name, info := range CFG.Users {
 
 		reg := NewRegisterUser()
 		reg.RegisterUser(name, info.Type, info.Group, info.Attributes, "", info.Pass)
@@ -71,7 +69,7 @@ func (b *Bootstrap) PopulateGroupsTable() {
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 
-	base := filepath.Base(b.cfg.ConfigFile)
+	base := filepath.Base(CFG.ConfigFile)
 	filename := strings.Split(base, ".")
 	name := filename[0]
 	typ := filename[1]
@@ -79,7 +77,7 @@ func (b *Bootstrap) PopulateGroupsTable() {
 	viper.SetConfigName(name)
 	viper.SetConfigType(typ)
 
-	configPath := filepath.Dir(b.cfg.ConfigFile)
+	configPath := filepath.Dir(CFG.ConfigFile)
 	viper.AddConfigPath(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -103,13 +101,13 @@ func (b *Bootstrap) registerGroup(name string, parentName string) error {
 	log.Debugf("Registering affiliation group (%s) with parent (%s)", name, parentName)
 
 	var err error
-	_, err = b.cfg.UserRegistery.GetGroup(name)
+	_, err = CFG.UserRegistry.GetGroup(name)
 	if err == nil {
 		log.Error("Group already registered")
 		return errors.New("Group already registered")
 	}
 
-	err = b.cfg.UserRegistery.InsertGroup(name, parentName)
+	err = CFG.UserRegistry.InsertGroup(name, parentName)
 	if err != nil {
 		log.Error(err)
 	}

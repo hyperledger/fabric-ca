@@ -18,6 +18,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 
@@ -67,7 +68,7 @@ func prepRegister() error {
 	regCFG.Home = regPath
 	regCFG.DataSource = regCFG.Home + "/cop.db"
 
-	CFG.UserRegistery, err = NewUserRegistry(regCFG.DBdriver, regCFG.DataSource)
+	CFG.UserRegistry, err = NewUserRegistry(regCFG.DBdriver, regCFG.DataSource)
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,8 @@ func testRegisterDuplicateUser(t *testing.T) {
 		t.Fatal("Expected an error when registering the same user twice")
 	}
 
-	if err.Error() != "User is already registered" {
+	expectedError := fmt.Sprintf("%d: User is already registered", cop.RegisteringUserError)
+	if err.Error() != expectedError {
 		t.Fatalf("Expected error was not returned when registering user twice: [%s]", err.Error())
 	}
 }

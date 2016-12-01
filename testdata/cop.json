@@ -1,6 +1,9 @@
 {
  "driver":"sqlite3",
  "data_source":"cop.db",
+ "user_registry": {
+   "max_enrollments": 1
+ },
  "users": {
     "admin": {
       "pass": "adminpw",

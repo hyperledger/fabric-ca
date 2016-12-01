@@ -38,7 +38,7 @@ DELETE FROM Groups;
 )
 
 type TestAccessor struct {
-	Accessor spi.UserRegistry
+	Accessor *Accessor
 	DB       *sqlx.DB
 }
 
@@ -55,19 +55,16 @@ func TestSQLite(t *testing.T) {
 		os.RemoveAll(dbPath)
 		os.MkdirAll(dbPath, 0755)
 	}
-
 	var cfg = new(Config)
 	cfg.DBdriver = "sqlite3"
 	cfg.DataSource = dbPath + "/cop.db"
 
-	accessor, err := NewUserRegistry(cfg.DBdriver, cfg.DataSource)
-	if err != nil {
-		t.Error("Failed to get new user registery")
-	}
 	db, err := dbutil.GetDB(cfg.DBdriver, cfg.DataSource)
 	if err != nil {
 		t.Error("Failed to open connection to DB")
 	}
+	accessor := NewDBAccessor()
+	accessor.SetDB(db)
 
 	ta := TestAccessor{
 		Accessor: accessor,
@@ -102,6 +99,7 @@ func testEverything(ta TestAccessor, t *testing.T) {
 	testUpdateUser(ta, t)
 	testInsertAndGetGroup(ta, t)
 	testDeleteGroup(ta, t)
+	testUpdateAndGetField(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
@@ -233,4 +231,31 @@ func testDeleteGroup(ta TestAccessor, t *testing.T) {
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}
+}
+
+func testUpdateAndGetField(ta TestAccessor, t *testing.T) {
+	ta.Truncate()
+
+	insert := spi.UserInfo{
+		Name:       "testId",
+		Pass:       "123456",
+		Type:       "client",
+		Attributes: []idp.Attribute{},
+	}
+
+	err := ta.Accessor.InsertUser(insert)
+	if err != nil {
+		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+	}
+
+	err = ta.Accessor.UpdateField(insert.Name, serialNumber, "1234567890")
+	if err != nil {
+		t.Errorf("Error occured during updating of field serial_number for ID: %s, error: %s", insert.Name, err)
+	}
+
+	_, err = ta.Accessor.GetField(insert.Name, serialNumber)
+	if err != nil {
+		t.Errorf("Error occured during get of field serial_number for ID: %s, error: %s", insert.Name, err)
+	}
+
 }

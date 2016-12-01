@@ -28,6 +28,7 @@ type UserInfo struct {
 	Name       string
 	Pass       string
 	Type       string
+	Group      string
 	Attributes []idp.Attribute
 }
 
@@ -57,6 +58,7 @@ type UserRegistry interface {
 	UpdateUser(user UserInfo) error
 	DeleteUser(id string) error
 	UpdateField(id string, field int, value interface{}) error
+	GetField(id string, field int) (interface{}, error)
 	GetGroup(name string) (Group, error)
 	GetRootGroup() (Group, error)
 	InsertGroup(name string, parentID string) error
