@@ -243,14 +243,4 @@ func testUpdateAndGetField(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	err = ta.Accessor.UpdateField(insert.Name, serialNumber, "1234567890")
-	if err != nil {
-		t.Errorf("Error occured during updating of field serial_number for ID: %s, error: %s", insert.Name, err)
-	}
-
-	_, err = ta.Accessor.GetField(insert.Name, serialNumber)
-	if err != nil {
-		t.Errorf("Error occured during get of field serial_number for ID: %s, error: %s", insert.Name, err)
-	}
-
 }

@@ -50,6 +50,7 @@ func prepBootstrap() (*Bootstrap, error) {
 	bootCFG.DataSource = bootCFG.Home + "/cop.db"
 
 	err = InitUserRegistry(bootCFG)
+
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func TestAllBootstrap(t *testing.T) {
 func testBootstrapGroup(b *Bootstrap, t *testing.T) {
 	b.PopulateGroupsTable()
 
-	_, err := CFG.UserRegistry.GetGroup("bank_b")
+	_, err := userRegistry.GetGroup("bank_b")
 
 	if err != nil {
 		t.Error("Failed bootstrapping groups table")
@@ -83,7 +84,7 @@ func testBootstrapGroup(b *Bootstrap, t *testing.T) {
 func testBootstrapUsers(b *Bootstrap, t *testing.T) {
 	b.PopulateUsersTable()
 
-	_, err := CFG.UserRegistry.GetUser("admin")
+	_, err := userRegistry.GetUser("admin")
 
 	if err != nil {
 		t.Error("Failed bootstrapping users table")

@@ -23,12 +23,10 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/cloudflare/cfssl/cli/sign"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/jmoiron/sqlx"
 )
 
 // enrollHandler for register requests
@@ -103,19 +101,13 @@ func (e *Enroll) signKey(csrPEM []byte) ([]byte, cop.Error) {
 	var cfg cli.Config
 	cfg.CAFile = e.cfg.CACert
 	cfg.CAKeyFile = e.cfg.CAKey
-	db, err := sqlx.Open(e.cfg.DBdriver, e.cfg.DataSource)
-	s, err := sign.SignerFromConfigAndDB(cfg, db)
-	if err != nil {
-		log.Errorf("SignerFromConfig error: %s", err)
-		return nil, cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfig")
-	}
 	req := signer.SignRequest{
 		// Hosts:   signer.SplitHosts(c.Hostname),
 		Request: string(csrPEM),
 		// Profile: c.Profile,
 		// Label:   c.Label,
 	}
-	cert, err := s.Sign(req)
+	cert, err := CFG.Signer.Sign(req)
 	if err != nil {
 		log.Errorf("Sign error: %s", err)
 		return nil, cop.WrapError(err, cop.CFSSL, "Failed in Sign")

@@ -77,18 +77,20 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Debugf("Revoke request: %+v", req)
 
 	if req.Serial != "" && req.AKI != "" {
-		err = CFG.certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
+		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
 			log.Warningf("Revoke failed: %s", err)
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
-		_, err := CFG.UserRegistry.GetUser(req.Name)
+
+		_, err := userRegistry.GetUser(req.Name)
 		if err != nil {
 			log.Warningf("Revoke failed: %s", err)
 			return notFound(w, err)
 		}
-		err = CFG.UserRegistry.UpdateField(req.Name, state, -1)
+
+		err = userRegistry.UpdateField(req.Name, state, -1)
 		if err != nil {
 			log.Warningf("Revoke failed: %s", err)
 			return dbErr(w, err)

@@ -132,7 +132,7 @@ func TestGetDefaultHomeDir(t *testing.T) {
 	os.Setenv("COP_HOME", "")
 	os.Setenv("HOME", "")
 	home := GetDefaultHomeDir()
-	if home != "/var/hyperledger/production/.cop" {
+	if home != "/var/hyperledger/fabric/dev/.fabric-cop" {
 		t.Errorf("Incorrect default home (%s) path retrieved", home)
 	}
 
@@ -204,6 +204,14 @@ func TestFileExists(t *testing.T) {
 
 	exists := FileExists(name)
 	if exists == false {
-		t.Error("Failed does exist")
+		t.Error("File does not exist")
+	}
+}
+
+func TestGetEnrollmentID(t *testing.T) {
+	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	_, err := GetEnrollmentIDFromPEM(cert)
+	if err != nil {
+		t.Fatalf("Failed to get enrollment ID from certificate")
 	}
 }

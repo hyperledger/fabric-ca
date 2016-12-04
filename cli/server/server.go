@@ -38,14 +38,13 @@ import (
 	"github.com/cloudflare/cfssl/api/scan"
 	"github.com/cloudflare/cfssl/api/signhandler"
 	"github.com/cloudflare/cfssl/bundler"
-	"github.com/cloudflare/cfssl/certdb/dbconf"
-	"github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
-	"github.com/cloudflare/cfssl/cli/sign"
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
@@ -119,7 +118,7 @@ func (s *Server) CreateHome() (string, error) {
 		}
 	}
 	if home == "" {
-		home = "/var/hyperledger/production/.cop"
+		home = "/var/hyperledger/fabric/dev/.fabric-cop"
 	}
 	if _, err := os.Stat(home); err != nil {
 		if os.IsNotExist(err) {
@@ -180,15 +179,10 @@ func startMain(args []string, c cli.Config) error {
 		log.Errorf("Failed to find database")
 	}
 
-	// cfg.DB = db
-	// cfg.DBAccessor = NewDBAccessor()
-	// cfg.DBAccessor.SetDB(db)
-	cfg.certDBAccessor = sql.NewAccessor(db)
-
 	var cfsslCfg cli.Config
 	cfsslCfg.CAFile = cfg.CACert
 	cfsslCfg.CAKeyFile = cfg.CAKey
-	mySigner, err := sign.SignerFromConfigAndDB(cfsslCfg, db)
+	mySigner, err := SignerFromConfigAndDB(cfsslCfg, db)
 	if err != nil {
 		log.Errorf("SignerFromConfigAndDB error: %s", err)
 		return cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfigAndDB")
@@ -214,18 +208,7 @@ func serverMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	if c.DBConfigFile != "" {
-		db, err = dbconf.DBFromConfig(c.DBConfigFile)
-		if err != nil {
-			return err
-		}
-	}
-
 	log.Info("Initializing signer")
-
-	if s, err = sign.SignerFromConfigAndDB(c, db); err != nil {
-		log.Warningf("couldn't initialize signer: %v", err)
-	}
 
 	if ocspSigner, err = ocspsign.SignerFromConfig(c); err != nil {
 		log.Warningf("couldn't initialize ocsp signer: %v", err)
@@ -239,46 +222,47 @@ func serverMain(args []string, c cli.Config) error {
 		log.Info("Now listening on ", addr)
 		return http.ListenAndServe(addr, nil)
 	}
-	/*
-		if conf.MutualTLSCAFile != "" {
-			clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
-			if err != nil {
-				return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
-			}
 
-			server := http.Server{
-				Addr: addr,
-				TLSConfig: &tls.Config{
-					ClientAuth: tls.RequireAndVerifyClientCert,
-					ClientCAs:  clientPool,
-				},
-			}
+	// TODO: Temporarly commenting out as TLS is currently not supported. Will be uncommented when TLS support has been implemented
 
-			if conf.MutualTLSCNRegex != "" {
-				log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
-				re, err := regexp.Compile(conf.MutualTLSCNRegex)
-				if err != nil {
-					return fmt.Errorf("malformed CN regex: %s", err)
-				}
-				server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-						if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
-							http.DefaultServeMux.ServeHTTP(w, r)
-							return
-						}
-						log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
-							r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
-					}
-					http.Error(w, "Invalid CN", http.StatusForbidden)
-				})
-			}
-			log.Info("Now listening with mutual TLS on https://", addr)
-			return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
-		}
-	*/
-	log.Info("Now listening on https://", addr)
-	return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
-
+	// if conf.MutualTLSCAFile != "" {
+	// 	clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
+	// 	}
+	//
+	// 	server := http.Server{
+	// 		Addr: addr,
+	// 		TLSConfig: &tls.Config{
+	// 			ClientAuth: tls.RequireAndVerifyClientCert,
+	// 			ClientCAs:  clientPool,
+	// 		},
+	// 	}
+	//
+	// 	if conf.MutualTLSCNRegex != "" {
+	// 		log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
+	// 		re, err := regexp.Compile(conf.MutualTLSCNRegex)
+	// 		if err != nil {
+	// 			return fmt.Errorf("malformed CN regex: %s", err)
+	// 		}
+	// 		server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 			if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+	// 				if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
+	// 					http.DefaultServeMux.ServeHTTP(w, r)
+	// 					return
+	// 				}
+	// 				log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
+	// 					r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
+	// 			}
+	// 			http.Error(w, "Invalid CN", http.StatusForbidden)
+	// 		})
+	// 	}
+	// 	log.Info("Now listening with mutual TLS on https://", addr)
+	// 	return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
+	// }
+	// log.Info("Now listening on https://", addr)
+	// return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
+	return nil
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
@@ -421,6 +405,62 @@ var endpoints = map[string]func() (http.Handler, error){
 
 		return http.FileServer(staticBox), nil
 	},
+}
+
+// SignerFromConfigAndDB takes the Config and creates the appropriate
+// signer.Signer object with a specified db
+func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
+	// If there is a config, use its signing policy. Otherwise create a default policy.
+	var policy *config.Signing
+	if c.CFG != nil {
+		policy = c.CFG.Signing
+	} else {
+		policy = &config.Signing{
+			Profiles: map[string]*config.SigningProfile{},
+			Default:  config.DefaultConfig(),
+		}
+	}
+
+	// TODO: Temporarly commenting out as TLS is currently not supported. Will be uncommented when TLS support has been implemented
+
+	// Make sure the policy reflects the new remote
+	// if c.Remote != "" {
+	// 	err := policy.OverrideRemotes(c.Remote)
+	// 	if err != nil {
+	// 		log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
+	// 		return nil, err
+	// 	}
+	// }
+	//
+	// if c.MutualTLSCertFile != "" && c.MutualTLSKeyFile != "" {
+	// 	err := policy.SetClientCertKeyPairFromFile(c.MutualTLSCertFile, c.MutualTLSKeyFile)
+	// 	if err != nil {
+	// 		log.Infof("Invalid mutual-tls-cert: %s or mutual-tls-key: %s, defaulting to no client auth", c.MutualTLSCertFile, c.MutualTLSKeyFile)
+	// 		return nil, err
+	// 	}
+	// 	log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
+	// }
+	//
+	// if c.TLSRemoteCAs != "" {
+	// 	err := policy.SetRemoteCAsFromFile(c.TLSRemoteCAs)
+	// 	if err != nil {
+	// 		log.Infof("Invalid tls-remote-ca: %s, defaulting to system trust store", c.TLSRemoteCAs)
+	// 		return nil, err
+	// 	}
+	// 	log.Infof("Using trusted CA from tls-remote-ca: %s", c.TLSRemoteCAs)
+	// }
+
+	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
+	if err != nil {
+		return nil, err
+	}
+
+	if db != nil {
+		certAccessor := CertificateAccessor(db)
+		s.SetDBAccessor(certAccessor)
+	}
+
+	return s, nil
 }
 
 // Start will start server

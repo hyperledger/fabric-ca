@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudflare/cfssl/csr"
 	factory "github.com/hyperledger/fabric-cop"
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/cli/server/ldap"
@@ -45,6 +44,7 @@ const (
 
 var serverStarted bool
 var serverExitCode = 0
+var cfg *Config
 
 func createServer() *Server {
 	s := new(Server)
@@ -69,6 +69,7 @@ func startServer() int {
 
 func runServer() {
 	Start("../../testdata")
+	cfg = CFG
 }
 
 func TestPostgresFail(t *testing.T) {
@@ -97,7 +98,7 @@ func TestRegisterUser(t *testing.T) {
 
 	err = ID.Store()
 	if err != nil {
-		t.Errorf("failed to store enrollment information: %s", err)
+		t.Errorf("Failed to store enrollment information: %s", err)
 		return
 	}
 
@@ -256,7 +257,6 @@ func TestMaxEnrollment(t *testing.T) {
 		return
 	}
 
-	/* TODO: Fix
 	_, err = c.Enroll(enrollReq)
 	if err != nil {
 		t.Error("Enroll of user 'MaxTestUser' failed")
@@ -268,7 +268,6 @@ func TestMaxEnrollment(t *testing.T) {
 		t.Error("Enroll of user should have failed, max enrollment reached")
 		return
 	}
-	*/
 
 }
 
@@ -299,6 +298,87 @@ func TestEnroll(t *testing.T) {
 	testEnrollingUser(e, t)
 }
 
+func testUnregisteredUser(e *Enroll, t *testing.T) {
+	copServer := `{"serverURL":"http://localhost:8888"}`
+	c, _ := lib.NewClient(copServer)
+
+	req := &idp.EnrollmentRequest{
+		Name:   "Unregistered",
+		Secret: "test",
+	}
+
+	_, err := c.Enroll(req)
+
+	if err == nil {
+		t.Error("Unregistered user should not be allowed to enroll, should have failed")
+	}
+}
+
+func testIncorrectToken(e *Enroll, t *testing.T) {
+	copServer := `{"serverURL":"http://localhost:8888"}`
+	c, _ := lib.NewClient(copServer)
+
+	req := &idp.EnrollmentRequest{
+		Name:   "notadmin",
+		Secret: "pass1",
+	}
+
+	_, err := c.Enroll(req)
+
+	if err == nil {
+		t.Error("Incorrect token should not be allowed to enroll, should have failed")
+	}
+}
+
+func testEnrollingUser(e *Enroll, t *testing.T) {
+	copServer := `{"serverURL":"http://localhost:8888"}`
+	c, _ := lib.NewClient(copServer)
+
+	req := &idp.EnrollmentRequest{
+		Name:   "testUser2",
+		Secret: "user2",
+	}
+
+	_, err := c.Enroll(req)
+
+	if err != nil {
+		t.Error("Enroll of user 'testUser2' with password 'user2' failed")
+		return
+	}
+
+}
+
+func TestGetCertificatesByID(t *testing.T) {
+	certRecord, err := certDBAccessor.GetCertificatesByID("testUser2")
+	if err != nil {
+		t.Errorf("Error occured while getting certificate for id 'testUser2', [error: %s]", err)
+	}
+	if len(certRecord) == 0 {
+		t.Error("Failed to get certificate by user id, for user: 'testUser2'")
+	}
+}
+
+func TestRevokeCertificatesByID(t *testing.T) {
+	_, err := certDBAccessor.RevokeCertificatesByID("testUser2", 1)
+	if err != nil {
+		t.Errorf("Error occured while revoking certificate for id 'testUser2', [error: %s]", err)
+	}
+}
+
+func TestGetField(t *testing.T) {
+	_, err := userRegistry.GetField("testUser2", 5)
+	if err == nil {
+		t.Errorf("Error should occured while getting unsupported field, [error: %s]", err)
+	}
+}
+
+func TestUpdateField(t *testing.T) {
+	err := userRegistry.UpdateField("testUser2", state, 5)
+	if err != nil {
+		t.Errorf("Error occured while updating state field for id 'testUser2', [error: %s]", err)
+	}
+}
+
 func TestUserRegistry(t *testing.T) {
 
 	err := InitUserRegistry(&Config{DBdriver: "postgres", DataSource: "dbname=cop sslmode=disable"})
@@ -326,31 +406,6 @@ func TestUserRegistry(t *testing.T) {
 func TestLast(t *testing.T) {
 	// Cleanup
 	os.RemoveAll(homeDir)
-}
-
-func testUnregisteredUser(e *Enroll, t *testing.T) {
-	_, err := e.Enroll("Unregistered", []byte("test"), nil)
-	if err == nil {
-		t.Error("Unregistered user should not be allowed to enroll, should have failed")
-	}
-}
-
-func testIncorrectToken(e *Enroll, t *testing.T) {
-	_, err := e.Enroll("notadmin", []byte("pass1"), nil)
-	if err == nil {
-		t.Error("Incorrect token should not be allowed to enroll, should have failed")
-	}
-}
-
-func testEnrollingUser(e *Enroll, t *testing.T) {
-	cr := csr.New()
-
-	csrPEM, _, _ := csr.ParseRequest(cr)
-
-	_, err := e.Enroll("testUser2", []byte("user2"), csrPEM)
-	if err != nil {
-		t.Error("Failed to enroll user")
-	}
 }
 
 func testStatic(id *lib.Identity, t *testing.T) {
