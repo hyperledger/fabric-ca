@@ -139,12 +139,12 @@ func (c *Client) Enroll(req *idp.EnrollmentRequest) (*Identity, error) {
 	}
 
 	// Send the CSR to the COP server
-	post, err := c.newPost("enroll", csrPEM)
+	post, err := c.NewPost("enroll", csrPEM)
 	if err != nil {
 		return nil, err
 	}
 	post.SetBasicAuth(req.Name, req.Secret)
-	cert, err := c.sendPost(post)
+	cert, err := c.SendPost(post)
 	if err != nil {
 		return nil, err
 	}
@@ -301,8 +301,8 @@ func (c *Client) DeserializeIdentity(buf []byte) (*Identity, error) {
 	return id, err
 }
 
-// Create a new request
-func (c *Client) newPost(endpoint string, reqBody []byte) (*http.Request, error) {
+// NewPost create a new post request
+func (c *Client) NewPost(endpoint string, reqBody []byte) (*http.Request, error) {
 	curl, cerr := c.getURL(endpoint)
 	if cerr != nil {
 		return nil, cerr
@@ -316,7 +316,8 @@ func (c *Client) newPost(endpoint string, reqBody []byte) (*http.Request, error)
 	return req, nil
 }
 
-func (c *Client) sendPost(req *http.Request) (respBody []byte, err error) {
+// SendPost sends a request to the LDAP server and returns a response
+func (c *Client) SendPost(req *http.Request) (respBody []byte, err error) {
 	log.Debugf("Sending request\n%s", util.HTTPRequestToString(req))
 	req.Header.Set("content-type", "application/json")
 	httpClient := &http.Client{}
@@ -337,7 +338,7 @@ func (c *Client) sendPost(req *http.Request) (respBody []byte, err error) {
 		}
 		log.Debugf("Received response\n%s", util.HTTPResponseToString(resp))
 	}
-	if resp.StatusCode >= 300 {
+	if resp.StatusCode >= 400 {
 		var msg string
 		body := new(api.Response)
 		err = json.Unmarshal(respBody, body)

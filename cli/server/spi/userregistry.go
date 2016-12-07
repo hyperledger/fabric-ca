@@ -38,9 +38,16 @@ type GroupInfo struct {
 	ParentID string `db:"parent_id"`
 }
 
-// User is the API for a user
+// User is the SPI for a user
 type User interface {
-	GetAttributes() ([]idp.Attribute, error)
+	// Returns the enrollment ID of the user
+	GetName() string
+	// Login the user with a password
+	Login(password string) error
+	// Get the complete path for the user's affiliation.
+	GetAffiliationPath() []string
+	// GetAttribute returns the value for an attribute name
+	GetAttribute(name string) string
 }
 
 // Group is the API for a group
@@ -52,8 +59,7 @@ type Group interface {
 
 // UserRegistry is the API for retreiving users and groups
 type UserRegistry interface {
-	LoginUserBasicAuth(user, pass string) (User, error)
-	GetUser(id string) (User, error)
+	GetUser(id string, attrs ...string) (User, error)
 	InsertUser(user UserInfo) error
 	UpdateUser(user UserInfo) error
 	DeleteUser(id string) error

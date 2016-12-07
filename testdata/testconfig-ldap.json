@@ -1,0 +1,14 @@
+{
+ "driver":"sqlite3",
+ "data_source":"cop.db",
+ "ldap": {
+    "url": "ldap://cn=admin,dc=example,dc=org:admin@localhost:10389/dc=example,dc=org",
+    "userfilter": "(uid=%s)"
+ },
+ "signing": {
+    "default": {
+       "usages": ["cert sign"],
+       "expiry": "8000h"
+    }
+ }
+}

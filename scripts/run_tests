@@ -1,5 +1,7 @@
 #!/bin/bash
 
+COP=$GOPATH/src/github.com/hyperledger/fabric-cop
+
 echo "Running all tests ..."
 {
 export PATH=$PATH:$GOPATH/bin
@@ -7,25 +9,13 @@ export PATH=$PATH:$GOPATH/bin
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
 
-PKGS=`go list github.com/hyperledger/fabric-cop/... | grep -v /vendor/`
+PKGS=`go list github.com/hyperledger/fabric-cop/... | grep -Ev '/vendor/|/idp|/dbutil|/ldap'`
 
 gocov test $PKGS | gocov-xml > coverage.xml
 
-} | tee /tmp/test.results
+} 2>&1 | tee /tmp/test.results
 echo "Finished running all tests"
-SC=0
-FAILURES=`awk '$1 != "ok" && $1 != "?"' /tmp/test.results`
-if [ "$FAILURES" != "" ]; then
-   echo "*** BEGIN FAILURES ***"
-   echo "$FAILURES"
-   echo "*** END FAILURES ***"
-   SC=1
-fi
-INSUFFICIENT_COVERAGE=`awk '$1 == "?" || ($1 == "ok" && $5 != "100.0%" && substr($5, 0, length($5)-1) < 75)' /tmp/test.results`
-if [ "$INSUFFICIENT_COVERAGE" != "" ]; then
-   echo "*** BEGIN INSUFFICIENT TEST COVERAGE (less than 75%) ***"
-   echo "$INSUFFICIENT_COVERAGE"
-   echo "*** END INSUFFICIENT TEST COVERAGE (less than 75%) ***"
-   SC=1
-fi
-exit $SC
+
+$COP/scripts/check_test_results /tmp/test.results
+
+exit $?

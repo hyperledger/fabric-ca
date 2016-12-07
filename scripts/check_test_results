@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+   echo "Usage: check_test_results <results-file>"
+   exit 1
+fi
+
+TEST_RESULTS=$1
+
+SC=0
+FAILURES=`awk '$1 != "ok" && $1 != "?"' $TEST_RESULTS`
+if [ "$FAILURES" != "" ]; then
+   echo "*** BEGIN FAILURES ***"
+   echo "$FAILURES"
+   echo "*** END FAILURES ***"
+   SC=1
+fi
+INSUFFICIENT_COVERAGE=`awk '$1 == "?" || ($1 == "ok" && $5 != "100.0%" && substr($5, 0, length($5)-1) < 75)' $TEST_RESULTS`
+if [ "$INSUFFICIENT_COVERAGE" != "" ]; then
+   echo "*** BEGIN INSUFFICIENT TEST COVERAGE (less than 75%) ***"
+   echo "$INSUFFICIENT_COVERAGE"
+   echo "*** END INSUFFICIENT TEST COVERAGE (less than 75%) ***"
+   SC=1
+fi
+exit $SC

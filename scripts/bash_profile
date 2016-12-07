@@ -163,5 +163,10 @@ function initvars {
 # Generate the coverage report
 function gencov {
    cdr
-   gocov test `go list ./... | grep -v "/vendor/"` | gocov-html > /tmp/coverage.html
+   echo "Generating coverage report ..."
+   go get github.com/axw/gocov/gocov
+   go get -u gopkg.in/matm/v1/gocov-html
+   gocov test `go list ./... | grep -Ev '/vendor/|/idp|/dbutil|/ldap'` | gocov-html > /tmp/coverage.html
+   echo "View the coverage report by pasting the following URL in your browser: file:///tmp/coverage.html"
 }
+

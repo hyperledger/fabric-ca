@@ -24,7 +24,7 @@
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 
-all: checks cop unit-tests
+all: unit-tests
 
 checks: license vet lint format imports
 
@@ -50,5 +50,10 @@ cop:
 
 unit-tests: checks cop
 	@scripts/run_tests
+
+container-tests: ldap-tests
+
+ldap-tests:
+	@scripts/run_ldap_tests
 
 .FORCE:

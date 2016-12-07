@@ -17,15 +17,11 @@ limitations under the License.
 package server
 
 import (
-	"crypto/tls"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,7 +43,6 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/cli/sign"
-	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
@@ -174,9 +169,9 @@ func startMain(args []string, c cli.Config) error {
 		cfg.DataSource = filepath.Join(cfg.Home, cfg.DataSource)
 	}
 
-	_, err = NewUserRegistry(cfg.DBdriver, cfg.DataSource)
+	// Initialize the user registry
+	err = InitUserRegistry(cfg)
 	if err != nil {
-		log.Errorf("Failed to create new user registery [error: %s]", err)
 		return err
 	}
 
@@ -244,41 +239,43 @@ func serverMain(args []string, c cli.Config) error {
 		log.Info("Now listening on ", addr)
 		return http.ListenAndServe(addr, nil)
 	}
-	if conf.MutualTLSCAFile != "" {
-		clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
-		if err != nil {
-			return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
-		}
-
-		server := http.Server{
-			Addr: addr,
-			TLSConfig: &tls.Config{
-				ClientAuth: tls.RequireAndVerifyClientCert,
-				ClientCAs:  clientPool,
-			},
-		}
-
-		if conf.MutualTLSCNRegex != "" {
-			log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
-			re, err := regexp.Compile(conf.MutualTLSCNRegex)
+	/*
+		if conf.MutualTLSCAFile != "" {
+			clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
 			if err != nil {
-				return fmt.Errorf("malformed CN regex: %s", err)
+				return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
 			}
-			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-					if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
-						http.DefaultServeMux.ServeHTTP(w, r)
-						return
-					}
-					log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
-						r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
+
+			server := http.Server{
+				Addr: addr,
+				TLSConfig: &tls.Config{
+					ClientAuth: tls.RequireAndVerifyClientCert,
+					ClientCAs:  clientPool,
+				},
+			}
+
+			if conf.MutualTLSCNRegex != "" {
+				log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
+				re, err := regexp.Compile(conf.MutualTLSCNRegex)
+				if err != nil {
+					return fmt.Errorf("malformed CN regex: %s", err)
 				}
-				http.Error(w, "Invalid CN", http.StatusForbidden)
-			})
+				server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+						if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
+							http.DefaultServeMux.ServeHTTP(w, r)
+							return
+						}
+						log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
+							r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
+					}
+					http.Error(w, "Invalid CN", http.StatusForbidden)
+				})
+			}
+			log.Info("Now listening with mutual TLS on https://", addr)
+			return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
 		}
-		log.Info("Now listening with mutual TLS on https://", addr)
-		return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
-	}
+	*/
 	log.Info("Now listening on https://", addr)
 	return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
 
@@ -300,14 +297,6 @@ func registerHandlers() {
 		}
 	}
 	log.Info("Handler set up complete.")
-}
-
-// v1APIPath prepends the V1 API prefix to endpoints not beginning with "/"
-func v1APIPath(path string) string {
-	if !strings.HasPrefix(path, "/") {
-		path = V1APIPrefix + path
-	}
-	return (&url.URL{Path: path}).String()
 }
 
 // httpBox implements http.FileSystem which allows the use of Box with a http.FileServer.

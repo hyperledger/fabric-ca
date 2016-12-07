@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/idp"
 )
 
 // userHasAttribute returns true if the user has the attribute
@@ -38,31 +37,11 @@ func userHasAttribute(username, attrname string) error {
 // getUserAttrValue returns a user's value for an attribute
 func getUserAttrValue(username, attrname string) (string, error) {
 	log.Debugf("getUserAttrValue user=%s, attr=%s", username, attrname)
-	attrs, err := getUserAttrs(username)
+	user, err := CFG.UserRegistry.GetUser(username, attrname)
 	if err != nil {
 		return "", err
 	}
-	for _, attr := range attrs {
-		if attr.Name == attrname {
-			log.Debugf("getUserAttrValue value=%s", attr.Value)
-			return attr.Value, nil
-		}
-	}
-	log.Debugf("getUserAttrValue attribute %s not found", attrname)
-	return "", nil
-}
-
-// getUserAttrs returns a user's attributes
-func getUserAttrs(username string) ([]idp.Attribute, error) {
-	log.Debugf("getUserAttributes %s", username)
-	user, err := CFG.UserRegistry.GetUser(username)
-	if err != nil {
-		return nil, fmt.Errorf("user '%s' not found", username)
-	}
-	var attributes []idp.Attribute
-	attributes, err = user.GetAttributes()
-	if err != nil {
-		return nil, err
-	}
-	return attributes, nil
+	attrval := user.GetAttribute(attrname)
+	log.Debugf("getUserAttrValue user=%s, name=%s, value=%s", username, attrname, attrval)
+	return attrval, nil
 }
