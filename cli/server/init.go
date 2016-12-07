@@ -25,6 +25,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric/core/crypto/bccsp/factory"
 )
 
 var initUsageText = `cop server init CSRJSON -- generates a new private key and self-signed certificate
@@ -56,6 +57,13 @@ func initMain(args []string, c cli.Config) (err error) {
 	if err != nil {
 		return errors.New(err.Error())
 	}
+
+	bccsp, err := factory.GetDefault()
+	if err != nil {
+		return errors.New(err.Error())
+	}
+	_ = bccsp
+	//FIXME: replace the key generation and storage with BCCSP
 
 	c.IsCA = true
 

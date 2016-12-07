@@ -465,6 +465,25 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
+			"checksumSHA1": "31ZLI8tuAXbLNMKKyy2QjKWOpLY=",
+			"path": "github.com/hyperledger/fabric/core/crypto/bccsp",
+			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
+			"revisionTime": "2016-12-04T13:15:26Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "KBLtaQtNkOVhFsp0YI6KlA3W4jA=",
+			"path": "github.com/hyperledger/fabric/core/crypto/primitives",
+			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
+			"revisionTime": "2016-12-04T13:15:26Z"
+		},
+		{
+			"checksumSHA1": "xRybnSkcWsFUr7I4AdHeH7xbIBE=",
+			"path": "github.com/hyperledger/fabric/core/crypto/utils",
+			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
+			"revisionTime": "2016-12-04T13:15:26Z"
+		},
+		{
 			"checksumSHA1": "e31lcI8tZLaulsX4PZCFBAyC920=",
 			"path": "github.com/jmhodges/clock",
 			"revision": "880ee4c335489bc78d01e4d0a254ae880734bc15",
@@ -529,6 +548,12 @@
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "f3009df150dadf309fdee4a54ed65c124afad715",
 			"revisionTime": "2016-10-20T16:18:36Z"
+		},
+		{
+			"checksumSHA1": "BoXdUBWB8UnSlFlbnuTQaPqfCGk=",
+			"path": "github.com/op/go-logging",
+			"revision": "970db520ece77730c7e4724c61121037378659d9",
+			"revisionTime": "2016-03-15T20:05:05Z"
 		},
 		{
 			"checksumSHA1": "8Y05Pz7onrQPcVWW6JStSsYRh6E=",
@@ -655,6 +680,12 @@
 			"path": "golang.org/x/crypto/pkcs12/internal/rc2",
 			"revision": "ca7e7f10cb9fd9c1a6ff7f60436c086d73714180",
 			"revisionTime": "2016-10-25T12:52:55Z"
+		},
+		{
+			"checksumSHA1": "DDHnuGCrmkKSXdNzc8pmn6P5O28=",
+			"path": "golang.org/x/crypto/sha3",
+			"revision": "8a549a1948fc5271eb24f36dcb0d3b47dec75a16",
+			"revisionTime": "2016-12-02T05:44:17Z"
 		},
 		{
 			"checksumSHA1": "LlElMHeTC34ng8eHzjvtUhAgrr8=",
