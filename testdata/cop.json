@@ -1,9 +1,6 @@
 {
- "driver":"sqlite3",
- "data_source":"cop.db",
- "user_registry": {
-   "max_enrollments": 1
- },
+ "ca_cert":"../testdata/ec.pem",
+ "ca_key":"../testdata/ec-key.pem",
  "users": {
     "admin": {
       "pass": "adminpw",

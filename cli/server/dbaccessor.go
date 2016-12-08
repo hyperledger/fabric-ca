@@ -261,7 +261,7 @@ func (d *Accessor) GetField(id string, field int) (interface{}, error) {
 	case prekey:
 		log.Debug("Get prekey")
 		var groupRec GroupRecord
-		err = d.db.Get(&groupRec, "SELECT prekey FROM groups WHERE (name = ?)", id)
+		err = d.db.Get(&groupRec, d.db.Rebind("SELECT prekey FROM groups WHERE (name = ?)"), id)
 		if err != nil {
 			return nil, err
 		}
@@ -404,10 +404,11 @@ func (u *DBUser) Login(pass string) error {
 		return cop.NewError(cop.AuthorizationFailure, "Incorrect username/password provided)")
 	}
 
-	// If the maxEnrollments is set (i.e. > 0), make sure we haven't exceeded this number of logins.
+	// If the maxEnrollments is set (i.e. >= 0), make sure we haven't exceeded this number of logins.
 	// The state variable keeps track of the number of previously successful logins.
 	if u.maxEnrollments >= 0 {
 
+		// If maxEnrollments is set to 0, user has unlimited enrollment
 		if u.maxEnrollments != 0 {
 			if u.state >= u.maxEnrollments {
 				return fmt.Errorf("The maximum number of enrollments is %d", u.maxEnrollments)

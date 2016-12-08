@@ -30,7 +30,7 @@ const (
 	bootPath = "/tmp/bootstraptest"
 )
 
-func prepBootstrap() (*Bootstrap, error) {
+func prepBootstrap() error {
 	if _, err := os.Stat(bootPath); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(bootPath, 0755)
@@ -47,33 +47,31 @@ func prepBootstrap() (*Bootstrap, error) {
 
 	bootCFG = CFG
 	bootCFG.Home = bootPath
+	bootCFG.DBdriver = "sqlite3"
 	bootCFG.DataSource = bootCFG.Home + "/cop.db"
 
 	err = InitUserRegistry(bootCFG)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	b := BootstrapDB()
-	return b, nil
+	return nil
 }
 
 func TestAllBootstrap(t *testing.T) {
-	b, err := prepBootstrap()
+	err := prepBootstrap()
 	if err != nil {
 		t.Fatal("Failed to open connection to database")
 	}
 
-	testBootstrapGroup(b, t)
-	testBootstrapUsers(b, t)
+	testBootstrapGroup(t)
+	testBootstrapUsers(t)
 
 	os.RemoveAll(bootPath)
 }
 
-func testBootstrapGroup(b *Bootstrap, t *testing.T) {
-	b.PopulateGroupsTable()
-
+func testBootstrapGroup(t *testing.T) {
 	_, err := userRegistry.GetGroup("bank_b")
 
 	if err != nil {
@@ -81,9 +79,7 @@ func testBootstrapGroup(b *Bootstrap, t *testing.T) {
 	}
 }
 
-func testBootstrapUsers(b *Bootstrap, t *testing.T) {
-	b.PopulateUsersTable()
-
+func testBootstrapUsers(t *testing.T) {
 	_, err := userRegistry.GetUser("admin")
 
 	if err != nil {

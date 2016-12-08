@@ -59,7 +59,7 @@ func TestSQLite(t *testing.T) {
 	cfg.DBdriver = "sqlite3"
 	cfg.DataSource = dbPath + "/cop.db"
 
-	db, err := dbutil.GetDB(cfg.DBdriver, cfg.DataSource)
+	db, _, err := dbutil.NewUserRegistrySQLLite3(cfg.DataSource)
 	if err != nil {
 		t.Error("Failed to open connection to DB")
 	}

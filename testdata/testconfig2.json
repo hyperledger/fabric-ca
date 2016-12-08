@@ -1,19 +1,14 @@
 {
- "tls_disable":false,
- "driver":"sqlite3",
- "data_source":"cop.db",
  "user_registry": {
    "max_enrollments": 1
  },
- "ca_cert":"../testdata/ec.pem",
- "ca_key":"../testdata/ec-key.pem",
+ "ca_cert":"../../testdata/tls_server-cert.pem",
+ "ca_key":"../../testdata/tls_server-key.pem",
  "tls":{
-   "tls_cert":"../testdata/tls_server-cert.pem",
-   "tls_key":"../testdata/tls_server-key.pem",
-   "mutual_tls_ca":"../testdata/root.pem",
+   "mutual_tls_ca":"../../testdata/root.pem",
    "db_client":{
-     "ca_certfiles":["../testdata/root.pem"],
-     "client":{"keyfile":"../testdata/tls_server-key.pem","certfile":"../testdata/tls_server-cert.pem"}
+     "ca_certfiles":["../../testdata/root.pem"],
+     "client":{"keyfile":"../../testdata/tls_server-key.pem","certfile":"../../testdata/tls_server-cert.pem"}
    }
  },
  "users": {

@@ -81,7 +81,7 @@ function push {
    return 1
  fi
  echo "Running make before pushing ..."
- make
+ make unit-tests
  if [ $? -ne 0 ]; then
    echo "Not pushing because make failed"
    return 1
@@ -169,4 +169,3 @@ function gencov {
    gocov test `go list ./... | grep -Ev '/vendor/|/idp|/dbutil|/ldap'` | gocov-html > /tmp/coverage.html
    echo "View the coverage report by pasting the following URL in your browser: file:///tmp/coverage.html"
 }
-
