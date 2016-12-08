@@ -22,7 +22,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// userHasAttribute returns true if the user has the attribute
+// userHasAttribute returns nil if the user has the attribute, or an
+// appropriate error if the user does not have this attribute.
 func userHasAttribute(username, attrname string) error {
 	val, err := getUserAttrValue(username, attrname)
 	if err != nil {

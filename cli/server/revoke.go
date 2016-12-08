@@ -19,6 +19,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -79,20 +80,25 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	if req.Serial != "" && req.AKI != "" {
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
-			log.Warningf("Revoke failed: %s", err)
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
-
 		_, err := userRegistry.GetUser(req.Name)
 		if err != nil {
-			log.Warningf("Revoke failed: %s", err)
+			err = fmt.Errorf("Failed to get user %s: %s", req.Name, err)
 			return notFound(w, err)
 		}
 
 		err = userRegistry.UpdateField(req.Name, state, -1)
 		if err != nil {
-			log.Warningf("Revoke failed: %s", err)
+			err = fmt.Errorf("Failed to disable user %s: %s", req.Name, err)
+			log.Warningf("%s", err)
+			return dbErr(w, err)
+		}
+		_, err = certDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
+		if err != nil {
+			err = fmt.Errorf("Failed to revoke certificates for user %s: %s", req.Name, err)
+			log.Warningf("%s", err)
 			return dbErr(w, err)
 		}
 	} else {

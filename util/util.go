@@ -379,7 +379,7 @@ func GetDefaultHomeDir() string {
 func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(cert)
 	if block == nil {
-		return nil, errors.New("Failed to decode PEM")
+		return nil, errors.New("Failed to PEM decode certificate")
 	}
 	x509Cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
@@ -394,10 +394,10 @@ func GetEnrollmentIDFromPEM(cert []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return GetEnrollmentIDFromX509(x509Cert), nil
+	return GetEnrollmentIDFromX509Certificate(x509Cert), nil
 }
 
-// GetEnrollmentIDFromX509 returns the EnrollmentID from the X509 certificate
-func GetEnrollmentIDFromX509(cert *x509.Certificate) string {
+// GetEnrollmentIDFromX509Certificate returns the EnrollmentID from the X509 certificate
+func GetEnrollmentIDFromX509Certificate(cert *x509.Certificate) string {
 	return cert.Subject.CommonName
 }

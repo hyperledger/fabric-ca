@@ -24,6 +24,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func TestGetEnrollmentID(t *testing.T) {
+	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	_, err := GetEnrollmentIDFromPEM(cert)
+	if err != nil {
+		t.Fatalf("Failed to get enrollment ID from PEM: %s", err)
+	}
+}
+
 func TestECCreateToken(t *testing.T) {
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
 	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
@@ -205,13 +213,5 @@ func TestFileExists(t *testing.T) {
 	exists := FileExists(name)
 	if exists == false {
 		t.Error("File does not exist")
-	}
-}
-
-func TestGetEnrollmentID(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
-	_, err := GetEnrollmentIDFromPEM(cert)
-	if err != nil {
-		t.Fatalf("Failed to get enrollment ID from certificate")
 	}
 }

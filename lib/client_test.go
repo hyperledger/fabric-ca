@@ -71,7 +71,7 @@ func testRegister(c *Client, t *testing.T) {
 
 	id, err := c.Enroll(enrollReq)
 	if err != nil {
-		t.Errorf("testRegister enroll of admin failed: %s", err)
+		t.Fatalf("testRegister enroll of admin failed: %s", err)
 	}
 
 	// Register as admin
