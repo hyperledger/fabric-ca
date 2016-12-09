@@ -26,6 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/hyperledger/fabric-cop/cli/server/spi"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
@@ -43,9 +44,9 @@ type Config struct {
 	CACert         string
 	CAKey          string
 	DB             *sqlx.DB
-	DBAccessor     *Accessor
 	certDBAccessor certdb.Accessor
 	Signer         signer.Signer
+	UserRegistery  spi.UserRegistry
 }
 
 // User information

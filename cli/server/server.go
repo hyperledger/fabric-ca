@@ -95,6 +95,10 @@ var (
 	errNoCertDBConfigured = errors.New("cert db not configured (missing -db-config)")
 )
 
+const (
+	sqlite = "sqlite3"
+)
+
 // Command defines the server-related commands and calls cli.Start to process args
 func Command() error {
 	// The server commands
@@ -135,12 +139,8 @@ func (s *Server) CreateHome() (string, error) {
 }
 
 // BootstrapDB loads the database based on config file
-func (s *Server) BootstrapDB(db *sqlx.DB) error {
+func bootstrapDB() error {
 	log.Debug("Bootstrap DB")
-
-	CFG.DB = db
-	CFG.DBAccessor = NewDBAccessor()
-	CFG.DBAccessor.SetDB(db)
 
 	b := BootstrapDB()
 	b.PopulateGroupsTable()
@@ -164,20 +164,30 @@ func startMain(args []string, c cli.Config) error {
 	cfg.Home = home
 
 	if cfg.DataSource == "" {
-		msg := "No database specified, a database is needed to run COP server"
-		log.Fatal(msg)
-		return cop.NewError(cop.DatabaseError, msg)
+		msg := "No database specified, a database is needed to run COP server. Using default - Type: SQLite, Name: cop.db"
+		log.Info(msg)
+		cfg.DBdriver = sqlite
+		cfg.DataSource = "cop.db"
 	}
 
-	db, err := dbutil.GetDB(cfg.Home, cfg.DBdriver, cfg.DataSource)
+	if cfg.DBdriver == sqlite {
+		cfg.DataSource = filepath.Join(cfg.Home, cfg.DataSource)
+	}
+
+	_, err = NewUserRegistry(cfg.DBdriver, cfg.DataSource)
 	if err != nil {
-		log.Error("Failed to open database")
+		log.Errorf("Failed to create new user registery [error: %s]", err)
 		return err
 	}
 
-	cfg.DB = db
-	cfg.DBAccessor = NewDBAccessor()
-	cfg.DBAccessor.SetDB(db)
+	db, err = dbutil.GetDB(cfg.DBdriver, cfg.DataSource)
+	if err != nil {
+		log.Errorf("Failed to find database")
+	}
+
+	// cfg.DB = db
+	// cfg.DBAccessor = NewDBAccessor()
+	// cfg.DBAccessor.SetDB(db)
 	cfg.certDBAccessor = sql.NewAccessor(db)
 
 	var cfsslCfg cli.Config
@@ -189,8 +199,6 @@ func startMain(args []string, c cli.Config) error {
 		return cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfigAndDB")
 	}
 	cfg.Signer = mySigner
-
-	s.BootstrapDB(db)
 
 	return serverMain(args, c)
 }

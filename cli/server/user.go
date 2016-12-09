@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/cloudflare/cfssl/log"
@@ -56,11 +55,14 @@ func getUserAttrValue(username, attrname string) (string, error) {
 // getUserAttrs returns a user's attributes
 func getUserAttrs(username string) ([]idp.Attribute, error) {
 	log.Debugf("getUserAttributes %s", username)
-	user, err := CFG.DBAccessor.GetUser(username)
+	user, err := CFG.UserRegistery.GetUser(username)
 	if err != nil {
 		return nil, fmt.Errorf("user '%s' not found", username)
 	}
 	var attributes []idp.Attribute
-	json.Unmarshal([]byte(user.Metadata), &attributes)
+	attributes, err = user.GetAttributes()
+	if err != nil {
+		return nil, err
+	}
 	return attributes, nil
 }

@@ -17,11 +17,15 @@ limitations under the License.
 package server
 
 import (
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-cop/idp"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -35,8 +39,8 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO Users (id, enrollment_id, token, type, metadata, state, serial_number)
-	VALUES (:id, :enrollment_id, :token, :type, :metadata, :state, :serial_number);`
+INSERT INTO Users (id, token, type, attributes, state, serial_number, authority_key_identifier)
+	VALUES (:id, :token, :type, :attributes, :state, :serial_number, :authority_key_identifier);`
 
 	deleteUser = `
 DELETE FROM Users
@@ -44,7 +48,7 @@ DELETE FROM Users
 
 	updateUser = `
 UPDATE Users
-	SET token = :token, metadata = :metadata, state = :state
+	SET token = :token, type = :type, attributes = :attributes
 	WHERE (id = :id);`
 
 	getUser = `
@@ -60,19 +64,38 @@ DELETE FROM Groups
 	WHERE (name = ?)`
 
 	getGroup = `
-SELECT * FROM Groups
+SELECT name, parent_id FROM Groups
 	WHERE (name = ?)`
 )
 
-// Accessor implements db.Accessor interface.
-type Accessor struct {
-	db *sqlx.DB
+const (
+	password = iota
+	state
+	serialNumber
+	aki
+)
+
+// UserRecord defines the properties of a user
+type UserRecord struct {
+	Name         string `db:"id"`
+	Pass         string `db:"token"`
+	Type         string `db:"type"`
+	Attributes   string `db:"attributes"`
+	State        int    `db:"state"`
+	SerialNumber string `db:"serial_number"`
+	AKI          string `db:"authority_key_identifier"`
 }
 
-// Group defines a group name and its parent
-type Group struct {
-	Name     string `db:"name"`
-	ParentID string `db:"parent_id"`
+// Accessor implements db.Accessor interface.
+type Accessor struct {
+	state        int
+	serialNumber string
+	db           *sqlx.DB
+}
+
+// NewDBAccessor is a constructor for the database API
+func NewDBAccessor() *Accessor {
+	return &Accessor{}
 }
 
 func (d *Accessor) checkDB() error {
@@ -82,33 +105,56 @@ func (d *Accessor) checkDB() error {
 	return nil
 }
 
-// NewDBAccessor is a constructor for the database API
-func NewDBAccessor() *Accessor {
-	return &Accessor{}
-}
-
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
 func (d *Accessor) SetDB(db *sqlx.DB) {
 	d.db = db
 	return
 }
 
+// LoginUserBasicAuth checks to see valid credentials have been provided
+func (d *Accessor) LoginUserBasicAuth(user, pass string) (spi.User, error) {
+	log.Debugf("DB: Login user authentication for %s", user)
+
+	var userRec UserRecord
+	err := d.db.Get(&userRec, d.db.Rebind(getUser), user)
+	if err != nil {
+		log.Errorf("User (%s) not registered [error: %s]", user, err)
+		return nil, cop.NewError(cop.AuthorizationFailure, "User (%s) not registered [error: %s]", user, err)
+	}
+
+	userInfo := convertToUserInfo(&userRec)
+
+	if userRec.Pass == pass {
+		if userRec.State == 0 {
+			return userInfo, nil
+		}
+		log.Errorf("User (%s) has already been enrolled", user)
+		return nil, cop.NewError(cop.AuthorizationFailure, "User has already been enrolled")
+	}
+
+	log.Errorf("Incorrect password provided for user (%s)", user)
+	return nil, cop.NewError(cop.AuthorizationFailure, "Incorrect password provided for user (%s)", user)
+}
+
 // InsertUser inserts user into database
-func (d *Accessor) InsertUser(user cop.UserRecord) error {
-	log.Debugf("DB: Insert User (%s) to database", user.ID)
+func (d *Accessor) InsertUser(user spi.UserInfo) error {
+	log.Debugf("DB: Insert User (%s) to database", user.Name)
+
 	err := d.checkDB()
 	if err != nil {
 		return err
 	}
 
-	res, err := d.db.NamedExec(insertUser, &cop.UserRecord{
-		ID:           user.ID,
-		EnrollmentID: user.EnrollmentID,
-		Token:        user.Token,
-		Type:         user.Type,
-		Metadata:     user.Metadata,
-		State:        user.State,
-		SerialNumber: user.SerialNumber,
+	attrBytes, err := json.Marshal(user.Attributes)
+	if err != nil {
+		return err
+	}
+
+	res, err := d.db.NamedExec(insertUser, &UserRecord{
+		Name:       user.Name,
+		Pass:       user.Pass,
+		Type:       user.Type,
+		Attributes: string(attrBytes),
 	})
 
 	if err != nil {
@@ -133,13 +179,15 @@ func (d *Accessor) InsertUser(user cop.UserRecord) error {
 		return cop.NewError(cop.UserStoreError, msg)
 	}
 
-	log.Debugf("User %s inserted into database successfully", user.ID)
+	log.Debugf("User %s inserted into database successfully", user.Name)
+
 	return nil
 
 }
 
 // DeleteUser deletes user from database
 func (d *Accessor) DeleteUser(id string) error {
+	log.Debugf("DB: Delete User (%s)", id)
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -154,27 +202,34 @@ func (d *Accessor) DeleteUser(id string) error {
 }
 
 // UpdateUser updates user in database
-func (d *Accessor) UpdateUser(user cop.UserRecord) error {
+func (d *Accessor) UpdateUser(user spi.UserInfo) error {
+	log.Debugf("DB: Update User (%s) in database", user.Name)
 	err := d.checkDB()
 	if err != nil {
 		return err
 	}
 
-	res, err := d.db.NamedExec(updateUser, &cop.UserRecord{
-		ID:       user.ID,
-		Token:    user.Token,
-		State:    user.State,
-		Metadata: user.Metadata,
+	attributes, err := json.Marshal(user.Attributes)
+	if err != nil {
+		return err
+	}
+
+	res, err := d.db.NamedExec(updateUser, &UserRecord{
+		Name:       user.Name,
+		Pass:       user.Pass,
+		Type:       user.Type,
+		Attributes: string(attributes),
 	})
 
 	if err != nil {
+		log.Errorf("Failed to update user record [error: %s]", err)
 		return err
 	}
 
 	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
-		return cop.NewError(cop.UserStoreError, "failed to update the user record")
+		return cop.NewError(cop.UserStoreError, "Failed to update the user record")
 	}
 
 	if numRowsAffected != 1 {
@@ -185,25 +240,71 @@ func (d *Accessor) UpdateUser(user cop.UserRecord) error {
 
 }
 
-// GetUser gets user from database
-func (d *Accessor) GetUser(id string) (cop.UserRecord, error) {
+// UpdateField updates a specific field in database
+func (d *Accessor) UpdateField(id string, field int, value interface{}) error {
 	err := d.checkDB()
-	var User cop.UserRecord
 	if err != nil {
-		return User, err
+		return err
 	}
 
-	err = d.db.Get(&User, d.db.Rebind(getUser), id)
-	if err != nil {
-		return User, err
+	var res sql.Result
+
+	switch field {
+	case password:
+		log.Debug("DB: Updating field: token")
+		v := value.(string)
+		res, err = d.db.Exec("UPDATE Users SET token = ? WHERE (id = ?)", v, id)
+		if err != nil {
+			return err
+		}
+	case field:
+		log.Debug("DB: Updating field: state")
+		v := value.(int)
+		res, err = d.db.Exec("UPDATE Users SET state = ? WHERE (id = ?)", v, id)
+		if err != nil {
+			return err
+		}
+	default:
+		log.Error("DB: Specified field does not exist or cannot be updated")
+		return cop.NewError(cop.DatabaseError, "DB: Specified field does not exist or cannot be updated")
 	}
 
-	return User, nil
+	numRowsAffected, err := res.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return cop.NewError(cop.UserStoreError, "Failed to update the user record")
+	}
+
+	if numRowsAffected != 1 {
+		return cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
+	}
+
+	return err
+}
+
+// GetUser gets user from database
+func (d *Accessor) GetUser(id string) (spi.User, error) {
+	log.Debugf("DB: Get User (%s) from database", id)
+
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	var userRec UserRecord
+	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
+	if err != nil {
+		return nil, err
+	}
+
+	userInfo := convertToUserInfo(&userRec)
+
+	return userInfo, nil
 }
 
 // InsertGroup inserts group into database
 func (d *Accessor) InsertGroup(name string, parentID string) error {
-	log.Debugf("DB - Insert Group (%s)", name)
+	log.Debugf("DB: Insert Group (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -218,6 +319,7 @@ func (d *Accessor) InsertGroup(name string, parentID string) error {
 
 // DeleteGroup deletes group from database
 func (d *Accessor) DeleteGroup(name string) error {
+	log.Debugf("DB: Delete Group (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return err
@@ -232,18 +334,43 @@ func (d *Accessor) DeleteGroup(name string) error {
 }
 
 // GetGroup gets group from database
-func (d *Accessor) GetGroup(name string) (string, string, error) {
-	log.Debugf("DB - Get Group (%s)", name)
+func (d *Accessor) GetGroup(name string) (spi.Group, error) {
+	log.Debugf("DB: Get Group (%s)", name)
 	err := d.checkDB()
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	group := Group{}
-	err = d.db.Get(&group, d.db.Rebind(getGroup), name)
+	var groupInfo spi.GroupInfo
+
+	err = d.db.Get(&groupInfo, d.db.Rebind(getGroup), name)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	return group.Name, group.ParentID, err
+	return &groupInfo, nil
+}
+
+// GetRootGroup gets root group from database
+func (d *Accessor) GetRootGroup() (spi.Group, error) {
+	log.Debugf("DB: Get root group")
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+	// TODO: IMPLEMENT
+	return nil, nil
+}
+
+func convertToUserInfo(userRec *UserRecord) *spi.UserInfo {
+	var userInfo = new(spi.UserInfo)
+	userInfo.Name = userRec.Name
+	userInfo.Pass = userRec.Pass
+	userInfo.Type = userRec.Type
+
+	var attributes []idp.Attribute
+	json.Unmarshal([]byte(userRec.Attributes), &attributes)
+	userInfo.Attributes = attributes
+
+	return userInfo
 }

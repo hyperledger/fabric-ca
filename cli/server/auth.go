@@ -20,14 +20,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
@@ -92,35 +90,22 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	authHdr := r.Header.Get("authorization")
 	if authHdr == "" {
 		log.Debug("No authorization header")
-		return authError
+		return errNoAuthHdr
 	}
 	user, pwd, ok := r.BasicAuth()
 	if ok {
 		if !ah.basic {
 			log.Debugf("Basic auth is not allowed; found %s", authHdr)
-			return authError
+			return errBasicAuthNotAllowed
 		}
-		userRecord, err := cfg.DBAccessor.GetUser(user)
+		_, err := cfg.UserRegistery.LoginUserBasicAuth(user, pwd)
 		if err != nil {
-			log.Errorf("Failed to get user [error: %s]", err)
+			log.Errorf("Failed authorizing user, [error: %s]", err)
 			return err
 		}
-		if userRecord.ID == "" {
-			log.Debug("User '%s' not found", user)
-			return cop.NewError(cop.EnrollingUserError, "User '%s' not found", user)
-		}
-		if userRecord.State != 0 {
-			err := fmt.Errorf("User '%s' is in state %d", user, userRecord.State)
-			log.Debug("%s", err)
-			return err
-		}
-		if userRecord.Token != pwd {
-			log.Debug("Incorrect password for '%s'; received %s but expected %s", userRecord.ID, pwd, userRecord.Token)
-			return cop.NewError(cop.EnrollingUserError, "Incorrect password for '%s'; received %s but expected %s", userRecord.ID, pwd, userRecord.Token)
-		}
-		log.Debug("User/pass was correct")
+
+		log.Debug("User/Pass was correct")
 		// TODO: Do the following
-		// 1) Check state of 'user' in DB.  Fail if user was found and already enrolled.
 		// 2) Update state of 'user' in DB as enrolled and return true.
 		return nil
 	}

@@ -17,14 +17,12 @@ limitations under the License.
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/idp"
 )
 
@@ -39,7 +37,7 @@ type Admin struct {
 var (
 	NotRegistrar = Admin{User: "testUser2", Pass: []byte("pass"), Type: "User", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "client"}}}
 	Registrar    = Admin{User: "admin", Pass: []byte("adminpw"), Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "hf.Registrar.DelegateRoles", Value: "client,user,auditor"}}}
-	testUser     = cop.RegisterRequest{User: "testUser1", Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
+	testUser     = cop.RegisterRequest{User: "testUser1", Type: "user", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testAuditor  = cop.RegisterRequest{User: "testAuditor", Type: "Auditor", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "auditor"}}}
 	testClient1  = cop.RegisterRequest{User: "testClient1", Type: "Client", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testPeer     = cop.RegisterRequest{User: "testPeer", Type: "Peer", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
@@ -59,6 +57,7 @@ func prepRegister() error {
 		os.RemoveAll(regPath)
 		os.MkdirAll(regPath, 0755)
 	}
+	var err error
 
 	cfg := new(cli.Config)
 	cfg.ConfigFile = "../../testdata/testconfig.json"
@@ -66,14 +65,13 @@ func prepRegister() error {
 
 	regCFG := CFG
 	regCFG.Home = regPath
-	db, err := dbutil.GetDB(regCFG.Home, regCFG.DBdriver, regCFG.DataSource)
+	regCFG.DataSource = regCFG.Home + "/cop.db"
+
+	CFG.UserRegistery, err = NewUserRegistry(regCFG.DBdriver, regCFG.DataSource)
 	if err != nil {
 		return err
 	}
 
-	CFG.DB = db
-	CFG.DBAccessor = NewDBAccessor()
-	CFG.DBAccessor.SetDB(db)
 	bootstrap()
 
 	return nil
@@ -90,32 +88,18 @@ func bootstrapUsers() error {
 	if r == nil {
 		return errors.New("Failed to get register object")
 	}
-	metaDataBytes, err := json.Marshal(Registrar.Attributes)
-	if err != nil {
-		return err
-	}
-	metaData := string(metaDataBytes)
-	r.RegisterUser(Registrar.User, Registrar.Type, Registrar.Group, metaData, "", string(Registrar.Pass))
+	r.RegisterUser(Registrar.User, Registrar.Type, Registrar.Group, Registrar.Attributes, "", string(Registrar.Pass))
 
-	metaDataBytes, err = json.Marshal(NotRegistrar.Attributes)
-	if err != nil {
-		return err
-	}
-	metaData = string(metaDataBytes)
-	r.RegisterUser(NotRegistrar.User, NotRegistrar.Type, NotRegistrar.Group, metaData, "", string(NotRegistrar.Pass))
+	r.RegisterUser(NotRegistrar.User, NotRegistrar.Type, NotRegistrar.Group, NotRegistrar.Attributes, "", string(NotRegistrar.Pass))
 
 	return nil
 }
 
 func registerUser(registrar Admin, user *cop.RegisterRequest) (string, error) {
 	r := NewRegisterUser()
-	metaDataBytes, err := json.Marshal(user.Attributes)
-	if err != nil {
-		return "", err
-	}
-	metaData := string(metaDataBytes)
+
 	user.CallerID = registrar.User
-	tok, err := r.RegisterUser(user.User, user.Type, user.Group, metaData, user.CallerID)
+	tok, err := r.RegisterUser(user.User, user.Type, user.Group, user.Attributes, user.CallerID)
 	if err != nil {
 		return "", err
 	}

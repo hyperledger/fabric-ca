@@ -83,13 +83,16 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
-		user, err := CFG.DBAccessor.GetUser(req.Name)
+		_, err := CFG.UserRegistery.GetUser(req.Name)
 		if err != nil {
 			log.Warningf("Revoke failed: %s", err)
 			return notFound(w, err)
 		}
-		user.State = -1
-		err = CFG.DBAccessor.UpdateUser(user)
+		// userInfo := user.(*spi.UserInfo)
+		// userInfo.
+		// 	user.State = -1
+		// err = CFG.UserRegistery.UpdateUser(user)
+		err = CFG.UserRegistery.UpdateField(req.Name, state, -1)
 		if err != nil {
 			log.Warningf("Revoke failed: %s", err)
 			return dbErr(w, err)

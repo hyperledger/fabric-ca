@@ -21,10 +21,7 @@ limitations under the License.
 
 package api
 
-import (
-	"github.com/hyperledger/fabric-cop/idp"
-	"github.com/jmoiron/sqlx"
-)
+import "github.com/hyperledger/fabric-cop/idp"
 
 // Mgr is the main interface to COP functionality
 type Mgr interface {
@@ -189,31 +186,6 @@ type EnrollRequest struct {
 type Enrollment struct {
 	ID           string
 	EnrollSecret []byte
-}
-
-// Database api
-
-// UserRecord used for inserting into database
-type UserRecord struct {
-	ID           string `db:"id"`
-	EnrollmentID string `db:"enrollment_id"`
-	Token        string `db:"token"`
-	Type         string `db:"type"`
-	Metadata     string `db:"metadata"`
-	State        int    `db:"state"`
-	SerialNumber string `db:"serial_number"`
-}
-
-// Accessor abstracts the CRUD of certdb objects from a DB.
-type Accessor interface {
-	SetDB(db *sqlx.DB)
-	InsertUser(user UserRecord) error
-	DeleteUser(id string) error
-	UpdateUser(user UserRecord) error
-	GetUser(id string) (UserRecord, error)
-	InsertGroup(name string, parentID string) error
-	DeleteGroup(name string) error
-	GetGroup(name string) (string, string, error)
 }
 
 // Identity is any type of identity which is opaque for now
