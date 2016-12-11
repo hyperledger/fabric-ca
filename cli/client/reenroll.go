@@ -80,7 +80,8 @@ func reenrollMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	log.Infof("enrollment information was successfully stored in %s", client.GetMyIdentityFile())
+	log.Infof("enrollment information was successfully stored in %s and %s",
+		client.GetMyKeyFile(), client.GetMyCertFile())
 
 	return nil
 }

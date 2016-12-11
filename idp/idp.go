@@ -51,9 +51,6 @@ type ClientAPI interface {
 	// ImportSigner imports a signer from an external CA
 	// @param req The import request
 	ImportSigner(req *ImportSignerRequest) (Signer, error)
-
-	// DeserializeIdentity deserializes an identity
-	DeserializeIdentity([]byte) (Identity, error)
 }
 
 // PeerAPI is the API used by the peer pertaining to the IDP
@@ -87,9 +84,6 @@ type Identity interface {
 
 	// Delete this identity completely and revoke all of it's signers
 	Delete() error
-
-	// Serialize an identity
-	Serialize() ([]byte, error)
 }
 
 // TemporalSigner is a signer which can be renewed and revoked
@@ -135,9 +129,6 @@ type Verifier interface {
 
 	// VerifyAttributes verifies attributes given proofs
 	VerifyAttributes(proof [][]byte, spec *AttributeProofSpec) error
-
-	// Serialize verifier
-	Serialize() ([]byte, error)
 }
 
 // RegistrationRequest for a new identity

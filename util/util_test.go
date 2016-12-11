@@ -24,9 +24,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestGetEnrollmentID(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
-	_, err := GetEnrollmentIDFromPEM(cert)
+func TestGetEnrollmentIDFromPEM(t *testing.T) {
+	cert, err := ioutil.ReadFile(getPath("ec.pem"))
+	if err != nil {
+		t.Fatalf("TestGetEnrollmentIDFromPEM.ReadFile failed: %s", err)
+	}
+	_, err = GetEnrollmentIDFromPEM(cert)
 	if err != nil {
 		t.Fatalf("Failed to get enrollment ID from PEM: %s", err)
 	}
@@ -140,13 +143,13 @@ func TestGetDefaultHomeDir(t *testing.T) {
 	os.Setenv("COP_HOME", "")
 	os.Setenv("HOME", "")
 	home := GetDefaultHomeDir()
-	if home != "/var/hyperledger/fabric/dev/.fabric-cop" {
+	if home != "/var/hyperledger/fabric/dev/fabric-cop" {
 		t.Errorf("Incorrect default home (%s) path retrieved", home)
 	}
 
 	os.Setenv("HOME", "/tmp")
 	home = GetDefaultHomeDir()
-	if home != "/tmp/.cop" {
+	if home != "/tmp/cop" {
 		t.Errorf("Incorrect $HOME (%s) path retrieved", home)
 	}
 
@@ -213,5 +216,22 @@ func TestFileExists(t *testing.T) {
 	exists := FileExists(name)
 	if exists == false {
 		t.Error("File does not exist")
+	}
+}
+
+func TestMakeFileAbs(t *testing.T) {
+	makeFileAbs(t, "", "", "")
+	makeFileAbs(t, "/a/b/c", "", "/a/b/c")
+	makeFileAbs(t, "c", "/a/b", "/a/b/c")
+	makeFileAbs(t, "../c", "/a/b", "/a/c")
+}
+
+func makeFileAbs(t *testing.T, file, dir, expect string) {
+	path, err := MakeFileAbs(file, dir)
+	if err != nil {
+		t.Errorf("Failed to make %s absolute: %s", file, err)
+	}
+	if path != expect {
+		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
 	}
 }

@@ -54,7 +54,6 @@ func NewClient(config string) (*Client, error) {
 	// Set defaults
 	c.ServerURL = "http://localhost:8888"
 	c.HomeDir = util.GetDefaultHomeDir()
-	c.MyIDFile = "client.json"
 	if config != "" {
 		// Override any defaults
 		err := util.Unmarshal([]byte(config), c, "NewClient")
@@ -71,8 +70,6 @@ type Client struct {
 	ServerURL string `json:"serverURL,omitempty"`
 	// HomeDir is the home directory
 	HomeDir string `json:"homeDir,omitempty"`
-	// MyIDFIle is the name of ID file which gets loaded by LoadMyIdentity
-	MyIDFile string `json:"fileName,omitempty"`
 }
 
 // Capabilities returns the capabilities COP
@@ -101,15 +98,13 @@ func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationRespon
 	if req.Registrar == nil {
 		return nil, errors.New("Register was called without a Registrar identity set")
 	}
+
 	var request cop.RegisterRequest
 	request.User = req.Name
 	request.Type = req.Type
 	request.Group = req.Group
 	request.Attributes = req.Attributes
 	request.CallerID = req.Registrar.GetName()
-
-	newID := newIdentity(c, req.Registrar.GetName(), req.Registrar.(*Identity).GetMyKey(), req.Registrar.(*Identity).GetMyCert())
-	req.Registrar = newID
 
 	reqBody, err := util.Marshal(request, "RegistrationRequest")
 	if err != nil {
@@ -285,25 +280,65 @@ func (c *Client) ImportSigner(req *idp.ImportSignerRequest) (idp.Signer, error) 
 
 // LoadMyIdentity loads the client's identity from disk
 func (c *Client) LoadMyIdentity() (*Identity, error) {
-	myIDFile := c.GetMyIdentityFile()
-	if !util.FileExists(myIDFile) {
-		return nil, fmt.Errorf("client is not enrolled; '%s' is not an existing file", myIDFile)
+	return c.LoadIdentity(c.GetMyKeyFile(), c.GetMyCertFile())
+}
+
+// StoreMyIdentity stores my identity to disk
+func (c *Client) StoreMyIdentity(key, cert []byte) error {
+	err := util.WriteFile(c.GetMyKeyFile(), key, 0600)
+	if err != nil {
+		return err
 	}
-	return c.LoadIdentity(myIDFile)
+	return util.WriteFile(c.GetMyCertFile(), cert, 0644)
 }
 
-// GetMyIdentityFile returns the path to this identity's ID file
-func (c *Client) GetMyIdentityFile() string {
-	return path.Join(c.HomeDir, c.MyIDFile)
+// GetMyKeyFile returns the path to this identity's key file
+func (c *Client) GetMyKeyFile() string {
+	file := os.Getenv("COP_KEY_FILE")
+	if file == "" {
+		file = path.Join(c.GetMyEnrollmentDir(), "key.pem")
+	}
+	return file
 }
 
-// LoadIdentity loads an identity from a file on disk at path
-func (c *Client) LoadIdentity(path string) (*Identity, error) {
-	buf, err := util.ReadFile(path)
+// GetMyCertFile returns the path to this identity's certificate file
+func (c *Client) GetMyCertFile() string {
+	file := os.Getenv("COP_CERT_FILE")
+	if file == "" {
+		file = path.Join(c.GetMyEnrollmentDir(), "cert.pem")
+	}
+	return file
+}
+
+// GetMyEnrollmentDir returns the path to this identity's enrollment directory
+func (c *Client) GetMyEnrollmentDir() string {
+	dir := os.Getenv("COP_ENROLLMENT_DIR")
+	if dir == "" {
+		dir = c.HomeDir
+	}
+	return dir
+}
+
+// LoadIdentity loads an identity from disk
+func (c *Client) LoadIdentity(keyFile, certFile string) (*Identity, error) {
+	key, err := util.ReadFile(keyFile)
 	if err != nil {
 		return nil, err
 	}
-	return c.DeserializeIdentity(buf)
+	cert, err := util.ReadFile(certFile)
+	if err != nil {
+		return nil, err
+	}
+	return c.NewIdentity(key, cert)
+}
+
+// NewIdentity creates a new identity
+func (c *Client) NewIdentity(key, cert []byte) (*Identity, error) {
+	name, err := util.GetEnrollmentIDFromPEM(cert)
+	if err != nil {
+		return nil, err
+	}
+	return newIdentity(c, name, key, cert), nil
 }
 
 // LoadCSRInfo reads CSR (Certificate Signing Request) from a file
@@ -319,14 +354,6 @@ func (c *Client) LoadCSRInfo(path string) (*idp.CSRInfo, error) {
 		return nil, err
 	}
 	return &csrInfo, nil
-}
-
-// DeserializeIdentity deserializes an identity
-func (c *Client) DeserializeIdentity(buf []byte) (*Identity, error) {
-	id := new(Identity)
-	err := util.Unmarshal(buf, id, "Identity")
-	id.client = c
-	return id, err
 }
 
 // NewPost create a new post request

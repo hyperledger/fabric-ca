@@ -27,8 +27,3 @@ import "github.com/hyperledger/fabric-cop/lib"
 func NewClient(config string) (*lib.Client, error) {
 	return lib.NewClient(config)
 }
-
-// NewIdentity creates a new identity
-func NewIdentity() (*lib.Identity, error) {
-	return new(lib.Identity), nil
-}
