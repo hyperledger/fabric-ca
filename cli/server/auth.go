@@ -18,7 +18,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +25,12 @@ import (
 	"github.com/cloudflare/cfssl/api"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/revoke"
 	"github.com/hyperledger/fabric-cop/util"
+)
+
+const (
+	enrollmentIDHdrName = "__eid__"
 )
 
 // AuthHandler
@@ -106,8 +110,8 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		if err != nil {
 			return err
 		}
-
 		log.Debug("User/Pass was correct")
+		r.Header.Set(enrollmentIDHdrName, user)
 		// TODO: Do the following
 		// 2) Update state of 'user' in DB as enrolled and return true.
 		return nil
@@ -125,22 +129,17 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		if err2 != nil {
 			return authError
 		}
-		// check status of certificate
-		serial := cert.SerialNumber.String()
-		aki := hex.EncodeToString(cert.AuthorityKeyId)
-		certs, err := certDBAccessor.GetCertificate(serial, aki)
-		if err != nil {
-			log.Debugf("GetCertificate failed: %s", err)
+		// Check for certificate revocation and expiration
+		revokedOrExpired, checked := revoke.VerifyCertificate(cert)
+		if revokedOrExpired {
+			log.Debug("Certificate was either revoked or has expired")
 			return authError
 		}
-		if len(certs) != 1 {
-			log.Debugf("Expecting 1 certificate but found %d; serial=%s, aki=%s", len(certs), serial, aki)
+		if !checked {
+			log.Debug("A failure occurred while checking for revocation and expiration")
 			return authError
 		}
-		if certs[0].Status != "good" {
-			log.Debugf("Auth failure - certificate status is %s", certs[0].Status)
-			return authError
-		}
+		r.Header.Set(enrollmentIDHdrName, util.GetEnrollmentIDFromX509Certificate(cert))
 	}
 	return nil
 }

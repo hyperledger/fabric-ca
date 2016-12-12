@@ -63,6 +63,10 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return authErr(w, err)
 	}
 
+	// Make sure that the user has the "hf.Revoker" attribute in order to be authorized
+	// to revoke a certificate.  This attribute comes from the user registry, which
+	// is either in the DB if LDAP is not configured, or comes from LDAP if LDAP is
+	// configured.
 	err = userHasAttribute(cert.Subject.CommonName, "hf.Revoker")
 	if err != nil {
 		return authErr(w, err)

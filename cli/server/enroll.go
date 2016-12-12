@@ -17,96 +17,68 @@ limitations under the License.
 package server
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
-	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/util"
 )
 
-// enrollHandler for register requests
-type enrollHandler struct {
+// NewEnrollHandler is the constructor for the enroll handler
+func NewEnrollHandler() (h http.Handler, err error) {
+	return newSignHandler("enroll")
 }
 
-// NewEnrollHandler is constructor for register handler
-func NewEnrollHandler() (h http.Handler, err error) {
+// NewReenrollHandler is the constructor for the reenroll handler
+func NewReenrollHandler() (h http.Handler, err error) {
+	return newSignHandler("reenroll")
+}
+
+// signHandler for enroll or reenroll requests
+type signHandler struct {
+	// "enroll" or "reenroll"
+	endpoint string
+}
+
+// newEnrollHandler is the constructor for an enroll or reenroll handler
+func newSignHandler(endpoint string) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
 	return &api.HTTPHandler{
-		Handler: &enrollHandler{},
+		Handler: &signHandler{endpoint: endpoint},
 		Methods: []string{"POST"},
 	}, nil
 }
 
-// Handle a enroll request
-func (h *enrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	log.Debug("enroll request received")
+// Handle an enroll or reenroll request.
+// Authentication has already occurred for both enroll and reenroll prior
+// to calling this function in auth.go.
+func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
+	log.Debugf("Received request for endpoint %s", sh.endpoint)
+
+	// Read the request's body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Errorf("failed to read body: %s", err)
-		return cerr.NewBadRequest(errors.New("failed to read request body"))
+		return err
 	}
 	r.Body.Close()
 
-	user, token, ok := r.BasicAuth()
-	if !ok {
-		log.Error("No authorization header set")
-		return cerr.NewBadRequest(errors.New("missing authorization header"))
+	// Unmarshall the request body
+	var req signer.SignRequest
+	err = util.Unmarshal(body, &req, sh.endpoint)
+	if err != nil {
+		return err
 	}
 
-	enroll := NewEnrollUser()
-	cert, err := enroll.Enroll(user, []byte(token), body)
+	cert, err := enrollSigner.Sign(req)
 	if err != nil {
-		return cerr.NewBadRequest(err)
+		err = fmt.Errorf("Failed signing for endpoint %s: %s", sh.endpoint, err)
+		log.Error(err.Error())
+		return err
 	}
 
 	return api.SendResponse(w, cert)
-}
-
-// Enroll is for enrolling a user
-type Enroll struct {
-	cfg *Config
-}
-
-// NewEnrollUser returns an pointer to an allocated enroll struct, populated
-// with the DB information (that set in the config) or nil on error.
-func NewEnrollUser() *Enroll {
-	e := new(Enroll)
-	e.cfg = CFG
-	return e
-}
-
-// Enroll will enroll an already registered user and provided an enrollment cert
-func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Error) {
-	log.Debugf("Received request to enroll user with id: %s\n", id)
-
-	cert, signErr := e.signKey(csrPEM)
-	if signErr != nil {
-		log.Error("Failed to sign CSR - Enroll Failed")
-		return nil, signErr
-	}
-
-	return cert, nil
-}
-
-func (e *Enroll) signKey(csrPEM []byte) ([]byte, cop.Error) {
-	log.Debugf("signKey")
-	req := signer.SignRequest{
-		// Hosts:   signer.SplitHosts(c.Hostname),
-		Request: string(csrPEM),
-		// Profile: c.Profile,
-		// Label:   c.Label,
-	}
-	cert, err := enrollSigner.Sign(req)
-	if err != nil {
-		log.Errorf("Sign error: %s", err)
-		return nil, cop.WrapError(err, cop.CFSSL, "Failed in Sign")
-	}
-	log.Debug("Sign success")
-	return cert, nil
-
 }

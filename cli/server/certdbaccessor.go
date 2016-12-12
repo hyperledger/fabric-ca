@@ -89,8 +89,6 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		return err
 	}
 	id, err := util.GetEnrollmentIDFromPEM([]byte(cr.PEM))
-
-	err = d.checkDB()
 	if err != nil {
 		return err
 	}

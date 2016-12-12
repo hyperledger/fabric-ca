@@ -40,7 +40,7 @@ var initFlags = []string{"remote", "u"}
 
 // initMain creates the private key and self-signed certificate needed to start COP Server
 func initMain(args []string, c cli.Config) (err error) {
-	csrFile, args, err := cli.PopFirstArgument(args)
+	csrFile, _, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return errors.New(err.Error())
 	}
