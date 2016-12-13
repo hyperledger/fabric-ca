@@ -1,0 +1,72 @@
+{
+ "driver":"sqlite3",
+ "data_source":"cop.db",
+ "users": {
+    "admin": {
+      "pass": "adminpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "sdk": {
+      "pass": "sdkpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "amy": {
+      "pass": "amypw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "alice": {
+      "pass": "alicepw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "amber": {
+      "pass": "amberpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "bob": {
+      "pass": "bobpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "bill": {
+      "pass": "billpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "dan": {
+      "pass": "danpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    },
+    "derek": {
+      "pass": "derekpw",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Registrar.Roles","value":"client,peer,validator,auditor"}, {"name":"hf.Registrar.DelegateRoles", "value": "client"}]
+    }
+ },
+ "groups": {
+   "banks_and_institutions": {
+     "banks": ["bank_a", "bank_b", "bank_c"],
+     "institutions": ["institution_a"]
+   }
+ },
+ "signing": {
+    "default": {
+       "usages": ["cert sign"],
+       "expiry": "8000h"
+    }
+ }
+}
