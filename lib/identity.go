@@ -125,7 +125,7 @@ func (i *Identity) Serialize() ([]byte, error) {
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.
 func (i *Identity) Post(endpoint string, reqBody []byte) ([]byte, error) {
-	req, err := i.client.newPost(endpoint, reqBody)
+	req, err := i.client.NewPost(endpoint, reqBody)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +133,7 @@ func (i *Identity) Post(endpoint string, reqBody []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return i.client.sendPost(req)
+	return i.client.SendPost(req)
 }
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {

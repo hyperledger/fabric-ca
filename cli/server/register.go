@@ -19,8 +19,10 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/api"
@@ -80,10 +82,10 @@ type Register struct {
 }
 
 const (
-	roles         string = "roles"
-	peer          string = "peer"
-	client        string = "client"
-	delegateRoles string = "hf.Registrar.DelegateRoles"
+	roles          string = "roles"
+	peer           string = "peer"
+	client         string = "client"
+	registrarRoles string = "hf.Registrar.Roles"
 )
 
 // NewRegisterUser is a constructor
@@ -181,6 +183,22 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 		return "", err
 	}
 
+	if len(opt) > 1 {
+		maxE, err := strconv.Atoi(opt[1])
+		if err != nil {
+			return "", err
+		}
+		err = r.cfg.UserRegistry.UpdateField(id, maxEnrollments, maxE)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		err = r.cfg.UserRegistry.UpdateField(id, maxEnrollments, 1)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	return tok, nil
 }
 
@@ -211,50 +229,21 @@ func (r *Register) requireGroup(userType string) bool {
 func (r *Register) canRegister(registrar string, userType string) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
-	user, check, err := r.isRegistrar(registrar)
+	user, err := r.cfg.UserRegistry.GetUser(registrar)
 	if err != nil {
-		return cop.NewError(cop.RegisteringUserError, "Can't Register: [error: %s]"+err.Error())
+		return fmt.Errorf("Registrar does not exist: %s", err)
 	}
 
-	if check != true {
-		return errors.New("Can't Register: " + err.Error())
+	var roles []string
+	rolesStr := user.GetAttribute(registrarRoles)
+	if rolesStr != "" {
+		roles = strings.Split(rolesStr, ",")
+	} else {
+		roles = make([]string, 0)
 	}
-
-	attributes, err := user.GetAttributes()
-	if err != nil {
-		return err
-	}
-
-	for _, rAttr := range attributes {
-
-		if strings.ToLower(rAttr.Name) == strings.ToLower(delegateRoles) {
-			registrarRoles := strings.Split(rAttr.Value, ",")
-			if !util.StrContained(userType, registrarRoles) {
-				return cop.NewError(cop.RegisteringUserError, "user %s may not register type %s", registrar, userType)
-			}
-		}
+	if !util.StrContained(userType, roles) {
+		return cop.NewError(cop.RegisteringUserError, "user %s may not register type %s", registrar, userType)
 	}
 
 	return nil
-}
-
-// Check if specified registrar has appropriate permissions
-func (r *Register) isRegistrar(registrar string) (spi.User, bool, error) {
-	log.Debugf("isRegistrar - Check if specified registrar (%s) has appropriate permissions", registrar)
-
-	user, err := r.cfg.UserRegistry.GetUser(registrar)
-	if err != nil {
-		return nil, false, errors.New("Registrar does not exist")
-	}
-	var attributes []idp.Attribute
-	attributes, _ = user.GetAttributes()
-
-	for _, attr := range attributes {
-		if attr.Name == delegateRoles && attr.Value != "" {
-			return user, true, nil
-		}
-	}
-
-	log.Errorf("%s is not a registrar", registrar)
-	return nil, false, cop.NewError(cop.RegisteringUserError, "%s is not a registrar", registrar)
 }

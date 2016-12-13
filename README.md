@@ -121,20 +121,22 @@ The following command gets an ecert for the admin user.
 # ./cop client enroll admin adminpw http://localhost:8888
 ```
 
-The enrollment material is stored in the `$COP_HOME/client.json` file.
+Note that this stores the enrollment material in the `$COP_HOME/client.json` file.
 
-### Reenroll the admin client
+### Reenroll
 
-The following command renews the enrollment certificate of a client.
+Suppose your enrollment certificate is about to expire.  You can issue the reenroll command
+to renew your enrollment certificate as follows.  Note that this is identical to the enroll
+command except no username or password is required.  Instead, your previously stored private
+key is used to authenticate to the COP server.
 
 ```
 # cd $COP/bin
-# ./cop client reenroll http://localhost:8888
+# ./cop client reenroll ../testdata/csr.json http://localhost:8888
 ```
 
 Note that this updates the enrollment material in the `$COP_HOME/client.json` file.
 
-### Run the cop tests
 
 ### Register a new user
 
@@ -150,6 +152,7 @@ For example, the attributes for a registrar might look like this:
 The registrar should then create a JSON file as defined below for the user being registered.
 
 registerrequest.json:
+
 ```
 {
   "id": "User1",
@@ -160,10 +163,64 @@ registerrequest.json:
 ```
 
 The following command will register the user.
+
 ```
 # cd $COP/bin
 # ./cop client register ../testdata/registerrequest.json http://localhost:8888
 ```
+
+### LDAP
+
+The COP server can be configured to read from an LDAP server.
+
+In particular, the COP server may connect to an LDAP server to do the following:
+
+   * authenticate a user prior to enrollment, and   
+   * retrieve a user's attribute values which is used for authorization.
+
+In order to configure the COP server to connect to an LDAP server, add a section of the following form to your COP server's configuration file:
+
+```
+{
+   "ldap": {
+       "url": "scheme://adminDN:pass@host[:port][/base]"
+       "userfilter": "filter"
+   }
+```
+
+where:  
+   * `scheme` is one of *ldap* or *ldaps*;  
+   * `adminDN` is the distinquished name of the admin user;  
+   * `pass` is the password of the admin user;   
+   * `host` is the hostname or IP address of the LDAP server;  
+   * `port` is the optional port number, where default 389 for *ldap* and 636 for *ldaps*;  
+   * `base` is the optional root of the LDAP tree to use for searches;  
+   * `filter` is a filter to use when searching to convert a login user name to a distinquished name.  For example, a value of `(uid=%s)` searches for LDAP entries with the value of a `uid` attribute whose value is the login user name.  Similarly, `(email=%s)` may be used to login with an email address.
+
+The following is a sample configuration section for the default settings for the OpenLDAP server whose docker image is at `https://github.com/osixia/docker-openldap`.
+
+```
+ "ldap": {
+    "url": "ldap://cn=admin,dc=example,dc=org:admin@localhost:10389/dc=example,dc=org",
+    "userfilter": "(uid=%s)"
+ },
+```
+
+See `COP/testdata/testconfig-ldap.json` for the complete configuration file with this section.  Also see `COP/scripts/run-ldap-tests` for a script which starts an OpenLDAP docker image, configures it, runs the LDAP tests in COP/cli/server/ldap/ldap_test.go, and stops the OpenLDAP server.
+
+##### When LDAP is configured, enrollment works as follows:
+
+  * A COP client or client SDK sends an enrollment request with a basic authorization header.  
+  * The COP server receives the enrollment request, decodes the user/pass in the authorization header, looks up the DN (Distinquished Name) associated with the user using the "userfilter" from the configuration file, and then attempts an LDAP bind with the user's password. If successful, the enrollment processing is authorized and can proceed.
+
+##### When LDAP is configured, attribute retrieval works as follows:
+
+   * A client SDK sends a request for a batch of tcerts *with one or more attributes*to the COP server.  
+   * The COP server receives the tcert request and does as follows: 
+       * extracts the enrollment ID from the token in the authorization header (after validating the token);
+       * does an LDAP search/query to the LDAP server, requesting all of the attribute names received in the tcert request;
+       * the attribute values are placed in the tcert as normal
+
 
 ### Setting up a cluster
 

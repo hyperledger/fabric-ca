@@ -247,7 +247,7 @@ func TestSendBadPost(t *testing.T) {
 	curl := "fake"
 	reqBody := []byte("")
 	req, _ := http.NewRequest("POST", curl, bytes.NewReader(reqBody))
-	_, err := c.sendPost(req)
+	_, err := c.SendPost(req)
 	if err == nil {
 		t.Error("Sending post should have failed")
 	}

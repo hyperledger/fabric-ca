@@ -1,0 +1,91 @@
+#
+# This script uses docker to start, configure, and stop openldap
+# so that we can run the LDAP test cases
+#
+
+# OLC is the name of the Open LDAP Container name
+# IMAGE is the name of docker image
+OLC=openldap-cop   
+IMAGE=osixia/openldap
+COP=$GOPATH/src/github.com/hyperledger/fabric-cop
+
+# Start the LDAP container
+function startContainer {
+   CID=`docker ps -q -f name=$OLC`
+   if [ "$CID" != "" ]; then
+      echo "$OLC is already running at $CID"
+      return 0
+   fi
+   CID=`docker ps -a -q -f name=$OLC`
+   if [ "$CID" != "" ]; then
+      echo "Starting $OLC ..."
+      docker start $CID
+   else
+      echo "Downloading and starting $OLC ..."
+      docker run -p 10389:389 -p 10636:636 --name $OLC --detach $IMAGE:1.1.7 > /dev/null
+   fi
+   CID=`docker ps -q -f name=$OLC`
+   if [ "$CID" != "" ]; then
+      echo "$OLC has been started"
+      return 0
+   fi
+   echo "$OLC failed to start"
+   return 1
+}
+
+# Add a user
+function addUser {
+   LDIF=add-user.ldif
+   ADMIN=cn=admin,dc=example,dc=org
+   ADMINPW=admin
+   USER=uid=jsmith,dc=example,dc=org
+   USERPW=jsmithpw
+   docker cp $COP/scripts/$LDIF $OLC:/tmp
+   docker exec $OLC ldapadd -cxD $ADMIN -w $ADMINPW -f /tmp/$LDIF
+   docker exec $OLC ldappasswd -xD $ADMIN -w $ADMINPW $USER -s $USERPW
+   return 0
+}
+
+# Run the LDAP test cases
+function runTests {
+   echo "Running LDAP test cases ..."
+   cd $COP/cli/server/ldap
+   go test . -cover | tee /tmp/ldap-test.results
+   echo "LDAP test cases are complete"
+}
+
+# Stop the openldap container
+function stopContainer {
+   echo "Stopping $OLC ..."
+   docker stop `docker ps -a -q -f name=$OLC`
+   docker rm `docker ps -a -q -f name=$OLC`
+   echo "Stopped $OLC"
+}
+
+# Remove the openldap image
+function removeImage {
+   echo "Removing $OLC ..."
+   docker rmi `docker images | grep "$IMAGE" | awk '{ print $3 }'`
+   echo "Removed $OLC"
+}
+
+startContainer
+if [ $? -ne 0 ]; then
+   exit 1
+fi
+
+sleep 3
+
+addUser
+if [ $? -ne 0 ]; then
+   exit 1
+fi
+
+runTests
+
+stopContainer
+
+#removeImage
+
+$COP/scripts/check_test_results /tmp/ldap-test.results
+exit $?

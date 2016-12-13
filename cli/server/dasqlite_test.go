@@ -118,16 +118,12 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	result, err := ta.Accessor.GetUser(insert.Name)
+	user, err := ta.Accessor.GetUser(insert.Name)
 	if err != nil {
 		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
 	}
-	userInfo := result.(*spi.UserInfo)
 
-	if userInfo.Name == "" {
-		t.Error("No results returned")
-	}
-	if userInfo.Name != insert.Name {
+	if user.GetName() != insert.Name {
 		t.Error("Incorrect ID retrieved")
 	}
 }
@@ -182,15 +178,14 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	result, err := ta.Accessor.GetUser(insert.Name)
+	user, err := ta.Accessor.GetUser(insert.Name)
 	if err != nil {
 		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.Name, err)
 	}
 
-	userInfo := result.(*spi.UserInfo)
-
-	if userInfo.Pass != insert.Pass {
-		t.Error("Failed to update user")
+	err = user.Login(insert.Pass)
+	if err != nil {
+		t.Error("Failed to update user's password")
 	}
 
 }

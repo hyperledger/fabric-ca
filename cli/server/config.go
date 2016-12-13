@@ -26,6 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/hyperledger/fabric-cop/cli/server/ldap"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/jmoiron/sqlx"
@@ -40,6 +41,7 @@ type Config struct {
 	DBdriver       string           `json:"driver"`
 	DataSource     string           `json:"data_source"`
 	UsrReg         UserReg          `json:"user_registry"`
+	LDAP           *ldap.Config     `json:"ldap,omitempty"`
 	Home           string
 	ConfigFile     string
 	CACert         string

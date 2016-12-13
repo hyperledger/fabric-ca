@@ -14,62 +14,79 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
- * This file contains interfaces for the COP library.
- * COP provides police-like security functions for Hyperledger Fabric.
- */
-
 package server
 
 import (
-	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
+	"fmt"
+
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
+	"github.com/hyperledger/fabric-cop/cli/server/ldap"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
 	"github.com/jmoiron/sqlx"
 )
 
-// NewUserRegistry abstracts out the user retreival
-func NewUserRegistry(typ string, config string) (spi.UserRegistry, error) {
-	log.Debugf("Create new user registry of type: %s", typ)
-	var db *sqlx.DB
+var userRegistry spi.UserRegistry
+
+// InitUserRegistry is the factory method for the user registry.
+// If LDAP is configured, then LDAP is used for the user registry;
+// otherwise, the CFSSL DB which is used for the certificates table is used.
+func InitUserRegistry(cfg *Config) error {
+
 	var err error
-	var exists bool
 
-	switch typ {
-	case "sqlite3":
-		db, exists, err = dbutil.NewUserRegistrySQLLite3(config)
+	if cfg.LDAP != nil {
+		// LDAP is being used for the user registry
+		userRegistry, err = ldap.NewClient(cfg.LDAP)
 		if err != nil {
-			return nil, err
+			return err
+		}
+	} else {
+		// The database is being used for the user registry
+		var db *sqlx.DB
+		var exists bool
+
+		switch cfg.DBdriver {
+		case "sqlite3":
+			db, exists, err = dbutil.NewUserRegistrySQLLite3(cfg.DataSource)
+			if err != nil {
+				return err
+			}
+
+		case "postgres":
+			db, exists, err = dbutil.NewUserRegistryPostgres(cfg.DataSource)
+			if err != nil {
+				return err
+			}
+
+		case "mysql":
+			db, exists, err = dbutil.NewUserRegistryMySQL(cfg.DataSource)
+			if err != nil {
+				return err
+			}
+
+		default:
+			return fmt.Errorf("invalid 'DBDriver' in config file: %s", cfg.DBdriver)
 		}
 
-	case "postgres":
-		db, exists, err = dbutil.NewUserRegistryPostgres(config)
-		if err != nil {
-			return nil, err
+		dbAccessor := new(Accessor)
+		dbAccessor.SetDB(db)
+
+		userRegistry = dbAccessor
+
+		CFG.UserRegistry = userRegistry
+
+		// IF the DB doesn't exist, create it
+		if !exists {
+			err := bootstrapDB()
+			if err != nil {
+				return err
+			}
 		}
 
-	case "mysql":
-		db, exists, err = dbutil.NewUserRegistryMySQL(config)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, cop.NewError(cop.DatabaseError, "Unsupported type")
 	}
 
-	dbAccessor := new(Accessor)
-	dbAccessor.SetDB(db)
+	CFG.UserRegistry = userRegistry
 
-	CFG.UserRegistry = dbAccessor
+	return nil
 
-	if !exists {
-		err := bootstrapDB()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return dbAccessor, nil
 }

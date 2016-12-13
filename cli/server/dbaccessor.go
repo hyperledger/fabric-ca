@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
@@ -116,55 +117,6 @@ func (d *Accessor) checkDB() error {
 func (d *Accessor) SetDB(db *sqlx.DB) {
 	d.db = db
 	return
-}
-
-// LoginUserBasicAuth checks to see valid credentials have been provided
-func (d *Accessor) LoginUserBasicAuth(user, pass string) (spi.User, error) {
-	log.Debugf("DB: Login user authentication for %s", user)
-
-	var userRec UserRecord
-	err := d.db.Get(&userRec, d.db.Rebind(getUser), user)
-	if err != nil {
-		log.Errorf("User (%s) not registered [error: %s]", user, err)
-		return nil, cop.NewError(cop.AuthorizationFailure, "User (%s) not registered [error: %s]", user, err)
-	}
-
-	userInfo := convertToUserInfo(&userRec)
-
-	if userRec.Pass == pass {
-		if userRec.State >= 0 && userRec.State < userRec.MaxEnrollments {
-			state := userRec.State + 1
-			res, err := d.db.Exec("UPDATE users SET state = ? WHERE (id = ?)", state, user)
-			if err != nil {
-				return nil, err
-			}
-
-			numRowsAffected, err := res.RowsAffected()
-
-			if err != nil {
-				return nil, err
-			}
-
-			if numRowsAffected == 0 {
-				return nil, cop.NewError(cop.UserStoreError, "Failed to update the user record")
-			}
-
-			if numRowsAffected != 1 {
-				return nil, cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
-			}
-
-			return userInfo, nil
-		}
-		_, err := d.db.Exec("UPDATE users SET token = ? WHERE (id = ?)", "", user)
-		if err != nil {
-			return nil, err
-		}
-		log.Errorf("User (%s) has already been enrolled", user)
-		return nil, cop.NewError(cop.AuthorizationFailure, "User has already been enrolled")
-	}
-
-	log.Errorf("Incorrect username/password provided")
-	return nil, cop.NewError(cop.AuthorizationFailure, "Incorrect username/password provided)")
 }
 
 // InsertUser inserts user into database
@@ -359,8 +311,8 @@ func (d *Accessor) GetField(id string, field int) (interface{}, error) {
 }
 
 // GetUser gets user from database
-func (d *Accessor) GetUser(id string) (spi.User, error) {
-	log.Debugf("DB: Get User (%s) from database", id)
+func (d *Accessor) GetUser(id string, attrs ...string) (spi.User, error) {
+	log.Debugf("Getting user %s from the database", id)
 
 	err := d.checkDB()
 	if err != nil {
@@ -373,9 +325,7 @@ func (d *Accessor) GetUser(id string) (spi.User, error) {
 		return nil, err
 	}
 
-	userInfo := convertToUserInfo(&userRec)
-
-	return userInfo, nil
+	return d.newDBUser(&userRec), nil
 }
 
 // InsertGroup inserts group into database
@@ -444,18 +394,97 @@ func (d *Accessor) GetRootGroup() (spi.Group, error) {
 		return nil, err
 	}
 	// TODO: IMPLEMENT
-	return nil, nil
+	return nil, errors.New("NOT YET IMPLEMENTED")
 }
 
-func convertToUserInfo(userRec *UserRecord) *spi.UserInfo {
-	var userInfo = new(spi.UserInfo)
-	userInfo.Name = userRec.Name
-	userInfo.Pass = userRec.Pass
-	userInfo.Type = userRec.Type
+// Creates a DBUser object from the DB user record
+func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
+	var user = new(DBUser)
+	user.name = userRec.Name
+	user.pass = userRec.Pass
+	user.state = userRec.State
+	user.maxEnrollments = userRec.MaxEnrollments
+	user.affiliationPath = strings.Split(userRec.Group, "/")
+	var attrs []idp.Attribute
+	json.Unmarshal([]byte(userRec.Attributes), &attrs)
+	user.attrs = make(map[string]string)
+	for _, attr := range attrs {
+		user.attrs[attr.Name] = attr.Value
+	}
+	user.db = d.db
+	return user
+}
 
-	var attributes []idp.Attribute
-	json.Unmarshal([]byte(userRec.Attributes), &attributes)
-	userInfo.Attributes = attributes
+// DBUser is the databases representation of a user
+type DBUser struct {
+	name            string
+	pass            string
+	state           int
+	maxEnrollments  int
+	affiliationPath []string
+	attrs           map[string]string
+	db              *sqlx.DB
+}
 
-	return userInfo
+// GetName returns the enrollment ID of the user
+func (u *DBUser) GetName() string {
+	return u.name
+}
+
+// Login the user with a password
+func (u *DBUser) Login(pass string) error {
+	log.Debugf("DB: Login user %s with max enrollments of %d and state of %d", u.name, u.maxEnrollments, u.state)
+
+	// Check the password
+	if u.pass != pass {
+		log.Errorf("Incorrect password for %s", u.name)
+		return cop.NewError(cop.AuthorizationFailure, "Incorrect username/password provided)")
+	}
+
+	// If the maxEnrollments is set (i.e. > 0), make sure we haven't exceeded this number of logins.
+	// The state variable keeps track of the number of previously successful logins.
+	if u.maxEnrollments > 0 {
+
+		if u.state >= u.maxEnrollments {
+			return fmt.Errorf("The maximum number of enrollments is %d", u.maxEnrollments)
+		}
+
+		// Not exceeded, so attempt to increment the count
+		state := u.state + 1
+		res, err := u.db.Exec("UPDATE users SET state = ? WHERE (id = ?)", state, u.name)
+		if err != nil {
+			return fmt.Errorf("failed to update state of user %s to %d: %s", u.name, state, err)
+		}
+
+		numRowsAffected, err := res.RowsAffected()
+
+		if err != nil {
+			return fmt.Errorf("db.RowsAffected failed: %s", err)
+		}
+
+		if numRowsAffected == 0 {
+			return fmt.Errorf("no rows were affected when updating the state of user %s", u.name)
+		}
+
+		if numRowsAffected != 1 {
+			return fmt.Errorf("%d rows were affected when updating the state of user %s", numRowsAffected, u.name)
+		}
+
+		log.Debugf("Successfully incremented state for user %s to %d", u.name, state)
+	}
+
+	log.Debugf("DB: user %s successfully logged in", u.name)
+
+	return nil
+
+}
+
+// GetAffiliationPath returns the complete path for the user's affiliation.
+func (u *DBUser) GetAffiliationPath() []string {
+	return u.affiliationPath
+}
+
+// GetAttribute returns the value for an attribute name
+func (u *DBUser) GetAttribute(name string) string {
+	return u.attrs[name]
 }

@@ -18,7 +18,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"testing"
 
@@ -41,7 +40,7 @@ var (
 	testUser     = cop.RegisterRequest{User: "testUser1", Type: "user", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testAuditor  = cop.RegisterRequest{User: "testAuditor", Type: "Auditor", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "auditor"}}}
 	testClient1  = cop.RegisterRequest{User: "testClient1", Type: "Client", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
-	testPeer     = cop.RegisterRequest{User: "testPeer", Type: "Peer", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
+	testBogus    = cop.RegisterRequest{User: "testBogus", Type: "Bogus", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 	testEnroll   = cop.RegisterRequest{User: "testEnroll", Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
 )
 
@@ -68,7 +67,7 @@ func prepRegister() error {
 	regCFG.Home = regPath
 	regCFG.DataSource = regCFG.Home + "/cop.db"
 
-	CFG.UserRegistry, err = NewUserRegistry(regCFG.DBdriver, regCFG.DataSource)
+	err = InitUserRegistry(regCFG)
 	if err != nil {
 		return err
 	}
@@ -117,7 +116,7 @@ func TestAll_Register(t *testing.T) {
 	testRegisterDuplicateUser(t)
 	testRegisterAuditor(t)
 	testRegisterUserNonRegistrar(t)
-	testRegisterUserPeer(t)
+	testRegisterUserBogus(t)
 	testRegisterUserClient(t)
 
 	os.RemoveAll(regPath)
@@ -137,10 +136,6 @@ func testRegisterDuplicateUser(t *testing.T) {
 		t.Fatal("Expected an error when registering the same user twice")
 	}
 
-	expectedError := fmt.Sprintf("%d: User is already registered", cop.RegisteringUserError)
-	if err.Error() != expectedError {
-		t.Fatalf("Expected error was not returned when registering user twice: [%s]", err.Error())
-	}
 }
 
 func testRegisterAuditor(t *testing.T) {
@@ -160,17 +155,15 @@ func testRegisterUserNonRegistrar(t *testing.T) {
 	if err == nil {
 		t.Fatal("User without registrar metadata should not be able to register a new user")
 	}
-	t.Logf("Expected an error and indeed received: [%s]", err.Error())
 }
 
-func testRegisterUserPeer(t *testing.T) {
+func testRegisterUserBogus(t *testing.T) {
 
-	_, err := registerUser(Registrar, &testPeer)
+	_, err := registerUser(Registrar, &testBogus)
 
 	if err == nil {
-		t.Fatal("User without appropriate delegateRoles should not be able to register a new user")
+		t.Fatal("User should not be able to register a bogus type")
 	}
-	t.Logf("Expected an error and indeed received: [%s]", err.Error())
 }
 
 //testAdmin should be able to register testClient1 since testAdmin's
