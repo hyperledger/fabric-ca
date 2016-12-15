@@ -21,11 +21,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -288,4 +291,75 @@ func CreateRootPreKey() string {
 	rand.Reader.Read(key)
 	cooked = base64.StdEncoding.EncodeToString(key)
 	return cooked
+}
+
+// GetPrivateKey returns ecdsa.PrivateKey or rsa.privateKey object for the private Key Bytes
+func GetPrivateKey(buf []byte) (interface{}, error) {
+	var err error
+	var privateKey interface{}
+
+	block, _ := pem.Decode(buf)
+	if block == nil {
+		privateKey, err = ParsePrivateKey(buf)
+		if err != nil {
+			return nil, fmt.Errorf("Failure parsing DER-encoded private key: %s", err)
+		}
+	} else {
+		privateKey, err = ParsePrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("Failure parsing PEM private key: %s", err)
+		}
+	}
+
+	switch privateKey := privateKey.(type) {
+	case *rsa.PrivateKey:
+		return privateKey, nil
+	case *ecdsa.PrivateKey:
+		return privateKey, nil
+	default:
+		return nil, errors.New("Key is neither RSA nor ECDSA")
+	}
+
+}
+
+// ParsePrivateKey parses private key
+func ParsePrivateKey(der []byte) (interface{}, error) {
+	if key, err := x509.ParsePKCS1PrivateKey(der); err == nil {
+		return key, nil
+	}
+	if key, err := x509.ParsePKCS8PrivateKey(der); err == nil {
+		switch key := key.(type) {
+		case *rsa.PrivateKey, *ecdsa.PrivateKey:
+			return key, nil
+		default:
+			return nil, errors.New("Key is neither RSA nor ECDSA")
+		}
+	}
+	key, err := x509.ParseECPrivateKey(der)
+	if err != nil {
+		return nil, fmt.Errorf("Failure parsing private key: %s", err)
+	}
+	return key, nil
+}
+
+// LoadCert loads a certificate from a file
+func LoadCert(path string) (*x509.Certificate, error) {
+	certBuf, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return GetCertificate(certBuf)
+}
+
+// LoadKey loads a private key from a file
+func LoadKey(path string) (interface{}, error) {
+	keyBuf, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	key, err := GetPrivateKey(keyBuf)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
 }

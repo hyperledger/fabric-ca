@@ -51,13 +51,28 @@ var (
 	tcertSubject = pkix.Name{CommonName: "Fabric Transaction Certificate"}
 )
 
-// NewMgr is the constructor for a TCert manager
-// @parameter caCert is used for extracting CA data to associate with issued certificates
+// LoadMgr is the constructor for a TCert manager given key and certificate file names
+// @parameter caKeyFile is the file name for the CA's key
+// @parameter caCertFile is the file name for the CA's cert
+func LoadMgr(caKeyFile, caCertFile string) (*Mgr, error) {
+	caKey, err := LoadKey(caKeyFile)
+	if err != nil {
+		return nil, err
+	}
+	caCert, err := LoadCert(caCertFile)
+	if err != nil {
+		return nil, err
+	}
+	return NewMgr(caKey, caCert)
+}
+
+// NewMgr is the constructor for a TCert manager given a key and an x509 certificate
 // @parameter caKey is used for signing a certificate request
-func NewMgr(caCert *x509.Certificate, caKey interface{}) (*Mgr, error) {
+// @parameter caCert is used for extracting CA data to associate with issued certificates
+func NewMgr(caKey interface{}, caCert *x509.Certificate) (*Mgr, error) {
 	mgr := new(Mgr)
-	mgr.CACert = caCert
 	mgr.CAKey = caKey
+	mgr.CACert = caCert
 	mgr.ValidityPeriod = time.Hour * 24 * 365 // default to 1 year
 	mgr.MaxAllowedBatchSize = 1000
 	return mgr, nil
@@ -65,10 +80,10 @@ func NewMgr(caCert *x509.Certificate, caKey interface{}) (*Mgr, error) {
 
 // Mgr is the manager for the TCert library
 type Mgr struct {
-	// CACert is used for extracting CA data to associate with issued certificates
-	CACert *x509.Certificate
 	// CAKey is used for signing a certificate request
 	CAKey interface{}
+	// CACert is used for extracting CA data to associate with issued certificates
+	CACert *x509.Certificate
 	// ValidityPeriod is the duration that the issued certificate will be valid
 	// unless the user requests a shorter validity period.
 	// The default value is 1 year.
