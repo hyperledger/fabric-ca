@@ -288,5 +288,5 @@ WARNING: You must first stop the COP server which you started above; otherwise, 
 
 ```
 # cd $COP
-# make tests
+# make unit-tests
 ```
