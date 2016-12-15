@@ -19,8 +19,6 @@ package lib
 import (
 	"io/ioutil"
 	"testing"
-
-	"github.com/hyperledger/fabric-cop/idp"
 )
 
 func getIdentity() *Identity {
@@ -35,7 +33,6 @@ func TestIdentity(t *testing.T) {
 	testIdentityMarshalling(id, t)
 	testGetName(id, t)
 	testGetPublicSigner(id, t)
-	testGetPrivateSigners(id, t)
 	testGetAttributeNames(id, t)
 	testDelete(id, t)
 }
@@ -61,12 +58,6 @@ func testGetPublicSigner(id *Identity, t *testing.T) {
 	if publicSigner == nil {
 		t.Error("No public signer returned")
 	}
-}
-
-// Place holder test, method has not yet been implemented
-func testGetPrivateSigners(id *Identity, t *testing.T) {
-	req := new(idp.GetPrivateSignersRequest)
-	id.GetPrivateSigners(req)
 }
 
 // Place holder test, method has not yet been implemented

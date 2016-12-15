@@ -38,7 +38,7 @@ func userHasAttribute(username, attrname string) error {
 // getUserAttrValue returns a user's value for an attribute
 func getUserAttrValue(username, attrname string) (string, error) {
 	log.Debugf("getUserAttrValue user=%s, attr=%s", username, attrname)
-	user, err := userRegistry.GetUser(username, attrname)
+	user, err := userRegistry.GetUser(username, []string{attrname})
 	if err != nil {
 		return "", err
 	}

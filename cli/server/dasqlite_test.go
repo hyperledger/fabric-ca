@@ -118,7 +118,7 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	user, err := ta.Accessor.GetUser(insert.Name)
+	user, err := ta.Accessor.GetUser(insert.Name, nil)
 	if err != nil {
 		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
 	}
@@ -149,7 +149,7 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during deletion of ID: %s, error: %s", insert.Name, err)
 	}
 
-	_, err = ta.Accessor.GetUser(insert.Name)
+	_, err = ta.Accessor.GetUser(insert.Name, nil)
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}
@@ -178,7 +178,7 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.Name, err)
 	}
 
-	user, err := ta.Accessor.GetUser(insert.Name)
+	user, err := ta.Accessor.GetUser(insert.Name, nil)
 	if err != nil {
 		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.Name, err)
 	}

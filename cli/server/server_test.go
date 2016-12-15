@@ -222,6 +222,27 @@ func TestRevoke(t *testing.T) {
 	}
 }
 
+func TestGetTCerts(t *testing.T) {
+	copServer := `{"serverURL":"https://localhost:8888"}`
+	c, err := lib.NewClient(copServer)
+	if err != nil {
+		t.Errorf("TestGetTCerts.NewClient failed: %s", err)
+		return
+	}
+	id, err := c.LoadMyIdentity()
+	if err != nil {
+		t.Errorf("TestGetTCerts.LoadMyIdentity failed: %s", err)
+		return
+	}
+	// Getting TCerts
+	_, err = id.GetPrivateSigners(&idp.GetPrivateSignersRequest{
+		Count: 1,
+	})
+	if err != nil {
+		t.Errorf("GetPrivateSigners failed: %s", err)
+	}
+}
+
 func TestMaxEnrollment(t *testing.T) {
 	CFG.UsrReg.MaxEnrollments = 2
 
@@ -250,6 +271,9 @@ func TestMaxEnrollment(t *testing.T) {
 	}
 
 	secretBytes, err := base64.StdEncoding.DecodeString(resp.Secret)
+	if err != nil {
+		t.Fatalf("Failed decoding secret: %s", err)
+	}
 
 	enrollReq := &idp.EnrollmentRequest{
 		Name:   "MaxTestUser",

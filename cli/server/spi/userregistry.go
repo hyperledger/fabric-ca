@@ -59,7 +59,7 @@ type Group interface {
 
 // UserRegistry is the API for retreiving users and groups
 type UserRegistry interface {
-	GetUser(id string, attrs ...string) (User, error)
+	GetUser(id string, attrs []string) (User, error)
 	InsertUser(user UserInfo) error
 	UpdateUser(user UserInfo) error
 	DeleteUser(id string) error

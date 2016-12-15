@@ -299,6 +299,7 @@ var endpoints = map[string]func() (http.Handler, error){
 	"enroll":   NewEnrollHandler,
 	"reenroll": NewReenrollHandler,
 	"revoke":   NewRevokeHandler,
+	"tcert":    NewTCertHandler,
 
 	// The remainder are the CFSSL endpoints
 	"sign": func() (http.Handler, error) {

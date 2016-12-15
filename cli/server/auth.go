@@ -98,7 +98,7 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			log.Debugf("Basic auth is not allowed; found %s", authHdr)
 			return errBasicAuthNotAllowed
 		}
-		u, err := userRegistry.GetUser(user)
+		u, err := userRegistry.GetUser(user, nil)
 		if err != nil {
 			return err
 		}

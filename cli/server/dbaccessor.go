@@ -274,7 +274,7 @@ func (d *Accessor) GetField(id string, field int) (interface{}, error) {
 }
 
 // GetUser gets user from database
-func (d *Accessor) GetUser(id string, attrs ...string) (spi.User, error) {
+func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	log.Debugf("Getting user %s from the database", id)
 
 	err := d.checkDB()

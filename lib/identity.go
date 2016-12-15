@@ -52,8 +52,22 @@ func (i *Identity) GetPublicSigner() idp.TemporalSigner {
 }
 
 // GetPrivateSigners returns private signers for this identity
+// NOTE: The whole IDP abstraction is going to be removed and the name of this will just be
+//       GetTCerts or something normal.  The IDP abstraction was originally done to allow for
+//       other providers, but that was done differently.
 func (i *Identity) GetPrivateSigners(req *idp.GetPrivateSignersRequest) ([]idp.TemporalSigner, error) {
-	return nil, errors.New("NotImplemented")
+	reqBody, err := util.Marshal(req, "idp.GetPrivateSignersRequest")
+	if err != nil {
+		return nil, err
+	}
+	_, err2 := i.Post("tcert", reqBody)
+	if err2 != nil {
+		return nil, err2
+	}
+	// Ignore the contents of the response for now.  They will be processed in the future when we need to
+	// support the Go SDK.   We currently have Node and Java SDKs which process this and they are the
+	// priority.
+	return nil, nil
 }
 
 // GetAttributeNames returns the names of all attributes associated with this identity

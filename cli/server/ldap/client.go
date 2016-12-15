@@ -120,7 +120,7 @@ type Client struct {
 
 // GetUser returns a user object for username and attribute values
 // for the requested attribute names
-func (lc *Client) GetUser(username string, attrNames ...string) (spi.User, error) {
+func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error) {
 
 	log.Debugf("Getting user '%s'", username)
 

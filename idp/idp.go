@@ -197,12 +197,12 @@ type ReenrollmentRequest struct {
 
 // CSRInfo is Certificate Signing Request information
 type CSRInfo struct {
-	CN           string               `json:"CN"`
+	CN           string               `json:"cn"`
 	Names        []csr.Name           `json:"names,omitempty"`
 	Hosts        []string             `json:"hosts,omitempty"`
 	KeyRequest   *csr.BasicKeyRequest `json:"key,omitempty"`
 	CA           *csr.CAConfig        `json:"ca,omitempty"`
-	SerialNumber string               `json:"serialnumber,omitempty"`
+	SerialNumber string               `json:"serial,omitempty"`
 }
 
 // ImportSignerRequest is required when importing a signer from an external CA
@@ -215,9 +215,10 @@ type ImportSignerRequest struct {
 
 // GetPrivateSignersRequest is input provided to get private signers
 type GetPrivateSignersRequest struct {
-	Count          int       `json:"count"`
-	AttrNames      []string  `json:"attrNames,omitempty"`
-	ValidityPeriod time.Time `json:"validityPeriod,omitempty"`
+	Count          uint          `json:"count"`
+	AttrNames      []string      `json:"attr_names,omitempty"`
+	EncryptAttrs   bool          `json:"encrypt_attrs,omitempty"`
+	ValidityPeriod time.Duration `json:"validity_period,omitempty"`
 }
 
 // SignatureOpts are signature options

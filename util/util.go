@@ -241,47 +241,29 @@ func GenECDSAToken(cert []byte, key []byte, body []byte) (string, error) {
 // VerifyToken verifies token signed by either ECDSA or RSA and
 // returns the associated user ID
 func VerifyToken(token string, body []byte) (*x509.Certificate, error) {
-	if token == "" {
-		return nil, errors.New("Failed to verify token because it is the empty string")
+	x509Cert, b64Cert, b64Sig, err := DecodeToken(token)
+	if err != nil {
+		return nil, err
 	}
-	parts := strings.Split(token, ".")
-	if len(parts) != 2 {
-		return nil, errors.New("Invalid token format; expecting 2 parts separated by '.'")
+	sig, err := B64Decode(b64Sig)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid base64 encoded signature in token: %s", err)
 	}
 	b64Body := B64Encode(body)
-	b64cert := parts[0]
-	b64sig, err := B64Decode(parts[1])
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode base64 encoded signature: %s", err)
-	}
-	certDecoded, err := B64Decode(b64cert)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
-	}
-	sigString := b64Body + "." + b64cert
-
-	block, _ := pem.Decode(certDecoded)
-	if block == nil {
-		return nil, errors.New("Failed to PEM decode the certificate")
-	}
-	x509Cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
-	}
+	sigString := b64Body + "." + b64Cert
 	publicKey := x509Cert.PublicKey
 	hash := sha512.New384()
 	hash.Write([]byte(sigString))
 	h := hash.Sum(nil)
-
 	switch publicKey.(type) {
 	case *rsa.PublicKey:
-		err := rsa.VerifyPKCS1v15(publicKey.(*rsa.PublicKey), crypto.SHA384, h[:], b64sig)
+		err := rsa.VerifyPKCS1v15(publicKey.(*rsa.PublicKey), crypto.SHA384, h[:], sig)
 		if err != nil {
 			return nil, err
 		}
 	case *ecdsa.PublicKey:
 		ecdsaSignature := new(ECDSASignature)
-		_, err := asn1.Unmarshal(b64sig, ecdsaSignature)
+		_, err := asn1.Unmarshal(sig, ecdsaSignature)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to unmarshal EC signature to R and S: %s", err)
 		}
@@ -291,6 +273,31 @@ func VerifyToken(token string, body []byte) (*x509.Certificate, error) {
 		}
 	}
 	return x509Cert, nil
+}
+
+// DecodeToken extracts an X509 certificate and base64 encoded signature from a token
+func DecodeToken(token string) (*x509.Certificate, string, string, error) {
+	if token == "" {
+		return nil, "", "", errors.New("Invalid token; it is empty")
+	}
+	parts := strings.Split(token, ".")
+	if len(parts) != 2 {
+		return nil, "", "", errors.New("Invalid token format; expecting 2 parts separated by '.'")
+	}
+	b64cert := parts[0]
+	certDecoded, err := B64Decode(b64cert)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
+	}
+	block, _ := pem.Decode(certDecoded)
+	if block == nil {
+		return nil, "", "", errors.New("Failed to PEM decode the certificate")
+	}
+	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
+	}
+	return x509Cert, b64cert, parts[1], nil
 }
 
 //GetECPrivateKey get *ecdsa.PrivateKey from key pem

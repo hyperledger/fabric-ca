@@ -83,7 +83,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
-		_, err := userRegistry.GetUser(req.Name)
+		_, err := userRegistry.GetUser(req.Name, nil)
 		if err != nil {
 			err = fmt.Errorf("Failed to get user %s: %s", req.Name, err)
 			return notFound(w, err)

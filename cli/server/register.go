@@ -167,7 +167,7 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 		Attributes: attributes,
 	}
 
-	_, err := userRegistry.GetUser(id)
+	_, err := userRegistry.GetUser(id, nil)
 	if err == nil {
 		log.Error("User is already registered")
 		return "", cop.NewError(cop.RegisteringUserError, "User is already registered")
@@ -213,7 +213,7 @@ func (r *Register) requireGroup(userType string) bool {
 func (r *Register) canRegister(registrar string, userType string) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
-	user, err := userRegistry.GetUser(registrar)
+	user, err := userRegistry.GetUser(registrar, nil)
 	if err != nil {
 		return fmt.Errorf("Registrar does not exist: %s", err)
 	}
