@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # This script uses docker to start, configure, and stop openldap
 # so that we can run the LDAP test cases
