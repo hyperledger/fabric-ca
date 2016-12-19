@@ -19,6 +19,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/cli/server/ldap"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
@@ -26,6 +27,7 @@ import (
 )
 
 var userRegistry spi.UserRegistry
+var certDBAccessor *CertDBAccessor
 
 // InitUserRegistry is the factory method for the user registry.
 // If LDAP is configured, then LDAP is used for the user registry;
@@ -73,8 +75,6 @@ func InitUserRegistry(cfg *Config) error {
 
 		userRegistry = dbAccessor
 
-		CFG.UserRegistry = userRegistry
-
 		// IF the DB doesn't exist, create it
 		if !exists {
 			err := bootstrapDB()
@@ -85,8 +85,13 @@ func InitUserRegistry(cfg *Config) error {
 
 	}
 
-	CFG.UserRegistry = userRegistry
-
 	return nil
 
+}
+
+// CertificateAccessor extends CFSSL database APIs for Certificates table
+func CertificateAccessor(db *sqlx.DB) certdb.Accessor {
+	certDBAccess := NewCertDBAccessor(db)
+	certDBAccessor = certDBAccess
+	return certDBAccess
 }

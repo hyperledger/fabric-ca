@@ -53,6 +53,10 @@ The COP client and server commands are what you will use.
 However, since COP is built on top of [CFSSL](https://github.com/cloudflare/cfssl) and CFSSL has its own CLI,
 you may issue any cfssl command with the `cop cfssl` command prefix.
 
+### COP server configuration options
+
+**max_enrollments (Default: 1)** - Allows you to specify how many times a user can use its one time password to enroll itself. Setting it to 0 will allow for unlimited enrollments.
+
 ### Initialize the COP server  
 
 Executing the following "COP" command will generate a private key and self-signed x509 certificate to start the
@@ -216,7 +220,7 @@ See `COP/testdata/testconfig-ldap.json` for the complete configuration file with
 ##### When LDAP is configured, attribute retrieval works as follows:
 
    * A client SDK sends a request for a batch of tcerts *with one or more attributes*to the COP server.  
-   * The COP server receives the tcert request and does as follows: 
+   * The COP server receives the tcert request and does as follows:
        * extracts the enrollment ID from the token in the authorization header (after validating the token);
        * does an LDAP search/query to the LDAP server, requesting all of the attribute names received in the tcert request;
        * the attribute values are placed in the tcert as normal

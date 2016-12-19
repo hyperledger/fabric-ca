@@ -3,6 +3,7 @@
         "myhost.com",
         "www.myhost.com"
     ],
+    "CN": "admin",
     "key": {
         "algo": "ecdsa",
         "size": 256

@@ -370,7 +370,34 @@ func GetDefaultHomeDir() string {
 		}
 	}
 	if home == "" {
-		home = "/var/hyperledger/production/.cop"
+		home = "/var/hyperledger/fabric/dev/.fabric-cop"
 	}
 	return home
+}
+
+// GetX509CertificateFromPEM converts a PEM buffer to an X509 Certificate
+func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
+	block, _ := pem.Decode(cert)
+	if block == nil {
+		return nil, errors.New("Failed to decode PEM")
+	}
+	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Error from x509.ParseCertificate: %s", err)
+	}
+	return x509Cert, nil
+}
+
+// GetEnrollmentIDFromPEM returns the EnrollmentID from a PEM buffer
+func GetEnrollmentIDFromPEM(cert []byte) (string, error) {
+	x509Cert, err := GetX509CertificateFromPEM(cert)
+	if err != nil {
+		return "", err
+	}
+	return GetEnrollmentIDFromX509(x509Cert), nil
+}
+
+// GetEnrollmentIDFromX509 returns the EnrollmentID from the X509 certificate
+func GetEnrollmentIDFromX509(cert *x509.Certificate) string {
+	return cert.Subject.CommonName
 }

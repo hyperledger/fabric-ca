@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/api"
@@ -168,35 +167,20 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 		Attributes: attributes,
 	}
 
-	_, err := r.cfg.UserRegistry.GetUser(id)
+	_, err := userRegistry.GetUser(id)
 	if err == nil {
 		log.Error("User is already registered")
 		return "", cop.NewError(cop.RegisteringUserError, "User is already registered")
 	}
-	err = r.cfg.UserRegistry.InsertUser(insert)
+
+	err = userRegistry.InsertUser(insert)
 	if err != nil {
 		return "", err
 	}
 
-	err = r.cfg.UserRegistry.UpdateField(id, maxEnrollments, CFG.UsrReg.MaxEnrollments)
+	err = userRegistry.UpdateField(id, maxEnrollments, CFG.UsrReg.MaxEnrollments)
 	if err != nil {
 		return "", err
-	}
-
-	if len(opt) > 1 {
-		maxE, err := strconv.Atoi(opt[1])
-		if err != nil {
-			return "", err
-		}
-		err = r.cfg.UserRegistry.UpdateField(id, maxEnrollments, maxE)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		err = r.cfg.UserRegistry.UpdateField(id, maxEnrollments, 1)
-		if err != nil {
-			return "", err
-		}
 	}
 
 	return tok, nil
@@ -205,7 +189,7 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 func (r *Register) isValidGroup(group string) (bool, error) {
 	log.Debug("Validating group: " + group)
 
-	_, err := r.cfg.UserRegistry.GetGroup(group)
+	_, err := userRegistry.GetGroup(group)
 	if err != nil {
 		log.Error("Error occured getting group: ", err)
 		return false, err
@@ -229,7 +213,7 @@ func (r *Register) requireGroup(userType string) bool {
 func (r *Register) canRegister(registrar string, userType string) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
-	user, err := r.cfg.UserRegistry.GetUser(registrar)
+	user, err := userRegistry.GetUser(registrar)
 	if err != nil {
 		return fmt.Errorf("Registrar does not exist: %s", err)
 	}

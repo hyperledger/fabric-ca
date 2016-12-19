@@ -128,7 +128,7 @@ func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		// check status of certificate
 		serial := cert.SerialNumber.String()
 		aki := hex.EncodeToString(cert.AuthorityKeyId)
-		certs, err := CFG.certDBAccessor.GetCertificate(serial, aki)
+		certs, err := certDBAccessor.GetCertificate(serial, aki)
 		if err != nil {
 			log.Debugf("GetCertificate failed: %s", err)
 			return authError
