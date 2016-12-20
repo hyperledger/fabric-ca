@@ -1,4 +1,5 @@
 bin
+build
 cli/cop/cop
 testdata/client.json
 *.csr
