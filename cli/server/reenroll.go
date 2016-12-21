@@ -50,7 +50,7 @@ func (h *reenrollHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	req := signer.SignRequest{
 		Request: string(body),
 	}
-	cert, err := CFG.Signer.Sign(req)
+	cert, err := enrollSigner.Sign(req)
 	if err != nil {
 		log.Errorf("Sign error during reenroll: %s", err)
 		return cop.WrapError(err, cop.CFSSL, "reenroll failed in Sign")

@@ -83,8 +83,6 @@ func NewEnrollUser() *Enroll {
 // Enroll will enroll an already registered user and provided an enrollment cert
 func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Error) {
 	log.Debugf("Received request to enroll user with id: %s\n", id)
-	mutex.Lock()
-	defer mutex.Unlock()
 
 	cert, signErr := e.signKey(csrPEM)
 	if signErr != nil {
@@ -103,7 +101,7 @@ func (e *Enroll) signKey(csrPEM []byte) ([]byte, cop.Error) {
 		// Profile: c.Profile,
 		// Label:   c.Label,
 	}
-	cert, err := CFG.Signer.Sign(req)
+	cert, err := enrollSigner.Sign(req)
 	if err != nil {
 		log.Errorf("Sign error: %s", err)
 		return nil, cop.WrapError(err, cop.CFSSL, "Failed in Sign")

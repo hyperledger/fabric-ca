@@ -24,7 +24,6 @@ import (
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-cop/cli/server/ldap"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/lib/tls"
@@ -45,9 +44,6 @@ type Config struct {
 	KeyFile        string           `json:"ca_key"`
 	TLSConf        TLSConfig        `json:"tls,omitempty"`
 	TLSDisable     bool             `json:"tls_disable,omitempty"`
-	Home           string
-	ConfigFile     string
-	Signer         signer.Signer
 }
 
 // UserReg defines the user registry properties
@@ -97,8 +93,8 @@ func configInit(cfg *cli.Config) {
 			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))
 		}
 
-		CFG.ConfigFile = cfg.ConfigFile
-		cfg.DBConfigFile = CFG.ConfigFile
+		configFile = cfg.ConfigFile
+		cfg.DBConfigFile = configFile
 
 		cfg.CAFile = CFG.CAFile
 		cfg.CAKeyFile = CFG.KeyFile
