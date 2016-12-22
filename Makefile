@@ -20,6 +20,9 @@
 #   - cop - builds the cop executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
+#   - ldap-tests - runs the LDAP tests
+#   - docker[-clean] - ensures all docker images are available[/cleaned]
+#   - clean - cleans the build area
 
 PROJECT_NAME   = hyperledger/fabric-cop
 BASE_VERSION   = 0.7.0
