@@ -268,10 +268,17 @@ key is used to authenticate to the COP server.
 
 ```
 # cd $COP/bin
-# ./cop client reenroll ../testdata/csr.json http://localhost:8888
+# ./cop client reenroll http://localhost:8888
 ```
 
 The enrollment certificate and enrollment key are stored in the same location as described in the previous section for the `enroll` command.
+
+You can specify a new Certificate Signing Request JSON information when issue the reenroll command
+
+```
+# cd $COP/bin
+# ./cop client reenroll http://localhost:8888 ../testdata/csr.json
+```
 
 ### Register a new user
 
