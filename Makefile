@@ -24,7 +24,7 @@
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
 #   - clean - cleans the build area
 
-PROJECT_NAME   = hyperledger/fabric-cop
+PROJECT_NAME   = fabric-cop
 BASE_VERSION   = 0.7.0
 IS_RELEASE     = false
 
@@ -42,10 +42,11 @@ K := $(foreach exec,$(EXECUTABLES),\
 
 ARCH=$(shell uname -m)
 BASEIMAGE_RELEASE = 0.2.2
-PKGNAME = github.com/hyperledger/fabric-cop
+PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 pkgmap.cop := $(PKGNAME)
 
-IMAGES = cop runtime
+DOCKER_ORG = hyperledger
+IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-runtime
 
 include docker-env.mk
 
@@ -77,15 +78,15 @@ cop:
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
 # directory so that subsequent builds are faster
-build/docker/bin/cop:
+build/docker/bin/$(PROJECT_NAME):
 	@echo "Building $@"
-	@mkdir -p build/docker/bin build/docker/cop/pkg
+	@mkdir -p build/docker/bin build/docker/$(PROJECT_NAME)/pkg
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
-		-v $(abspath build/docker/cop/pkg):/opt/gopath/pkg \
+		-v $(abspath build/docker/$(PROJECT_NAME)/pkg):/opt/gopath/pkg \
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(pkgmap.cop)/cli
-	mv build/docker/bin/cli build/docker/bin/cop
+	mv build/docker/bin/cli build/docker/bin/$(PROJECT_NAME)
 	@touch $@
 
 build/docker/busybox:
@@ -94,34 +95,34 @@ build/docker/busybox:
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		make -f busybox/Makefile install BINDIR=$(@D)
 
-build/image/cop/$(DUMMY): build/image/runtime/$(DUMMY)
+build/image/$(PROJECT_NAME)/$(DUMMY): build/image/$(PROJECT_NAME)-runtime/$(DUMMY)
 
 # payload definitions'
-build/image/cop/payload:	build/docker/bin/cop
-build/image/runtime/payload:	build/docker/busybox
+build/image/$(PROJECT_NAME)/payload:	build/docker/bin/$(PROJECT_NAME)
+build/image/$(PROJECT_NAME)-runtime/payload:	build/docker/busybox
 
 build/image/%/payload:
 	mkdir -p $@
 	cp $^ $@
 
-build/image/cop/$(DUMMY): Makefile build/image/cop/payload
-	@echo "Building docker fabric-cop image"
+build/image/$(PROJECT_NAME)/$(DUMMY): Makefile build/image/$(PROJECT_NAME)/payload
+	@echo "Building docker $(PROJECT_NAME) image"
 	@cat images/cop/Dockerfile.in \
 		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
 		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
 		> $(@D)/Dockerfile
-	$(DBUILD) -t $(PROJECT_NAME) $(@D)
-	docker tag $(PROJECT_NAME) $(PROJECT_NAME):$(DOCKER_TAG)
+	$(DBUILD) -t $(DOCKER_ORG)/$(PROJECT_NAME) $(@D)
+	docker tag $(DOCKER_ORG)/$(PROJECT_NAME) $(DOCKER_ORG)/$(PROJECT_NAME):$(DOCKER_TAG)
 	@touch $@
 
-build/image/runtime/$(DUMMY): Makefile build/image/runtime/payload
-	@echo "Building docker fabric-cop-runtime image"
+build/image/$(PROJECT_NAME)-runtime/$(DUMMY): Makefile build/image/$(PROJECT_NAME)-runtime/payload
+	@echo "Building docker $(PROJECT_NAME)-runtime image"
 	@cat images/runtime/Dockerfile.in \
 		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
 		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
 		> $(@D)/Dockerfile
-	$(DBUILD) -t $(PROJECT_NAME)-runtime $(@D)
-	docker tag $(PROJECT_NAME)-runtime $(PROJECT_NAME)-runtime:$(DOCKER_TAG)
+	$(DBUILD) -t $(DOCKER_ORG)/$(PROJECT_NAME)-runtime $(@D)
+	docker tag $(DOCKER_ORG)/$(PROJECT_NAME)-runtime $(DOCKER_ORG)/$(PROJECT_NAME)-runtime:$(DOCKER_TAG)
 	@touch $@
 
 unit-tests: checks cop
@@ -134,7 +135,7 @@ ldap-tests:
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
-	-docker images -q $(PROJECT_NAME)-$(TARGET) | xargs -I '{}' docker rmi -f '{}'
+	-docker images -q $(DOCKER_ORG)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES))
