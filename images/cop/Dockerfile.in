@@ -1,6 +1,7 @@
 FROM hyperledger/fabric-cop-runtime:_TAG_
 ENV COP_HOME /etc/hyperledger/fabric-cop
 RUN mkdir -p /etc/hyperledger/fabric-cop
-COPY payload/cop /usr/local/bin
+COPY payload/fabric-cop /usr/local/bin
+RUN mv /usr/local/bin/fabric-cop /usr/local/bin/cop
 EXPOSE 8888
 CMD cop
