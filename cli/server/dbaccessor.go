@@ -38,8 +38,8 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO users (id, token, type, user_group, attributes, state, max_enrollments, serial_number, authority_key_identifier)
-	VALUES (:id, :token, :type, :user_group, :attributes, :state, :max_enrollments, :serial_number, :authority_key_identifier);`
+INSERT INTO users (id, token, type, user_group, attributes, state, max_enrollments)
+	VALUES (:id, :token, :type, :user_group, :attributes, :state, :max_enrollments);`
 
 	deleteUser = `
 DELETE FROM users
@@ -67,14 +67,6 @@ SELECT name, parent_id FROM groups
 	WHERE (name = ?)`
 )
 
-const (
-	serialNumber = iota
-	aki
-	prekey
-	maxEnrollments
-	state
-)
-
 // UserRecord defines the properties of a user
 type UserRecord struct {
 	Name           string `db:"id"`
@@ -84,8 +76,6 @@ type UserRecord struct {
 	Attributes     string `db:"attributes"`
 	State          int    `db:"state"`
 	MaxEnrollments int    `db:"max_enrollments"`
-	SerialNumber   string `db:"serial_number"`
-	AKI            string `db:"authority_key_identifier"`
 }
 
 // GroupRecord defines the properties of a group
@@ -133,11 +123,13 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 	}
 
 	res, err := d.db.NamedExec(insertUser, &UserRecord{
-		Name:       user.Name,
-		Pass:       user.Pass,
-		Type:       user.Type,
-		Group:      user.Group,
-		Attributes: string(attrBytes),
+		Name:           user.Name,
+		Pass:           user.Pass,
+		Type:           user.Type,
+		Group:          user.Group,
+		Attributes:     string(attrBytes),
+		State:          user.State,
+		MaxEnrollments: user.MaxEnrollments,
 	})
 
 	if err != nil {
@@ -194,11 +186,13 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 	}
 
 	res, err := d.db.NamedExec(updateUser, &UserRecord{
-		Name:       user.Name,
-		Pass:       user.Pass,
-		Type:       user.Type,
-		Group:      user.Group,
-		Attributes: string(attributes),
+		Name:           user.Name,
+		Pass:           user.Pass,
+		Type:           user.Type,
+		Group:          user.Group,
+		Attributes:     string(attributes),
+		State:          user.State,
+		MaxEnrollments: user.MaxEnrollments,
 	})
 
 	if err != nil {
@@ -220,58 +214,6 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 
 }
 
-// UpdateField updates a specific field in database
-func (d *Accessor) UpdateField(id string, field int, value interface{}) error {
-	err := d.checkDB()
-	if err != nil {
-		return err
-	}
-
-	switch field {
-	case maxEnrollments:
-		log.Debug("Update max enrollments")
-		val := value.(int)
-		_, err = d.db.Exec(d.db.Rebind("UPDATE users SET max_enrollments = ? WHERE (id = ?)"), val, id)
-		if err != nil {
-			return err
-		}
-	case state:
-		log.Debug("Update state")
-		val := value.(int)
-		_, err = d.db.Exec(d.db.Rebind("UPDATE users SET state = ? WHERE (id = ?)"), val, id)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("Specified field does not exist and cannot be updated: %d", field)
-	}
-
-	return err
-}
-
-// GetField updates a specific field in database
-func (d *Accessor) GetField(id string, field int) (interface{}, error) {
-	err := d.checkDB()
-	if err != nil {
-		return nil, err
-	}
-
-	switch field {
-	case prekey:
-		log.Debug("Get prekey")
-		var groupRec GroupRecord
-		err = d.db.Get(&groupRec, d.db.Rebind("SELECT prekey FROM groups WHERE (name = ?)"), id)
-		if err != nil {
-			return nil, err
-		}
-		return groupRec.Prekey, nil
-	default:
-		err = fmt.Errorf("Specified field does not exist and cannot be updated: %d", field)
-		return nil, err
-	}
-
-}
-
 // GetUser gets user from database
 func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	log.Debugf("Getting user %s from the database", id)
@@ -288,6 +230,37 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	}
 
 	return d.newDBUser(&userRec), nil
+}
+
+// GetUserInfo gets user information from database
+func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
+	log.Debugf("Getting user %s information from the database", id)
+
+	var userInfo spi.UserInfo
+
+	err := d.checkDB()
+	if err != nil {
+		return userInfo, err
+	}
+
+	var userRec UserRecord
+	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
+	if err != nil {
+		return userInfo, err
+	}
+
+	var attributes []api.Attribute
+	json.Unmarshal([]byte(userRec.Attributes), &attributes)
+
+	userInfo.Name = userRec.Name
+	userInfo.Pass = userRec.Pass
+	userInfo.Type = userRec.Type
+	userInfo.Group = userRec.Group
+	userInfo.State = userRec.State
+	userInfo.MaxEnrollments = userRec.MaxEnrollments
+	userInfo.Attributes = attributes
+
+	return userInfo, nil
 }
 
 // InsertGroup inserts group into database
@@ -362,62 +335,63 @@ func (d *Accessor) GetRootGroup() (spi.Group, error) {
 // Creates a DBUser object from the DB user record
 func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	var user = new(DBUser)
-	user.name = userRec.Name
-	user.pass = userRec.Pass
-	user.state = userRec.State
-	user.maxEnrollments = userRec.MaxEnrollments
-	user.affiliationPath = strings.Split(userRec.Group, "/")
+	user.Name = userRec.Name
+	user.Pass = userRec.Pass
+	user.State = userRec.State
+	user.MaxEnrollments = userRec.MaxEnrollments
+	user.Group = userRec.Group
+	user.Type = userRec.Type
+
 	var attrs []api.Attribute
 	json.Unmarshal([]byte(userRec.Attributes), &attrs)
+	user.Attributes = attrs
+
 	user.attrs = make(map[string]string)
 	for _, attr := range attrs {
 		user.attrs[attr.Name] = attr.Value
 	}
+
 	user.db = d.db
 	return user
 }
 
 // DBUser is the databases representation of a user
 type DBUser struct {
-	name            string
-	pass            string
-	state           int
-	maxEnrollments  int
-	affiliationPath []string
-	attrs           map[string]string
-	db              *sqlx.DB
+	spi.UserInfo
+	attrs map[string]string
+	db    *sqlx.DB
 }
 
 // GetName returns the enrollment ID of the user
 func (u *DBUser) GetName() string {
-	return u.name
+	return u.Name
 }
 
 // Login the user with a password
 func (u *DBUser) Login(pass string) error {
-	log.Debugf("DB: Login user %s with max enrollments of %d and state of %d", u.name, u.maxEnrollments, u.state)
+	log.Debugf("DB: Login user %s with max enrollments of %d and state of %d", u.Name, u.MaxEnrollments, u.State)
 
 	// Check the password
-	if u.pass != pass {
+	if u.Pass != pass {
 		return errors.New("Incorrect username/password provided")
 	}
 
 	// If the maxEnrollments is set (i.e. >= 0), make sure we haven't exceeded this number of logins.
 	// The state variable keeps track of the number of previously successful logins.
-	if u.maxEnrollments >= 0 {
+	if u.MaxEnrollments >= 0 {
 
 		// If maxEnrollments is set to 0, user has unlimited enrollment
-		if u.maxEnrollments != 0 {
-			if u.state >= u.maxEnrollments {
-				return fmt.Errorf("The maximum number of enrollments is %d", u.maxEnrollments)
+		if u.MaxEnrollments != 0 {
+			if u.State >= u.MaxEnrollments {
+				return fmt.Errorf("The maximum number of enrollments is %d", u.MaxEnrollments)
 			}
 		}
 
 		// Not exceeded, so attempt to increment the count
-		state := u.state + 1
-		res, err := u.db.Exec(u.db.Rebind("UPDATE users SET state = ? WHERE (id = ?)"), state, u.name)
+		state := u.State + 1
+		res, err := u.db.Exec(u.db.Rebind("UPDATE users SET state = ? WHERE (id = ?)"), state, u.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to update state of user %s to %d: %s", u.name, state, err)
+			return fmt.Errorf("Failed to update state of user %s to %d: %s", u.Name, state, err)
 		}
 
 		numRowsAffected, err := res.RowsAffected()
@@ -427,17 +401,17 @@ func (u *DBUser) Login(pass string) error {
 		}
 
 		if numRowsAffected == 0 {
-			return fmt.Errorf("no rows were affected when updating the state of user %s", u.name)
+			return fmt.Errorf("no rows were affected when updating the state of user %s", u.Name)
 		}
 
 		if numRowsAffected != 1 {
-			return fmt.Errorf("%d rows were affected when updating the state of user %s", numRowsAffected, u.name)
+			return fmt.Errorf("%d rows were affected when updating the state of user %s", numRowsAffected, u.Name)
 		}
 
-		log.Debugf("Successfully incremented state for user %s to %d", u.name, state)
+		log.Debugf("Successfully incremented state for user %s to %d", u.Name, state)
 	}
 
-	log.Debugf("DB: user %s successfully logged in", u.name)
+	log.Debugf("DB: user %s successfully logged in", u.Name)
 
 	return nil
 
@@ -445,7 +419,8 @@ func (u *DBUser) Login(pass string) error {
 
 // GetAffiliationPath returns the complete path for the user's affiliation.
 func (u *DBUser) GetAffiliationPath() []string {
-	return u.affiliationPath
+	affiliationPath := strings.Split(u.Group, "/")
+	return affiliationPath
 }
 
 // GetAttribute returns the value for an attribute name
