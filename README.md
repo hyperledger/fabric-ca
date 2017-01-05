@@ -347,7 +347,7 @@ See `COP/testdata/testconfig-ldap.json` for the complete configuration file with
 
 ##### When LDAP is configured, enrollment works as follows:
 
-  * A COP client or client SDK sends an enrollment request with a basic authorization header.  
+  * A COP client or client SDK sends an enrollment request with a basic authorization header.
   * The COP server receives the enrollment request, decodes the user/pass in the authorization header, looks up the DN (Distinquished Name) associated with the user using the "userfilter" from the configuration file, and then attempts an LDAP bind with the user's password. If successful, the enrollment processing is authorized and can proceed.
 
 ##### When LDAP is configured, attribute retrieval works as follows:

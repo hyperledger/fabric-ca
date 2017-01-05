@@ -18,6 +18,7 @@ package server
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -46,9 +47,10 @@ func prepBootstrap() error {
 	configInit(cfg)
 
 	bootCFG = CFG
-	bootCFG.Home = bootPath
+	home = bootPath
 	bootCFG.DBdriver = "sqlite3"
-	bootCFG.DataSource = bootCFG.Home + "/cop.db"
+	datasource := filepath.Join(home, "cop.db")
+	bootCFG.DataSource = datasource
 
 	err = InitUserRegistry(bootCFG)
 

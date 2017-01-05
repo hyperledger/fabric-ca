@@ -19,6 +19,7 @@ package server
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -64,8 +65,9 @@ func prepRegister() error {
 	configInit(cfg)
 
 	regCFG := CFG
-	regCFG.Home = regPath
-	regCFG.DataSource = regCFG.Home + "/cop.db"
+	home = regPath
+	datasource := filepath.Join(home, "cop.db")
+	regCFG.DataSource = datasource
 
 	err = InitUserRegistry(regCFG)
 	if err != nil {

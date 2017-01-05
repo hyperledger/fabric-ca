@@ -149,8 +149,6 @@ func (r *Register) validateID(id string, userType string, group string) error {
 // registerUserID registers a new user and its enrollmentID, role and state
 func (r *Register) registerUserID(id string, userType string, group string, attributes []idp.Attribute, opt ...string) (string, error) {
 	log.Debugf("Registering user id: %s\n", id)
-	mutex.Lock()
-	defer mutex.Unlock()
 
 	var tok string
 	if len(opt) > 0 && len(opt[0]) > 0 {
