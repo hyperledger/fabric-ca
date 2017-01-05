@@ -72,15 +72,7 @@ func prepRegister() error {
 		return err
 	}
 
-	bootstrap()
-
 	return nil
-}
-
-func bootstrap() {
-	b := BootstrapDB()
-	b.PopulateGroupsTable()
-	bootstrapUsers()
 }
 
 func bootstrapUsers() error {

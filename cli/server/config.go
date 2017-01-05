@@ -26,8 +26,9 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-cop/cli/server/ldap"
-
 	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/lib/tls"
+
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
 
@@ -40,16 +41,26 @@ type Config struct {
 	DataSource     string           `json:"data_source"`
 	UsrReg         UserReg          `json:"user_registry"`
 	LDAP           *ldap.Config     `json:"ldap,omitempty"`
+	CAFile         string           `json:"ca_cert"`
+	KeyFile        string           `json:"ca_key"`
+	TLSConf        TLSConfig        `json:"tls,omitempty"`
+	TLSDisable     bool             `json:"tls_disable,omitempty"`
 	Home           string
 	ConfigFile     string
-	CACert         string
-	CAKey          string
 	Signer         signer.Signer
 }
 
 // UserReg defines the user registry properties
 type UserReg struct {
 	MaxEnrollments int `json:"max_enrollments"`
+}
+
+// TLSConfig defines the files needed for a TLS connection
+type TLSConfig struct {
+	TLSCertFile     string              `json:"tls_cert,omitempty"`
+	TLSKeyFile      string              `json:"tls_key,omitempty"`
+	MutualTLSCAFile string              `json:"mutual_tls_ca,omitempty"`
+	DBClient        tls.ClientTLSConfig `json:"db_client,omitempty"`
 }
 
 // User information
@@ -75,15 +86,7 @@ func configInit(cfg *cli.Config) {
 	log.Debugf("config.Init file=%s", cfg.ConfigFile)
 	CFG = newConfig()
 
-	if cfg.CAFile != "" {
-		CFG.CACert = cfg.CAFile
-	}
-	if cfg.CAKeyFile != "" {
-		CFG.CAKey = cfg.CAKeyFile
-	}
 	if cfg.ConfigFile != "" {
-		CFG.ConfigFile = cfg.ConfigFile
-		cfg.DBConfigFile = cfg.ConfigFile
 		body, err := ioutil.ReadFile(cfg.ConfigFile)
 		if err != nil {
 			panic(err.Error())
@@ -93,6 +96,29 @@ func configInit(cfg *cli.Config) {
 		if err != nil {
 			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))
 		}
+
+		CFG.ConfigFile = cfg.ConfigFile
+		cfg.DBConfigFile = CFG.ConfigFile
+
+		cfg.CAFile = CFG.CAFile
+		cfg.CAKeyFile = CFG.KeyFile
+
+		if CFG.TLSConf.TLSCertFile != "" {
+			cfg.TLSCertFile = CFG.TLSConf.TLSCertFile
+		} else {
+			cfg.TLSCertFile = CFG.CAFile
+		}
+
+		if CFG.TLSConf.TLSKeyFile != "" {
+			cfg.TLSKeyFile = CFG.TLSConf.TLSKeyFile
+		} else {
+			cfg.TLSKeyFile = CFG.KeyFile
+		}
+
+		if CFG.TLSConf.MutualTLSCAFile != "" {
+			cfg.MutualTLSCAFile = CFG.TLSConf.MutualTLSCAFile
+		}
+
 	}
 
 	dbg := os.Getenv("COP_DEBUG")

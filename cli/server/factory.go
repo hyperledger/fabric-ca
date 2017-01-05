@@ -44,7 +44,6 @@ func InitUserRegistry(cfg *Config) error {
 		}
 	} else {
 		// The database is being used for the user registry
-		var db *sqlx.DB
 		var exists bool
 
 		switch cfg.DBdriver {
@@ -55,13 +54,13 @@ func InitUserRegistry(cfg *Config) error {
 			}
 
 		case "postgres":
-			db, exists, err = dbutil.NewUserRegistryPostgres(cfg.DataSource)
+			db, exists, err = dbutil.NewUserRegistryPostgres(cfg.DataSource, &cfg.TLSConf.DBClient)
 			if err != nil {
 				return err
 			}
 
 		case "mysql":
-			db, exists, err = dbutil.NewUserRegistryMySQL(cfg.DataSource)
+			db, exists, err = dbutil.NewUserRegistryMySQL(cfg.DataSource, &cfg.TLSConf.DBClient)
 			if err != nil {
 				return err
 			}
@@ -75,7 +74,7 @@ func InitUserRegistry(cfg *Config) error {
 
 		userRegistry = dbAccessor
 
-		// IF the DB doesn't exist, create it
+		// If the DB doesn't exist, bootstrap the DB
 		if !exists {
 			err := bootstrapDB()
 			if err != nil {

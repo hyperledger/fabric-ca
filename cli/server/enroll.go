@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/cli"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -98,9 +97,6 @@ func (e *Enroll) Enroll(id string, token []byte, csrPEM []byte) ([]byte, cop.Err
 
 func (e *Enroll) signKey(csrPEM []byte) ([]byte, cop.Error) {
 	log.Debugf("signKey")
-	var cfg cli.Config
-	cfg.CAFile = e.cfg.CACert
-	cfg.CAKeyFile = e.cfg.CAKey
 	req := signer.SignRequest{
 		// Hosts:   signer.SplitHosts(c.Hostname),
 		Request: string(csrPEM),

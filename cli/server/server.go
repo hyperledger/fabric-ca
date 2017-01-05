@@ -17,7 +17,9 @@ limitations under the License.
 package server
 
 import (
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -41,13 +43,13 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/config"
+	"github.com/cloudflare/cfssl/helpers"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/ocsp"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
 	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -171,18 +173,11 @@ func startMain(args []string, c cli.Config) error {
 	// Initialize the user registry
 	err = InitUserRegistry(cfg)
 	if err != nil {
+		log.Error("Failed to initialize user registry")
 		return err
 	}
 
-	db, err = dbutil.GetDB(cfg.DBdriver, cfg.DataSource)
-	if err != nil {
-		log.Errorf("Failed to find database")
-	}
-
-	var cfsslCfg cli.Config
-	cfsslCfg.CAFile = cfg.CACert
-	cfsslCfg.CAKeyFile = cfg.CAKey
-	mySigner, err := SignerFromConfigAndDB(cfsslCfg, db)
+	mySigner, err := SignerFromConfigAndDB(c, db)
 	if err != nil {
 		log.Errorf("SignerFromConfigAndDB error: %s", err)
 		return cop.WrapError(err, cop.CFSSL, "failed in SignerFromConfigAndDB")
@@ -218,51 +213,32 @@ func serverMain(args []string, c cli.Config) error {
 
 	addr := net.JoinHostPort(conf.Address, strconv.Itoa(conf.Port))
 
-	if conf.TLSCertFile == "" || conf.TLSKeyFile == "" {
-		log.Info("Now listening on ", addr)
-		return http.ListenAndServe(addr, nil)
+	if !CFG.TLSDisable {
+		log.Debug("TLS Enabled")
+
+		if conf.MutualTLSCAFile != "" {
+			clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
+			if err != nil {
+				return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
+			}
+
+			server := http.Server{
+				Addr: addr,
+				TLSConfig: &tls.Config{
+					ClientAuth: tls.RequireAndVerifyClientCert,
+					ClientCAs:  clientPool,
+				},
+			}
+
+			log.Info("Now listening with mutual TLS on https://", addr)
+			return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
+		}
+		log.Info("Now listening on https://", addr)
+		return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
 	}
 
-	// TODO: Temporarly commenting out as TLS is currently not supported. Will be uncommented when TLS support has been implemented
-
-	// if conf.MutualTLSCAFile != "" {
-	// 	clientPool, err := helpers.LoadPEMCertPool(conf.MutualTLSCAFile)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to load mutual TLS CA file: %s", err)
-	// 	}
-	//
-	// 	server := http.Server{
-	// 		Addr: addr,
-	// 		TLSConfig: &tls.Config{
-	// 			ClientAuth: tls.RequireAndVerifyClientCert,
-	// 			ClientCAs:  clientPool,
-	// 		},
-	// 	}
-	//
-	// 	if conf.MutualTLSCNRegex != "" {
-	// 		log.Debugf(`Requiring CN matches regex "%s" for client connections`, conf.MutualTLSCNRegex)
-	// 		re, err := regexp.Compile(conf.MutualTLSCNRegex)
-	// 		if err != nil {
-	// 			return fmt.Errorf("malformed CN regex: %s", err)
-	// 		}
-	// 		server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 			if r != nil && r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-	// 				if re.MatchString(r.TLS.PeerCertificates[0].Subject.CommonName) {
-	// 					http.DefaultServeMux.ServeHTTP(w, r)
-	// 					return
-	// 				}
-	// 				log.Warningf(`Rejected client cert CN "%s" does not match regex %s`,
-	// 					r.TLS.PeerCertificates[0].Subject.CommonName, conf.MutualTLSCNRegex)
-	// 			}
-	// 			http.Error(w, "Invalid CN", http.StatusForbidden)
-	// 		})
-	// 	}
-	// 	log.Info("Now listening with mutual TLS on https://", addr)
-	// 	return server.ListenAndServeTLS(conf.TLSCertFile, conf.TLSKeyFile)
-	// }
-	// log.Info("Now listening on https://", addr)
-	// return http.ListenAndServeTLS(addr, conf.TLSCertFile, conf.TLSKeyFile, nil)
-	return nil
+	log.Info("Now listening on ", addr)
+	return http.ListenAndServe(addr, nil)
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
@@ -421,34 +397,14 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 		}
 	}
 
-	// TODO: Temporarly commenting out as TLS is currently not supported. Will be uncommented when TLS support has been implemented
-
 	// Make sure the policy reflects the new remote
-	// if c.Remote != "" {
-	// 	err := policy.OverrideRemotes(c.Remote)
-	// 	if err != nil {
-	// 		log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
-	// 		return nil, err
-	// 	}
-	// }
-	//
-	// if c.MutualTLSCertFile != "" && c.MutualTLSKeyFile != "" {
-	// 	err := policy.SetClientCertKeyPairFromFile(c.MutualTLSCertFile, c.MutualTLSKeyFile)
-	// 	if err != nil {
-	// 		log.Infof("Invalid mutual-tls-cert: %s or mutual-tls-key: %s, defaulting to no client auth", c.MutualTLSCertFile, c.MutualTLSKeyFile)
-	// 		return nil, err
-	// 	}
-	// 	log.Infof("Using client auth with mutual-tls-cert: %s and mutual-tls-key: %s", c.MutualTLSCertFile, c.MutualTLSKeyFile)
-	// }
-	//
-	// if c.TLSRemoteCAs != "" {
-	// 	err := policy.SetRemoteCAsFromFile(c.TLSRemoteCAs)
-	// 	if err != nil {
-	// 		log.Infof("Invalid tls-remote-ca: %s, defaulting to system trust store", c.TLSRemoteCAs)
-	// 		return nil, err
-	// 	}
-	// 	log.Infof("Using trusted CA from tls-remote-ca: %s", c.TLSRemoteCAs)
-	// }
+	if c.Remote != "" {
+		err := policy.OverrideRemotes(c.Remote)
+		if err != nil {
+			log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
+			return nil, err
+		}
+	}
 
 	s, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
 	if err != nil {
@@ -465,12 +421,12 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 
 // Start will start server
 // THIS IS ONLY USED FOR TEST CASE EXECUTION
-func Start(dir string) {
+func Start(dir string, cfg string) {
 	log.Debug("Server starting")
 	osArgs := os.Args
 	cert := filepath.Join(dir, "ec.pem")
 	key := filepath.Join(dir, "ec-key.pem")
-	config := filepath.Join(dir, "testconfig.json")
+	config := filepath.Join(dir, cfg)
 	os.Args = []string{"server", "start", "-ca", cert, "-ca-key", key, "-config", config}
 	Command()
 	os.Args = osArgs

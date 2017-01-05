@@ -1,6 +1,7 @@
 # COP
 
-COP is the name for Membership Services in v1.0 of Hyperledger Fabric.  COP is not an acronym.  The name "COP" was selected because of the following.
+COP is the name for Membership Services in v1.0 of Hyperledger Fabric.
+COP is not an acronym.  The name "COP" was selected because of the following.
 
   * COP provides police-like security functionality for Hyperledger Fabric.  It is the "fabric COP";
   * COP is shorter and easier to say and write than “Membership Services v1.0” :-)
@@ -55,24 +56,30 @@ you may issue any cfssl command with the `cop cfssl` command prefix.
 
 ### COP server configuration options
 
-**max_enrollments (Default: 1)** - Allows you to specify how many times a user can use its one time password to enroll itself. Setting it to 0 will allow for unlimited enrollments.
+**tls_disable (Default: false)** - Setting to true will disable TLS
+
+**max_enrollments (Default: 0)** - Allows you to specify how many times a user
+can use its one time password to enroll itself. Default is 0, allows for
+unlimited enrollments.
 
 ### Initialize the COP server  
 
-Executing the following "COP" command will generate a private key and self-signed x509 certificate to start the
-COP server in the `Start the COP server` section. These two PEM files will be generated and stored in the directory
-`$COP_HOME/.cop/`:  
-server-cert.pem and server-key.pem.
-They can be used as input parameters to `-ca` and `-ca-key` in the command to start the COP server.
+Executing the following "COP" command will generate a private key and self-signed
+x509 certificate to start the COP server in the `Start the COP server` section.
+These two PEM files will be generated and stored in the directory
+`$COP_HOME/.cop/`: server-cert.pem and server-key.pem.
+They can be used as input parameters to `-ca` and `-ca-key` in the command to
+start the COP server.
 
 ```
 # cd $COP/bin
 # ./cop server init ../testdata/csr_dsa.json
 ```
-The `../testdata/csr_dsa.json` file can be customized to generate x509 certificates and keys that support both
-RSA and Elliptic Curve (ECDSA).
+The `../testdata/csr_dsa.json` file can be customized to generate x509
+certificates and keys that support both RSA and Elliptic Curve (ECDSA).
 
-The following setting is an example of the implementation of Elliptic Curve Digital Signature Algorithm (ECDSA) with curve:
+The following setting is an example of the implementation of Elliptic Curve
+Digital Signature Algorithm (ECDSA) with curve:
 secp384r1 and Signature Algorithm: ecdsa-with-SHA384:
 
 "algo": "ecdsa"  
@@ -95,15 +102,132 @@ Likewise, these are the secure choices for RSA modulus:
 | 2048      | 2048 | sha256WithRSAEncryption |
 | 4096      | 4096 | sha512WithRSAEncryption |
 
+### TLS/SSL configuration - Client & COP Server
+
+The steps below should be followed to set up a secure connection between client
+and server.
+
+1. The COP server should be started with the following options set in the COP
+configuration file. The **tls_cert** and **tls_key** are used to set up the TLS
+protocol. The **mutual_tls_ca** requires that client certificates be signed by
+the specified CA and client is required to send its certificate. The configuration
+file for the server should contain the following:
+```
+...
+"tls_cert":"tls_certificate.pem",
+"tls_key":"tls_key.pem",
+"mutual_tls_ca":"CA_root_cert.pem",
+...
+```
+
+2. On client side, a configuration file (cop_client.json) should be created as
+een below and placed in the client home directory. The **ca_certfiles** option is
+the set of root certificate authorities that clients uses when verifying server
+certificates. The **client** option contains one or more certificate chains to
+present to the other side of the connection.
+```
+{
+"ca_certfiles":["CA_root_cert.pem"],
+"client":[{"keyfile":"client-key.pem","certfile":"client.pem"}]
+}
+```
+
+Once all the certificates and key have been properly configured on both client
+and server a secure connection should be established.
+
+### TLS configuration - Database & Server
+
+#### Postgres
+
+When specifying the connection string for the Postgres database in the server
+configuration file, we must indicate that we wish to use a secure connection.
+The connection string should be set as indicated below.
+
+```
+"driver":"postgres",
+"data_source":"host=localhost port=5432 user=Username password=Password dbname=cop sslmode=verify-full",
+```
+**sslmode** - Enable SSL.
+  - **verify-full** - Always SSL (verify that the certification presented by the
+    Postgres server was signed by a trusted CA and the Postgres server host name
+     matches the one in the certificate).
+
+We also need to set the TLS configuration in the COP server config file. If the
+database server requires client authentication that a client cert and key file
+needs to be provided. The following should be present in the COP server config:
+
+```
+"tls":{
+  ...
+  "db_client":{
+    "ca_certfiles":["CA.pem"],
+    "client":[{"keyfile":"client-key.pem","certfile":"client-cert.pem"}]
+  }
+},
+```
+
+**ca_certfiles** - The location of the root certificate file.
+
+**certfile** - Client certificate file.
+
+**keyfile** - Client key file.
+
+#### MySQL
+
+When specifying the connection string for the MySQL database in the server
+configuration file, we must indicate that we wish to use a secure connection.
+The connection string should be set with the **tls=custom** parameter as
+indicated below.
+
+```
+...
+"driver":"mysql",
+"data_source":"root:rootpw@tcp(localhost:3306)/cop?parseTime=true&tls=custom",
+...
+```
+
+In the configuration file for the COP server, we need to define the elements
+below to establish a secure connection between COP server and MySQL server. If
+the database server requires client authentication that a client cert and key
+file needs to be provided.
+
+```
+"tls":{
+  ...
+  "db_client":{
+    "ca_certfiles":["CA.pem"],
+    "client":[{"keyfile":"client-key.pem","certfile":"client-cert.pem"}]
+  }
+},
+```
+
+**ca_certfiles** - The location of the root certificate file.
+
+**certfile** - Client certificate file.
+
+**keyfile** - Client key file.
+
 
 ### Start the COP server
 
-Execute the following commands to start the COP server.  If you would like to specify debug-level logging,
-set the `COP_DEBUG` environment variable to `true`.  And if you would like to run this in the background, append the "&" character to the command.
+Execute the following commands to start the COP server.  If you would like to
+specify debug-level logging, set the `COP_DEBUG` environment variable to `true`.
+And if you would like to run this in the background, append the "&" character to
+the command.
+
+In cop.json, specify the following properties. They specify the file to where
+the CA certificate and CA key are stored.
+
+```
+"ca_cert":"cop-cert.pem",
+"ca_key":"cop-key.pem",
+```
+
+Run the following command to start COP server:
 
 ```
 # cd $COP/bin
-# ./cop server start -ca ../testdata/cop-cert.pem -ca-key ../testdata/cop-key.pem -config ../testdata/cop.json
+# ./cop server start -config ../testdata/cop.json
 ```
 
 It is now listening on localhost port 8888.
@@ -141,10 +265,13 @@ key is used to authenticate to the COP server.
 
 Note that this updates the enrollment material in the `$COP_HOME/client.json` file.
 
-
 ### Register a new user
 
-The user performing the register request must be currently enrolled, and also this registrar must have the proper authority to register the type of user being registered. The registrar must have been enrolled with attribute "hf.Registrar.DelegateRoles". The DelegateRoles attribute specifies the types this registrar is allowed to register.
+The user performing the register request must be currently enrolled, and also
+this registrar must have the proper authority to register the type of user being
+registered. The registrar must have been enrolled with attribute
+"hf.Registrar.DelegateRoles". The DelegateRoles attribute specifies the types
+this registrar is allowed to register.
 
 For example, the attributes for a registrar might look like this:
 
@@ -153,7 +280,8 @@ For example, the attributes for a registrar might look like this:
 
 ```
 
-The registrar should then create a JSON file as defined below for the user being registered.
+The registrar should then create a JSON file as defined below for the user being
+registered.
 
 registerrequest.json:
 
@@ -182,7 +310,8 @@ In particular, the COP server may connect to an LDAP server to do the following:
    * authenticate a user prior to enrollment, and   
    * retrieve a user's attribute values which is used for authorization.
 
-In order to configure the COP server to connect to an LDAP server, add a section of the following form to your COP server's configuration file:
+In order to configure the COP server to connect to an LDAP server, add a section
+of the following form to your COP server's configuration file:
 
 ```
 {
@@ -199,9 +328,13 @@ where:
    * `host` is the hostname or IP address of the LDAP server;  
    * `port` is the optional port number, where default 389 for *ldap* and 636 for *ldaps*;  
    * `base` is the optional root of the LDAP tree to use for searches;  
-   * `filter` is a filter to use when searching to convert a login user name to a distinquished name.  For example, a value of `(uid=%s)` searches for LDAP entries with the value of a `uid` attribute whose value is the login user name.  Similarly, `(email=%s)` may be used to login with an email address.
+   * `filter` is a filter to use when searching to convert a login user name to
+   a distinquished name.  For example, a value of `(uid=%s)` searches for LDAP
+   entries with the value of a `uid` attribute whose value is the login user name.
+   Similarly, `(email=%s)` may be used to login with an email address.
 
-The following is a sample configuration section for the default settings for the OpenLDAP server whose docker image is at `https://github.com/osixia/docker-openldap`.
+The following is a sample configuration section for the default settings for the
+ OpenLDAP server whose docker image is at `https://github.com/osixia/docker-openldap`.
 
 ```
  "ldap": {
@@ -219,16 +352,20 @@ See `COP/testdata/testconfig-ldap.json` for the complete configuration file with
 
 ##### When LDAP is configured, attribute retrieval works as follows:
 
-   * A client SDK sends a request for a batch of tcerts *with one or more attributes*to the COP server.  
+   * A client SDK sends a request for a batch of tcerts **with one or more attributes** to the COP server.  
    * The COP server receives the tcert request and does as follows:
-       * extracts the enrollment ID from the token in the authorization header (after validating the token);
-       * does an LDAP search/query to the LDAP server, requesting all of the attribute names received in the tcert request;
+       * extracts the enrollment ID from the token in the authorization header
+       (after validating the token);
+       * does an LDAP search/query to the LDAP server, requesting all of the
+       attribute names received in the tcert request;
        * the attribute values are placed in the tcert as normal
 
 
 ### Setting up a cluster
 
-Set up a proxy server. Haproxy is used in this example. Below is a basic configuration file that can be used to get haproxy up and running. Change hostname and port to reflect the settings of your COP servers.
+Set up a proxy server. Haproxy is used in this example. Below is a basic
+configuration file that can be used to get haproxy up and running. Change
+hostname and port to reflect the settings of your COP servers.
 
 haproxy.conf
 
@@ -254,43 +391,141 @@ listen http-in
 
 #### Postgres
 
-When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present for a Postgres database:
+When starting up the COP servers specify the database that you would like to
+connect to. In your COP configuration file, the following should be present for
+a Postgres database:
 
 cop.json
 ```
 ...
 "driver":"postgres",
-"data_source":"host=localhost port=5432 user=Username password=Password dbname=cop sslmode=disable",
+"data_source":"host=localhost port=5432 user=Username password=Password dbname=cop",
 ...
 ```
 
-Change "host" and "dbname" to reflect where your database is located and the database you would like to connect to. Default port is used if none is specified. Enter username and password for a user that has permission to connect to the database.
+Change "host" and "dbname" to reflect where your database is located and the
+database you would like to connect to. Default port is used if none is specified.
+Enter username and password for a user that has permission to connect to the
+database.
 
-Once your proxy, COP servers, and Postgres server are all running you can have your client direct traffic to the proxy server which will load balance and direct traffic to the appropriate COP server which will read/write from the Postgres database.  
+Once your proxy, COP servers, and Postgres server are all running you can have
+your client direct traffic to the proxy server which will load balance and direct
+traffic to the appropriate COP server which will read/write from the Postgres
+database.  
 
 #### MySQL
 
-When starting up the COP servers specify the database that you would like to connect to. In your COP configuration file, the following should be present for a Postgres database:
+When starting up the COP servers specify the database that you would like to
+connect to. In your COP configuration file, the following should be present for
+a Postgres database:
 
 cop.json
 ```
 ...
 "driver":"mysql",
-"data_source":"root:root@tcp(localhost:3306)/cop?parseTime=true",
+"data_source":"root:rootpw@tcp(localhost:3306)/cop?parseTime=true&tls=custom",
 ...
 ```
 
-Change the host to reflect where your database is located. The database is specified after the '/', specify the database you would like to connect to. Default port is used if none is specified.
+Change the host to reflect where your database is located. Change "root" and
+"rootpw" to the username and password you would like to use to connec to the
+database. The database is specified after the '/', specify the database you
+would like to connect to. Default port is used if none is specified.
 
-Once your proxy, COP servers, and database servers are all running you can have your clients direct traffic to the proxy server which will load balance and direct traffic to the appropriate COP server which will read/write from the database.  
+Once your proxy, COP servers, and database servers are all running you can have
+your clients direct traffic to the proxy server which will load balance and
+direct traffic to the appropriate COP server which will read/write from the
+database.  
 
 ### Run the cop tests
 
 To run the COP test, do the following.
 
-WARNING: You must first stop the COP server which you started above; otherwise, it will fail with a port binding error.
+WARNING: You must first stop the COP server which you started above; otherwise,
+it will fail with a port binding error.
 
 ```
 # cd $COP
 # make unit-tests
 ```
+
+## Appendix
+
+### Postgres SSL Configuration
+
+**Basic instructions for configuring SSL on Postgres server:**
+1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
+2. Place Certificate and Key files Postgress data directory.
+
+Instructions for generating self-signed certificates for:
+https://www.postgresql.org/docs/9.1/static/ssl-tcp.html
+
+Note: Self-signed certificates are for testing purposes and should not be used
+in a production environment
+
+**Postgres Server - Require Client Certificates**
+1. Place certificates of the certificate authorities (CAs) you trust in the file
+ root.crt in the Postgres data directory
+2. In postgresql.conf, set "ssl_ca_file" to point to the root cert of client (CA cert)
+3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg_hba.conf.
+
+For more details on configuring SSL on the Postgres server, please refer to the
+following Postgres documentation: https://www.postgresql.org/docs/9.4/static/libpq-ssl.html
+
+
+### MySQL SSL Configuration
+**Basic instructions for configuring SSL on MySQL server:**
+1. Open or create my.cnf file for the server. Add or un-comment the lines below
+in [mysqld] section. These should point to the key and certificates for the
+server, and the root CA cert.
+
+Instruction on creating server and client side certs:
+http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html
+
+[mysqld]
+ssl-ca=ca-cert.pem
+ssl-cert=server-cert.pem
+ssl-key=server-key.pem
+
+Can run the following query to confirm SSL has been enabled.
+
+mysql> SHOW GLOBAL VARIABLES LIKE 'have_%ssl';
+
+Should see:
+```
++---------------+-------+
+| Variable_name | Value |
++---------------+-------+
+| have_openssl  | YES   |
+| have_ssl      | YES   |
++---------------+-------+
+```
+
+2. After the server-side SSL configuration is finished, the next step is to
+create a user who has a privilege to access the MySQL server over SSL. For that,
+log in to the MySQL server, and type:
+
+mysql> GRANT ALL PRIVILEGES ON *.* TO 'ssluser'@'%' IDENTIFIED BY 'password' REQUIRE SSL;
+mysql> FLUSH PRIVILEGES;
+
+If you want to give a specific ip address from which the user will access the
+server change the '%' to the specific ip address.
+
+**MySQL Server - Require Client Certificates**
+Options for secure connections are similar to those used on the server side.
+
+- ssl-ca identifies the Certificate Authority (CA) certificate. This option,
+if used, must specify the same certificate used by the server.
+- ssl-cert identifies the client public key certificate.
+- ssl-key identifies the client private key.
+
+Suppose that you want to connect using an account that has no special encryption
+requirements or was created using a GRANT statement that includes the REQUIRE SSL
+option. As a recommended set of secure-connection options, start the MySQL
+server with at least --ssl-cert and --ssl-key, and invoke the COP server with
+**ca_certfiles** option set in the COP server file.
+
+To require that a client certificate also be specified, create the account using
+the REQUIRE X509 option. Then the client must also specify the proper client key
+and certificate files or the MySQL server will reject the connection. CA cert,
+client cert, and client key are all required for the COP server.

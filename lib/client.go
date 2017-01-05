@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -36,12 +37,14 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/lib/tls"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
 const (
 	// defaultServerPort is the default CFSSL listening port
 	defaultServerPort = "8888"
+	clientConfigFile  = "cop_client.json"
 )
 
 // NewClient is the constructor for the COP client API
@@ -319,9 +322,30 @@ func (c *Client) NewPost(endpoint string, reqBody []byte) (*http.Request, error)
 // SendPost sends a request to the LDAP server and returns a response
 func (c *Client) SendPost(req *http.Request) (respBody []byte, err error) {
 	log.Debugf("Sending request\n%s", util.HTTPRequestToString(req))
-	req.Header.Set("content-type", "application/json")
-	httpClient := &http.Client{}
-	// TODO: Add TLS
+
+	configFile, err := c.getClientConfig(c.HomeDir)
+	if err != nil {
+		log.Errorf("Failed to load client configuration file [error: %s]", err)
+	}
+
+	var cfg = new(tls.ClientTLSConfig)
+
+	err = json.Unmarshal(configFile, cfg)
+	if err != nil {
+		log.Errorf("Error: %s", err)
+	}
+
+	tlsConfig, err := tls.GetClientTLSConfig(cfg)
+	if err != nil {
+		log.Errorf("Failed to get client TLS configuration [error: %s]", err)
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
+	httpClient := &http.Client{Transport: tr}
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		msg := fmt.Sprintf("POST failed: %v", err)
@@ -362,6 +386,16 @@ func (c *Client) getURL(endpoint string) (string, cop.Error) {
 	}
 	rtn := fmt.Sprintf("%s/api/v1/cfssl/%s", nurl, endpoint)
 	return rtn, nil
+}
+
+func (c *Client) getClientConfig(path string) ([]byte, error) {
+	log.Debug("Retrieving client config")
+	copClient := filepath.Join(path, clientConfigFile)
+	fileBytes, err := ioutil.ReadFile(copClient)
+	if err != nil {
+		return nil, err
+	}
+	return fileBytes, nil
 }
 
 func normalizeURL(addr string) (*url.URL, error) {

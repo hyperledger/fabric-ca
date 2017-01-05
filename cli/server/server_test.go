@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -33,47 +34,47 @@ import (
 )
 
 const (
-	homeDir    = "/tmp/home"
-	dataSource = "/tmp/home/server.db"
-	CERT       = "../../testdata/ec.pem"
-	KEY        = "../../testdata/ec-key.pem"
-	CONFIG     = "../../testdata/testconfig.json"
-	DBCONFIG   = "../../testdata/cop-db.json"
-	CSR        = "../../testdata/csr.csr"
+	CFGFile         = "testconfig2.json"
+	ClientTLSConfig = "cop_client.json"
 )
 
 var serverStarted bool
 var serverExitCode = 0
-var cfg *Config
+var dir string
 
 func createServer() *Server {
 	s := new(Server)
 	return s
 }
 
-func startServer() int {
-	os.RemoveAll(homeDir)
+func startServer() {
+	var err error
+
+	dir, err = ioutil.TempDir("", "home")
+	if err != nil {
+		fmt.Printf("Failed to create temp directory [error: %s]", err)
+		return
+	}
+
 	if !serverStarted {
 		serverStarted = true
 		fmt.Println("starting COP server ...")
 		os.Setenv("COP_DEBUG", "true")
-		os.Setenv("COP_HOME", homeDir)
+		os.Setenv("COP_HOME", dir)
 		go runServer()
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		fmt.Println("COP server started")
 	} else {
 		fmt.Println("COP server already started")
 	}
-	return serverExitCode
 }
 
 func runServer() {
-	Start("../../testdata")
-	cfg = CFG
+	Start("../../testdata", CFGFile)
 }
 
 func TestPostgresFail(t *testing.T) {
-	_, err := dbutil.GetDB("postgres", "dbname=cop sslmode=disable")
+	_, _, err := dbutil.NewUserRegistryPostgres("dbname=cop sslmode=disable", nil)
 	if err == nil {
 		t.Error("No postgres server running, this should have failed")
 	}
@@ -81,8 +82,10 @@ func TestPostgresFail(t *testing.T) {
 
 func TestRegisterUser(t *testing.T) {
 	startServer()
+	clientConfig := filepath.Join(dir, ClientTLSConfig)
+	os.Link("../../testdata/cop_client2.json", clientConfig)
 
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	enrollReq := &idp.EnrollmentRequest{
@@ -92,7 +95,7 @@ func TestRegisterUser(t *testing.T) {
 
 	ID, err := c.Enroll(enrollReq)
 	if err != nil {
-		t.Error("enroll of user 'admin' with password 'adminpw' failed")
+		t.Error("Enroll of user 'admin' with password 'adminpw' failed")
 		return
 	}
 
@@ -109,7 +112,8 @@ func TestRegisterUser(t *testing.T) {
 	}
 
 	id, _ := factory.NewIdentity()
-	identity, err := ioutil.ReadFile("/tmp/home/client.json")
+	path := filepath.Join(dir, "client.json")
+	identity, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +128,7 @@ func TestRegisterUser(t *testing.T) {
 }
 
 func TestMisc(t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, err := lib.NewClient(copServer)
 	if err != nil {
 		t.Errorf("TestMisc.NewClient failed: %s", err)
@@ -145,7 +149,7 @@ func TestMisc(t *testing.T) {
 }
 
 func TestEnrollUser(t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -177,7 +181,7 @@ func TestEnrollUser(t *testing.T) {
 }
 
 func TestRevoke(t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -221,7 +225,7 @@ func TestRevoke(t *testing.T) {
 func TestMaxEnrollment(t *testing.T) {
 	CFG.UsrReg.MaxEnrollments = 2
 
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	regReq := &idp.RegistrationRequest{
@@ -231,7 +235,8 @@ func TestMaxEnrollment(t *testing.T) {
 	}
 
 	id, _ := factory.NewIdentity()
-	identity, err := ioutil.ReadFile("/tmp/home/client.json")
+	path := filepath.Join(dir, "client.json")
+	identity, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Error(err)
 	}
@@ -271,25 +276,6 @@ func TestMaxEnrollment(t *testing.T) {
 
 }
 
-func TestCreateHome(t *testing.T) {
-	s := createServer()
-	t.Log("Test Creating Home Directory")
-	os.Unsetenv("COP_HOME")
-	os.Setenv("HOME", "/tmp/test")
-
-	_, err := s.CreateHome()
-	if err != nil {
-		t.Errorf("Failed to create home directory, error: %s", err)
-	}
-
-	if _, err := os.Stat(homeDir); err != nil {
-		if os.IsNotExist(err) {
-			t.Error("Failed to create home directory")
-		}
-	}
-
-}
-
 func TestEnroll(t *testing.T) {
 	e := NewEnrollUser()
 
@@ -299,7 +285,7 @@ func TestEnroll(t *testing.T) {
 }
 
 func testUnregisteredUser(e *Enroll, t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -315,7 +301,7 @@ func testUnregisteredUser(e *Enroll, t *testing.T) {
 }
 
 func testIncorrectToken(e *Enroll, t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -331,7 +317,7 @@ func testIncorrectToken(e *Enroll, t *testing.T) {
 }
 
 func testEnrollingUser(e *Enroll, t *testing.T) {
-	copServer := `{"serverURL":"http://localhost:8888"}`
+	copServer := `{"serverURL":"https://localhost:8888"}`
 	c, _ := lib.NewClient(copServer)
 
 	req := &idp.EnrollmentRequest{
@@ -403,9 +389,32 @@ func TestUserRegistry(t *testing.T) {
 
 }
 
+func TestCreateHome(t *testing.T) {
+	s := createServer()
+	t.Log("Test Creating Home Directory")
+	os.Unsetenv("COP_HOME")
+	tempDir, err := ioutil.TempDir("", "test")
+	if err != nil {
+		t.Errorf("Failed to create temp directory [error: %s]", err)
+	}
+	os.Setenv("HOME", tempDir)
+
+	_, err = s.CreateHome()
+	if err != nil {
+		t.Errorf("Failed to create home directory, error: %s", err)
+	}
+
+	if _, err = os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			t.Error("Failed to create home directory")
+		}
+	}
+
+}
+
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.RemoveAll(homeDir)
+	os.RemoveAll(dir)
 }
 
 func testStatic(id *lib.Identity, t *testing.T) {

@@ -18,40 +18,18 @@ package dbutil
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/go-sql-driver/mysql"
 	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/lib/tls"
 	"github.com/jmoiron/sqlx"
 )
-
-// GetDB returns a pointer to the database
-func GetDB(dbdriver string, datasource string) (*sqlx.DB, error) {
-	log.Debugf("Check if database exists: %s", datasource)
-	var err error
-	var db *sqlx.DB
-
-	switch dbdriver {
-	case "sqlite3":
-		db, _, err = NewUserRegistrySQLLite3(datasource)
-	case "postgres":
-		db, _, err = NewUserRegistryPostgres(datasource)
-	case "mysql":
-		db, _, err = NewUserRegistryMySQL(datasource)
-	default:
-		log.Error("Unsupported database type")
-		return nil, cop.NewError(cop.DatabaseError, "Unsupported database type")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
 
 // NewUserRegistrySQLLite3 returns a pointer to a sqlite database
 func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, bool, error) {
@@ -101,7 +79,7 @@ func createSQLiteDBTables(datasource string) error {
 	}
 	log.Debug("Created users table")
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(48))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		return err
 	}
 	log.Debug("Created groups table")
@@ -115,7 +93,7 @@ func createSQLiteDBTables(datasource string) error {
 }
 
 // NewUserRegistryPostgres opens a connecton to a postgres database
-func NewUserRegistryPostgres(datasource string) (*sqlx.DB, bool, error) {
+func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, bool, error) {
 	log.Debugf("Using postgres database, connecting to database...")
 
 	var exists bool
@@ -124,11 +102,28 @@ func NewUserRegistryPostgres(datasource string) (*sqlx.DB, bool, error) {
 
 	connStr := getConnStr(datasource)
 
+	if clientTLSConfig != nil {
+		if len(clientTLSConfig.CACertFiles) > 0 {
+			root := clientTLSConfig.CACertFiles[0]
+			connStr = fmt.Sprintf("%s sslrootcert=%s", connStr, root)
+		}
+
+		cert := clientTLSConfig.Client.CertFile
+		key := clientTLSConfig.Client.KeyFile
+		connStr = fmt.Sprintf("%s sslcert=%s sslkey=%s", connStr, cert, key)
+	}
+
+	log.Debug("Connection String: ", connStr)
+
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
-		msg := "Failed to connect to database"
-		log.Error(msg)
-		return nil, false, cop.WrapError(err, cop.DatabaseError, msg)
+		return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to open database")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Errorf("Failed to connect to Postgres database [error: %s]", err)
+		return nil, false, err
 	}
 
 	// Check if database exists
@@ -143,7 +138,8 @@ func NewUserRegistryPostgres(datasource string) (*sqlx.DB, bool, error) {
 	if found == 0 {
 		log.Debugf("Database (%s) does not exist", dbName)
 		exists = false
-		err = createPostgresDBTables(datasource, dbName, db)
+		connStr = connStr + " dbname=" + dbName
+		err = createPostgresDBTables(connStr, dbName, db)
 		if err != nil {
 			return nil, false, err
 		}
@@ -163,7 +159,6 @@ func NewUserRegistryPostgres(datasource string) (*sqlx.DB, bool, error) {
 // createPostgresDB creates postgres database
 func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error {
 	log.Debugf("Creating Postgres Database (%s)...", dbName)
-
 	query := "CREATE DATABASE " + dbName
 	_, err := db.Exec(query)
 	if err != nil {
@@ -180,7 +175,7 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(48))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating groups table [error: %s] ", err)
 		return err
 	}
@@ -192,22 +187,37 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 }
 
 // NewUserRegistryMySQL opens a connecton to a postgres database
-func NewUserRegistryMySQL(datasource string) (*sqlx.DB, bool, error) {
+func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, bool, error) {
 	log.Debugf("Using MySQL database, connecting to database...")
 
 	var exists bool
 	dbName := getDBName(datasource)
-	connStr := strings.Split(datasource, "/")[0] + "/"
+	log.Debug("Database Name: ", dbName)
 
+	re := regexp.MustCompile(`\/([a-zA-z]+)`)
+	connStr := re.ReplaceAllString(datasource, "/")
+
+	if clientTLSConfig != nil {
+		tlsConfig, err := tls.GetClientTLSConfig(clientTLSConfig)
+		if err != nil {
+			log.Errorf("Failed to create TLS configuration [error: %s]", err)
+		}
+
+		mysql.RegisterTLSConfig("custom", tlsConfig)
+	}
+
+	log.Debug("Connection String: ", connStr)
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
-		msg := "Failed to open to database"
-		log.Error(msg+" error: ", err)
-		return nil, false, cop.WrapError(err, cop.DatabaseError, msg)
+		return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to open database")
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Errorf("Failed to connect to MySQL database [error: %s]", err)
 	}
 
 	// Check if database exists
-	// r, err2 := db.Exec("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", dbName)
 	var name string
 	err = db.QueryRow("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", dbName).Scan(&name)
 	if err != nil {
@@ -215,8 +225,6 @@ func NewUserRegistryMySQL(datasource string) (*sqlx.DB, bool, error) {
 			log.Debugf("Database (%s) does not exist", dbName)
 			exists = false
 		} else {
-			msg := "Failed to query 'INFORMATION_SCHEMA.SCHEMATA' table"
-			log.Error(msg+" error: ", err)
 			return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to query 'INFORMATION_SCHEMA.SCHEMATA table")
 		}
 	}
@@ -253,7 +261,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(48))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating groups table [error: %s] ", err)
 		return err
 	}
