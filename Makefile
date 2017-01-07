@@ -43,10 +43,13 @@ K := $(foreach exec,$(EXECUTABLES),\
 ARCH=$(shell uname -m)
 BASEIMAGE_RELEASE = 0.2.2
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
-pkgmap.cop := $(PKGNAME)
+SAMPLECONFIG = $(shell git ls-files images/cop/config)
 
 DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-runtime
+
+image-path-map.fabric-cop         := cop
+image-path-map.fabric-cop-runtime := runtime
 
 include docker-env.mk
 
@@ -78,15 +81,15 @@ cop:
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
 # directory so that subsequent builds are faster
-build/docker/bin/$(PROJECT_NAME):
+build/docker/bin/cop:
 	@echo "Building $@"
-	@mkdir -p build/docker/bin build/docker/$(PROJECT_NAME)/pkg
+	@mkdir -p $(@D) build/docker/$(@F)/pkg
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
-		-v $(abspath build/docker/$(PROJECT_NAME)/pkg):/opt/gopath/pkg \
+		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(pkgmap.cop)/cli
-	mv build/docker/bin/cli build/docker/bin/$(PROJECT_NAME)
+		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/cli
+	mv build/docker/bin/cli $@
 	@touch $@
 
 build/docker/busybox:
@@ -97,33 +100,29 @@ build/docker/busybox:
 
 build/image/$(PROJECT_NAME)/$(DUMMY): build/image/$(PROJECT_NAME)-runtime/$(DUMMY)
 
-# payload definitions'
-build/image/$(PROJECT_NAME)/payload:	build/docker/bin/$(PROJECT_NAME)
+# payload definitions
+build/image/$(PROJECT_NAME)/payload:	build/docker/bin/cop \
+					build/sampleconfig.tar.bz2
 build/image/$(PROJECT_NAME)-runtime/payload:	build/docker/busybox
 
 build/image/%/payload:
 	mkdir -p $@
 	cp $^ $@
 
-build/image/$(PROJECT_NAME)/$(DUMMY): Makefile build/image/$(PROJECT_NAME)/payload
-	@echo "Building docker $(PROJECT_NAME) image"
-	@cat images/cop/Dockerfile.in \
+build/image/%/$(DUMMY): Makefile build/image/%/payload
+	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
+	$(eval DOCKER_NAME = $(DOCKER_ORG)/$(TARGET))
+	@echo "Building docker $(TARGET) image"
+	@cat images/$(image-path-map.$(TARGET))/Dockerfile.in \
 		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
 		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
 		> $(@D)/Dockerfile
-	$(DBUILD) -t $(DOCKER_ORG)/$(PROJECT_NAME) $(@D)
-	docker tag $(DOCKER_ORG)/$(PROJECT_NAME) $(DOCKER_ORG)/$(PROJECT_NAME):$(DOCKER_TAG)
+	$(DBUILD) -t $(DOCKER_NAME) $(@D)
+	docker tag $(DOCKER_NAME) $(DOCKER_NAME):$(DOCKER_TAG)
 	@touch $@
 
-build/image/$(PROJECT_NAME)-runtime/$(DUMMY): Makefile build/image/$(PROJECT_NAME)-runtime/payload
-	@echo "Building docker $(PROJECT_NAME)-runtime image"
-	@cat images/runtime/Dockerfile.in \
-		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
-		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
-		> $(@D)/Dockerfile
-	$(DBUILD) -t $(DOCKER_ORG)/$(PROJECT_NAME)-runtime $(@D)
-	docker tag $(DOCKER_ORG)/$(PROJECT_NAME)-runtime $(DOCKER_ORG)/$(PROJECT_NAME)-runtime:$(DOCKER_TAG)
-	@touch $@
+build/sampleconfig.tar.bz2: $(SAMPLECONFIG)
+	tar -jc -C images/cop/config $(patsubst images/cop/config/%,%,$(SAMPLECONFIG)) > $@
 
 unit-tests: checks cop
 	@scripts/run_tests
