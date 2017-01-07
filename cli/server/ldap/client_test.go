@@ -45,7 +45,7 @@ func testLDAP(proto string, port int, t *testing.T) {
 		t.Errorf("ldap.NewClient failure: %s", err)
 		return
 	}
-	user, err := c.GetUser("jsmith", "mail")
+	user, err := c.GetUser("jsmith", []string{"mail"})
 	if err != nil {
 		t.Errorf("ldap.Client.GetUser failure: %s", err)
 		return
