@@ -214,7 +214,7 @@ func TestLast(t *testing.T) {
 
 func runServer() {
 	os.Setenv("COP_DEBUG", "true")
-	server.Start("../../testdata", "testconfig2.json")
+	server.Start("../../testdata", "testconfig.json")
 }
 
 func startServer() {

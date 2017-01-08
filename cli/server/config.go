@@ -21,12 +21,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-cop/cli/server/ldap"
 	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/lib/tls"
+	"github.com/hyperledger/fabric-cop/util"
 
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
@@ -79,42 +81,63 @@ var CFG *Config
 
 // Init initializes the COP config given the CFSSL config
 func configInit(cfg *cli.Config) {
-	log.Debugf("config.Init file=%s", cfg.ConfigFile)
-	CFG = newConfig()
+	var err error
+	configFile, err = filepath.Abs(cfg.ConfigFile)
+	if err != nil {
+		panic(err.Error())
+	}
+	configDir = filepath.Dir(configFile)
+	log.Debugf("Initializing config file at %s", configFile)
+	log.Debugf("Inbound CFSSL server config is: %+v", cfg)
 
-	if cfg.ConfigFile != "" {
-		body, err := ioutil.ReadFile(cfg.ConfigFile)
-		if err != nil {
-			panic(err.Error())
-		}
-		log.Debugf("config.Init contents=%+v", body)
-		err = json.Unmarshal(body, CFG)
-		if err != nil {
-			panic(fmt.Sprintf("error parsing %s: %s", cfg.ConfigFile, err.Error()))
-		}
+	CFG = new(Config)
+	CFG.Authentication = true
 
-		configFile = cfg.ConfigFile
-		cfg.DBConfigFile = configFile
+	body, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		panic(err.Error())
+	}
+	err = json.Unmarshal(body, CFG)
+	if err != nil {
+		panic(fmt.Sprintf("error parsing %s: %s", configFile, err.Error()))
+	}
 
-		cfg.CAFile = CFG.CAFile
-		cfg.CAKeyFile = CFG.KeyFile
+	CFG.CAFile = abs(CFG.CAFile)
+	CFG.KeyFile = abs(CFG.KeyFile)
+	CFG.TLSConf.TLSCertFile = abs(CFG.TLSConf.TLSCertFile)
+	CFG.TLSConf.TLSKeyFile = abs(CFG.TLSConf.TLSKeyFile)
+	CFG.TLSConf.MutualTLSCAFile = abs(CFG.TLSConf.MutualTLSCAFile)
+	absTLSClient(&CFG.TLSConf.DBClient)
 
-		if CFG.TLSConf.TLSCertFile != "" {
-			cfg.TLSCertFile = CFG.TLSConf.TLSCertFile
-		} else {
-			cfg.TLSCertFile = CFG.CAFile
-		}
+	if cfg.DBConfigFile == "" {
+		cfg.DBConfigFile = cfg.ConfigFile
+	}
 
-		if CFG.TLSConf.TLSKeyFile != "" {
-			cfg.TLSKeyFile = CFG.TLSConf.TLSKeyFile
-		} else {
-			cfg.TLSKeyFile = CFG.KeyFile
-		}
+	if CFG.TLSConf.TLSCertFile != "" {
+		cfg.TLSCertFile = CFG.TLSConf.TLSCertFile
+	} else {
+		cfg.TLSCertFile = CFG.CAFile
+	}
 
-		if CFG.TLSConf.MutualTLSCAFile != "" {
-			cfg.MutualTLSCAFile = CFG.TLSConf.MutualTLSCAFile
-		}
+	if CFG.TLSConf.TLSKeyFile != "" {
+		cfg.TLSKeyFile = CFG.TLSConf.TLSKeyFile
+	} else {
+		cfg.TLSKeyFile = CFG.KeyFile
+	}
 
+	if CFG.TLSConf.MutualTLSCAFile != "" {
+		cfg.MutualTLSCAFile = CFG.TLSConf.MutualTLSCAFile
+	}
+
+	if CFG.DBdriver == "" {
+		msg := "No database specified, a database is needed to run COP server. Using default - Type: SQLite, Name: cop.db"
+		log.Info(msg)
+		CFG.DBdriver = sqlite
+		CFG.DataSource = "cop.db"
+	}
+
+	if CFG.DBdriver == sqlite {
+		CFG.DataSource = abs(CFG.DataSource)
 	}
 
 	dbg := os.Getenv("COP_DEBUG")
@@ -125,4 +148,24 @@ func configInit(cfg *cli.Config) {
 		log.Level = log.LevelDebug
 	}
 
+	log.Debugf("CFSSL server config is: %+v", cfg)
+	log.Debugf("COP server config is: %+v", CFG)
+}
+
+// Make TLS client files absolute
+func absTLSClient(cfg *tls.ClientTLSConfig) {
+	for i := 0; i < len(cfg.CACertFiles); i++ {
+		cfg.CACertFiles[i] = abs(cfg.CACertFiles[i])
+	}
+	cfg.Client.CertFile = abs(cfg.Client.CertFile)
+	cfg.Client.KeyFile = abs(cfg.Client.KeyFile)
+}
+
+// Make 'file' absolute relative to the configuration directory
+func abs(file string) string {
+	path, err := util.MakeFileAbs(file, configDir)
+	if err != nil {
+		panic(err)
+	}
+	return path
 }

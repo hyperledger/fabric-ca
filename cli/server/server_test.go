@@ -34,8 +34,9 @@ import (
 )
 
 const (
-	CFGFile         = "testconfig2.json"
+	CFGFile         = "testconfig.json"
 	ClientTLSConfig = "cop_client.json"
+	COPDB           = "../../testdata/cop.db"
 )
 
 var serverStarted bool
@@ -57,6 +58,7 @@ func startServer() {
 	}
 
 	if !serverStarted {
+		os.Remove(COPDB)
 		os.RemoveAll(dir)
 		serverStarted = true
 		fmt.Println("starting COP server ...")
@@ -461,6 +463,7 @@ func TestCreateHome(t *testing.T) {
 
 func TestLast(t *testing.T) {
 	// Cleanup
+	os.Remove(COPDB)
 	os.RemoveAll(dir)
 }
 

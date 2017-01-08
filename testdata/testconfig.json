@@ -5,15 +5,15 @@
  "user_registry": {
    "max_enrollments": 1
  },
- "ca_cert":"../testdata/ec.pem",
- "ca_key":"../testdata/ec-key.pem",
+ "ca_cert":"ec.pem",
+ "ca_key":"ec-key.pem",
  "tls":{
-   "tls_cert":"../testdata/tls_server-cert.pem",
-   "tls_key":"../testdata/tls_server-key.pem",
-   "mutual_tls_ca":"../testdata/root.pem",
+   "tls_cert":"tls_server-cert.pem",
+   "tls_key":"tls_server-key.pem",
+   "mutual_tls_ca":"root.pem",
    "db_client":{
-     "ca_certfiles":["../testdata/root.pem"],
-     "client":{"keyfile":"../testdata/tls_server-key.pem","certfile":"../testdata/tls_server-cert.pem"}
+     "ca_certfiles":["root.pem"],
+     "client":{"keyfile":"tls_server-key.pem","certfile":"tls_server-cert.pem"}
    }
  },
  "users": {

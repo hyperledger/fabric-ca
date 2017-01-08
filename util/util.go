@@ -35,6 +35,7 @@ import (
 	mrand "math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -407,4 +408,21 @@ func GetEnrollmentIDFromPEM(cert []byte) (string, error) {
 // GetEnrollmentIDFromX509Certificate returns the EnrollmentID from the X509 certificate
 func GetEnrollmentIDFromX509Certificate(cert *x509.Certificate) string {
 	return cert.Subject.CommonName
+}
+
+// MakeFileAbs makes 'file' absolute relative to 'dir' if not already absolute
+func MakeFileAbs(file, dir string) (string, error) {
+	if file == "" {
+		return "", nil
+	}
+	if filepath.IsAbs(file) {
+		log.Debugf("%s is already an absolute file", file)
+		return file, nil
+	}
+	path, err := filepath.Abs(filepath.Join(dir, file))
+	if err != nil {
+		return "", fmt.Errorf("Failed making '%s' absolute based on '%s'", file, dir)
+	}
+	log.Debugf("absolute file path for %s is %s", file, path)
+	return path, nil
 }

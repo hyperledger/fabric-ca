@@ -65,8 +65,8 @@ func prepRegister() error {
 	configInit(cfg)
 
 	regCFG := CFG
-	home = regPath
-	datasource := filepath.Join(home, "cop.db")
+	homeDir = regPath
+	datasource := filepath.Join(homeDir, "cop.db")
 	regCFG.DataSource = datasource
 
 	err = InitUserRegistry(regCFG)

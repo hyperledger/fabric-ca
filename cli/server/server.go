@@ -82,7 +82,8 @@ var (
 	enrollSigner   signer.Signer
 	ocspSigner     ocsp.Signer
 	db             *sqlx.DB
-	home           string
+	homeDir        string
+	configDir      string
 	configFile     string
 	userRegistry   spi.UserRegistry
 	certDBAccessor *CertDBAccessor
@@ -151,28 +152,17 @@ func bootstrapDB() error {
 // It sets up a new HTTP server to handle COP requests.
 func startMain(args []string, c cli.Config) error {
 	log.Debug("server.startMain")
+	var err error
 
 	s := new(Server)
-	home, err := s.CreateHome()
+	homeDir, err = s.CreateHome()
 	if err != nil {
 		return err
 	}
 	configInit(&c)
-	cfg := CFG
-
-	if cfg.DataSource == "" {
-		msg := "No database specified, a database is needed to run COP server. Using default - Type: SQLite, Name: cop.db"
-		log.Info(msg)
-		cfg.DBdriver = sqlite
-		cfg.DataSource = "cop.db"
-	}
-
-	if cfg.DBdriver == sqlite {
-		cfg.DataSource = filepath.Join(home, cfg.DataSource)
-	}
 
 	// Initialize the user registry
-	err = InitUserRegistry(cfg)
+	err = InitUserRegistry(CFG)
 	if err != nil {
 		log.Errorf("Failed to initialize user registry [error: %s]", err)
 		return err
