@@ -21,10 +21,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api"
-	cerr "github.com/cloudflare/cfssl/errors"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
 )
 
 var (
@@ -38,23 +36,23 @@ var (
 )
 
 func badRequest(w http.ResponseWriter, err error) error {
-	return httpError(w, 400, cop.IOError, err.Error())
+	return httpError(w, 400, 10001, err.Error())
 }
 
 func authErr(w http.ResponseWriter, err error) error {
-	return httpError(w, 401, cop.AuthorizationFailure, err.Error())
+	return httpError(w, 401, 10002, err.Error())
 }
 
 func notFound(w http.ResponseWriter, err error) error {
-	return httpError(w, 404, cerr.RecordNotFound, err.Error())
+	return httpError(w, 404, 10003, err.Error())
 }
 
 func dbErr(w http.ResponseWriter, err error) error {
-	return httpError(w, 500, cop.IOError, err.Error())
+	return httpError(w, 500, 10004, err.Error())
 }
 
 func httpError(w http.ResponseWriter, scode, code int, msg string) error {
-	response := api.NewErrorResponse(msg, code)
+	response := cfsslapi.NewErrorResponse(msg, code)
 	jsonMessage, err := json.Marshal(response)
 	if err != nil {
 		log.Errorf("Failed to marshal JSON: %v", err)

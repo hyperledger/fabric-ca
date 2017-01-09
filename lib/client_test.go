@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server"
-	"github.com/hyperledger/fabric-cop/idp"
 )
 
 const (
@@ -48,23 +48,23 @@ func TestAllClient(t *testing.T) {
 	c := getClient()
 
 	testRegister(c, t)
-	testRegisterWithoutRegistrar(c, t)
 	testEnrollIncorrectPassword(c, t)
 	testEnroll(c, t)
 	testDoubleEnroll(c, t)
 	testReenroll(c, t)
-	testRevocation(c, t, "revoker", "revokerpw", true)
-	testRevocation(c, t, "notadmin", "pass", false)
+	testRevocation(c, t, "revoker", "revokerpw", true, true)
+	testRevocation(c, t, "nonrevoker", "nonrevokerpw", true, false)
+	testRevocation(c, t, "revoker2", "revokerpw2", false, true)
+	testRevocation(c, t, "nonrevoker2", "nonrevokerpw2", false, false)
 	testLoadCSRInfo(c, t)
 	testLoadNoCSRInfo(c, t)
 	testLoadBadCSRInfo(c, t)
-	testCapabilities(c, t)
 }
 
 func testRegister(c *Client, t *testing.T) {
 
 	// Enroll admin
-	enrollReq := &idp.EnrollmentRequest{
+	enrollReq := &api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
 	}
@@ -75,35 +75,21 @@ func testRegister(c *Client, t *testing.T) {
 	}
 
 	// Register as admin
-	registerReq := &idp.RegistrationRequest{
-		Name:      "TestUser",
-		Type:      "Client",
-		Group:     "bank_a",
-		Registrar: id,
+	registerReq := &api.RegistrationRequest{
+		Name:  "TestUser",
+		Type:  "Client",
+		Group: "bank_a",
 	}
 
-	_, err = c.Register(registerReq)
+	_, err = id.Register(registerReq)
 	if err != nil {
 		t.Errorf("Register failed: %s", err)
 	}
 }
 
-func testRegisterWithoutRegistrar(c *Client, t *testing.T) {
-
-	req := &idp.RegistrationRequest{
-		Name: "TestUser",
-		Type: "Client",
-	}
-
-	_, err := c.Register(req)
-	if err == nil {
-		t.Error("Register should have failed during registration without registrar")
-	}
-}
-
 func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 
-	req := &idp.EnrollmentRequest{
+	req := &api.EnrollmentRequest{
 		Name:   "testUser",
 		Secret: "incorrect",
 	}
@@ -116,7 +102,7 @@ func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 
 func testEnroll(c *Client, t *testing.T) {
 
-	req := &idp.EnrollmentRequest{
+	req := &api.EnrollmentRequest{
 		Name:   "testUser",
 		Secret: "user1",
 	}
@@ -124,6 +110,19 @@ func testEnroll(c *Client, t *testing.T) {
 	id, err := c.Enroll(req)
 	if err != nil {
 		t.Errorf("Enroll failed: %s", err)
+	}
+
+	if id.GetName() != "testUser" {
+		t.Error("Incorrect name retrieved")
+	}
+
+	if id.GetECert() == nil {
+		t.Error("No ECert was returned")
+	}
+
+	_, err = id.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
+	if err != nil {
+		t.Errorf("Failed to get batch of TCerts")
 	}
 
 	err = id.Store()
@@ -135,7 +134,7 @@ func testEnroll(c *Client, t *testing.T) {
 
 func testDoubleEnroll(c *Client, t *testing.T) {
 
-	req := &idp.EnrollmentRequest{
+	req := &api.EnrollmentRequest{
 		Name:   "testUser",
 		Secret: "user1",
 	}
@@ -153,7 +152,7 @@ func testReenroll(c *Client, t *testing.T) {
 		t.Errorf("testReenroll: failed LoadMyIdentity: %s", err)
 		return
 	}
-	id, err = c.Reenroll(&idp.ReenrollmentRequest{ID: id})
+	id, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		t.Errorf("testReenroll: failed reenroll: %s", err)
 		return
@@ -164,8 +163,8 @@ func testReenroll(c *Client, t *testing.T) {
 	}
 }
 
-func testRevocation(c *Client, t *testing.T, user, secret string, shouldPass bool) {
-	req := &idp.EnrollmentRequest{
+func testRevocation(c *Client, t *testing.T, user, secret string, ecertOnly, shouldPass bool) {
+	req := &api.EnrollmentRequest{
 		Name:   user,
 		Secret: secret,
 	}
@@ -174,7 +173,11 @@ func testRevocation(c *Client, t *testing.T, user, secret string, shouldPass boo
 		t.Errorf("enroll of user '%s' with password '%s' failed", user, secret)
 		return
 	}
-	err = id.RevokeSelf()
+	if ecertOnly {
+		err = id.GetECert().RevokeSelf()
+	} else {
+		err = id.RevokeSelf()
+	}
 	if shouldPass && err != nil {
 		t.Errorf("testRevocation failed for user %s: %s", user, err)
 	} else if !shouldPass && err == nil {
@@ -200,13 +203,6 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 	_, err := c.LoadCSRInfo("../testdata/config.json")
 	if err == nil {
 		t.Error("testLoadBadCSRInfo passed but should have failed")
-	}
-}
-
-func testCapabilities(c *Client, t *testing.T) {
-	caps := c.Capabilities()
-	if caps == nil {
-		t.Error("testCapabilities failed")
 	}
 }
 
@@ -259,4 +255,5 @@ func runServer() {
 func TestLast(t *testing.T) {
 	// Cleanup
 	os.RemoveAll(dir)
+	os.Remove("../testdata/cop.db")
 }

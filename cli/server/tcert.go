@@ -22,10 +22,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/lib/tcert"
 	"github.com/hyperledger/fabric-cop/util"
 )
@@ -61,7 +61,7 @@ func initTCertHandler() (h http.Handler, err error) {
 		return nil, err
 	}
 	keyTree := tcert.NewKeyTree(csp, rootKey)
-	handler := &api.HTTPHandler{
+	handler := &cfsslapi.HTTPHandler{
 		Handler: &tcertHandler{mgr: mgr, keyTree: keyTree},
 		Methods: []string{"POST"},
 	}
@@ -84,7 +84,7 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return fmt.Errorf("Failure reading request body: %s", err)
 	}
-	req := &idp.GetPrivateSignersRequest{}
+	req := &api.GetTCertBatchRequestNet{}
 	err = util.Unmarshal(body, req, "tcert request")
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Write the response
-	api.SendResponse(w, resp)
+	cfsslapi.SendResponse(w, resp)
 
 	// Success
 	return nil

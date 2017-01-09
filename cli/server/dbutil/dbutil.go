@@ -26,7 +26,6 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/go-sql-driver/mysql"
-	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/lib/tls"
 	"github.com/jmoiron/sqlx"
 )
@@ -70,7 +69,7 @@ func createSQLiteDBTables(datasource string) error {
 	log.Debug("Database location: ", datasource)
 	db, err := sqlx.Open("sqlite3", datasource)
 	if err != nil {
-		return cop.WrapError(err, cop.DatabaseError, "Failed to connect to database")
+		return fmt.Errorf("Failed to open database: %s", err)
 	}
 
 	log.Debug("Creating tables...")
@@ -117,7 +116,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
-		return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to open database")
+		return nil, false, fmt.Errorf("Failed to open database: %s", err)
 	}
 
 	err = db.Ping()
@@ -129,9 +128,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 	// Check if database exists
 	r, err2 := db.Exec("SELECT * FROM pg_catalog.pg_database where datname=$1", dbName)
 	if err2 != nil {
-		msg := "Failed to query 'pg_database' table"
-		log.Error(msg+" error: ", err2)
-		return nil, false, cop.WrapError(err, cop.DatabaseError, msg)
+		return nil, false, fmt.Errorf("Failed to query 'pg_database' table: %s", err2)
 	}
 
 	found, _ := r.RowsAffected()
@@ -162,7 +159,7 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 	query := "CREATE DATABASE " + dbName
 	_, err := db.Exec(query)
 	if err != nil {
-		return cop.WrapError(err, cop.DatabaseError, "Failed to create Postgres database")
+		return fmt.Errorf("Failed to create Postgres database: %s", err)
 	}
 
 	database, err := sqlx.Open("postgres", datasource)
@@ -209,7 +206,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 	log.Debug("Connection String: ", connStr)
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
-		return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to open database")
+		return nil, false, fmt.Errorf("Failed to open database: %s", err)
 	}
 
 	err = db.Ping()
@@ -225,7 +222,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 			log.Debugf("Database (%s) does not exist", dbName)
 			exists = false
 		} else {
-			return nil, false, cop.WrapError(err, cop.DatabaseError, "Failed to query 'INFORMATION_SCHEMA.SCHEMATA table")
+			return nil, false, fmt.Errorf("Failed to query 'INFORMATION_SCHEMA.SCHEMATA table: %s", err)
 		}
 	}
 

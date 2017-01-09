@@ -29,16 +29,20 @@ import (
 // GetBatchRequest defines input to the GetBatch API
 type GetBatchRequest struct {
 	// Number of TCerts in the batch.
-	Count uint `json:"count"`
+	Count int `json:"count"`
+	// If PublicKeys is non nil, generates a TCert for each public key;
+	// in this case, the 'Count' field is ignored and the number of TCerts
+	// generated matches the number of public keys in the array.
+	PublicKeys [][]byte `json:"public_keys,omitempty"`
 	// The attribute name and values that are to be inserted in the issued TCerts.
 	Attrs []Attribute `json:"attrs,omitempty"`
 	// EncryptAttrs denotes whether to encrypt attribute values or not.
 	// When set to true, each issued TCert in the batch will contain encrypted attribute values.
-	EncryptAttrs bool `json:"encryptAttrs,omitempty"`
+	EncryptAttrs bool `json:"encrypt_attrs,omitempty"`
 	// Certificate Validity Period.  If specified, the value used
 	// is the minimum of this value and the configured validity period
 	// of the TCert manager.
-	ValidityPeriod time.Duration `json:"validityPeriod,omitempty"`
+	ValidityPeriod time.Duration `json:"validity_period,omitempty"`
 	// The pre-key to be used for key derivation.
 	PreKey string `json:"prekey"`
 }

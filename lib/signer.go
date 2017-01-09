@@ -17,37 +17,39 @@ limitations under the License.
 package lib
 
 import (
-	"errors"
-
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-cop/api"
 )
 
-func newSigner(key []byte, cert []byte) Signer {
-	return Signer{newVerifier(cert), key}
+func newSigner(key, cert []byte, id *Identity) *Signer {
+	return &Signer{
+		key:    key,
+		cert:   cert,
+		id:     id,
+		client: id.client,
+	}
 }
 
-// Signer implements idp.Signer interface
+// Signer represents a signer
+// Each identity may have multiple signers, currently one ecert and multiple tcerts
 type Signer struct {
-	Verifier
-	Key []byte `json:"key"`
+	name   string
+	key    []byte
+	cert   []byte
+	id     *Identity
+	client *Client
 }
 
-// Sign the message
-func (s *Signer) Sign(msg []byte) ([]byte, error) {
-	return nil, errors.New("NotImplemented")
-}
-
-// SignOpts the message with options
-func (s *Signer) SignOpts(msg []byte, opts idp.SignatureOpts) ([]byte, error) {
-	return nil, errors.New("NotImplemented")
-}
-
-// NewAttributeProof creates a proof for an attribute
-func (s *Signer) NewAttributeProof(spec *idp.AttributeProofSpec) (proof []byte, err error) {
-	return nil, errors.New("NotImplemented")
-}
-
-// TODO:
-func (s *Signer) getMyKey() []byte {
-	return s.Key
+// RevokeSelf revokes only the certificate associated with this signer
+func (s *Signer) RevokeSelf() error {
+	log.Debugf("RevokeSelf %s", s.name)
+	serial, aki, err := GetCertID(s.cert)
+	if err != nil {
+		return err
+	}
+	req := &api.RevocationRequest{
+		Serial: serial,
+		AKI:    aki,
+	}
+	return s.id.Revoke(req)
 }

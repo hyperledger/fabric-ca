@@ -40,8 +40,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -91,23 +89,13 @@ func RemoveQuotes(str string) string {
 }
 
 // ReadFile reads a file
-func ReadFile(file string) ([]byte, cop.Error) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Errorf("failure reading file '%s': %s", file, err)
-		return nil, cop.WrapError(err, cop.ReadFileError, "failed reading file at %s", file)
-	}
-	return bytes, nil
+func ReadFile(file string) ([]byte, error) {
+	return ioutil.ReadFile(file)
 }
 
 // WriteFile writes a file
-func WriteFile(file string, buf []byte, perm os.FileMode) cop.Error {
-	err := ioutil.WriteFile(file, buf, perm)
-	if err != nil {
-		log.Errorf("failure writing file '%s': %s", file, err)
-		return cop.WrapError(err, cop.WriteFileError, "failed reading file at %s", file)
-	}
-	return nil
+func WriteFile(file string, buf []byte, perm os.FileMode) error {
+	return ioutil.WriteFile(file, buf, perm)
 }
 
 // FileExists checks to see if a file exists
@@ -121,21 +109,19 @@ func FileExists(name string) bool {
 }
 
 // Marshal to bytes
-func Marshal(from interface{}, what string) ([]byte, cop.Error) {
+func Marshal(from interface{}, what string) ([]byte, error) {
 	buf, err := json.Marshal(from)
 	if err != nil {
-		log.Errorf("failure unmarshalling '%s': %s", what, err)
-		return nil, cop.WrapError(err, cop.MarshallError, "error marshalling %s", what)
+		return nil, fmt.Errorf("Failed to marshal %s: %s", what, err)
 	}
 	return buf, nil
 }
 
 // Unmarshal from bytes
-func Unmarshal(from []byte, to interface{}, what string) cop.Error {
+func Unmarshal(from []byte, to interface{}, what string) error {
 	err := json.Unmarshal(from, to)
 	if err != nil {
-		log.Errorf("failure unmarshalling '%s': %s", what, err)
-		return cop.WrapError(err, cop.UnmarshallError, "error unmarshalling %s", what)
+		return fmt.Errorf("Failed to unmarshal %s: %s", what, err)
 	}
 	return nil
 }
@@ -416,13 +402,11 @@ func MakeFileAbs(file, dir string) (string, error) {
 		return "", nil
 	}
 	if filepath.IsAbs(file) {
-		log.Debugf("%s is already an absolute file", file)
 		return file, nil
 	}
 	path, err := filepath.Abs(filepath.Join(dir, file))
 	if err != nil {
 		return "", fmt.Errorf("Failed making '%s' absolute based on '%s'", file, dir)
 	}
-	log.Debugf("absolute file path for %s is %s", file, path)
 	return path, nil
 }

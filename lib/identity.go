@@ -22,42 +22,39 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/cloudflare/cfssl/signer"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
 func newIdentity(client *Client, name string, key []byte, cert []byte) *Identity {
 	id := new(Identity)
+	id.name = name
+	id.ecert = newSigner(key, cert, id)
 	id.client = client
-	id.Name = name
-	id.PublicSigner = newTemporalSigner(key, cert)
 	return id
 }
 
-// Identity is COP's implementation of an idp.Identity
+// Identity is COP's implementation of an identity
 type Identity struct {
-	client       *Client
-	Name         string          `json:"name"`
-	PublicSigner *TemporalSigner `json:"publicSigner"`
+	name   string
+	ecert  *Signer
+	client *Client
 }
 
 // GetName returns the identity name
 func (i *Identity) GetName() string {
-	return i.Name
+	return i.name
 }
 
-// GetPublicSigner returns the public signer for this identity
-func (i *Identity) GetPublicSigner() idp.TemporalSigner {
-	return i.PublicSigner
+// GetECert returns the enrollment certificate signer for this identity
+func (i *Identity) GetECert() *Signer {
+	return i.ecert
 }
 
-// GetPrivateSigners returns private signers for this identity
-// NOTE: The whole IDP abstraction is going to be removed and the name of this will just be
-//       GetTCerts or something normal.  The IDP abstraction was originally done to allow for
-//       other providers, but that was done differently.
-func (i *Identity) GetPrivateSigners(req *idp.GetPrivateSignersRequest) ([]idp.TemporalSigner, error) {
-	reqBody, err := util.Marshal(req, "idp.GetPrivateSignersRequest")
+// GetTCertBatch returns a batch of TCerts for this identity
+func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, error) {
+	reqBody, err := util.Marshal(req, "GetTCertBatchRequest")
 	if err != nil {
 		return nil, err
 	}
@@ -71,60 +68,100 @@ func (i *Identity) GetPrivateSigners(req *idp.GetPrivateSignersRequest) ([]idp.T
 	return nil, nil
 }
 
-// GetAttributeNames returns the names of all attributes associated with this identity
-func (i *Identity) GetAttributeNames() ([]string, error) {
-	return nil, errors.New("NotImplemented")
+// Register registers a new identity
+// @param req The registration request
+func (i *Identity) Register(req *api.RegistrationRequest) (*api.RegistrationResponse, error) {
+	log.Debugf("Register %+v", req)
+	if req.Name == "" {
+		return nil, errors.New("Register was called without a Name set")
+	}
+	if req.Group == "" {
+		return nil, errors.New("Register was called without a Group set")
+	}
+
+	reqBody, err := util.Marshal(req, "RegistrationRequest")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a post to the "register" endpoint with req as body
+	secret, err := i.Post("register", reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("The register request completely successfully")
+	return &api.RegistrationResponse{Secret: secret.(string)}, nil
+}
+
+// Reenroll reenrolls an existing Identity and returns a new Identity
+// @param req The reenrollment request
+func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*Identity, error) {
+	log.Debugf("Reenrolling %s", req)
+
+	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the body of the request
+	sreq := signer.SignRequest{
+		Hosts:   signer.SplitHosts(req.Hosts),
+		Request: string(csrPEM),
+		Profile: req.Profile,
+		Label:   req.Label,
+	}
+	body, err := util.Marshal(sreq, "SignRequest")
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := i.Post("reenroll", body)
+	if err != nil {
+		return nil, err
+	}
+
+	return i.client.newIdentityFromResponse(result, i.GetName(), key)
 }
 
 // Revoke the identity associated with 'id'
-func (i *Identity) Revoke(req *idp.RevocationRequest) error {
+func (i *Identity) Revoke(req *api.RevocationRequest) error {
 	log.Debugf("Entering identity.Revoke %+v", req)
 	reqBody, err := util.Marshal(req, "RevocationRequest")
 	if err != nil {
 		return err
 	}
-	_, err2 := i.Post("revoke", reqBody)
-	if err2 != nil {
-		return err2
+	_, err = i.Post("revoke", reqBody)
+	if err != nil {
+		return err
 	}
 	log.Debugf("Successfully revoked %+v", req)
 	return nil
 }
 
-// RevokeSelf revokes the current identity
+// RevokeSelf revokes the current identity and all certificates
 func (i *Identity) RevokeSelf() error {
 	name := i.GetName()
 	log.Debugf("RevokeSelf %s", name)
-	serial, aki, err := i.PublicSigner.GetSerial()
-	if err != nil {
-		return err
-	}
-	req := &idp.RevocationRequest{
-		Name:   name,
-		Serial: serial,
-		AKI:    aki,
+	req := &api.RevocationRequest{
+		Name: name,
 	}
 	return i.Revoke(req)
 }
 
-// Delete this identity completely and revoke all of it's signers
-func (i *Identity) Delete() error {
-	return errors.New("NotImplemented")
-}
-
-// Store write my identity info
+// Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {
 		return fmt.Errorf("An identity with no client may not be stored")
 	}
-	return i.client.StoreMyIdentity(i.PublicSigner.Key, i.PublicSigner.Cert)
+	return i.client.StoreMyIdentity(i.ecert.key, i.ecert.cert)
 }
 
 // Post sends arbtrary request body (reqBody) to an endpoint.
 // This adds an authorization header which contains the signature
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.
-func (i *Identity) Post(endpoint string, reqBody []byte) ([]byte, error) {
+func (i *Identity) Post(endpoint string, reqBody []byte) (interface{}, error) {
 	req, err := i.client.NewPost(endpoint, reqBody)
 	if err != nil {
 		return nil, err
@@ -137,28 +174,13 @@ func (i *Identity) Post(endpoint string, reqBody []byte) ([]byte, error) {
 }
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
-	log.Debug("addTokenAuthHdr begin")
-	cert := i.GetMyCert()
-	key := i.GetMyKey() // TODO: Will change for BCCSP since we can't see key
-	if cert == nil || key == nil {
-		return cop.NewError(cop.AuthorizationFailure, "Failed to set authorization header token")
-	}
-	token, tokenerr := util.CreateToken(cert, key, body)
-	if tokenerr != nil {
-		log.Debug("addTokenAuthHdr failed: CreateToken")
-		return cop.WrapError(tokenerr, 1, "test")
+	log.Debug("adding token-based authorization header")
+	cert := i.ecert.cert
+	key := i.ecert.key
+	token, err := util.CreateToken(cert, key, body)
+	if err != nil {
+		return fmt.Errorf("Failed to add token authorization header: %s", err)
 	}
 	req.Header.Set("authorization", token)
-	log.Debug("addTokenAuthHdr success")
 	return nil
-}
-
-// GetMyCert returns the PEM-encoded cert
-func (i *Identity) GetMyCert() []byte {
-	return i.PublicSigner.GetMyCert()
-}
-
-// GetMyKey returns the PEM-encoded key
-func (i *Identity) GetMyKey() []byte {
-	return i.PublicSigner.getMyKey()
 }

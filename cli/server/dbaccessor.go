@@ -23,9 +23,8 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
-	"github.com/hyperledger/fabric-cop/idp"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -152,11 +151,11 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 	}
 
 	if numRowsAffected == 0 {
-		return cop.NewError(cop.UserStoreError, "Failed to insert the user record")
+		return fmt.Errorf("Failed to insert the user record")
 	}
 
 	if numRowsAffected != 1 {
-		return cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
+		return fmt.Errorf("Expected one user record to be inserted, but %d records were inserted", numRowsAffected)
 	}
 
 	log.Debugf("User %s inserted into database successfully", user.Name)
@@ -210,11 +209,11 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
-		return cop.NewError(cop.UserStoreError, "Failed to update the user record")
+		return fmt.Errorf("Failed to update the user record")
 	}
 
 	if numRowsAffected != 1 {
-		return cop.NewError(cop.UserStoreError, "%d rows are affected, should be 1 row", numRowsAffected)
+		return fmt.Errorf("Expected one user record to be updated, but %d records were updated", numRowsAffected)
 	}
 
 	return err
@@ -244,7 +243,7 @@ func (d *Accessor) UpdateField(id string, field int, value interface{}) error {
 			return err
 		}
 	default:
-		return cop.NewError(cop.DatabaseError, "DB: Specified field does not exist or cannot be updated")
+		return fmt.Errorf("Specified field does not exist and cannot be updated: %d", field)
 	}
 
 	return err
@@ -267,8 +266,8 @@ func (d *Accessor) GetField(id string, field int) (interface{}, error) {
 		}
 		return groupRec.Prekey, nil
 	default:
-		log.Error("DB: Specified field does not exist or cannot be retrieved")
-		return nil, cop.NewError(cop.DatabaseError, "DB: Specified field does not exist or cannot be retrieved")
+		err = fmt.Errorf("Specified field does not exist and cannot be updated: %d", field)
+		return nil, err
 	}
 
 }
@@ -368,7 +367,7 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	user.state = userRec.State
 	user.maxEnrollments = userRec.MaxEnrollments
 	user.affiliationPath = strings.Split(userRec.Group, "/")
-	var attrs []idp.Attribute
+	var attrs []api.Attribute
 	json.Unmarshal([]byte(userRec.Attributes), &attrs)
 	user.attrs = make(map[string]string)
 	for _, attr := range attrs {
@@ -400,8 +399,7 @@ func (u *DBUser) Login(pass string) error {
 
 	// Check the password
 	if u.pass != pass {
-		log.Errorf("Incorrect password for %s", u.name)
-		return cop.NewError(cop.AuthorizationFailure, "Incorrect username/password provided)")
+		return errors.New("Incorrect username/password provided")
 	}
 
 	// If the maxEnrollments is set (i.e. >= 0), make sure we haven't exceeded this number of logins.

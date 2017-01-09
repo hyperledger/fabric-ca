@@ -21,7 +21,7 @@ limitations under the License.
 
 package spi
 
-import "github.com/hyperledger/fabric-cop/idp"
+import "github.com/hyperledger/fabric-cop/api"
 
 // UserInfo contains information about a user
 type UserInfo struct {
@@ -29,7 +29,7 @@ type UserInfo struct {
 	Pass       string
 	Type       string
 	Group      string
-	Attributes []idp.Attribute
+	Attributes []api.Attribute
 }
 
 // GroupInfo defines a group name and its parent

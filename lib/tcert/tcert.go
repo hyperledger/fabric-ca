@@ -90,7 +90,7 @@ type Mgr struct {
 	ValidityPeriod time.Duration
 	// MaxAllowedBatchSize is the maximum number of TCerts which can be requested at a time.
 	// The default value is 1000.
-	MaxAllowedBatchSize uint
+	MaxAllowedBatchSize int
 }
 
 // GetBatch gets a batch of TCerts

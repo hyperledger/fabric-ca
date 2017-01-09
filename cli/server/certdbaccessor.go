@@ -24,7 +24,6 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
 	"github.com/kisielk/sqlstruct"
 
@@ -106,20 +105,18 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 
 	res, err := d.db.NamedExec(insertSQL, record)
 	if err != nil {
-		log.Errorf("Error occured during insertion of record [error: %s]", err)
-		return err
+		return fmt.Errorf("Failed to insert record into database: %s", err)
 	}
 
 	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
-		// log.Errorf("Failed to insert the certificate record")
-		return cop.NewError(cop.DatabaseError, "Failed to insert the certificate record")
+		return fmt.Errorf("Failed to insert the certificate record")
 	}
 
 	if numRowsAffected != 1 {
-		// log.Errorf("%d rows are affected, should be 1 row", numRowsAffected)
-		return cop.NewError(cop.DatabaseError, "%d rows are affected, should be 1 row", numRowsAffected)
+		return fmt.Errorf("Expected to affect 1 entry in certificate database but affected %d",
+			numRowsAffected)
 	}
 
 	return err

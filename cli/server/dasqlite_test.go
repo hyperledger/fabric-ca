@@ -21,9 +21,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
-	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -110,7 +110,7 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 		Name:       "testId",
 		Pass:       "123456",
 		Type:       "client",
-		Attributes: []idp.Attribute{},
+		Attributes: []api.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
@@ -136,7 +136,7 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 		Name:       "testId",
 		Pass:       "123456",
 		Type:       "client",
-		Attributes: []idp.Attribute{},
+		Attributes: []api.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
@@ -163,7 +163,7 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 		Name:       "testId",
 		Pass:       "123456",
 		Type:       "client",
-		Attributes: []idp.Attribute{},
+		Attributes: []api.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
@@ -235,7 +235,7 @@ func testUpdateAndGetField(ta TestAccessor, t *testing.T) {
 		Name:       "testId",
 		Pass:       "123456",
 		Type:       "client",
-		Attributes: []idp.Attribute{},
+		Attributes: []api.Attribute{},
 	}
 
 	err := ta.Accessor.InsertUser(insert)

@@ -21,7 +21,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-cop/util"
@@ -46,7 +46,7 @@ type signHandler struct {
 // newEnrollHandler is the constructor for an enroll or reenroll handler
 func newSignHandler(endpoint string) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
-	return &api.HTTPHandler{
+	return &cfsslapi.HTTPHandler{
 		Handler: &signHandler{endpoint: endpoint},
 		Methods: []string{"POST"},
 	}, nil
@@ -80,5 +80,5 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return api.SendResponse(w, cert)
+	return cfsslapi.SendResponse(w, cert)
 }

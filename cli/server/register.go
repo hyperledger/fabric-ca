@@ -24,12 +24,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cloudflare/cfssl/api"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
 
-	cop "github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/cli/server/spi"
-	"github.com/hyperledger/fabric-cop/idp"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
@@ -40,7 +39,7 @@ type registerHandler struct {
 // NewRegisterHandler is constructor for register handler
 func NewRegisterHandler() (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
-	return &api.HTTPHandler{
+	return &cfsslapi.HTTPHandler{
 		Handler: &registerHandler{},
 		Methods: []string{"POST"},
 	}, nil
@@ -58,21 +57,21 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	r.Body.Close()
 
 	// Parse request body
-	var req cop.RegisterRequest
+	var req api.RegistrationRequestNet
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return err
 	}
 
 	// Register User
-	tok, err := reg.RegisterUser(req.User, req.Type, req.Group, req.Attributes, req.CallerID)
+	callerID := r.Header.Get(enrollmentIDHdrName)
+	tok, err := reg.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
 	if err != nil {
-		log.Error("Error occured during register of user, error: ", err)
 		return err
 	}
 
 	log.Debug("Registration completed - Sending response to clients")
-	return api.SendResponse(w, []byte(tok))
+	return cfsslapi.SendResponse(w, []byte(tok))
 }
 
 // Register for registering a user
@@ -95,7 +94,7 @@ func NewRegisterUser() *Register {
 }
 
 // RegisterUser will register a user
-func (r *Register) RegisterUser(id string, userType string, group string, attributes []idp.Attribute, registrar string, opt ...string) (string, error) {
+func (r *Register) RegisterUser(id string, userType string, group string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
 	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %s, registrar: %s\n",
 		id, group, attributes, registrar)
 
@@ -124,7 +123,7 @@ func (r *Register) RegisterUser(id string, userType string, group string, attrib
 	return tok, nil
 }
 
-// func (r *Register) validateAndGenerateEnrollID(id, group string, attr []idp.Attribute) (string, error) {
+// func (r *Register) validateAndGenerateEnrollID(id, group string, attr []api.Attribute) (string, error) {
 func (r *Register) validateID(id string, userType string, group string) error {
 	log.Debug("Validate ID")
 	// Check whether the group is required for the current user.
@@ -147,7 +146,7 @@ func (r *Register) validateID(id string, userType string, group string) error {
 }
 
 // registerUserID registers a new user and its enrollmentID, role and state
-func (r *Register) registerUserID(id string, userType string, group string, attributes []idp.Attribute, opt ...string) (string, error) {
+func (r *Register) registerUserID(id string, userType string, group string, attributes []api.Attribute, opt ...string) (string, error) {
 	log.Debugf("Registering user id: %s\n", id)
 
 	var tok string
@@ -167,8 +166,7 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 
 	_, err := userRegistry.GetUser(id, nil)
 	if err == nil {
-		log.Error("User is already registered")
-		return "", cop.NewError(cop.RegisteringUserError, "User is already registered")
+		return "", fmt.Errorf("User '%s' is already registered", id)
 	}
 
 	err = userRegistry.InsertUser(insert)
@@ -224,7 +222,7 @@ func (r *Register) canRegister(registrar string, userType string) error {
 		roles = make([]string, 0)
 	}
 	if !util.StrContained(userType, roles) {
-		return cop.NewError(cop.RegisteringUserError, "user %s may not register type %s", registrar, userType)
+		return fmt.Errorf("User '%s' may not register type '%s'", registrar, userType)
 	}
 
 	return nil

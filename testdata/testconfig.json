@@ -39,6 +39,22 @@
       "group": "bank_a",
       "attrs": [{"name":"hf.Revoker", "value": "true"}]
     },
+    "revoker2": {
+      "pass": "revokerpw2",
+      "type": "client",
+      "group": "bank_a",
+      "attrs": [{"name":"hf.Revoker", "value": "true"}]
+    },
+    "nonrevoker": {
+      "pass": "nonrevokerpw",
+      "type": "client",
+      "group": "bank_a"
+    },
+    "nonrevoker2": {
+      "pass": "nonrevokerpw2",
+      "type": "client",
+      "group": "bank_a"
+    },
     "notadmin": {
       "pass": "pass",
       "type": "client",

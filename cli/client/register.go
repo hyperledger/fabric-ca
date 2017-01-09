@@ -22,9 +22,7 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/idp"
-
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
@@ -54,7 +52,7 @@ func registerMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	regReq := new(idp.RegistrationRequest)
+	regReq := new(api.RegistrationRequest)
 	err = json.Unmarshal(buf, regReq)
 	if err != nil {
 		return err
@@ -75,15 +73,14 @@ func registerMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	regReq.Registrar = id
-	resp, err := client.Register(regReq)
+	resp, err := id.Register(regReq)
 	if err != nil {
 		return err
 	}
 
 	secretBytes, err := base64.StdEncoding.DecodeString(resp.Secret)
 	if err != nil {
-		cop.WrapError(err, cop.EnrollingUserError, "Failed to decode string to bytes")
+		return fmt.Errorf("Failed decoding response: %s", err)
 	}
 
 	fmt.Printf("One time password: %s\n", string(secretBytes))

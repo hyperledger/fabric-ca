@@ -22,7 +22,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 )
 
 var enrollUsageText = `cop client enroll -- Enroll with COP server
@@ -60,7 +60,7 @@ func enrollMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	req := &idp.EnrollmentRequest{
+	req := &api.EnrollmentRequest{
 		Name:   id,
 		Secret: secret,
 	}

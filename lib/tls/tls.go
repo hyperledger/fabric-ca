@@ -19,10 +19,10 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/log"
-	cop "github.com/hyperledger/fabric-cop/api"
 )
 
 // ClientTLSConfig defines the root ca and client certificate and key files
@@ -65,7 +65,7 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 		}
 		ok := caCertPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return nil, cop.NewError(cop.TLSError, "Failed to parse and append certificate [certificate: %s]", cacert)
+			return nil, fmt.Errorf("Failed to parse and append certificate [certificate: %s]", cacert)
 		}
 	}
 

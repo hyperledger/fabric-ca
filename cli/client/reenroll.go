@@ -22,7 +22,7 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 )
 
 var reenrollUsageText = `cop client reenroll -- Reenroll with COP server
@@ -57,7 +57,7 @@ func reenrollMain(args []string, c cli.Config) error {
 		return fmt.Errorf("Client is not yet enrolled: %s", err)
 	}
 
-	req := &idp.ReenrollmentRequest{ID: id}
+	req := &api.ReenrollmentRequest{}
 
 	if len(args) > 0 {
 		path, _, err2 := cli.PopFirstArgument(args)
@@ -70,7 +70,7 @@ func reenrollMain(args []string, c cli.Config) error {
 		}
 	}
 
-	newID, err := client.Reenroll(req)
+	newID, err := id.Reenroll(req)
 	if err != nil {
 		return fmt.Errorf("failed to store enrollment information: %s", err)
 	}

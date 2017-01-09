@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -32,12 +31,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudflare/cfssl/api"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/lib/tls"
 	"github.com/hyperledger/fabric-cop/util"
 )
@@ -72,62 +70,9 @@ type Client struct {
 	HomeDir string `json:"homeDir,omitempty"`
 }
 
-// Capabilities returns the capabilities COP
-func (c *Client) Capabilities() []idp.Capability {
-	return []idp.Capability{
-		idp.REGISTRATION,
-		idp.ENROLLMENT,
-		idp.ATTRIBUTES,
-		idp.ANONYMITY,
-		idp.UNLINKABILITY,
-	}
-}
-
-// Register registers a new identity
-// @param req The registration request
-func (c *Client) Register(req *idp.RegistrationRequest) (*idp.RegistrationResponse, error) {
-	log.Debugf("Register %+v", req)
-	// Send a post to the "register" endpoint with req as body
-
-	if req.Name == "" {
-		return nil, errors.New("Register was called without a Name set")
-	}
-	if req.Group == "" {
-		return nil, errors.New("Register was called without a Group set")
-	}
-	if req.Registrar == nil {
-		return nil, errors.New("Register was called without a Registrar identity set")
-	}
-
-	var request cop.RegisterRequest
-	request.User = req.Name
-	request.Type = req.Type
-	request.Group = req.Group
-	request.Attributes = req.Attributes
-	request.CallerID = req.Registrar.GetName()
-
-	reqBody, err := util.Marshal(request, "RegistrationRequest")
-	if err != nil {
-		return nil, err
-	}
-
-	buf, err2 := req.Registrar.(*Identity).Post("register", reqBody)
-	if err2 != nil {
-		return nil, err2
-	}
-
-	var response api.Response
-	json.Unmarshal(buf, &response)
-	resp := new(idp.RegistrationResponse)
-	resp.Secret = response.Result.(string)
-
-	log.Debug("The register request completely successfully")
-	return resp, nil
-}
-
 // Enroll enrolls a new identity
 // @param req The enrollment request
-func (c *Client) Enroll(req *idp.EnrollmentRequest) (*Identity, error) {
+func (c *Client) Enroll(req *api.EnrollmentRequest) (*Identity, error) {
 	log.Debugf("Enrolling %+v", req)
 
 	// Generate the CSR
@@ -155,82 +100,30 @@ func (c *Client) Enroll(req *idp.EnrollmentRequest) (*Identity, error) {
 		return nil, err
 	}
 	post.SetBasicAuth(req.Name, req.Secret)
-	cert, err := c.SendPost(post)
+	result, err := c.SendPost(post)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create an identity from the key and certificate in the response
-	return c.newIdentityFromResponse(req.Name, cert, key)
-}
-
-// Reenroll reenrolls an existing Identity and returns a new Identity
-// @param req The reenrollment request
-func (c *Client) Reenroll(req *idp.ReenrollmentRequest) (*Identity, error) {
-	log.Debugf("Reenrolling %+v", req)
-
-	if req.ID == nil {
-		return nil, errors.New("ReenrollmentRequest.ID was not set")
-	}
-
-	id := req.ID.(*Identity)
-
-	csrPEM, key, err := c.GenCSR(req.CSR, id.GetName())
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the body of the request
-	sreq := signer.SignRequest{
-		Hosts:   signer.SplitHosts(req.Hosts),
-		Request: string(csrPEM),
-		Profile: req.Profile,
-		Label:   req.Label,
-	}
-	body, err := util.Marshal(sreq, "SignRequest")
-	if err != nil {
-		return nil, err
-	}
-
-	cert, err := id.Post("reenroll", body)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.newIdentityFromResponse(id.GetName(), cert, key)
+	return c.newIdentityFromResponse(result, req.Name, key)
 }
 
 // newIdentityFromResponse returns an Identity for enroll and reenroll responses
+// @param result The result from server
 // @param id Name of identity being enrolled or reenrolled
-// @param cert The certificate which was issued
 // @param key The private key which was used to sign the request
-func (c *Client) newIdentityFromResponse(id string, cert, key []byte) (*Identity, error) {
+func (c *Client) newIdentityFromResponse(result interface{}, id string, key []byte) (*Identity, error) {
 	log.Debugf("newIdentityFromResponse %s", id)
-
-	var resp api.Response
-	err := json.Unmarshal(cert, &resp)
+	certByte, err := base64.StdEncoding.DecodeString(result.(string))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Invalid response format from server: %s", err)
 	}
-
-	certByte, _ := base64.StdEncoding.DecodeString(resp.Result.(string))
-
-	if resp.Result != nil && resp.Success == true {
-		log.Debugf("newIdentityFromResponse success for %s", id)
-		return newIdentity(c, id, key, certByte), nil
-	}
-
-	return nil, cop.NewError(cop.EnrollingUserError, "Failed to reenroll user")
-}
-
-// RegisterAndEnroll registers and enrolls a new identity
-// @param req The registration request
-func (c *Client) RegisterAndEnroll(req *idp.RegistrationRequest) (*Identity, error) {
-	return nil, errors.New("NotImplemented")
+	return newIdentity(c, id, key, certByte), nil
 }
 
 // GenCSR generates a CSR (Certificate Signing Request)
-func (c *Client) GenCSR(req *idp.CSRInfo, id string) ([]byte, []byte, error) {
+func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, []byte, error) {
 	log.Debugf("GenCSR %+v", req)
 
 	cr := c.newCertificateRequest(req)
@@ -247,7 +140,7 @@ func (c *Client) GenCSR(req *idp.CSRInfo, id string) ([]byte, []byte, error) {
 
 // newCertificateRequest creates a certificate request which is used to generate
 // a CSR (Certificate Signing Request)
-func (c *Client) newCertificateRequest(req *idp.CSRInfo) *csr.CertificateRequest {
+func (c *Client) newCertificateRequest(req *api.CSRInfo) *csr.CertificateRequest {
 	cr := csr.CertificateRequest{}
 	if req != nil && req.Names != nil {
 		cr.Names = req.Names
@@ -270,12 +163,6 @@ func (c *Client) newCertificateRequest(req *idp.CSRInfo) *csr.CertificateRequest
 		cr.SerialNumber = req.SerialNumber
 	}
 	return &cr
-}
-
-// ImportSigner imports a signer from an external CA
-// @param req The import request
-func (c *Client) ImportSigner(req *idp.ImportSignerRequest) (idp.Signer, error) {
-	return nil, errors.New("NotImplemented")
 }
 
 // LoadMyIdentity loads the client's identity from disk
@@ -343,12 +230,12 @@ func (c *Client) NewIdentity(key, cert []byte) (*Identity, error) {
 
 // LoadCSRInfo reads CSR (Certificate Signing Request) from a file
 // @parameter path The path to the file contains CSR info in JSON format
-func (c *Client) LoadCSRInfo(path string) (*idp.CSRInfo, error) {
+func (c *Client) LoadCSRInfo(path string) (*api.CSRInfo, error) {
 	csrJSON, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var csrInfo idp.CSRInfo
+	var csrInfo api.CSRInfo
 	err = util.Unmarshal(csrJSON, &csrInfo, "LoadCSRInfo")
 	if err != nil {
 		return nil, err
@@ -364,32 +251,31 @@ func (c *Client) NewPost(endpoint string, reqBody []byte) (*http.Request, error)
 	}
 	req, err := http.NewRequest("POST", curl, bytes.NewReader(reqBody))
 	if err != nil {
-		msg := fmt.Sprintf("failed to create new request to %s: %v", curl, err)
-		log.Debug(msg)
-		return nil, cop.NewError(cop.CFSSL, msg)
+		return nil, fmt.Errorf("Failed posting to %s: %s", curl, err)
 	}
 	return req, nil
 }
 
 // SendPost sends a request to the LDAP server and returns a response
-func (c *Client) SendPost(req *http.Request) (respBody []byte, err error) {
-	log.Debugf("Sending request\n%s", util.HTTPRequestToString(req))
+func (c *Client) SendPost(req *http.Request) (interface{}, error) {
+	reqStr := util.HTTPRequestToString(req)
+	log.Debugf("Sending request\n%s", reqStr)
 
 	configFile, err := c.getClientConfig(c.HomeDir)
 	if err != nil {
-		log.Errorf("Failed to load client configuration file [error: %s]", err)
+		return nil, fmt.Errorf("Failed to load client config file [%s]; not sending\n%s", err, reqStr)
 	}
 
 	var cfg = new(tls.ClientTLSConfig)
 
 	err = json.Unmarshal(configFile, cfg)
 	if err != nil {
-		log.Errorf("Error: %s", err)
+		return nil, fmt.Errorf("Failed to parse client config file [%s]; not sending\n%s", err, reqStr)
 	}
 
 	tlsConfig, err := tls.GetClientTLSConfig(cfg)
 	if err != nil {
-		log.Errorf("Failed to get client TLS configuration [error: %s]", err)
+		return nil, fmt.Errorf("Failed to get client TLS config [%s]; not sending\n%s", err, reqStr)
 	}
 
 	tr := &http.Transport{
@@ -397,44 +283,48 @@ func (c *Client) SendPost(req *http.Request) (respBody []byte, err error) {
 	}
 
 	httpClient := &http.Client{Transport: tr}
-
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		msg := fmt.Sprintf("POST failed: %v", err)
-		log.Debug(msg)
-		return nil, errors.New(msg)
+		return nil, fmt.Errorf("POST failure [%s]; not sending\n%s", err, reqStr)
 	}
+	var respBody []byte
 	if resp.Body != nil {
 		respBody, err = ioutil.ReadAll(resp.Body)
 		defer resp.Body.Close()
 		if err != nil {
-			msg := fmt.Sprintf("failed to read response: %v", err)
-			log.Debug(msg)
-			return nil, errors.New(msg)
+			return nil, fmt.Errorf("Failed to read response [%s] of request:\n%s", err, reqStr)
 		}
 		log.Debugf("Received response\n%s", util.HTTPResponseToString(resp))
 	}
-	if resp.StatusCode >= 400 {
-		var msg string
-		body := new(api.Response)
+	var body *cfsslapi.Response
+	if respBody != nil && len(respBody) > 0 {
+		body = new(cfsslapi.Response)
 		err = json.Unmarshal(respBody, body)
-		if err != nil && len(body.Errors) > 0 {
-			msg = body.Errors[0].Message
-		} else {
-			msg = fmt.Sprintf("HTTP status code=%d; %s", resp.StatusCode, string(respBody))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse response [%s] for request:\n%s", err, reqStr)
 		}
-		msg = fmt.Sprintf("Error response from COP server; %s", msg)
-		log.Debugf("%s", msg)
-		return nil, errors.New(msg)
+		if len(body.Errors) > 0 {
+			msg := body.Errors[0].Message
+			return nil, fmt.Errorf("Error response from server was '%s' for request:\n%s", msg, reqStr)
+		}
 	}
-	return respBody, nil
+	scode := resp.StatusCode
+	if scode >= 400 {
+		return nil, fmt.Errorf("Failed with server status code %d for request:\n%s", scode, reqStr)
+	}
+	if body == nil {
+		return nil, nil
+	}
+	if !body.Success {
+		return nil, fmt.Errorf("Server returned failure for request:\n%s", reqStr)
+	}
+	return body.Result, nil
 }
 
-func (c *Client) getURL(endpoint string) (string, cop.Error) {
+func (c *Client) getURL(endpoint string) (string, error) {
 	nurl, err := normalizeURL(c.ServerURL)
 	if err != nil {
-		log.Debugf("error getting server URL: %s", err)
-		return "", cop.WrapError(err, cop.CFSSL, "error getting URL for %s", endpoint)
+		return "", err
 	}
 	rtn := fmt.Sprintf("%s/api/v1/cfssl/%s", nurl, endpoint)
 	return rtn, nil

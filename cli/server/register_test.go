@@ -23,26 +23,25 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
-	cop "github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 )
 
 type Admin struct {
-	User       string
+	Name       string
 	Pass       []byte
 	Type       string
 	Group      string
-	Attributes []idp.Attribute
+	Attributes []api.Attribute
 }
 
 var (
-	NotRegistrar = Admin{User: "testUser2", Pass: []byte("pass"), Type: "User", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "client"}}}
-	Registrar    = Admin{User: "admin", Pass: []byte("adminpw"), Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "hf.Registrar.DelegateRoles", Value: "client,user,auditor"}}}
-	testUser     = cop.RegisterRequest{User: "testUser1", Type: "user", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
-	testAuditor  = cop.RegisterRequest{User: "testAuditor", Type: "Auditor", Attributes: []idp.Attribute{idp.Attribute{Name: "role", Value: "auditor"}}}
-	testClient1  = cop.RegisterRequest{User: "testClient1", Type: "Client", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
-	testBogus    = cop.RegisterRequest{User: "testBogus", Type: "Bogus", Group: "bank_b", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
-	testEnroll   = cop.RegisterRequest{User: "testEnroll", Type: "User", Group: "bank_a", Attributes: []idp.Attribute{idp.Attribute{Name: "test", Value: "testValue"}}}
+	NotRegistrar = Admin{Name: "testUser2", Pass: []byte("pass"), Type: "User", Group: "bank_b", Attributes: []api.Attribute{api.Attribute{Name: "role", Value: "client"}}}
+	Registrar    = Admin{Name: "admin", Pass: []byte("adminpw"), Type: "User", Group: "bank_a", Attributes: []api.Attribute{api.Attribute{Name: "hf.Registrar.DelegateRoles", Value: "client,user,auditor"}}}
+	testUser     = api.RegistrationRequest{Name: "testUser1", Type: "user", Group: "bank_a", Attributes: []api.Attribute{api.Attribute{Name: "test", Value: "testValue"}}}
+	testAuditor  = api.RegistrationRequest{Name: "testAuditor", Type: "Auditor", Attributes: []api.Attribute{api.Attribute{Name: "role", Value: "auditor"}}}
+	testClient1  = api.RegistrationRequest{Name: "testClient1", Type: "Client", Group: "bank_a", Attributes: []api.Attribute{api.Attribute{Name: "test", Value: "testValue"}}}
+	testBogus    = api.RegistrationRequest{Name: "testBogus", Type: "Bogus", Group: "bank_b", Attributes: []api.Attribute{api.Attribute{Name: "test", Value: "testValue"}}}
+	testEnroll   = api.RegistrationRequest{Name: "testEnroll", Type: "User", Group: "bank_a", Attributes: []api.Attribute{api.Attribute{Name: "test", Value: "testValue"}}}
 )
 
 const (
@@ -82,18 +81,17 @@ func bootstrapUsers() error {
 	if r == nil {
 		return errors.New("Failed to get register object")
 	}
-	r.RegisterUser(Registrar.User, Registrar.Type, Registrar.Group, Registrar.Attributes, "", string(Registrar.Pass))
+	r.RegisterUser(Registrar.Name, Registrar.Type, Registrar.Group, Registrar.Attributes, "", string(Registrar.Pass))
 
-	r.RegisterUser(NotRegistrar.User, NotRegistrar.Type, NotRegistrar.Group, NotRegistrar.Attributes, "", string(NotRegistrar.Pass))
+	r.RegisterUser(NotRegistrar.Name, NotRegistrar.Type, NotRegistrar.Group, NotRegistrar.Attributes, "", string(NotRegistrar.Pass))
 
 	return nil
 }
 
-func registerUser(registrar Admin, user *cop.RegisterRequest) (string, error) {
+func registerUser(registrar Admin, user *api.RegistrationRequest) (string, error) {
 	r := NewRegisterUser()
 
-	user.CallerID = registrar.User
-	tok, err := r.RegisterUser(user.User, user.Type, user.Group, user.Attributes, user.CallerID)
+	tok, err := r.RegisterUser(user.Name, user.Type, user.Group, user.Attributes, registrar.Name)
 	if err != nil {
 		return "", err
 	}

@@ -31,9 +31,7 @@ func getIdentity() *Identity {
 func TestIdentity(t *testing.T) {
 	id := getIdentity()
 	testGetName(id, t)
-	testGetPublicSigner(id, t)
-	testGetAttributeNames(id, t)
-	testDelete(id, t)
+	testGetECert(id, t)
 }
 
 func testGetName(id *Identity, t *testing.T) {
@@ -43,19 +41,9 @@ func testGetName(id *Identity, t *testing.T) {
 	}
 }
 
-func testGetPublicSigner(id *Identity, t *testing.T) {
-	publicSigner := id.GetPublicSigner()
-	if publicSigner == nil {
-		t.Error("No public signer returned")
+func testGetECert(id *Identity, t *testing.T) {
+	ecert := id.GetECert()
+	if ecert == nil {
+		t.Error("No ECert was returned")
 	}
-}
-
-// Place holder test, method has not yet been implemented
-func testGetAttributeNames(id *Identity, t *testing.T) {
-	id.GetAttributeNames()
-}
-
-// Place holder test, method has not yet been implemented
-func testDelete(id *Identity, t *testing.T) {
-	id.Delete()
 }

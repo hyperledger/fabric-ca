@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 )
 
 var revokeUsageTxt = `cop client revoke -- revokes one or more certificates
@@ -69,7 +69,7 @@ func revokeMain(args []string, c cli.Config) error {
 	}
 
 	return id.Revoke(
-		&idp.RevocationRequest{
+		&api.RevocationRequest{
 			Name:   enrollmentID,
 			Serial: c.Serial,
 			AKI:    c.AKI,

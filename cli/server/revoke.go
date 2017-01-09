@@ -23,17 +23,17 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/cloudflare/cfssl/api"
+	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
 
-	"github.com/hyperledger/fabric-cop/idp"
+	"github.com/hyperledger/fabric-cop/api"
 	"github.com/hyperledger/fabric-cop/util"
 )
 
 // NewRevokeHandler is constructor for revoke handler
 func NewRevokeHandler() (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
-	return &api.HTTPHandler{
+	return &cfsslapi.HTTPHandler{
 		Handler: &revokeHandler{},
 		Methods: []string{"POST"}}, nil
 }
@@ -73,7 +73,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Parse revoke request body
-	var req idp.RevocationRequest
+	var req api.RevocationRequestNet
 	err = json.Unmarshal(body, &req)
 	if err != nil {
 		return badRequest(w, err)
@@ -112,5 +112,5 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Debug("Revoke was successful: %+v", req)
 
 	result := map[string]string{}
-	return api.SendResponse(w, result)
+	return cfsslapi.SendResponse(w, result)
 }
