@@ -35,6 +35,7 @@ import (
 	mrand "math/rand"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -337,7 +338,7 @@ func B64Decode(str string) (buf []byte, err error) {
 	return base64.RawStdEncoding.DecodeString(str)
 }
 
-// GetDB returns DB
+// GetDB returns a handle to an established driver-specific database connection
 func GetDB(driver string, dbPath string) (*sqlx.DB, error) {
 	return sqlx.Open(driver, dbPath)
 }
@@ -374,11 +375,10 @@ func GetDefaultHomeDir() string {
 	if home == "" {
 		home = os.Getenv("HOME")
 		if home != "" {
-			home = home + "/.cop"
+			home = path.Join(home, "/cop")
+		} else {
+			home = "/var/hyperledger/fabric/dev/fabric-cop"
 		}
-	}
-	if home == "" {
-		home = "/var/hyperledger/fabric/dev/.fabric-cop"
 	}
 	return home
 }

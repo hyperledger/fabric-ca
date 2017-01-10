@@ -33,10 +33,3 @@ func TestNewClientBadConfig(t *testing.T) {
 		t.Error("TestNewClientBadConfig did not fail but should have")
 	}
 }
-
-func TestNewIdentity(t *testing.T) {
-	_, err := NewIdentity()
-	if err != nil {
-		t.Error("Failed to create identity")
-	}
-}
