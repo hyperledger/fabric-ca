@@ -35,6 +35,7 @@ import (
 const (
 	ClientTLSConfig = "client-config.json"
 	FCADB           = "../testdata/fabric-ca.db"
+	CFGFile         = "testconfig.json"
 )
 
 var serverStarted bool
@@ -253,7 +254,11 @@ func startServer() int {
 func runServer() {
 	os.Setenv("FABRIC_CA_DEBUG", "true")
 	os.Setenv("FABRIC_CA_HOME", dir)
-	server.Start("../testdata", "testconfig.json")
+	s := new(server.Server)
+	s.ConfigDir = "../testdata"
+	s.ConfigFile = CFGFile
+	s.StartFromConfig = true
+	s.Start()
 }
 
 func TestLast(t *testing.T) {

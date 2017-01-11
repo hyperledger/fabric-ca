@@ -36,6 +36,7 @@ var dir string
 const (
 	ClientTLSConfig = "client-config.json"
 	FabricCADB      = "../../testdata/fabric-ca.db"
+	CFGFile         = "testconfig.json"
 )
 
 // TestNewClient tests constructing a client
@@ -215,7 +216,11 @@ func TestLast(t *testing.T) {
 
 func runServer() {
 	os.Setenv("FABRIC_CA_DEBUG", "true")
-	server.Start("../../testdata", "testconfig.json")
+	s := new(server.Server)
+	s.ConfigDir = "../../testdata"
+	s.ConfigFile = CFGFile
+	s.StartFromConfig = false
+	s.Start()
 }
 
 func startServer() {

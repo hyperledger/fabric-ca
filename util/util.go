@@ -43,7 +43,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-var rnd = mrand.NewSource(time.Now().UnixNano())
+var (
+	rnd = mrand.NewSource(time.Now().UnixNano())
+	// ErrNotImplemented used to return errors for functions not implemented
+	ErrNotImplemented = errors.New("NOT YET IMPLEMENTED")
+)
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const (
