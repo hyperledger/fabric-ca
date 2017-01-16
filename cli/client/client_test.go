@@ -210,6 +210,7 @@ func TestBogusCommand(t *testing.T) {
 func TestLast(t *testing.T) {
 	// Cleanup
 	os.RemoveAll(dir)
+	os.Remove("../../testdata/cop.db")
 }
 
 func runServer() {
