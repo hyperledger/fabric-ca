@@ -99,7 +99,6 @@ func testEverything(ta TestAccessor, t *testing.T) {
 	testUpdateUser(ta, t)
 	testInsertAndGetGroup(ta, t)
 	testDeleteGroup(ta, t)
-	testUpdateAndGetField(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
@@ -226,21 +225,4 @@ func testDeleteGroup(ta TestAccessor, t *testing.T) {
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}
-}
-
-func testUpdateAndGetField(ta TestAccessor, t *testing.T) {
-	ta.Truncate()
-
-	insert := spi.UserInfo{
-		Name:       "testId",
-		Pass:       "123456",
-		Type:       "client",
-		Attributes: []api.Attribute{},
-	}
-
-	err := ta.Accessor.InsertUser(insert)
-	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
-	}
-
 }

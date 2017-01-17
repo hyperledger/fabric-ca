@@ -175,6 +175,12 @@ func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error)
 	return user, nil
 }
 
+// GetUserInfo gets user information from database
+func (lc *Client) GetUserInfo(id string) (spi.UserInfo, error) {
+	var userInfo spi.UserInfo
+	return userInfo, errNotSupported
+}
+
 // InsertUser inserts a user
 func (lc *Client) InsertUser(user spi.UserInfo) error {
 	return errNotSupported
@@ -187,16 +193,6 @@ func (lc *Client) UpdateUser(user spi.UserInfo) error {
 
 // DeleteUser deletes a user
 func (lc *Client) DeleteUser(id string) error {
-	return errNotSupported
-}
-
-// GetField retrieves a field of a user record
-func (lc *Client) GetField(id string, field int) (interface{}, error) {
-	return nil, errNotSupported
-}
-
-// UpdateField updates a field of a user record
-func (lc *Client) UpdateField(id string, field int, value interface{}) error {
 	return errNotSupported
 }
 

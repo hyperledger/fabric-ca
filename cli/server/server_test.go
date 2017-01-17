@@ -359,20 +359,6 @@ func TestRevokeCertificatesByID(t *testing.T) {
 	}
 }
 
-func TestGetField(t *testing.T) {
-	_, err := userRegistry.GetField("testUser2", 5)
-	if err == nil {
-		t.Errorf("Error should occured while getting unsupported field, [error: %s]", err)
-	}
-}
-
-func TestUpdateField(t *testing.T) {
-	err := userRegistry.UpdateField("testUser2", state, 5)
-	if err != nil {
-		t.Errorf("Error occured while updating state field for id 'testUser2', [error: %s]", err)
-	}
-}
-
 func TestExpiration(t *testing.T) {
 
 	copServer := `{"serverURL":"https://localhost:8888"}`
@@ -402,7 +388,6 @@ func TestExpiration(t *testing.T) {
 }
 
 func TestUserRegistry(t *testing.T) {
-
 	err := InitUserRegistry(&Config{DBdriver: "postgres", DataSource: "dbname=cop sslmode=disable"})
 	if err == nil {
 		t.Error("Trying to create a postgres registry should have failed")

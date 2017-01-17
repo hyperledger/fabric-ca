@@ -87,26 +87,32 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
-		_, err := userRegistry.GetUser(req.Name, nil)
+
+		user, err := userRegistry.GetUser(req.Name, nil)
 		if err != nil {
 			err = fmt.Errorf("Failed to get user %s: %s", req.Name, err)
 			return notFound(w, err)
 		}
 
-		err = userRegistry.UpdateField(req.Name, state, -1)
-		if err != nil {
-			err = fmt.Errorf("Failed to disable user %s: %s", req.Name, err)
-			log.Warningf("%s", err)
-			return dbErr(w, err)
+		// Set user state to -1 for revoked user
+		if user != nil {
+			userInfo, err := userRegistry.GetUserInfo(req.Name)
+			if err != nil {
+				err = fmt.Errorf("Failed to get user info %s: %s", req.Name, err)
+				return notFound(w, err)
+			}
+
+			userInfo.State = -1
+
+			err = userRegistry.UpdateUser(userInfo)
+			if err != nil {
+				log.Warningf("Revoke failed: %s", err)
+				return dbErr(w, err)
+			}
 		}
-		_, err = certDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
-		if err != nil {
-			err = fmt.Errorf("Failed to revoke certificates for user %s: %s", req.Name, err)
-			log.Warningf("%s", err)
-			return dbErr(w, err)
-		}
+
 	} else {
-		return badRequest(w, errors.New("either Name or Serial and AKI are required for a revoke request"))
+		return badRequest(w, errors.New("Either Name or Serial and AKI are required for a revoke request"))
 	}
 
 	log.Debug("Revoke was successful: %+v", req)

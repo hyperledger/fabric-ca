@@ -73,7 +73,7 @@ func createSQLiteDBTables(datasource string) error {
 	}
 
 	log.Debug("Creating tables...")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, serial_number bytea, authority_key_identifier bytea)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		return err
 	}
 	log.Debug("Created users table")
@@ -168,7 +168,7 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 	}
 
 	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, serial_number bytea, authority_key_identifier bytea)"); err != nil {
+	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
@@ -254,7 +254,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Failed to open database (%s), err: %s", dbName, err)
 	}
 	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, serial_number varbinary(20), authority_key_identifier varbinary(128), PRIMARY KEY (id))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id))"); err != nil {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}

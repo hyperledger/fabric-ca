@@ -25,11 +25,13 @@ import "github.com/hyperledger/fabric-cop/api"
 
 // UserInfo contains information about a user
 type UserInfo struct {
-	Name       string
-	Pass       string
-	Type       string
-	Group      string
-	Attributes []api.Attribute
+	Name           string
+	Pass           string
+	Type           string
+	Group          string
+	Attributes     []api.Attribute
+	State          int
+	MaxEnrollments int
 }
 
 // GroupInfo defines a group name and its parent
@@ -60,11 +62,10 @@ type Group interface {
 // UserRegistry is the API for retreiving users and groups
 type UserRegistry interface {
 	GetUser(id string, attrs []string) (User, error)
+	GetUserInfo(id string) (UserInfo, error)
 	InsertUser(user UserInfo) error
 	UpdateUser(user UserInfo) error
 	DeleteUser(id string) error
-	UpdateField(id string, field int, value interface{}) error
-	GetField(id string, field int) (interface{}, error)
 	GetGroup(name string) (Group, error)
 	GetRootGroup() (Group, error)
 	InsertGroup(name string, parentID string) error
