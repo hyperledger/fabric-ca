@@ -33,7 +33,8 @@ var serverExitCode = 0
 var dir string
 
 const (
-	ClientTLSConfig string = "cop_client.json"
+	ClientTLSConfig = "cop_client.json"
+	COPDB           = "../../testdata/cop.db"
 )
 
 // TestNewClient tests constructing a client
@@ -209,8 +210,8 @@ func TestBogusCommand(t *testing.T) {
 
 func TestLast(t *testing.T) {
 	// Cleanup
+	os.Remove(COPDB)
 	os.RemoveAll(dir)
-	os.Remove("../../testdata/cop.db")
 }
 
 func runServer() {
@@ -227,6 +228,8 @@ func startServer() {
 	}
 
 	if !serverStarted {
+		os.Remove(COPDB)
+		os.RemoveAll(dir)
 		serverStarted = true
 		fmt.Println("starting COP server ...")
 		os.Setenv("COP_HOME", dir)
