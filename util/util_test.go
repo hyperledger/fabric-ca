@@ -19,6 +19,7 @@ package util
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -230,6 +231,10 @@ func makeFileAbs(t *testing.T, file, dir, expect string) {
 	path, err := MakeFileAbs(file, dir)
 	if err != nil {
 		t.Errorf("Failed to make %s absolute: %s", file, err)
+	}
+	// make expected path platform specific to work on Windows
+	if expect != "" {
+		expect, _ = filepath.Abs(expect)
 	}
 	if path != expect {
 		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
