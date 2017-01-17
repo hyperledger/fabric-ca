@@ -107,6 +107,11 @@ build/image/$(PROJECT_NAME)-runtime/payload:	build/docker/busybox
 
 build/image/%/payload:
 	mkdir -p $@
+	cp images/cop/root.pem $@/root.pem
+	cp images/cop/tls_client-cert.pem $@/tls_client-cert.pem
+	cp images/cop/tls_client-key.pem $@/tls_client-key.pem
+	cp images/cop/ec.pem $@/ec.pem
+	cp images/cop/ec-key.pem $@/ec-key.pem
 	cp $^ $@
 
 build/image/%/$(DUMMY): Makefile build/image/%/payload
