@@ -16,7 +16,7 @@ limitations under the License.
 
 package client
 
-import "github.com/hyperledger/fabric-cop/lib"
+import "github.com/hyperledger/fabric-ca/lib"
 
 // NewClient returns a client given a url
 func NewClient(url string) (*lib.Client, error) {

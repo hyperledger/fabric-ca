@@ -17,14 +17,14 @@
 #
 #   - all (default) - builds all targets and runs all tests
 #   - license - check all go files for license headers
-#   - cop - builds the cop executable
+#   - fabric-ca - builds the fabric-ca executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - ldap-tests - runs the LDAP tests
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
 #   - clean - cleans the build area
 
-PROJECT_NAME   = fabric-cop
+PROJECT_NAME   = fabric-ca
 BASE_VERSION   = 0.7.0
 IS_RELEASE     = false
 
@@ -43,17 +43,20 @@ K := $(foreach exec,$(EXECUTABLES),\
 ARCH=$(shell uname -m)
 BASEIMAGE_RELEASE = 0.2.2
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
-SAMPLECONFIG = $(shell git ls-files images/cop/config)
+SAMPLECONFIG = $(shell git ls-files images/fabric-ca/config)
 
 DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-runtime
 
-image-path-map.fabric-cop         := cop
-image-path-map.fabric-cop-runtime := runtime
+image-path-map.fabric-ca         := fabric-ca
+image-path-map.fabric-ca-runtime := runtime
 
 include docker-env.mk
 
-all: docker unit-tests
+all: rename docker unit-tests
+
+rename: .FORCE
+	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
@@ -74,22 +77,21 @@ lint: .FORCE
 vet: .FORCE
 	@scripts/check_vet
 
-cop:
-	@echo "Building cop in bin directory ..."
-	@mkdir -p bin && cd cli && go build -o ../bin/cop
-	@echo "Built bin/cop"
+fabric-ca:
+	@echo "Building fabric-ca in bin directory ..."
+	@mkdir -p bin && go build -o bin/fabric-ca
+	@echo "Built bin/fabric-ca"
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
 # directory so that subsequent builds are faster
-build/docker/bin/cop:
+build/docker/bin/fabric-ca:
 	@echo "Building $@"
 	@mkdir -p $(@D) build/docker/$(@F)/pkg
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
 		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/cli
-	mv build/docker/bin/cli $@
+		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)
 	@touch $@
 
 build/docker/busybox:
@@ -101,17 +103,17 @@ build/docker/busybox:
 build/image/$(PROJECT_NAME)/$(DUMMY): build/image/$(PROJECT_NAME)-runtime/$(DUMMY)
 
 # payload definitions
-build/image/$(PROJECT_NAME)/payload:	build/docker/bin/cop \
+build/image/$(PROJECT_NAME)/payload:	build/docker/bin/fabric-ca \
 					build/sampleconfig.tar.bz2
 build/image/$(PROJECT_NAME)-runtime/payload:	build/docker/busybox
 
 build/image/%/payload:
 	mkdir -p $@
-	cp images/cop/root.pem $@/root.pem
-	cp images/cop/tls_client-cert.pem $@/tls_client-cert.pem
-	cp images/cop/tls_client-key.pem $@/tls_client-key.pem
-	cp images/cop/ec.pem $@/ec.pem
-	cp images/cop/ec-key.pem $@/ec-key.pem
+	cp images/fabric-ca/root.pem $@/root.pem
+	cp images/fabric-ca/tls_client-cert.pem $@/tls_client-cert.pem
+	cp images/fabric-ca/tls_client-key.pem $@/tls_client-key.pem
+	cp images/fabric-ca/ec.pem $@/ec.pem
+	cp images/fabric-ca/ec-key.pem $@/ec-key.pem
 	cp $^ $@
 
 build/image/%/$(DUMMY): Makefile build/image/%/payload
@@ -127,9 +129,9 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 	@touch $@
 
 build/sampleconfig.tar.bz2: $(SAMPLECONFIG)
-	tar -jc -C images/cop/config $(patsubst images/cop/config/%,%,$(SAMPLECONFIG)) > $@
+	tar -jc -C images/fabric-ca/config $(patsubst images/fabric-ca/config/%,%,$(SAMPLECONFIG)) > $@
 
-unit-tests: checks cop
+unit-tests: checks fabric-ca
 	@scripts/run_tests
 
 container-tests: ldap-tests

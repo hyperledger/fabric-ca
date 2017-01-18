@@ -1,7 +1,7 @@
 {
  "tls_disable":false,
  "driver":"sqlite3",
- "data_source":"cop.db",
+ "data_source":"fabric-ca.db",
  "user_registry": {
    "max_enrollments": 1
  },

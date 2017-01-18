@@ -14,11 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
- * This file contains interfaces for the COP library.
- * COP provides police-like security functions for Hyperledger Fabric.
- */
-
 package spi
 
 import "testing"

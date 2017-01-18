@@ -16,12 +16,12 @@ limitations under the License.
 
 package api
 
-import "github.com/hyperledger/fabric-cop/lib/tcert"
+import "github.com/hyperledger/fabric-ca/lib/tcert"
 
 /*
  * This file contains the structure definitions for the request
- * and responses which flow over the network between a COP client
- * and the COP server.
+ * and responses which flow over the network between a fabric-ca client
+ * and the fabric-ca server.
  */
 
 // RegistrationRequestNet is the registration request for a new identity
@@ -46,7 +46,7 @@ type ReenrollmentRequestNet struct {
 }
 
 // RevocationRequestNet is a revocation request which flows over the network
-// to the COP server.
+// to the fabric-ca server.
 // To revoke a single certificate, both the Serial and AKI fields must be set;
 // otherwise, to revoke all certificates and the identity associated with an enrollment ID,
 // the Name field must be set to an existing enrollment ID.

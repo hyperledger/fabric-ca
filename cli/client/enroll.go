@@ -22,20 +22,20 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 
-	"github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-ca/api"
 )
 
-var enrollUsageText = `cop client enroll -- Enroll with COP server
+var enrollUsageText = `fabric-ca client enroll -- Enroll with fabric-ca server
 
 Usage of client enroll command:
     Enroll a client and get an ecert:
-        cop client enroll ID SECRET COP-SERVER-ADDR
+       fabric-ca client enroll ID SECRET FABRIC-CA-SERVER-ADDR
 
 Arguments:
-        ID:               Enrollment ID
-        SECRET:           Enrollment secret returned by register
-        COP-SERVER-ADDR:  COP server address
-	     CSRJSON:          Certificate Signing Request JSON information (Optional)
+        ID:                     Enrollment ID
+        SECRET:                 Enrollment secret returned by register
+        FABRIC-CA-SERVER-ADDR:  Fabric CA server address
+	     CSRJSON:                Certificate Signing Request JSON information (Optional)
 
 Flags:
 `
@@ -55,7 +55,7 @@ func enrollMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	copServer, args, err := cli.PopFirstArgument(args)
+	fcaServer, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func enrollMain(args []string, c cli.Config) error {
 		Secret: secret,
 	}
 
-	client, err := NewClient(copServer)
+	client, err := NewClient(fcaServer)
 	if err != nil {
 		return err
 	}

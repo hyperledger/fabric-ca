@@ -24,7 +24,7 @@ import (
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 // NewEnrollHandler is the constructor for the enroll handler

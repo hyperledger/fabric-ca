@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/cli/server"
+	"github.com/hyperledger/fabric-ca/cli/server"
 )
 
 var serverStarted bool
@@ -33,8 +33,8 @@ var serverExitCode = 0
 var dir string
 
 const (
-	ClientTLSConfig = "cop_client.json"
-	COPDB           = "../../testdata/cop.db"
+	ClientTLSConfig = "client-config.json"
+	FabricCADB      = "../../testdata/fabric-ca.db"
 )
 
 // TestNewClient tests constructing a client
@@ -49,7 +49,7 @@ func TestEnrollCLI(t *testing.T) {
 	startServer()
 
 	clientConfig := filepath.Join(dir, ClientTLSConfig)
-	os.Link("../../testdata/cop_client2.json", clientConfig)
+	os.Link("../../testdata/client-config2.json", clientConfig)
 
 	c := new(cli.Config)
 
@@ -114,7 +114,7 @@ func TestRegisterNoJSON(t *testing.T) {
 func TestRegisterMissingRegistrar(t *testing.T) {
 	c := new(cli.Config)
 
-	// os.Setenv("COP_HOME", "/tmp")
+	// os.Setenv("FABRIC_CA_HOME", "/tmp")
 	args := []string{"", "", "https://localhost:8888"}
 
 	err := registerMain(args, *c)
@@ -210,12 +210,12 @@ func TestBogusCommand(t *testing.T) {
 
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.Remove(COPDB)
+	os.Remove(FabricCADB)
 	os.RemoveAll(dir)
 }
 
 func runServer() {
-	os.Setenv("COP_DEBUG", "true")
+	os.Setenv("FABRIC_CA_DEBUG", "true")
 	server.Start("../../testdata", "testconfig.json")
 }
 
@@ -228,15 +228,15 @@ func startServer() {
 	}
 
 	if !serverStarted {
-		os.Remove(COPDB)
+		os.Remove(FabricCADB)
 		os.RemoveAll(dir)
 		serverStarted = true
-		fmt.Println("starting COP server ...")
-		os.Setenv("COP_HOME", dir)
+		fmt.Println("starting fabric-ca server ...")
+		os.Setenv("FABRIC_CA_HOME", dir)
 		go runServer()
 		time.Sleep(10 * time.Second)
-		fmt.Println("COP server started")
+		fmt.Println("fabric-ca server started")
 	} else {
-		fmt.Println("COP server already started")
+		fmt.Println("fabric-ca server already started")
 	}
 }

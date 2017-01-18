@@ -18,7 +18,7 @@ package lib
 
 import (
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-ca/api"
 )
 
 func newSigner(key, cert []byte, id *Identity) *Signer {

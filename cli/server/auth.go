@@ -26,7 +26,7 @@ import (
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 )
 
 // AuthHandler
-type copAuthHandler struct {
+type fcaAuthHandler struct {
 	basic bool
 	token bool
 	next  http.Handler
@@ -67,14 +67,14 @@ func newAuthHandler(basic, token bool, handler http.Handler, errArg error) (h ht
 	if errArg != nil {
 		return nil, errArg
 	}
-	ah := new(copAuthHandler)
+	ah := new(fcaAuthHandler)
 	ah.basic = basic
 	ah.token = token
 	ah.next = handler
 	return ah, nil
 }
 
-func (ah *copAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (ah *fcaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := ah.serveHTTP(w, r)
 	if err != nil {
 		api.HandleError(w, err)
@@ -84,7 +84,7 @@ func (ah *copAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Handle performs authentication
-func (ah *copAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
+func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	log.Infof("Received request\n%s", util.HTTPRequestToString(r))
 	cfg := CFG
 	if !cfg.Authentication {

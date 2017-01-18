@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"path"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
@@ -28,9 +29,9 @@ import (
 	"github.com/hyperledger/fabric/core/crypto/bccsp/factory"
 )
 
-var initUsageText = `cop server init CSRJSON -- generates a new private key and self-signed certificate
+var initUsageText = `fabric-ca server init CSRJSON -- generates a new private key and self-signed certificate
 Usage:
-        cop server init CSRJSON
+        fabric-ca server init CSRJSON
 Arguments:
         CSRJSON:    JSON file containing the request, use '-' for reading JSON from stdin
 Flags:
@@ -38,7 +39,7 @@ Flags:
 
 var initFlags = []string{"remote", "u"}
 
-// initMain creates the private key and self-signed certificate needed to start COP Server
+// initMain creates the private key and self-signed certificate needed to start fabric-ca Server
 func initMain(args []string, c cli.Config) (err error) {
 	csrFile, _, err := cli.PopFirstArgument(args)
 	if err != nil {
@@ -74,17 +75,17 @@ func initMain(args []string, c cli.Config) (err error) {
 	}
 
 	s := new(Server)
-	COPHome, err := s.CreateHome()
+	FCAHome, err := s.CreateHome()
 	if err != nil {
 		return errors.New(err.Error())
 	}
-	certerr := ioutil.WriteFile(COPHome+"/server-cert.pem", cert, 0755)
+	certerr := ioutil.WriteFile(path.Join(FCAHome, "server-cert.pem"), cert, 0755)
 	if certerr != nil {
-		log.Fatal("Error writing server-cert.pem to $COPHome directory")
+		log.Fatal("Error writing server-cert.pem to fabric-ca home directory")
 	}
-	keyerr := ioutil.WriteFile(COPHome+"/server-key.pem", key, 0755)
+	keyerr := ioutil.WriteFile(path.Join(FCAHome, "server-key.pem"), key, 0755)
 	if keyerr != nil {
-		log.Fatal("Error writing server-key.pem to $COPHome directory")
+		log.Fatal("Error writing server-key.pem to fabric-ca home directory")
 	}
 
 	return nil

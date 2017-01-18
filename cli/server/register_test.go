@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-ca/api"
 )
 
 type Admin struct {
@@ -65,7 +65,7 @@ func prepRegister() error {
 
 	regCFG := CFG
 	homeDir = regPath
-	datasource := filepath.Join(homeDir, "cop.db")
+	datasource := filepath.Join(homeDir, "fabric-ca.db")
 	regCFG.DataSource = datasource
 
 	err = InitUserRegistry(regCFG)

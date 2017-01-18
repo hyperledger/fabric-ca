@@ -25,9 +25,9 @@ import (
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/lib/tcert"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 // Handler for tcert requests

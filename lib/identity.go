@@ -23,8 +23,8 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 func newIdentity(client *Client, name string, key []byte, cert []byte) *Identity {
@@ -35,7 +35,7 @@ func newIdentity(client *Client, name string, key []byte, cert []byte) *Identity
 	return id
 }
 
-// Identity is COP's implementation of an identity
+// Identity is fabric-ca's implementation of an identity
 type Identity struct {
 	name   string
 	ecert  *Signer

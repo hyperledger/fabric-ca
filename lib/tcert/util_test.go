@@ -89,7 +89,7 @@ func TestSerialNumber(t *testing.T) {
 }
 
 func TestGetBadCertificate(t *testing.T) {
-	buf, err := ioutil.ReadFile("../../testdata/cop.json")
+	buf, err := ioutil.ReadFile("../../testdata/server-config.json")
 	if err != nil {
 		t.Fatalf("Cannot read certificate from file system")
 	}

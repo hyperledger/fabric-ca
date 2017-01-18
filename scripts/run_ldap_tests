@@ -6,9 +6,9 @@
 
 # OLC is the name of the Open LDAP Container name
 # IMAGE is the name of docker image
-OLC=openldap-cop   
+OLC=openldap-fabric-ca
 IMAGE=osixia/openldap
-COP=$GOPATH/src/github.com/hyperledger/fabric-cop
+COP=$GOPATH/src/github.com/hyperledger/fabric-ca
 
 # Start the LDAP container
 function startContainer {

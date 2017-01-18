@@ -1,6 +1,6 @@
 {
  "driver":"sqlite3",
- "data_source":"cop.db",
+ "data_source":"fabric-ca.db",
  "users": {
     "admin": {
       "pass": "adminpw",

@@ -1,0 +1,21 @@
+FROM hyperledger/fabric-ca-runtime:_TAG_
+ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca
+RUN mkdir -p $FABRIC_CA_HOME /var/hyperledger/fabric-ca
+COPY payload/fabric-ca /usr/local/bin
+
+# Copy the configuration files
+ADD payload/sampleconfig.tar.bz2 $FABRIC_CA_HOME
+#COPY payload/server-config.json /config/server-config.json
+#COPY payload/server-config-psql.json /config/server-config-psql.json
+#COPY payload/.json /config/csr.json
+#COPY payload/client-config.json /etc/hyperledger/fabric-ca/client-config.json
+
+# Copy the same certificates that are currently hardcoded into the peers
+COPY payload/root.pem /.fabric-ca/root.pem
+COPY payload/tls_client-cert.pem /.fabric-ca/tls_client-cert.pem
+COPY payload/tls_client-key.pem /.fabric-ca/tls_client-key.pem
+COPY payload/ec-key.pem /.fabric-ca/ec-key.pem
+COPY payload/ec.pem /.fabric-ca/ec.pem
+
+EXPOSE 8888
+CMD fabric-ca server start -address 0.0.0.0 -config $FABRIC_CA_HOME/server-config.json

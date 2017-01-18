@@ -48,22 +48,22 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
-	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/cli/server/spi"
 	"github.com/jmoiron/sqlx"
 )
 
 var (
-	// Usage text of 'cop server start'
-	serverUsageText = `cop server start -- start the COP server
+	// Usage text of 'fabric-ca server start'
+	serverUsageText = `fabric-ca server start -- start the fabric-ca server
 
 Usage:
-        cop server start [-address address] [-ca cert] [-ca-bundle bundle] \
-                         [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
-                         [-metadata file] [-remote remote_host] [-config config] \
-                         [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
-                         [-mutual-tls-ca ca] [-mutual-tls-cn regex] \
-                         [-tls-remote-ca ca] [-mutual-tls-client-cert cert] [-mutual-tls-client-key key] \
-                         [-db-config db-config]
+        fabric-ca server start [-address address] [-ca cert] [-ca-bundle bundle] \
+                               [-ca-key key] [-int-bundle bundle] [-int-dir dir] [-port port] \
+                               [-metadata file] [-remote remote_host] [-config config] \
+                               [-responder cert] [-responder-key key] [-tls-cert cert] [-tls-key key] \
+                               [-mutual-tls-ca ca] [-mutual-tls-cn regex] \
+                               [-tls-remote-ca ca] [-mutual-tls-client-cert cert] [-mutual-tls-client-key key] \
+                               [-db-config db-config]
 
 Flags:
 `
@@ -115,15 +115,15 @@ type Server struct {
 // CreateHome will create a home directory if it does not exist
 func (s *Server) CreateHome() (string, error) {
 	log.Debug("CreateHome")
-	home := os.Getenv("COP_HOME")
+	home := os.Getenv("FABRIC_CA_HOME")
 	if home == "" {
 		home = os.Getenv("HOME")
 		if home != "" {
-			home = home + "/.cop"
+			home = home + "/.fabric-ca"
 		}
 	}
 	if home == "" {
-		home = "/var/hyperledger/fabric/dev/.fabric-cop"
+		home = "/var/hyperledger/fabric/dev/.fabric-ca"
 	}
 	if _, err := os.Stat(home); err != nil {
 		if os.IsNotExist(err) {
@@ -148,8 +148,8 @@ func bootstrapDB() error {
 	return nil
 }
 
-// startMain is the command line entry point to the COP server.
-// It sets up a new HTTP server to handle COP requests.
+// startMain is the command line entry point to the fabric-ca server.
+// It sets up a new HTTP server to handle fabric-ca requests.
 func startMain(args []string, c cli.Config) error {
 	log.Debug("server.startMain")
 	var err error
@@ -282,7 +282,7 @@ var staticBox = &httpBox{
 
 var endpoints = map[string]func() (http.Handler, error){
 
-	// The following are the COP-specific endpoints
+	// The following are the fabric-ca specific endpoints
 	"register": NewRegisterHandler,
 	"enroll":   NewEnrollHandler,
 	"reenroll": NewReenrollHandler,
@@ -421,5 +421,5 @@ func Start(dir string, cfg string) {
 	os.Args = osArgs
 }
 
-// StartCommand assembles the definition of Command 'cop server start'
+// StartCommand assembles the definition of Command 'fabric-ca server start'
 var StartCommand = &cli.Command{UsageText: serverUsageText, Flags: serverFlags, Main: startMain}

@@ -355,15 +355,15 @@ func HTTPResponseToString(resp *http.Response) string {
 		resp.StatusCode, resp.Status, string(body))
 }
 
-// GetDefaultHomeDir returns the default cop home
+// GetDefaultHomeDir returns the default fabric-ca home
 func GetDefaultHomeDir() string {
-	home := os.Getenv("COP_HOME")
+	home := os.Getenv("FABRIC_CA_HOME")
 	if home == "" {
 		home = os.Getenv("HOME")
 		if home != "" {
-			home = path.Join(home, "/cop")
+			home = path.Join(home, "/fabric-ca")
 		} else {
-			home = "/var/hyperledger/fabric/dev/fabric-cop"
+			home = "/var/hyperledger/fabric/dev/fabric-ca"
 		}
 	}
 	return home

@@ -15,13 +15,12 @@ limitations under the License.
 */
 
 /*
- * This file contains interfaces for the COP library.
- * COP provides police-like security functions for Hyperledger Fabric.
+ * This file defines the user registry interface used by the fabric-ca server.
  */
 
 package spi
 
-import "github.com/hyperledger/fabric-cop/api"
+import "github.com/hyperledger/fabric-ca/api"
 
 // UserInfo contains information about a user
 type UserInfo struct {

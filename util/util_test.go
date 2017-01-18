@@ -140,23 +140,23 @@ func TestRemoveQuotesNone(t *testing.T) {
 }
 
 func TestGetDefaultHomeDir(t *testing.T) {
-	os.Setenv("COP_HOME", "")
+	os.Setenv("FABRIC_CA_HOME", "")
 	os.Setenv("HOME", "")
 	home := GetDefaultHomeDir()
-	if home != "/var/hyperledger/fabric/dev/fabric-cop" {
+	if home != "/var/hyperledger/fabric/dev/fabric-ca" {
 		t.Errorf("Incorrect default home (%s) path retrieved", home)
 	}
 
 	os.Setenv("HOME", "/tmp")
 	home = GetDefaultHomeDir()
-	if home != "/tmp/cop" {
+	if home != "/tmp/fabric-ca" {
 		t.Errorf("Incorrect $HOME (%s) path retrieved", home)
 	}
 
-	os.Setenv("COP_HOME", "/tmp")
+	os.Setenv("FABRIC_CA_HOME", "/tmp")
 	home = GetDefaultHomeDir()
 	if home != "/tmp" {
-		t.Errorf("Incorrect $COP_HOME (%s) path retrieved", home)
+		t.Errorf("Incorrect $FABRIC_CA_HOME (%s) path retrieved", home)
 	}
 
 }

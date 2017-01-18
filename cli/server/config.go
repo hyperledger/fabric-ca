@@ -25,15 +25,15 @@ import (
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/ldap"
-	"github.com/hyperledger/fabric-cop/lib/tls"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/util"
 
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
 
-// Config is COP config structure
+// Config is the fabric-ca config structure
 type Config struct {
 	Debug          bool             `json:"debug,omitempty"`
 	Authentication bool             `json:"authentication,omitempty"`
@@ -69,17 +69,17 @@ type User struct {
 	Attributes []api.Attribute `json:"attrs,omitempty"`
 }
 
-// Constructor for COP config
+// Constructor for fabric-ca config
 func newConfig() *Config {
 	c := new(Config)
 	c.Authentication = true
 	return c
 }
 
-// CFG is the COP-specific config
+// CFG is the fabric-ca specific config
 var CFG *Config
 
-// Init initializes the COP config given the CFSSL config
+// Init initializes the fabric-ca config given the CFSSL config
 func configInit(cfg *cli.Config) {
 	var err error
 	configFile, err = filepath.Abs(cfg.ConfigFile)
@@ -130,17 +130,17 @@ func configInit(cfg *cli.Config) {
 	}
 
 	if CFG.DBdriver == "" {
-		msg := "No database specified, a database is needed to run COP server. Using default - Type: SQLite, Name: cop.db"
+		msg := "No database specified, a database is needed to run fabric-ca server. Using default - Type: SQLite, Name: fabric-ca.db"
 		log.Info(msg)
 		CFG.DBdriver = sqlite
-		CFG.DataSource = "cop.db"
+		CFG.DataSource = "fabric-ca.db"
 	}
 
 	if CFG.DBdriver == sqlite {
 		CFG.DataSource = abs(CFG.DataSource)
 	}
 
-	dbg := os.Getenv("COP_DEBUG")
+	dbg := os.Getenv("FABRIC_CA_DEBUG")
 	if dbg != "" {
 		CFG.Debug = dbg == "true"
 	}
@@ -149,7 +149,7 @@ func configInit(cfg *cli.Config) {
 	}
 
 	log.Debugf("CFSSL server config is: %+v", cfg)
-	log.Debugf("COP server config is: %+v", CFG)
+	log.Debugf("Fabric CA server config is: %+v", CFG)
 }
 
 // Make TLS client files absolute

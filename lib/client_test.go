@@ -27,13 +27,13 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/cli/server"
 )
 
 const (
-	ClientTLSConfig = "cop_client.json"
-	COPDB           = "../testdata/cop.db"
+	ClientTLSConfig = "client-config.json"
+	FCADB           = "../testdata/fabric-ca.db"
 )
 
 var serverStarted bool
@@ -44,7 +44,7 @@ func TestAllClient(t *testing.T) {
 	startServer()
 
 	clientConfig := filepath.Join(dir, ClientTLSConfig)
-	os.Link("../testdata/cop_client.json", clientConfig)
+	os.Link("../testdata/client-config.json", clientConfig)
 
 	c := getClient()
 
@@ -219,8 +219,8 @@ func TestSendBadPost(t *testing.T) {
 }
 
 func getClient() *Client {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, err := NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, err := NewClient(fcaServer)
 	if err != nil {
 		log.Errorf("getClient failed: %s", err)
 	}
@@ -236,27 +236,27 @@ func startServer() int {
 	}
 
 	if !serverStarted {
-		os.Remove(COPDB)
+		os.Remove(FCADB)
 		os.RemoveAll(dir)
 		serverStarted = true
-		fmt.Println("starting COP server ...")
+		fmt.Println("starting fabric-ca server ...")
 		go runServer()
 		time.Sleep(10 * time.Second)
-		fmt.Println("COP server started")
+		fmt.Println("fabric-ca server started")
 	} else {
-		fmt.Println("COP server already started")
+		fmt.Println("fabric-ca server already started")
 	}
 	return serverExitCode
 }
 
 func runServer() {
-	os.Setenv("COP_DEBUG", "true")
-	os.Setenv("COP_HOME", dir)
+	os.Setenv("FABRIC_CA_DEBUG", "true")
+	os.Setenv("FABRIC_CA_HOME", dir)
 	server.Start("../testdata", "testconfig.json")
 }
 
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.Remove(COPDB)
+	os.Remove(FCADB)
 	os.RemoveAll(dir)
 }

@@ -22,19 +22,19 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
-var registerUsageText = `cop client register -- Register an ID with COP server and return an enrollment secret
+var registerUsageText = `fabric-ca client register -- Register an ID with fabric-ca server and return an enrollment secret
 
 Usage of client register command:
-    Register a client with COP server:
-        cop client register REGISTER-REQUEST-FILE COP-SERVER-ADDR
+    Register a client with fabric-ca server:
+        fabric-ca client register REGISTER-REQUEST-FILE FABRIC-CA-SERVER-ADDR
 
 Arguments:
-        RRJSON:             File contains registration info
-        COP-SERVER-ADDR:    COP server address
+        RRJSON:                   File contains registration info
+        FABRIC-CA-SERVER-ADDR:    Fabric CA server address
 Flags:
 `
 
@@ -58,12 +58,12 @@ func registerMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	copServer, _, err := cli.PopFirstArgument(args)
+	fcaServer, _, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
 	}
 
-	client, err := NewClient(copServer)
+	client, err := NewClient(fcaServer)
 	if err != nil {
 		return err
 	}

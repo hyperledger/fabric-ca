@@ -1,0 +1,45 @@
+fabric-ca:
+   image: hyperledger/fabric-ca
+   ports:
+     - "8888:8888"
+   environment:
+     - CA_CERTIFICATE=${CA_CERTIFICATE}
+     - CA_KEY_CERTIFICATE=${CA_KEY_CERTIFICATE}
+     - FABRIC_CA_CONFIG=${FABRIC_CA_CONFIG}
+   volumes:
+     - /etc/hyperledger/fabric-ca:/var/hyperledger/fabric-ca/config
+     - /.fabric-ca:/var/hyperledger/fabric/.fabric-ca
+   command: sh -c 'sleep 1;fabric-ca server start -ca /.fabric-ca/$CA_CERTIFICATE -ca-key /.fabric-ca/$CA_KEY_CERTIFICATE -config /etc/hyperledger/fabric-ca/$FABRIC_CA_CONFIG -address "0.0.0.0"'
+
+admin-client:
+   image: hyperledger/fabric-ca
+   environment:
+     - CSR_CONFIG=${CSR_CONFIG}
+   volumes:
+     - /etc/hyperledger/fabric-ca:/var/hyperledger/fabric-ca/config
+     - /.fabric-ca:/var/hyperledger/fabric/.fabric-ca
+   command: sh -c "sleep 5;fabric-ca client enroll admin adminpw http://fabric-ca:8888 /etc/hyperledger/fabric-ca/$CSR_CONFIG"
+   links:
+     - fabric-ca
+
+sdk-client:
+   image: hyperledger/fabric-ca
+   environment:
+     - CSR_CONFIG=${CSR_CONFIG}
+   volumes:
+     - /etc/hyperledger/fabric-ca:/var/hyperledger/fabric-ca/config
+     - /.fabric-ca:/var/hyperledger/fabric/.fabric-ca
+   command: sh -c "sleep 5;fabric-ca client enroll sdk sdkpw http://fabric-ca:8888 /etc/hyperledger/fabric-ca/$CSR_CONFIG"
+   links:
+     - fabric-ca
+
+bob-client:
+   image: hyperledger/fabric-ca
+   environment:
+     - CSR_CONFIG=${CSR_CONFIG}
+   volumes:
+     - /etc/hyperledger/fabric-ca:/var/hyperledger/fabric-ca/config
+     - /.fabric-ca:/var/hyperledger/fabric/.fabric-ca
+   command: sh -c "sleep 5;fabric-ca client enroll bob bobpw http://fabric-ca:8888 /etc/hyperledger/fabric-ca/$CSR_CONFIG"
+   links:
+     - fabric-ca

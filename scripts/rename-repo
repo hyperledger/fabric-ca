@@ -1,0 +1,11 @@
+#!/bin/sh
+OLD=$GOPATH/src/github.com/hyperledger/fabric-cop
+NEW=$GOPATH/src/github.com/hyperledger/fabric-ca
+if [ -d "$NEW" ]; then
+   echo "$NEW already exists"
+elif [ -d "$OLD" ]; then
+   echo "Renaming $OLD to $NEW"
+   mv $OLD $NEW
+else
+   echo "Neither $OLD nor $NEW exists"
+fi

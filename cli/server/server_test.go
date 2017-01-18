@@ -25,16 +25,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
-	"github.com/hyperledger/fabric-cop/cli/server/ldap"
-	"github.com/hyperledger/fabric-cop/lib"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
+	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib"
 )
 
 const (
 	CFGFile         = "testconfig.json"
-	ClientTLSConfig = "cop_client.json"
-	COPDB           = "../../testdata/cop.db"
+	ClientTLSConfig = "client-config.json"
+	FCADB           = "../../testdata/fabric-ca.db"
 )
 
 var serverStarted bool
@@ -56,17 +56,17 @@ func startServer() {
 	}
 
 	if !serverStarted {
-		os.Remove(COPDB)
+		os.Remove(FCADB)
 		os.RemoveAll(dir)
 		serverStarted = true
-		fmt.Println("starting COP server ...")
-		os.Setenv("COP_DEBUG", "true")
-		os.Setenv("COP_HOME", dir)
+		fmt.Println("starting fabric-ca server ...")
+		os.Setenv("FABRIC_CA_DEBUG", "true")
+		os.Setenv("FABRIC_CA_HOME", dir)
 		go runServer()
 		time.Sleep(10 * time.Second)
-		fmt.Println("COP server started")
+		fmt.Println("Fabric CA server started")
 	} else {
-		fmt.Println("COP server already started")
+		fmt.Println("Fabric CA server already started")
 	}
 }
 
@@ -75,7 +75,7 @@ func runServer() {
 }
 
 func TestPostgresFail(t *testing.T) {
-	_, _, err := dbutil.NewUserRegistryPostgres("dbname=cop sslmode=disable", nil)
+	_, _, err := dbutil.NewUserRegistryPostgres("dbname=fabric-ca sslmode=disable", nil)
 	if err == nil {
 		t.Error("No postgres server running, this should have failed")
 	}
@@ -84,7 +84,7 @@ func TestPostgresFail(t *testing.T) {
 func TestRegisterUser(t *testing.T) {
 	startServer()
 	clientConfig := filepath.Join(dir, ClientTLSConfig)
-	os.Link("../../testdata/cop_client2.json", clientConfig)
+	os.Link("../../testdata/client-config2.json", clientConfig)
 
 	c := getClient(t)
 	if c == nil {
@@ -212,8 +212,8 @@ func TestRevoke(t *testing.T) {
 }
 
 func TestGetTCerts(t *testing.T) {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, err := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, err := lib.NewClient(fcaServer)
 	if err != nil {
 		t.Errorf("TestGetTCerts.NewClient failed: %s", err)
 		return
@@ -293,8 +293,8 @@ func TestEnroll(t *testing.T) {
 }
 
 func testUnregisteredUser(t *testing.T) {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, _ := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, _ := lib.NewClient(fcaServer)
 
 	req := &api.EnrollmentRequest{
 		Name:   "Unregistered",
@@ -309,8 +309,8 @@ func testUnregisteredUser(t *testing.T) {
 }
 
 func testIncorrectToken(t *testing.T) {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, _ := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, _ := lib.NewClient(fcaServer)
 
 	req := &api.EnrollmentRequest{
 		Name:   "notadmin",
@@ -325,8 +325,8 @@ func testIncorrectToken(t *testing.T) {
 }
 
 func testEnrollingUser(t *testing.T) {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, _ := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, _ := lib.NewClient(fcaServer)
 
 	req := &api.EnrollmentRequest{
 		Name:   "testUser2",
@@ -361,8 +361,8 @@ func TestRevokeCertificatesByID(t *testing.T) {
 
 func TestExpiration(t *testing.T) {
 
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, _ := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, _ := lib.NewClient(fcaServer)
 
 	// Enroll this user using the "expiry" profile which is configured
 	// to expire after 1 second
@@ -388,12 +388,12 @@ func TestExpiration(t *testing.T) {
 }
 
 func TestUserRegistry(t *testing.T) {
-	err := InitUserRegistry(&Config{DBdriver: "postgres", DataSource: "dbname=cop sslmode=disable"})
+	err := InitUserRegistry(&Config{DBdriver: "postgres", DataSource: "dbname=fabric-ca sslmode=disable"})
 	if err == nil {
 		t.Error("Trying to create a postgres registry should have failed")
 	}
 
-	err = InitUserRegistry(&Config{DBdriver: "mysql", DataSource: "root:root@tcp(localhost:3306)/cop?parseTime=true"})
+	err = InitUserRegistry(&Config{DBdriver: "mysql", DataSource: "root:root@tcp(localhost:3306)/fabric-ca?parseTime=true"})
 	if err == nil {
 		t.Error("Trying to create a mysql registry should have failed")
 	}
@@ -413,7 +413,7 @@ func TestUserRegistry(t *testing.T) {
 func TestCreateHome(t *testing.T) {
 	s := createServer()
 	t.Log("Test Creating Home Directory")
-	os.Unsetenv("COP_HOME")
+	os.Unsetenv("FABRIC_CA_HOME")
 	tempDir, err := ioutil.TempDir("", "test")
 	if err != nil {
 		t.Errorf("Failed to create temp directory [error: %s]", err)
@@ -435,7 +435,7 @@ func TestCreateHome(t *testing.T) {
 
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.Remove(COPDB)
+	os.Remove(FCADB)
 	os.RemoveAll(dir)
 }
 
@@ -459,8 +459,8 @@ func testWithoutAuthHdr(c *lib.Client, t *testing.T) {
 }
 
 func getClient(t *testing.T) *lib.Client {
-	copServer := `{"serverURL":"https://localhost:8888"}`
-	c, err := lib.NewClient(copServer)
+	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	c, err := lib.NewClient(fcaServer)
 	if err != nil {
 		t.Fatalf("TestMisc.NewClient failed: %s", err)
 		return nil

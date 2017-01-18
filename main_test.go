@@ -19,28 +19,28 @@ package main
 import "testing"
 
 func TestClientCommand(t *testing.T) {
-	rtn := COPMain([]string{"cop", "client"})
+	rtn := FCAMain([]string{"fabric-ca", "client"})
 	if rtn == 0 {
 		t.Error("TestClientCommand passed but should have failed")
 	}
 }
 
 func TestServerCommand(t *testing.T) {
-	rtn := COPMain([]string{"cop", "server"})
+	rtn := FCAMain([]string{"fabric-ca", "server"})
 	if rtn == 0 {
 		t.Error("TestServerCommand passed but should have failed")
 	}
 }
 
 func TestCFSSLCommand(t *testing.T) {
-	rtn := COPMain([]string{"cop", "cfssl"})
+	rtn := FCAMain([]string{"fabric-ca", "cfssl"})
 	if rtn == 0 {
 		t.Error("TestCFSSLCommand passed but should have failed")
 	}
 }
 
 func TestBogusCommand(t *testing.T) {
-	rtn := COPMain([]string{"cop", "bogus"})
+	rtn := FCAMain([]string{"fabric-ca", "bogus"})
 	if rtn == 0 {
 		t.Error("TestBogusCommand passed but should have failed")
 	}

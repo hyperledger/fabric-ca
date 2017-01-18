@@ -21,9 +21,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
-	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
+	"github.com/hyperledger/fabric-ca/cli/server/spi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -57,7 +57,7 @@ func TestSQLite(t *testing.T) {
 	}
 	var cfg = new(Config)
 	cfg.DBdriver = "sqlite3"
-	cfg.DataSource = dbPath + "/cop.db"
+	cfg.DataSource = dbPath + "/fabric-ca.db"
 
 	db, _, err := dbutil.NewUserRegistrySQLLite3(cfg.DataSource)
 	if err != nil {

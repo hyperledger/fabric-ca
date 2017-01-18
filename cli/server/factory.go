@@ -21,8 +21,8 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/cli/server/dbutil"
-	"github.com/hyperledger/fabric-cop/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
+	"github.com/hyperledger/fabric-ca/cli/server/ldap"
 	"github.com/jmoiron/sqlx"
 )
 

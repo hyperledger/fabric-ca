@@ -1,12 +1,17 @@
-# COP
+# Fabric CA
 
-COP is the name for Membership Services in v1.0 of Hyperledger Fabric.
-COP is not an acronym.  The name "COP" was selected because of the following.
+The fabric-ca is a Certificate Authority for Hyperledger Fabric v1.0 and later.
 
-  * COP provides police-like security functionality for Hyperledger Fabric.  It is the "fabric COP";
-  * COP is shorter and easier to say and write than “Membership Services v1.0” :-)
+It consists of both a serve and a client component.
 
-See the [COP design doc](https://docs.google.com/document/d/1TRYHcaT8yMn8MZlDtreqzkDcXx0WI50AV2JpAcvAM5w) for information on what COP will provide.
+It provides features including:  
+* registration of identities;
+* enrollment of identities and issuance of enrollment certificates (ECerts);
+* issuance of transaction certificates (TCerts) given proof of ownership
+  of an ECert;
+* certificate renewal and revocation.
+
+See the [Fabric-CA design doc](https://docs.google.com/document/d/1TRYHcaT8yMn8MZlDtreqzkDcXx0WI50AV2JpAcvAM5w) for design documentation.
 
 ## Getting Started
 

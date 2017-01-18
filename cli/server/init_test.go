@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
@@ -32,9 +33,9 @@ import (
 func TestInitCA(t *testing.T) {
 
 	s := new(Server)
-	COPHome, err := s.CreateHome()
+	FCAHome, err := s.CreateHome()
 	if err != nil {
-		log.Fatalf("Failed to get $COP_HOME directory.")
+		log.Fatalf("Failed to create fabric-ca home directory.")
 	}
 
 	req := csr.CertificateRequest{
@@ -65,13 +66,13 @@ func TestInitCA(t *testing.T) {
 		}
 
 		cli.PrintCert(key, csrPEM, cert)
-		certerr := ioutil.WriteFile(COPHome+"/server-cert.pem", cert, 0755)
+		certerr := ioutil.WriteFile(path.Join(FCAHome, "server-cert.pem"), cert, 0755)
 		if certerr != nil {
-			log.Fatal("Error writing server-cert.pem to $COP_HOME directory")
+			log.Fatal("Error writing server-cert.pem to FABRIC_CA_HOME directory")
 		}
-		keyerr := ioutil.WriteFile(COPHome+"/server-key.pem", key, 0755)
+		keyerr := ioutil.WriteFile(path.Join(FCAHome, "server-key.pem"), key, 0755)
 		if keyerr != nil {
-			log.Fatal("Error writing server-key.pem to $COP_HOME directory")
+			log.Fatal("Error writing server-key.pem to FABRIC_CA_HOME directory")
 		}
 	} else {
 		var ca *csr.CAConfig

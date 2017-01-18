@@ -20,19 +20,19 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/cli"
-	"github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-ca/api"
 )
 
-var revokeUsageTxt = `cop client revoke -- revokes one or more certificates
+var revokeUsageTxt = `fabric-ca client revoke -- revokes one or more certificates
 
 Usage:
 
 Revoke certificate(s):
-	   cop client revoke COP_SERVER_URL [ENROLLMENT_ID]
+	   fabric-ca client revoke FABRIC-CA-SERVER-URL [ENROLLMENT-ID]
 
 Arguments:
-     COP_SERVER_URL:     The URL of the COP server
-     ENROLLMENT_ID:      Optional enrollment ID
+     FABRIC-CA-SERVER-URL:     The URL of the fabric-ca server
+     ENROLLMENT_ID:            Optional enrollment ID
 
 Flags:
 `
@@ -41,7 +41,7 @@ var revokeFlags = []string{"aki", "serial", "reason"}
 
 func revokeMain(args []string, c cli.Config) error {
 
-	copServer, args, err := cli.PopFirstArgument(args)
+	fcaServer, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func revokeMain(args []string, c cli.Config) error {
 		}
 	}
 
-	client, err := NewClient(copServer)
+	client, err := NewClient(fcaServer)
 	if err != nil {
 		return err
 	}

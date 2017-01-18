@@ -1,6 +1,6 @@
 #!/bin/bash
 
-COP=$GOPATH/src/github.com/hyperledger/fabric-cop
+FCA=$GOPATH/src/github.com/hyperledger/fabric-ca
 
 echo "Running all tests ..."
 {
@@ -9,13 +9,13 @@ export PATH=$PATH:$GOPATH/bin
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
 
-PKGS=`go list github.com/hyperledger/fabric-cop/... | grep -Ev '/vendor/|/api|/dbutil|/ldap'`
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap'`
 
 gocov test $PKGS | gocov-xml > coverage.xml
 
 } 2>&1 | tee /tmp/test.results
 echo "Finished running all tests"
 
-$COP/scripts/check_test_results /tmp/test.results
+$FCA/scripts/check_test_results /tmp/test.results
 
 exit $?

@@ -24,7 +24,7 @@ import (
 )
 
 func TestGetClientTLSConfig(t *testing.T) {
-	tlsConfig, err := ioutil.ReadFile("../../testdata/cop_client2.json")
+	tlsConfig, err := ioutil.ReadFile("../../testdata/client-config2.json")
 	if err != nil {
 		t.Errorf("Failed to read in TLS configuration file [error: %s]", err)
 	}

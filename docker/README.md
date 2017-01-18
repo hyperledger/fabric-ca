@@ -1,11 +1,11 @@
-# To build a docker image with cop
+# To build a docker image with fabric-ca
 ```sh
-$ docker build fabric-cop -t fabric-cop:latest
+$ docker build fabric-ca -t fabric-ca:latest
 ```
 
 # Setup environment variables (optional)
 If you want to use your own defined certificates, be sure to save these
-certificates in the /var/hyperledger/fabric/.cop directory in your environment.
+certificates in the /var/hyperledger/fabric/.fabric-ca directory in your environment.
 Then set the following environment variables accordingly.
 
 ## Public key
@@ -18,11 +18,11 @@ default value: ec-key.pem
 ```sh
 $ export CA_KEY_CERTIFICATE=<private key pem file>
 ```
-## COP configuration file
+## Fabric CA configuration file
 This file contains users, database setup, groups, and signing information)
-default value: cop.json
+default value: fabric-ca.json
 ```sh
-$ export COP_CONFIG=<COP configuration file>
+$ export FABRIC_CA_CONFIG=<Fabric CA configuration file>
 ```
 ## CSR (Certificate Signing Request) config file
 default value: csr.json
@@ -34,19 +34,18 @@ $ export CSR_CONFIG=<CSR configuration file>
 # Certificate private and public files
 If you are using certificates or config files outside of the default values,
 be sure to save the desired files to the developer's local directories. The
-certificates should be saved to the `/var/hyperledger/fabric/.cop` directory
-and the config files should be saved to the `var/hyperledger/cop_config`
+certificates should be saved to the `/var/hyperledger/fabric/.fabric-ca` directory
+and the config files should be saved to the `var/hyperledger/fabric_ca_config`
 directory.
 
 You can also generate the certificates by running the following script that
-outputs server.pem and server-key.pem files and saves them to your $HOME/.cop
+outputs server.pem and server-key.pem files and saves them to your $HOME/.fabric-ca
 directory.
 ```sh
-$ cop server init /path/to/cop/config/csr.json
+$ fabric-ca server init /path/to/fabric-ca/config/csr.json
 ```
 
-# To execute the cop server and cop clients
+# To execute the fabric-ca server and fabric-ca clients
 ```sh
-$ docker-compose -f docker-compose-cop-cluster.yml up --force-recreate -d
+$ docker-compose -f docker-compose-fabric-ca-cluster.yml up --force-recreate -d
 ```
-

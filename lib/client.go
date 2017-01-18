@@ -35,18 +35,18 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/lib/tls"
-	"github.com/hyperledger/fabric-cop/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
 	// defaultServerPort is the default CFSSL listening port
 	defaultServerPort = "8888"
-	clientConfigFile  = "cop_client.json"
+	clientConfigFile  = "client-config.json"
 )
 
-// NewClient is the constructor for the COP client API
+// NewClient is the constructor for the fabric-ca client API
 func NewClient(config string) (*Client, error) {
 	c := new(Client)
 	// Set defaults
@@ -62,7 +62,7 @@ func NewClient(config string) (*Client, error) {
 	return c, nil
 }
 
-// Client is the COP client object
+// Client is the fabric-ca client object
 type Client struct {
 	// ServerURL is the URL of the server
 	ServerURL string `json:"serverURL,omitempty"`
@@ -94,7 +94,7 @@ func (c *Client) Enroll(req *api.EnrollmentRequest) (*Identity, error) {
 		return nil, err
 	}
 
-	// Send the CSR to the COP server with basic auth header
+	// Send the CSR to the fabric-ca server with basic auth header
 	post, err := c.NewPost("enroll", body)
 	if err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func (c *Client) StoreMyIdentity(key, cert []byte) error {
 
 // GetMyKeyFile returns the path to this identity's key file
 func (c *Client) GetMyKeyFile() string {
-	file := os.Getenv("COP_KEY_FILE")
+	file := os.Getenv("FABRIC_CA_KEY_FILE")
 	if file == "" {
 		file = path.Join(c.GetMyEnrollmentDir(), "key.pem")
 	}
@@ -190,7 +190,7 @@ func (c *Client) GetMyKeyFile() string {
 
 // GetMyCertFile returns the path to this identity's certificate file
 func (c *Client) GetMyCertFile() string {
-	file := os.Getenv("COP_CERT_FILE")
+	file := os.Getenv("FABRIC_CA_CERT_FILE")
 	if file == "" {
 		file = path.Join(c.GetMyEnrollmentDir(), "cert.pem")
 	}
@@ -199,7 +199,7 @@ func (c *Client) GetMyCertFile() string {
 
 // GetMyEnrollmentDir returns the path to this identity's enrollment directory
 func (c *Client) GetMyEnrollmentDir() string {
-	dir := os.Getenv("COP_ENROLLMENT_DIR")
+	dir := os.Getenv("FABRIC_CA_ENROLLMENT_DIR")
 	if dir == "" {
 		dir = c.HomeDir
 	}
@@ -332,8 +332,8 @@ func (c *Client) getURL(endpoint string) (string, error) {
 
 func (c *Client) getClientConfig(path string) ([]byte, error) {
 	log.Debug("Retrieving client config")
-	copClient := filepath.Join(path, clientConfigFile)
-	fileBytes, err := ioutil.ReadFile(copClient)
+	fcaClient := filepath.Join(path, clientConfigFile)
+	fileBytes, err := ioutil.ReadFile(fcaClient)
 	if err != nil {
 		return nil, err
 	}

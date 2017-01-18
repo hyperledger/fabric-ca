@@ -19,11 +19,11 @@ limitations under the License.
  * This was done in order to prevent an import cycle.
  */
 
-package cop
+package main
 
-import "github.com/hyperledger/fabric-cop/lib"
+import "github.com/hyperledger/fabric-ca/lib"
 
-// NewClient creates a COP client
+// NewClient creates a fabric-ca client
 func NewClient(config string) (*lib.Client, error) {
 	return lib.NewClient(config)
 }

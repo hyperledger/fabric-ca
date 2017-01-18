@@ -82,7 +82,7 @@ func (b *Bootstrap) PopulateGroupsTable() {
 	viper.AddConfigPath(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Errorf("Fatal error when reading cop config file: %s", err)
+		log.Errorf("Fatal error when reading fabric-ca config file: %s", err)
 	}
 
 	key := "groups"

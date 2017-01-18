@@ -22,17 +22,17 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 
-	"github.com/hyperledger/fabric-cop/api"
+	"github.com/hyperledger/fabric-ca/api"
 )
 
-var reenrollUsageText = `cop client reenroll -- Reenroll with COP server
+var reenrollUsageText = `fabric-ca client reenroll -- Reenroll with fabric-ca server
 
 Usage of client enroll command:
-   cop client reenroll COP-SERVER-ADDR
+   fabric-ca client reenroll FABRIC-CA-SERVER-ADDR
 
 Arguments:
-        COP-SERVER-ADDR:  COP server address
-		  CSRJSON:          Certificate Signing Request JSON information (Optional)
+        FABRIC-CA-SERVER-ADDR:  Fabric CA server address
+		  CSRJSON:                Certificate Signing Request JSON information (Optional)
 
 Flags:
 `
@@ -42,12 +42,12 @@ var reenrollFlags = []string{}
 func reenrollMain(args []string, c cli.Config) error {
 	log.Debug("Entering cli/client/reenrollMain")
 
-	copServer, args, err := cli.PopFirstArgument(args)
+	fcaServer, args, err := cli.PopFirstArgument(args)
 	if err != nil {
 		return err
 	}
 
-	client, err := NewClient(copServer)
+	client, err := NewClient(fcaServer)
 	if err != nil {
 		return err
 	}

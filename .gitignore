@@ -1,7 +1,6 @@
 bin
 build
-cli/cop/cop
-testdata/client.json
+coverage.xml
+fabric-ca
 *.csr
 *.der
-coverage.xml

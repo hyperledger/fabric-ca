@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/cli/server/spi"
 	ldap "gopkg.in/ldap.v2"
 )
 

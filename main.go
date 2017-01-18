@@ -40,23 +40,23 @@ import (
 	"github.com/cloudflare/cfssl/cli/serve"
 	"github.com/cloudflare/cfssl/cli/sign"
 	"github.com/cloudflare/cfssl/cli/version"
-	"github.com/hyperledger/fabric-cop/cli/client"
-	"github.com/hyperledger/fabric-cop/cli/server"
+	"github.com/hyperledger/fabric-ca/cli/client"
+	"github.com/hyperledger/fabric-ca/cli/server"
 
 	_ "github.com/go-sql-driver/mysql" // import to support MySQL
 	_ "github.com/lib/pq"              // import to support Postgres
 	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
 )
 
-var usage = `cop client       - client-related commands
-cop server       - server related commands
-cop cfssl        - all cfssl commands
+var usage = `fabric-ca client       - client-related commands
+fabric-ca server       - server related commands
+fabric-ca cfssl        - all cfssl commands
 
-For help, type "cop client", "cop server", or "cop cfssl".
+For help, type "fabric-ca client", "fabric-ca server", or "fabric-ca cfssl".
 `
 
-// COPMain is the COP main
-func COPMain(args []string) int {
+// FCAMain is the fabric-ca main
+func FCAMain(args []string) int {
 	if len(args) <= 1 {
 		fmt.Println(usage)
 		return 1
@@ -103,14 +103,14 @@ func cfsslCommand() error {
 		"revoke":         revoke.Command,
 	}
 
-	// Replace "cfssl" with "cop cfssl" in all usage messages
+	// Replace "cfssl" with "fabric-ca cfssl" in all usage messages
 	for _, cmd := range cmds {
-		cmd.UsageText = strings.Replace(cmd.UsageText, "cfssl", "cop cfssl", -1)
+		cmd.UsageText = strings.Replace(cmd.UsageText, "cfssl", "fabric-ca cfssl", -1)
 	}
 
 	return cli.Start(cmds)
 }
 
 func main() {
-	os.Exit(COPMain(os.Args))
+	os.Exit(FCAMain(os.Args))
 }

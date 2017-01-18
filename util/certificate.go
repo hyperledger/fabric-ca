@@ -29,7 +29,7 @@ import (
 )
 
 //CertificateSpec defines structure for Certificate template
-//certificateType 1: Self Signed , 2 : COP Server Signed , 3 : CSR
+//certificateType 1: Self Signed , 2 : Fabric CA Server Signed , 3 : CSR
 type CertificateSpec struct {
 	commonName       string
 	serialNumber     *big.Int
@@ -178,7 +178,7 @@ func (spec *CertificateSpec) GetState() string {
 	return spec.State
 }
 
-//GetCertificateType returns certificateType 1:Self Signed , 2:COP Signed , 3: CSR
+//GetCertificateType returns certificateType 1:Self Signed , 2:Fabric CA Server Signed , 3: CSR
 func (spec *CertificateSpec) GetCertificateType() float64 {
 	return spec.certificateType
 }

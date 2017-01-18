@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-cop/api"
-	"github.com/hyperledger/fabric-cop/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/cli/server/spi"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"

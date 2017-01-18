@@ -6,7 +6,7 @@
 # LFID        : your Linux Foundation ID
 # REPO        : your repository name
 export LFID=YOUR-LINUX-FOUNDATION-ID
-export REPO=fabric-cop
+export REPO=fabric-ca
 
 export PROJECT=github.com/hyperledger
 export GERRIT=gerrit.hyperledger.org
@@ -125,7 +125,7 @@ function setrepo {
   if [ $# -ne 1 ]; then
      echo "Usage: setrepo <repo>"
      echo "Examples:"
-     echo "   setrepo fabric-cop"
+     echo "   setrepo fabric-ca"
      echo "   setrepo fabric"
      return 1
   fi
