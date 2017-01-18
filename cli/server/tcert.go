@@ -157,7 +157,7 @@ func getUserInfo(id string, attrNames []string) ([]tcert.Attribute, []string, er
 		log.Fatal("Failed to get RootPreKey")
 		return nil, nil, err
 	}
-	attrs := make([]tcert.Attribute, 0)
+	var attrs []tcert.Attribute
 	for _, name := range attrNames {
 		value := user.GetAttribute(name)
 		if value != "" {
