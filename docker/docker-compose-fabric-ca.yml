@@ -1,5 +1,6 @@
 fabric-ca:
    image: hyperledger/fabric-ca
+   container_name: fabric-ca
    ports:
      - "8888:8888"
    environment:
@@ -13,6 +14,7 @@ fabric-ca:
 
 admin-client:
    image: hyperledger/fabric-ca
+   container_name: admin-client
    environment:
      - CSR_CONFIG=${CSR_CONFIG}
    volumes:
@@ -24,6 +26,7 @@ admin-client:
 
 sdk-client:
    image: hyperledger/fabric-ca
+   container_name: sdk-client
    environment:
      - CSR_CONFIG=${CSR_CONFIG}
    volumes:
@@ -35,6 +38,7 @@ sdk-client:
 
 bob-client:
    image: hyperledger/fabric-ca
+   container_name: bob-client
    environment:
      - CSR_CONFIG=${CSR_CONFIG}
    volumes:
