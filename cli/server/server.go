@@ -49,6 +49,9 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
 	"github.com/hyperledger/fabric-ca/cli/server/spi"
+	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/core/crypto/bccsp"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -87,6 +90,7 @@ var (
 	configFile     string
 	userRegistry   spi.UserRegistry
 	certDBAccessor *CertDBAccessor
+	csp            bccsp.BCCSP
 )
 
 var (
@@ -115,16 +119,7 @@ type Server struct {
 // CreateHome will create a home directory if it does not exist
 func (s *Server) CreateHome() (string, error) {
 	log.Debug("CreateHome")
-	home := os.Getenv("FABRIC_CA_HOME")
-	if home == "" {
-		home = os.Getenv("HOME")
-		if home != "" {
-			home = home + "/.fabric-ca"
-		}
-	}
-	if home == "" {
-		home = "/var/hyperledger/fabric/dev/.fabric-ca"
-	}
+	home := util.GetDefaultHomeDir()
 	if _, err := os.Stat(home); err != nil {
 		if os.IsNotExist(err) {
 			err := os.MkdirAll(home, 0755)
@@ -133,7 +128,6 @@ func (s *Server) CreateHome() (string, error) {
 			}
 		}
 	}
-
 	return home, nil
 }
 
@@ -155,16 +149,25 @@ func startMain(args []string, c cli.Config) error {
 	var err error
 
 	s := new(Server)
-	homeDir, err = s.CreateHome()
+	home, err := s.CreateHome()
 	if err != nil {
 		return err
 	}
+	homeDir = home
+
 	configInit(&c)
+
+	// Initialize the Crypto Service Provider
+	csp, err = libcsp.Get(CFG.CSP)
+	if err != nil {
+		log.Errorf("Failed to get the crypto service provider: %s", err)
+		return err
+	}
 
 	// Initialize the user registry
 	err = InitUserRegistry(CFG)
 	if err != nil {
-		log.Errorf("Failed to initialize user registry [error: %s]", err)
+		log.Errorf("Failed to initialize user registry: %s", err)
 		return err
 	}
 

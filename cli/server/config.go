@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 
@@ -46,6 +47,7 @@ type Config struct {
 	KeyFile        string           `json:"ca_key"`
 	TLSConf        TLSConfig        `json:"tls,omitempty"`
 	TLSDisable     bool             `json:"tls_disable,omitempty"`
+	CSP            *libcsp.Config   `json:"csp,omitempty"`
 }
 
 // UserReg defines the user registry properties
