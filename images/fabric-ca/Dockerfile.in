@@ -5,10 +5,6 @@ COPY payload/fabric-ca /usr/local/bin
 
 # Copy the configuration files
 ADD payload/sampleconfig.tar.bz2 $FABRIC_CA_HOME
-#COPY payload/server-config.json /config/server-config.json
-#COPY payload/server-config-psql.json /config/server-config-psql.json
-#COPY payload/.json /config/csr.json
-#COPY payload/client-config.json /etc/hyperledger/fabric-ca/client-config.json
 
 # Copy the same certificates that are currently hardcoded into the peers
 COPY payload/root.pem /.fabric-ca/root.pem
