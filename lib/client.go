@@ -41,16 +41,14 @@ import (
 )
 
 const (
-	// defaultServerPort is the default CFSSL listening port
-	defaultServerPort = "8888"
-	clientConfigFile  = "client-config.json"
+	clientConfigFile = "client-config.json"
 )
 
 // NewClient is the constructor for the fabric-ca client API
 func NewClient(config string) (*Client, error) {
 	c := new(Client)
 	// Set defaults
-	c.ServerURL = "http://localhost:8888"
+	c.ServerURL = util.GetServerURL()
 	c.HomeDir = util.GetDefaultHomeDir()
 	if config != "" {
 		// Override any defaults
@@ -350,7 +348,7 @@ func normalizeURL(addr string) (*url.URL, error) {
 		u.Host = net.JoinHostPort(u.Scheme, u.Opaque)
 		u.Opaque = ""
 	} else if u.Path != "" && !strings.Contains(u.Path, ":") {
-		u.Host = net.JoinHostPort(u.Path, defaultServerPort)
+		u.Host = net.JoinHostPort(u.Path, util.GetServerPort())
 		u.Path = ""
 	} else if u.Scheme == "" {
 		u.Host = u.Path
@@ -361,7 +359,7 @@ func normalizeURL(addr string) (*url.URL, error) {
 	}
 	_, port, err := net.SplitHostPort(u.Host)
 	if err != nil {
-		_, port, err = net.SplitHostPort(u.Host + ":" + defaultServerPort)
+		_, port, err = net.SplitHostPort(u.Host + ":" + util.GetServerPort())
 		if err != nil {
 			return nil, err
 		}

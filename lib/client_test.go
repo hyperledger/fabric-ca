@@ -29,6 +29,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/cli/server"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
@@ -219,7 +220,7 @@ func TestSendBadPost(t *testing.T) {
 }
 
 func getClient() *Client {
-	fcaServer := `{"serverURL":"https://localhost:8888"}`
+	fcaServer := fmt.Sprintf(`{"serverURL": "%s"}`, util.GetServerURL())
 	c, err := NewClient(fcaServer)
 	if err != nil {
 		log.Errorf("getClient failed: %s", err)

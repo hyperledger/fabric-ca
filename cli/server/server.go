@@ -104,6 +104,7 @@ const (
 
 // Command defines the server-related commands and calls cli.Start to process args
 func Command() error {
+	util.SetDefaultServerPort()
 	// The server commands
 	cmds := map[string]*cli.Command{
 		"init":  InitServerCommand,
