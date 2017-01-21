@@ -22,8 +22,8 @@ import (
 
 	"os"
 
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
-	"github.com/hyperledger/fabric/core/crypto/bccsp/sw"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/sw"
 )
 
 var (
@@ -68,6 +68,15 @@ func GetDefault() (bccsp.BCCSP, error) {
 	}
 
 	return defaultBCCSP, nil
+}
+
+// GetDefaultOrPanic returns a non-ephemeral (long-term) BCCSP or panic if an error occurs.
+func GetDefaultOrPanic() bccsp.BCCSP {
+	if err := initFactories(); err != nil {
+		panic(err)
+	}
+
+	return defaultBCCSP
 }
 
 // GetBCCSP returns a BCCSP created according to the options passed in input.

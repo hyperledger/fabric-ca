@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package sw
+package pkcs11
 
 import (
 	"crypto/ecdsa"
@@ -24,8 +24,9 @@ import (
 
 	"errors"
 
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
-	"github.com/hyperledger/fabric/core/crypto/primitives"
+	"crypto/elliptic"
+
+	"github.com/hyperledger/fabric/bccsp"
 )
 
 type ecdsaPrivateKey struct {
@@ -40,9 +41,14 @@ func (k *ecdsaPrivateKey) Bytes() (raw []byte, err error) {
 
 // SKI returns the subject key identifier of this key.
 func (k *ecdsaPrivateKey) SKI() (ski []byte) {
-	raw, _ := primitives.PrivateKeyToDER(k.privKey)
-	// TODO: Error should not be thrown. Anyway, move the marshalling at initialization.
+	if k.privKey == nil {
+		return nil
+	}
 
+	// Marshall the public key
+	raw := elliptic.Marshal(k.privKey.Curve, k.privKey.PublicKey.X, k.privKey.PublicKey.Y)
+
+	// Hash it
 	hash := sha256.New()
 	hash.Write(raw)
 	return hash.Sum(nil)
@@ -82,9 +88,14 @@ func (k *ecdsaPublicKey) Bytes() (raw []byte, err error) {
 
 // SKI returns the subject key identifier of this key.
 func (k *ecdsaPublicKey) SKI() (ski []byte) {
-	raw, _ := primitives.PublicKeyToPEM(k.pubKey, nil)
-	// TODO: Error should not be thrown. Anyway, move the marshalling at initialization.
+	if k.pubKey == nil {
+		return nil
+	}
 
+	// Marshall the public key
+	raw := elliptic.Marshal(k.pubKey.Curve, k.pubKey.X, k.pubKey.Y)
+
+	// Hash it
 	hash := sha256.New()
 	hash.Write(raw)
 	return hash.Sum(nil)

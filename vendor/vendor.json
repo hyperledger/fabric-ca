@@ -465,23 +465,41 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
-			"checksumSHA1": "31ZLI8tuAXbLNMKKyy2QjKWOpLY=",
-			"path": "github.com/hyperledger/fabric/core/crypto/bccsp",
-			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
-			"revisionTime": "2016-12-04T13:15:26Z",
-			"tree": true
+			"checksumSHA1": "nQCS/1ymeW+6UYa2vOXtxcvj2mY=",
+			"origin": "github.com/hyperledger/fabric-ca/vendor/github.com/hyperledger/fabric/bccsp",
+			"path": "github.com/hyperledger/fabric/bccsp",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
 		},
 		{
-			"checksumSHA1": "KBLtaQtNkOVhFsp0YI6KlA3W4jA=",
-			"path": "github.com/hyperledger/fabric/core/crypto/primitives",
-			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
-			"revisionTime": "2016-12-04T13:15:26Z"
+			"checksumSHA1": "mpt6sOfAvP1FGrFYcwPSWfM00gs=",
+			"path": "github.com/hyperledger/fabric/bccsp/factory",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
 		},
 		{
-			"checksumSHA1": "xRybnSkcWsFUr7I4AdHeH7xbIBE=",
-			"path": "github.com/hyperledger/fabric/core/crypto/utils",
-			"revision": "92bbf994f7125c2dcc061d8ece78ab1d3574a7d1",
-			"revisionTime": "2016-12-04T13:15:26Z"
+			"checksumSHA1": "klpCQmE30Ij8lGToXio9N+MdhcA=",
+			"path": "github.com/hyperledger/fabric/bccsp/pkcs11",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
+		},
+		{
+			"checksumSHA1": "kF6Drg4G0a54XNskZlrq0Bazmt0=",
+			"path": "github.com/hyperledger/fabric/bccsp/signer",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
+		},
+		{
+			"checksumSHA1": "MgIVDdd6sgRZVdsMDSj2OA4So+U=",
+			"path": "github.com/hyperledger/fabric/bccsp/sw",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
+		},
+		{
+			"checksumSHA1": "c/VlngqOYcd+b8pGVD2izQZnuHE=",
+			"path": "github.com/hyperledger/fabric/bccsp/utils",
+			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
+			"revisionTime": "2017-01-21T00:31:30Z"
 		},
 		{
 			"checksumSHA1": "e31lcI8tZLaulsX4PZCFBAyC920=",
@@ -760,5 +778,5 @@
 			"revisionTime": "2016-09-28T15:37:09Z"
 		}
 	],
-	"rootPath": "github.com/hyperledger/fabric-cop"
+	"rootPath": "github.com/hyperledger/fabric-ca"
 }

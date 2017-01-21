@@ -26,7 +26,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric/core/crypto/bccsp/factory"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 var initUsageText = `fabric-ca server init CSRJSON -- generates a new private key and self-signed certificate

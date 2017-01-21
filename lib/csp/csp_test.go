@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib/csp"
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
+	"github.com/hyperledger/fabric/bccsp"
 )
 
 func TestBCCSP(t *testing.T) {

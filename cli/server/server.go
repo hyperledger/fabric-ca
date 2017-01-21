@@ -51,7 +51,7 @@ import (
 	"github.com/hyperledger/fabric-ca/cli/server/spi"
 	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
+	"github.com/hyperledger/fabric/bccsp"
 	"github.com/jmoiron/sqlx"
 )
 

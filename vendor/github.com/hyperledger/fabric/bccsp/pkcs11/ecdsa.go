@@ -13,18 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package pkcs11
 
-package primitives
+import "math/big"
 
-import (
-	"crypto/elliptic"
-)
-
-var (
-	defaultCurve elliptic.Curve
-)
-
-// GetDefaultCurve returns the default elliptic curve used by the crypto layer
-func GetDefaultCurve() elliptic.Curve {
-	return defaultCurve
+// ECDSASignature represents an ECDSA signature
+type ecdsaSignature struct {
+	R, S *big.Int
 }

@@ -17,10 +17,8 @@ limitations under the License.
 package utils
 
 import (
-	"encoding/base64"
 	"io"
 	"os"
-	"path/filepath"
 )
 
 // DirMissingOrEmpty checks is a directory is missin or empty
@@ -68,45 +66,4 @@ func DirEmpty(path string) (bool, error) {
 		return true, nil
 	}
 	return false, err
-}
-
-// FileMissing checks if a file is missing
-func FileMissing(path string, name string) (bool, error) {
-	_, err := os.Stat(filepath.Join(path, name))
-	if err != nil {
-		return true, err
-	}
-	return false, nil
-}
-
-// FilePathMissing returns true if the path is missing, false otherwise.
-func FilePathMissing(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err != nil {
-		return true, err
-	}
-	return false, nil
-}
-
-// DecodeBase64 decodes from Base64
-func DecodeBase64(in string) ([]byte, error) {
-	return base64.StdEncoding.DecodeString(in)
-}
-
-// EncodeBase64 encodes to Base64
-func EncodeBase64(in []byte) string {
-	return base64.StdEncoding.EncodeToString(in)
-}
-
-// IntArrayEquals checks if the arrays of ints are the same
-func IntArrayEquals(a []int, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }

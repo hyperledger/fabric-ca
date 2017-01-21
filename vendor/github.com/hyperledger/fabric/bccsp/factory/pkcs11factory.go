@@ -20,29 +20,29 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
-	"github.com/hyperledger/fabric/core/crypto/bccsp/sw"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/pkcs11"
 )
 
 const (
-	// SoftwareBasedFactoryName is the name of the factory of the software-based BCCSP implementation
-	SoftwareBasedFactoryName = "SW"
+	// PKCS11BasedFactoryName is the name of the factory of the hsm-based BCCSP implementation
+	PKCS11BasedFactoryName = "P11"
 )
 
-// SWFactory is the factory of the software-based BCCSP.
-type SWFactory struct {
+// PKCS11Factory is the factory of the HSM-based BCCSP.
+type PKCS11Factory struct {
 	initOnce sync.Once
 	bccsp    bccsp.BCCSP
 	err      error
 }
 
 // Name returns the name of this factory
-func (f *SWFactory) Name() string {
-	return SoftwareBasedFactoryName
+func (f *PKCS11Factory) Name() string {
+	return PKCS11BasedFactoryName
 }
 
 // Get returns an instance of BCCSP using Opts.
-func (f *SWFactory) Get(opts Opts) (bccsp.BCCSP, error) {
+func (f *PKCS11Factory) Get(opts Opts) (bccsp.BCCSP, error) {
 	// Validate arguments
 	if opts == nil {
 		return nil, errors.New("Invalid opts. It must not be nil.")
@@ -52,24 +52,24 @@ func (f *SWFactory) Get(opts Opts) (bccsp.BCCSP, error) {
 		return nil, fmt.Errorf("Invalid Provider Name [%s]. Opts must refer to [%s].", opts.FactoryName(), f.Name())
 	}
 
-	swOpts, ok := opts.(*SwOpts)
+	pkcs11Opts, ok := opts.(*PKCS11Opts)
 	if !ok {
-		return nil, errors.New("Invalid opts. They must be of type SwOpts.")
+		return nil, errors.New("Invalid opts. They must be of type PKCS11Opts.")
 	}
 
 	if !opts.Ephemeral() {
 		f.initOnce.Do(func() {
-			f.bccsp, f.err = sw.New(swOpts.SecLevel, swOpts.HashFamily, swOpts.KeyStore)
+			f.bccsp, f.err = pkcs11.New(pkcs11Opts.SecLevel, pkcs11Opts.HashFamily, pkcs11Opts.KeyStore)
 			return
 		})
 		return f.bccsp, f.err
 	}
 
-	return sw.New(swOpts.SecLevel, swOpts.HashFamily, swOpts.KeyStore)
+	return pkcs11.New(pkcs11Opts.SecLevel, pkcs11Opts.HashFamily, pkcs11Opts.KeyStore)
 }
 
-// SwOpts contains options for the SWFactory
-type SwOpts struct {
+// PKCS11Opts contains options for the P11Factory
+type PKCS11Opts struct {
 	Ephemeral_ bool
 	SecLevel   int
 	HashFamily string
@@ -77,11 +77,11 @@ type SwOpts struct {
 }
 
 // FactoryName returns the name of the provider
-func (o *SwOpts) FactoryName() string {
-	return SoftwareBasedFactoryName
+func (o *PKCS11Opts) FactoryName() string {
+	return PKCS11BasedFactoryName
 }
 
 // Ephemeral returns true if the CSP has to be ephemeral, false otherwise
-func (o *SwOpts) Ephemeral() bool {
+func (o *PKCS11Opts) Ephemeral() bool {
 	return o.Ephemeral_
 }

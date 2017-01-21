@@ -13,23 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package primitives
 
-import (
-	"crypto/rand"
-	"crypto/rsa"
-)
+package utils
 
-var (
-	defaultRSABitSize int
-)
+// ErrToString converts and error to a string. If the error is nil, it returns the string "<clean>"
+func ErrToString(err error) string {
+	if err != nil {
+		return err.Error()
+	}
 
-// GetRSABitLength returns the RSA modulo bit size
-func GetRSABitSize() int {
-	return defaultRSABitSize
-}
-
-// NewRSAKey generates a new RSA Key
-func NewRSAKey() (*rsa.PrivateKey, error) {
-	return rsa.GenerateKey(rand.Reader, defaultRSABitSize)
+	return "<clean>"
 }

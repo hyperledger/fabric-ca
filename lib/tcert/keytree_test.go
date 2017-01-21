@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
-	"github.com/hyperledger/fabric/core/crypto/bccsp/factory"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 func TestKeyTree(t *testing.T) {

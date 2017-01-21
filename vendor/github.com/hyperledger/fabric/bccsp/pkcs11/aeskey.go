@@ -13,14 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package sw
+package pkcs11
 
 import (
 	"errors"
 
 	"crypto/sha256"
 
-	"github.com/hyperledger/fabric/core/crypto/bccsp"
+	"github.com/hyperledger/fabric/bccsp"
 )
 
 type aesPrivateKey struct {
@@ -41,6 +41,7 @@ func (k *aesPrivateKey) Bytes() (raw []byte, err error) {
 // SKI returns the subject key identifier of this key.
 func (k *aesPrivateKey) SKI() (ski []byte) {
 	hash := sha256.New()
+	hash.Write([]byte{0x01})
 	hash.Write(k.privKey)
 	return hash.Sum(nil)
 }
