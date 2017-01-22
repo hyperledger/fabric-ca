@@ -139,6 +139,9 @@ container-tests: ldap-tests
 ldap-tests:
 	@scripts/run_ldap_tests
 
+fvt-tests:
+	@scripts/run_fvt_tests
+
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
 	-docker images -q $(DOCKER_ORG)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'

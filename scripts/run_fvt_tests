@@ -1,0 +1,35 @@
+#!/bin/bash
+FABRIC_CA=$GOPATH/src/github.com/hyperledger/fabric-ca
+SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+export TESTCASE="fabric-ca-fvt"
+export RESULTLOG="/tmp/fvt-test.results"
+export STARTIME=$SECONDS
+export RC=0
+. $SCRIPTDIR/fabric-ca_utils
+> $RESULTLOG
+
+(
+TimeStamp
+echo "Running fvt tests ..."
+export PATH=$PATH:$GOPATH/bin
+tests="$(find $SCRIPTDIR -name "*test*.sh")"
+for cmd in $tests; do 
+  echo ""
+  echo "*******************"
+  TESTCASE="${cmd##*/}"
+  echo "${cmd}"
+  echo "*******************"
+  ${cmd} 2>&1 
+  RC=$((RC+$?))
+  $SCRIPTDIR/fabric-ca_setup.sh -R
+  echo ""
+  echo ""
+  echo ""
+done
+echo "Finished running fvt tests"
+grep RC: $RESULTLOG
+echo $RC >> $RESULTLOG
+) | tee -a $RESULTLOG 2>&1
+RC=$(tail -n1 $RESULTLOG)
+CleanUp "$RC"
+exit "$RC"
