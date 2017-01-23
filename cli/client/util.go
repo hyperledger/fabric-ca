@@ -16,9 +16,34 @@ limitations under the License.
 
 package client
 
-import "github.com/hyperledger/fabric-ca/lib"
+import (
+	"path"
 
-// NewClient returns a client given a url
-func NewClient(url string) (*lib.Client, error) {
-	return lib.NewClient(`{"serverURL":"` + url + `"}`)
+	"github.com/hyperledger/fabric-ca/lib"
+
+	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
+)
+
+// LoadClient loads client configuration file
+func loadClient(loadIdentity bool, configFile string) (*lib.Client, *lib.Identity, error) {
+	if configFile == "" {
+		configFile = path.Join(util.GetDefaultHomeDir(), "client-config.json")
+	}
+	log.Infof("Fabric-ca Client Configuration File: %s", configFile)
+
+	client, err := lib.NewClient(configFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if loadIdentity {
+		id, err2 := client.LoadMyIdentity()
+		if err != nil {
+			return nil, nil, err2
+		}
+		return client, id, nil
+	}
+
+	return client, nil, err
 }

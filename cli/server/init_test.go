@@ -28,12 +28,11 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 func TestInitCA(t *testing.T) {
-
-	s := new(Server)
-	FCAHome, err := s.CreateHome()
+	FCAHome, err := util.CreateHome()
 	if err != nil {
 		log.Fatalf("Failed to create fabric-ca home directory.")
 	}

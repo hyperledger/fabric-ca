@@ -27,7 +27,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -45,18 +44,45 @@ const (
 )
 
 // NewClient is the constructor for the fabric-ca client API
-func NewClient(config string) (*Client, error) {
+func NewClient(configFile string) (*Client, error) {
 	c := new(Client)
 	// Set defaults
-	c.ServerURL = util.GetServerURL()
-	c.HomeDir = util.GetDefaultHomeDir()
-	if config != "" {
-		// Override any defaults
-		err := util.Unmarshal([]byte(config), c, "NewClient")
-		if err != nil {
-			return nil, err
+	if configFile != "" {
+		if _, err := os.Stat(configFile); err != nil {
+			log.Info("Fabric-ca client configuration file not found. Using Defaults...")
+		} else {
+			c.ConfigFile = configFile
+			var config []byte
+			var err error
+			config, err = ioutil.ReadFile(configFile)
+			if err != nil {
+				return nil, err
+			}
+			// Override any defaults
+			err = util.Unmarshal([]byte(config), c, "NewClient")
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
+
+	if c.ServerURL == "" {
+		c.ServerURL = util.GetServerURL()
+	}
+
+	if c.HomeDir == "" {
+		c.HomeDir = util.GetDefaultHomeDir()
+	}
+
+	if _, err := os.Stat(c.HomeDir); err != nil {
+		if os.IsNotExist(err) {
+			_, err := util.CreateHome()
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	return c, nil
 }
 
@@ -66,6 +92,8 @@ type Client struct {
 	ServerURL string `json:"serverURL,omitempty"`
 	// HomeDir is the home directory
 	HomeDir string `json:"homeDir,omitempty"`
+	// ConfigFile is the location of the client configuration file
+	ConfigFile string
 }
 
 // Enroll enrolls a new identity
@@ -259,7 +287,7 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 	reqStr := util.HTTPRequestToString(req)
 	log.Debugf("Sending request\n%s", reqStr)
 
-	configFile, err := c.getClientConfig(c.HomeDir)
+	configFile, err := c.getClientConfig(c.ConfigFile)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load client config file [%s]; not sending\n%s", err, reqStr)
 	}
@@ -330,8 +358,8 @@ func (c *Client) getURL(endpoint string) (string, error) {
 
 func (c *Client) getClientConfig(path string) ([]byte, error) {
 	log.Debug("Retrieving client config")
-	fcaClient := filepath.Join(path, clientConfigFile)
-	fileBytes, err := ioutil.ReadFile(fcaClient)
+	// fcaClient := filepath.Join(path, clientConfigFile)
+	fileBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

@@ -140,6 +140,30 @@ func TestRemoveQuotesNone(t *testing.T) {
 	}
 }
 
+func TestCreateHome(t *testing.T) {
+	t.Log("Test Creating Home Directory")
+	os.Unsetenv("COP_HOME")
+	tempDir, err := ioutil.TempDir("", "test")
+	if err != nil {
+		t.Errorf("Failed to create temp directory [error: %s]", err)
+	}
+	os.Setenv("HOME", tempDir)
+
+	_, err = CreateHome()
+	if err != nil {
+		t.Errorf("Failed to create home directory, error: %s", err)
+	}
+
+	dir := filepath.Join(tempDir, "fabric-cop")
+
+	if _, err = os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			t.Error("Failed to create home directory")
+		}
+	}
+
+}
+
 func TestGetDefaultHomeDir(t *testing.T) {
 	os.Setenv("FABRIC_CA_HOME", "")
 	os.Setenv("HOME", "")

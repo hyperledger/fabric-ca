@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -32,9 +31,9 @@ import (
 )
 
 const (
-	CFGFile         = "testconfig.json"
-	ClientTLSConfig = "client-config.json"
-	FCADB           = "../../testdata/fabric-ca.db"
+	CFGFile      = "testconfig.json"
+	ClientConfig = "../../testdata/client-config.json"
+	FCADB        = "../../testdata/fabric-ca.db"
 )
 
 var serverStarted bool
@@ -87,9 +86,6 @@ func TestPostgresFail(t *testing.T) {
 
 func TestRegisterUser(t *testing.T) {
 	startServer()
-	clientConfig := filepath.Join(dir, ClientTLSConfig)
-	os.Link("../../testdata/client-config2.json", clientConfig)
-
 	c := getClient(t)
 	if c == nil {
 		return
@@ -216,8 +212,9 @@ func TestRevoke(t *testing.T) {
 }
 
 func TestGetTCerts(t *testing.T) {
-	c := getClient(t)
-	if c == nil {
+	c, err := lib.NewClient(ClientConfig)
+	if err != nil {
+		t.Errorf("TestGetTCerts.NewClient failed: %s", err)
 		return
 	}
 
@@ -296,8 +293,9 @@ func TestEnroll(t *testing.T) {
 }
 
 func testUnregisteredUser(t *testing.T) {
-	c := getClient(t)
-	if c == nil {
+	c, err := lib.NewClient(ClientConfig)
+	if err != nil {
+		t.Errorf("Failed to create client [error: %s]", err)
 		return
 	}
 
@@ -306,7 +304,7 @@ func testUnregisteredUser(t *testing.T) {
 		Secret: "test",
 	}
 
-	_, err := c.Enroll(req)
+	_, err = c.Enroll(req)
 
 	if err == nil {
 		t.Error("Unregistered user should not be allowed to enroll, should have failed")
@@ -314,8 +312,9 @@ func testUnregisteredUser(t *testing.T) {
 }
 
 func testIncorrectToken(t *testing.T) {
-	c := getClient(t)
-	if c == nil {
+	c, err := lib.NewClient(ClientConfig)
+	if err != nil {
+		t.Errorf("Failed to create client [error: %s]", err)
 		return
 	}
 
@@ -324,7 +323,7 @@ func testIncorrectToken(t *testing.T) {
 		Secret: "pass1",
 	}
 
-	_, err := c.Enroll(req)
+	_, err = c.Enroll(req)
 
 	if err == nil {
 		t.Error("Incorrect token should not be allowed to enroll, should have failed")
@@ -332,14 +331,18 @@ func testIncorrectToken(t *testing.T) {
 }
 
 func testEnrollingUser(t *testing.T) {
-	c, _ := lib.NewClient("")
+	c, err := lib.NewClient(ClientConfig)
+	if err != nil {
+		t.Errorf("Failed to create client [error: %s]", err)
+		return
+	}
 
 	req := &api.EnrollmentRequest{
 		Name:   "testUser2",
 		Secret: "user2",
 	}
 
-	_, err := c.Enroll(req)
+	_, err = c.Enroll(req)
 
 	if err != nil {
 		t.Error("Enroll of user 'testUser2' with password 'user2' failed")
@@ -366,9 +369,9 @@ func TestRevokeCertificatesByID(t *testing.T) {
 }
 
 func TestExpiration(t *testing.T) {
-
-	c := getClient(t)
-	if c == nil {
+	c, err := lib.NewClient(ClientConfig)
+	if err != nil {
+		t.Errorf("Failed to create client [error: %s]", err)
 		return
 	}
 
@@ -418,38 +421,6 @@ func TestUserRegistry(t *testing.T) {
 
 }
 
-func TestCreateHome(t *testing.T) {
-	s := createServer()
-	t.Log("Test Creating Home Directory")
-	os.Unsetenv("FABRIC_CA_HOME")
-	tempDir, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Errorf("Failed to create temp directory [error: %s]", err)
-	}
-	os.Setenv("HOME", tempDir)
-
-	_, err = s.CreateHome()
-	if err != nil {
-		t.Errorf("Failed to create home directory, error: %s", err)
-	}
-
-	if _, err = os.Stat(dir); err != nil {
-		if os.IsNotExist(err) {
-			t.Error("Failed to create home directory")
-		}
-	}
-
-}
-
-func TestMissingCertKey(t *testing.T) {
-	s := new(Server)
-	badConfig := "true"
-	err := s.Start(badConfig)
-	if err == nil {
-		t.Error("Server should not have started. No CA certificate or key were provided")
-	}
-}
-
 func TestLast(t *testing.T) {
 	// Cleanup
 	os.Remove(FCADB)
@@ -476,7 +447,7 @@ func testWithoutAuthHdr(c *lib.Client, t *testing.T) {
 }
 
 func getClient(t *testing.T) *lib.Client {
-	c, err := lib.NewClient("")
+	c, err := lib.NewClient(ClientConfig)
 	if err != nil {
 		t.Fatalf("TestMisc.NewClient failed: %s", err)
 		return nil

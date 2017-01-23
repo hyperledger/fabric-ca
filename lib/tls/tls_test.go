@@ -18,24 +18,24 @@ package tls
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"testing"
 )
 
+const clientConfig = "../../testdata/client-config.json"
+
 func TestGetClientTLSConfig(t *testing.T) {
-	tlsConfig, err := ioutil.ReadFile("../../testdata/client-config2.json")
+	tlsConfig, err := ioutil.ReadFile(clientConfig)
 	if err != nil {
 		t.Errorf("Failed to read in TLS configuration file [error: %s]", err)
 	}
 
-	var cfg ClientTLSConfig
-	json.Unmarshal(tlsConfig, &cfg)
+	var cfg = new(ClientTLSConfig)
+	json.Unmarshal(tlsConfig, cfg)
 
-	tls, err := GetClientTLSConfig(&cfg)
+	_, err = GetClientTLSConfig(cfg)
 	if err != nil {
 		t.Errorf("Failed to get TLS Config [error: %s]", err)
 	}
 
-	fmt.Println("tls config: ", tls)
 }

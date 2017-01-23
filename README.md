@@ -232,7 +232,7 @@ Run the following command to start fabric-ca server:
 # fabric-ca server start -config ../testdata/server-config.json
 ```
 
-It is now listening on localhost port 8888.
+It is now listening on localhost port 7054.
 
 You can customize your fabric-ca config file at `../testdata/server-config.json`.  For example,
 if you want to disable authentication, you can do so by setting `authentication` to
@@ -241,13 +241,30 @@ Auhentication is added by fabric-ca since CFSSL does not perform authentication.
 basic authentication header is required for the enroll request.  All other requests
 to the fabric-ca server will require a JWT-like token, but this work is not yet complete.
 
+### Create Client Configuration File
+
+The client requires a configuration file to enable TLS and successfully connect
+to server. A sample client configuration file can be found at
+`../testdata/client-config.json`. The configuration file is passed in using
+a config flag.
+
+
+The table below defines all the properties that can be set in the config file.
+
+| Property    |                     Description                              |
+|-------------|--------------------------------------------------------------|
+|serverURL    | URL of the server                                            |
+|ca_certfiles | File path to root certificate of which server certificate is signed by    |
+|keyfile      | File path to client TLS key on file system                   |
+|certfile     | File path to client TLS certificate on file system           |
+
 ### Enroll the admin client
 
 See the `FABRIC_CA/testdata/server-config.json` file and note the "admin" user with a password of "adminpw".
 The following command gets an ecert for the admin user.
 
 ```
-# fabric-ca client enroll admin adminpw http://localhost:8888
+# fabric-ca client enroll -config ../testdata/client-config.json admin adminpw http://localhost:7054
 ```
 
 The enrollment certificate is stored at `$FABRIC_CA_ENROLLMENT_DIR/cert.pem` by default, but a different
@@ -268,7 +285,7 @@ command except no username or password is required.  Instead, your previously st
 key is used to authenticate to the fabric-ca server.
 
 ```
-# fabric-ca client reenroll http://localhost:8888
+# fabric-ca client reenroll -config ../testdata/client-config.json http://localhost:7054
 ```
 
 The enrollment certificate and enrollment key are stored in the same location as described in the previous section for the `enroll` command.
@@ -276,7 +293,7 @@ The enrollment certificate and enrollment key are stored in the same location as
 You can specify a new Certificate Signing Request JSON information when issue the reenroll command
 
 ```
-# fabric-ca client reenroll http://localhost:8888 ../testdata/csr.json
+# fabric-ca client reenroll -config ../testdata/client-config.json http://localhost:7054 ../testdata/csr.json
 ```
 
 ### Register a new user
@@ -311,7 +328,7 @@ registerrequest.json:
 The following command will register the user.
 
 ```
-# fabric-ca client register ../testdata/registerrequest.json http://localhost:8888
+# fabric-ca client register -config ../testdata/client-config.json ../testdata/registerrequest.json http://localhost:7054
 ```
 
 ### LDAP
@@ -397,7 +414,7 @@ defaults
       timeout server 50000
 
 listen http-in
-      bind *:8888
+      bind *:7054
       balance roundrobin
       server server1 <hostname:port>
       server server2 <hostname:port>

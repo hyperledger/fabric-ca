@@ -55,7 +55,7 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	caCertPool := x509.NewCertPool()
 
 	if len(cfg.CACertFiles) == 0 {
-		log.Error("No CA cert files provided, TLS connection cannot be established")
+		log.Error("No CA cert files provided. If server requires TLS, connection will fail")
 	}
 
 	for _, cacert := range cfg.CACertFiles {
