@@ -1,4 +1,4 @@
-FROM hyperledger/fabric-ca-runtime:_TAG_
+FROM hyperledger/fabric-baseos:_BASE_TAG_
 ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca
 RUN mkdir -p $FABRIC_CA_HOME /var/hyperledger/fabric-ca
 COPY payload/fabric-ca /usr/local/bin

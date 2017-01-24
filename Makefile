@@ -41,15 +41,14 @@ K := $(foreach exec,$(EXECUTABLES),\
 	$(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH: Check dependencies")))
 
 ARCH=$(shell uname -m)
-BASEIMAGE_RELEASE = 0.2.2
+BASEIMAGE_RELEASE = 0.3.0
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 SAMPLECONFIG = $(shell git ls-files images/fabric-ca/config)
 
 DOCKER_ORG = hyperledger
-IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-runtime
+IMAGES = $(PROJECT_NAME)
 
-image-path-map.fabric-ca         := fabric-ca
-image-path-map.fabric-ca-runtime := runtime
+image-path-map.fabric-ca := fabric-ca
 
 include docker-env.mk
 
@@ -100,12 +99,9 @@ build/docker/busybox:
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		make -f busybox/Makefile install BINDIR=$(@D)
 
-build/image/$(PROJECT_NAME)/$(DUMMY): build/image/$(PROJECT_NAME)-runtime/$(DUMMY)
-
 # payload definitions
 build/image/$(PROJECT_NAME)/payload:	build/docker/bin/fabric-ca \
 					build/sampleconfig.tar.bz2
-build/image/$(PROJECT_NAME)-runtime/payload:	build/docker/busybox
 
 build/image/%/payload:
 	mkdir -p $@
