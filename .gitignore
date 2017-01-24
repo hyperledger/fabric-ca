@@ -1,6 +1,5 @@
 bin
 build
 coverage.xml
-fabric-ca
 *.csr
 *.der
