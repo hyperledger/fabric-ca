@@ -13,5 +13,5 @@ COPY payload/tls_client-key.pem /.fabric-ca/tls_client-key.pem
 COPY payload/ec-key.pem /.fabric-ca/ec-key.pem
 COPY payload/ec.pem /.fabric-ca/ec.pem
 
-EXPOSE 8888
+EXPOSE 7054
 CMD fabric-ca server start -address 0.0.0.0 -config $FABRIC_CA_HOME/server-config.json
