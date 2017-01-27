@@ -4,7 +4,7 @@ ENV PATH=$GOPATH/bin:$PATH
 
 RUN go get github.com/hyperledger/fabric-ca
 
-# Copy the configuration for the cop and certificate setups
+# Copy the configuration for the fabric-ca and certificate setups
 WORKDIR /config
 COPY config.json /config/config.json
 COPY csr.json /config/csr.json
