@@ -71,7 +71,11 @@ func startServer() {
 }
 
 func runServer() {
-	Start("../../testdata", CFGFile)
+	s := new(Server)
+	s.ConfigDir = "../../testdata"
+	s.ConfigFile = CFGFile
+	s.StartFromConfig = true
+	s.Start()
 }
 
 func TestPostgresFail(t *testing.T) {
@@ -435,6 +439,15 @@ func TestCreateHome(t *testing.T) {
 		}
 	}
 
+}
+
+func TestMissingCertKey(t *testing.T) {
+	s := new(Server)
+	badConfig := "true"
+	err := s.Start(badConfig)
+	if err == nil {
+		t.Error("Server should not have started. No CA certificate or key were provided")
+	}
 }
 
 func TestLast(t *testing.T) {
