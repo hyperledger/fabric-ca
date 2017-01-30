@@ -1,0 +1,169 @@
+#!/bin/bash
+DATE='date +%Y-%m-%d'
+TIME='date +%I:%M:%S%p'
+
+function genClientConfig() {
+   local CLIENTCONFIG="$1"
+   cat > "$CLIENTCONFIG" <<-EOF
+{
+  "tls_disable":true
+}
+EOF
+}
+
+isReachable() {
+   # a test to see if there is a listener on
+   # specified host:port
+   # netcat would be *far* simpler:
+   #    nc -nzvt host port
+   # but not guaranteed to be installed
+   # so use python, since it is ubiquitious
+   local host="$1"
+   local port="$2"
+   test -z "$host" -o -z "$port" && return 1
+
+   python - <<END
+import socket
+import sys
+import os
+remoteServer =  "$host"
+port         = int("$port");
+remoteServerIP  = socket.gethostbyname(remoteServer)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+result = sock.connect_ex((remoteServerIP, port))
+sock.close()
+os._exit(result)
+END
+}
+
+pollServer() {
+   local app="$1"
+   local host="$2"
+   local port="$3"
+   local timeout="$4"
+   : ${timeout:="10"}
+   local rc=1
+   local starttime=$(date +%s)
+
+   # continue to poll host:port until
+   # we either get a response, or reach timeout
+   while test "$(($(date +%s)-starttime))" -lt "$timeout" -a $rc -ne 0
+   do
+      sleep 1
+      printf "\r%s%03d" "Waiting for $app start on $host:$port ..." "$now"
+      isReachable "$host" "$port"
+      rc=$?
+   done
+   echo ""
+   return $rc
+}
+
+TimeStamp() {
+   printf "TIMESTAMP--%s %s\n" $($DATE) $($TIME)
+}
+
+CleanUp() {
+   local RC=$1
+   : ${RC:=0}
+   ###############################################################################
+   # Summary
+   ###############################################################################
+   echo ""
+   echo "#########################################################################"
+   printf "RC: $RC, $TESTCASE "
+
+   if test "$RC" -eq 0; then
+      RESULT="PASSED"
+   else
+      RESULT="FAILED"
+   fi
+
+   printf "%s\n" $RESULT
+   RUNTIME_S="$((SECONDS-STARTIME))"
+   echo "$((RUNTIME_S/60)) minutes, $((RUNTIME_S%60)) seconds runtime"
+   printf "$(TimeStamp) $TESTCASE ENDED\n"
+   echo "#########################################################################"
+
+   TimeStamp
+   printf "%s test ended.\n" $TESTCASE
+}
+
+
+function ErrorExit() {
+   $FABRIC_CA/scripts/fabric-ca_setup.sh -R
+   echo "${1}...exiting"
+   exit 1
+}
+
+function verifyServerTraffic() {
+   # verifyServerTraffic
+   # validate that backend <server_name>
+   # got at least <num_requests> requests from client
+   # with a minimum of <percent> HTTP status code <code>
+   local haproxy_addr="$1"
+   local server_name="$2"
+   local num_requests="$3"
+   local percent="$4"
+   local code="$5"
+   local op="$6"
+   local rc=0
+
+    # default
+    #  server got at least one request
+    #  all received requests were successfully served
+    : ${haproxy_addr:="localhost:10888"}
+    : ${server_name:="server1"}
+    : ${num_requests:="1"}
+    : ${percent:="100"}
+    : ${code:="HTTP 2xx"}
+    : ${op:="eq"}
+
+   result=$(curl -s http://${haproxy_addr}/ |
+     awk -v s="$server_name" '$0~s'|html2text|
+        awk -v c="$code" '
+           /Cum. sessions:/ {sessions=$NF}
+           $0~c {gsub(/[(%)]/,"",$NF);status=$NF}
+           END {print sessions" "status}')
+   eval test "${result%% *}" -$op "$num_requests" 2>/dev/null; rc=$((rc+$?))
+   eval test "${result##* }" -$op "$percent" 2>/dev/null; rc=$((rc+$?))
+
+   return $rc
+}
+
+function printAuth() {
+   CLIENTCERT=$1
+   CLENTKEY=$2
+
+   : ${CLIENTCERT:="$HOME/fabric-ca/cert.pem"}
+   : ${CLIENTKEY:="$HOME/fabric-ca/key.pem"}
+
+   echo CERT:
+   openssl x509 -in $CLIENTCERT -text 2>&1 | sed 's/^/    /'
+   type=$(cat $CLIENTKEY | head -n1 | awk '{print tolower($2)}')
+   test -z "$type" && type=rsa
+   echo KEY:
+   openssl $type -in $CLENTKEY -text 2>/dev/null| sed 's/^/    /'
+}
+
+function startHttp() {
+   local port="$1"
+   local rootdir="$2"
+   cd $rootdir
+   python -m SimpleHTTPServer $port &
+   HTTP_PID=$!
+   pollServer python localhost "$HTTP_PORT" && return $HTTP_PID || return -1
+}
+
+function keyCheck() {
+   local cert="$1"
+   local key="$2"
+   local alg="$3"
+   : ${alg:="rsa"}
+   test -f "$cert" -a -f "$key" || return 1
+   # check to see that the public/private key pair match
+   k_hash=$(openssl $alg -noout -modulus -in $key  2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
+   c_hash=$(openssl x509 -noout -modulus -in $cert 2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
+   test -z "$k_hash" -o -z "$c_hash" && return 1
+   test "$k_hash" == "$c_hash" || return 1
+   return 0
+}
