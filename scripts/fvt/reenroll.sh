@@ -8,6 +8,8 @@ HOST="http://localhost:8888"
 RUNCONFIG="$TESTDATA/postgres.json"
 INITCONFIG="$TESTDATA/csr_ecdsa256.json"
 RC=0
+$($FABRIC_TLS) && HOST="https://localhost:8888"
+
 . $SCRIPTDIR/fabric-ca_utils
 
 : ${FABRIC_CA_DEBUG="false"}

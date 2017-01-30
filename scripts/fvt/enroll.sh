@@ -6,6 +6,7 @@ SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
 HOST="http://localhost:8888"
 RC=0
+$($FABRIC_TLS) && HOST="https://localhost:8888"
 
 while getopts "du:p:t:l:x:" option; do
   case "$option" in
@@ -33,7 +34,6 @@ $($AUTH) || unset USERPSWD
 : ${KEYLEN="256"}
 
 test "$KEYTYPE" = "ecdsa" && sslcmd="ec"
-
 
 genClientConfig "$FABRIC_CA_HOME/client-config.json"
 $FABRIC_CAEXEC client enroll "$USERNAME" "$USERPSWD" "$HOST" <(echo "{

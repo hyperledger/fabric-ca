@@ -43,10 +43,10 @@ for len in ${ecl[*]}; do
    $SCRIPTDIR/fabric-ca_setup.sh -R
    $SCRIPTDIR/fabric-ca_setup.sh -I -X -S -n 1 -t $ktype -l $len
    # verify CA key type and length
-   VerifyKey $CA_KEY $ktype $len ${ecOid[$len]} || let RC+=1
+   VerifyKey $CA_KEY $ktype $len ${ecOid[$len]} || ErrorMsg "VerifyKey CA $ktype $len failed"
    $SCRIPTDIR/enroll.sh -t $ktype -l $len
    # verify EE key type and length
-   VerifyKey $EE_KEY $ktype $len ${ecOid[$len]} || let RC+=1
+   VerifyKey $EE_KEY $ktype $len ${ecOid[$len]} || ErrorMsg "VerifyKey EE $ktype $len failed"
 done
 ktype=rsa
 echo ""
@@ -58,10 +58,10 @@ for len in ${rsal[*]}; do
    $SCRIPTDIR/fabric-ca_setup.sh -R
    $SCRIPTDIR/fabric-ca_setup.sh -I -X -S -n 1 -t $ktype -l $len
    # verify CA key type and length
-   VerifyKey $CA_KEY $ktype $len "" || let RC+=1
+   VerifyKey $CA_KEY $ktype $len "" || ErrorMsg "VerifyKey CA $ktype $len failed"
    $SCRIPTDIR/enroll.sh -t $ktype -l $len
    # verify EE key type and length
-   VerifyKey $EE_KEY $ktype $len "" || let RC+=1
+   VerifyKey $EE_KEY $ktype $len "" || ErrorMsg "VerifyKey CA $ktype $len failed"
    echo ""
    echo ""
 done

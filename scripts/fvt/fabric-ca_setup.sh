@@ -306,6 +306,7 @@ function listFabricCa(){
          echo "Users:"
          runPSQL 'SELECT * FROM "users";' '--dbname=fabric_ca' | sed 's/^/   /'
       ;;
+      sqlite3) sqlite3 "$dbfile" 'SELECT * FROM "users" ;;' | sed 's/^/   /'
    esac
 }
 
@@ -342,11 +343,39 @@ function initFabricCa() {
 function startHaproxy() {
    local inst=$1
    local i=0
-   /etc/init.d/haproxy stop
+   local proxypids=$(lsof -n -i tcp | awk '$1=="haproxy" && !($2 in a) {a[$2]=$2;print a[$2]}')
+   test -n "$proxypids" && kill $proxypids
    #sudo sed -i 's/ *# *$UDPServerRun \+514/$UDPServerRun 514/' /etc/rsyslog.conf
    #sudo sed -i 's/ *# *$ModLoad \+imudp/$ModLoad imudp/' /etc/rsyslog.conf
+   case $TLS_DISABLE in
+     false)
    haproxy -f  <(echo "global
-      #log localhost local0 debug
+      log /dev/log	local0 debug
+      log /dev/log	local1 debug
+      daemon
+defaults
+      log     global
+      option  dontlognull
+      maxconn 1024
+      timeout connect 5000
+      timeout client 50000
+      timeout server 50000
+
+frontend haproxy
+      bind *:8888
+      mode tcp
+      option tcplog
+      default_backend fabric-cas
+
+backend fabric-cas
+      mode tcp
+      balance roundrobin";
+   while test $((i++)) -lt $inst; do
+      echo "      server server$i  127.0.0.$i:9888"
+   done)
+   ;;
+   true)
+   haproxy -f  <(echo "global
       log /dev/log	local0 debug
       log /dev/log	local1 debug
       daemon
@@ -370,8 +399,8 @@ listen stats
 frontend haproxy
       bind *:8888
       mode http
+      option tcplog
       default_backend fabric-cas
-
 
 backend fabric-cas
       mode http
@@ -380,6 +409,8 @@ backend fabric-cas
    while test $((i++)) -lt $inst; do
       echo "      server server$i  127.0.0.$i:9888"
    done)
+   ;;
+   esac
 
 }
 
@@ -441,20 +472,31 @@ while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:" option; do
      X)   PROXY="true" ;;
      K)   KILL="true" ;;
      L)   LIST="true" ;;
-     T)   TLS_DISABLE="false" ;;
+     T)   TLS_ON="true" ;;
    \?|h)  usage
           exit 1
           ;;
   esac
 done
 
+# regarding tls:
+#    honor the command-line setting to turn on TLS
+#      else honor the envvar
+#        else (default) turn off tls
+if test -n "$TLS_ON"; then
+   TLS_DISABLE='false'
+else
+   case "$FABRIC_TLS" in
+      true) TLS_DISABLE='false' ;;
+     false) TLS_DISABLE='true'  ;;
+         *) TLS_DISABLE='true'  ;;
+   esac
+fi
 
 test -z "$DATADIR" && DATADIR="$HOME/fabric-ca"
 test -z "$SRC_KEY" && SRC_KEY="$DATADIR/server-key.pem"
 test -z "$SRC_CERT" && SRC_CERT="$DATADIR/server-cert.pem"
-
 : ${HTTP_PORT="3755"}
-: ${TLS_DISABLE="true"}
 : ${MAXENROLL="1"}
 : ${AUTH="true"}
 : ${DRIVER="sqlite3"}
@@ -477,7 +519,7 @@ test $KEYTYPE = "rsa" && SSLKEYCMD=$KEYTYPE || SSLKEYCMD="ec"
 
 case $DRIVER in
    postgres) DATASRC="dbname=fabric_ca host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
-   sqlite3)   DATASRC="fabric_ca.db" ;;
+   sqlite3)   DATASRC="fabric_ca.db"; dbfile="$TESTDATA/fabric_ca.db" ;;
    mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca?parseTime=true" ;;
 esac
 

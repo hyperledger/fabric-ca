@@ -5,11 +5,12 @@ TESTDATA="$FABRIC_CA/testdata"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 HOST="http://localhost:8888"
 RC=0
+$($FABRIC_TLS) && HOST="https://localhost:8888"
 . $SCRIPTDIR/fabric-ca_utils
 
 while getopts "u:t:g:a:x:" option; do
   case "$option" in
-     x)   DATADIR="$OPTARG" ;;
+     x)   FABRIC_HOME="$OPTARG" ;;
      u)   USERNAME="$OPTARG" ;;
      t)   USERTYPE="$OPTARG" ;;
      g)   USERGRP="$OPTARG";
@@ -18,9 +19,7 @@ while getopts "u:t:g:a:x:" option; do
   esac
 done
 
-test -z $DATADIR && DATADIR="$HOME/fabric-ca"
-CLIENTCERT=$DATADIR/cert.pem
-CLIENTKEY=$DATADIR/key.pem
+test -z "$FABRIC_HOME" && FABRIC_HOME="$HOME/fabric-ca"
 
 : ${NULLGRP:="false"}
 : ${USERNAME:="testuser"}
@@ -30,7 +29,7 @@ $($NULLGRP) && unset USERGRP
 : ${USERATTR:='[{"name":"test","value":"testValue"}]'}
 : ${FABRIC_CA_DEBUG="false"}
 
-genClientConfig "$DATADIR/fabric-ca_client.json"
+genClientConfig "$FABRIC_HOME/fabric-ca_client.json"
 
 $FABRIC_CAEXEC client register <(echo "{
   \"id\": \"$USERNAME\",
@@ -38,5 +37,4 @@ $FABRIC_CAEXEC client register <(echo "{
   \"group\": \"$USERGRP\",
   \"attrs\": $USERATTR }") $HOST
 RC=$?
-$($FABRIC_CA_DEBUG) && printAuth $CLIENTCERT $CLIENTKEY
 exit $RC

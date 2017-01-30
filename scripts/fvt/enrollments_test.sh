@@ -4,7 +4,6 @@ SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
 RC=0
-HOST="localhost:10888"
 SERVERCONFIG="/tmp/serverConfig.json"
 export FABRIC_CA_HOME="$HOME/fabric-ca"
 CLIENTCONFIG="$FABRIC_CA_HOME/fabric-ca/fabric-ca_client.json"
@@ -15,13 +14,19 @@ MAX_ENROLL="$1"
 : ${MAX_ENROLL:="32"}
 UNLIMITED=100
 
+case "$FABRIC_TLS" in
+   true) TLS_DISABLE='false' ;;
+  false) TLS_DISABLE='true'  ;;
+      *) TLS_DISABLE='true'  ;;
+esac
+
 # default value
 cat > "$SERVERCONFIG" <<EOF
 {
- "tls_disable":true,
+ "tls_disable":$TLS_DISABLE,
  "authentication": true,
  "driver":"sqlite3",
- "data_source":"fabric-ca.db",
+ "data_source":"fabric_ca.db",
  "users": {
     "admin": {
       "pass": "adminpw",
@@ -31,6 +36,17 @@ cat > "$SERVERCONFIG" <<EOF
                 {"name":"hf.Registrar.DelegateRoles", "value": "client,user,validator,auditor"},
                 {"name":"hf.Revoker", "value": "true"}]
     }
+ },
+ "ca_cert":"ec.pem",
+ "ca_key":"ec-key.pem",
+ "tls":{
+   "tls_cert":"tls_server-cert.pem",
+   "tls_key":"tls_server-key.pem",
+   "mutual_tls_ca":"root.pem",
+   "db_client":{
+     "ca_certfiles":["root.pem"],
+     "client":{"keyfile":"tls_server-key.pem","certfile":"tls_server-cert.pem"}
+   }
  },
  "groups": {
    "banks_and_institutions": {
@@ -61,16 +77,16 @@ trap "rm $SERVERCONFIG; CleanUp" INT
    i=0
    while test $((i++)) -lt "$MAX_ENROLL"; do
       $SCRIPTDIR/enroll.sh
-      RC=$((RC+$?))
+      test $? -eq 0 || ErrorMsg "Failed enrollment prematurely"
       currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-      test "$currId" == "$prevId" && RC=$((RC+1))
+      test "$currId" == "$prevId" && ErrorMsg "Prior and current certificates do not differ"
       prevId="$currId"
    done
    # max reached -- should fail
    $SCRIPTDIR/enroll.sh
-   test "$?" -eq 0 && RC=$((RC+1))
+   test "$?" -eq 0 && ErrorMsg "Surpassed enrollment maximum"
    currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-   test "$currId" != "$prevId" && RC=$((RC+1))
+   test "$currId" != "$prevId" && ErrorMsg "Prior and current certificates are different"
    prevId="$currId"
 
 
@@ -82,16 +98,16 @@ trap "rm $SERVERCONFIG; CleanUp" INT
    i=0
    while test $((i++)) -lt "$MAX_ENROLL"; do
       $SCRIPTDIR/enroll.sh
-      RC=$((RC+$?))
+      test $? -eq 0 || ErrorMsg "Failed enrollment prematurely"
       currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-      test "$currId" == "$prevId" && RC=$((RC+1))
+      test "$currId" == "$prevId" && ErrorMsg "Prior and current certificates do not differ"
       prevId="$currId"
    done
    # max reached -- should fail
    $SCRIPTDIR/enroll.sh
-   test "$?" -eq 0 && RC=$((RC+1))
+   test "$?" -eq 0 && ErrorMsg "Surpassed enrollment maximum"
    currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-   test "$currId" != "$prevId" && RC=$((RC+1))
+   test "$currId" != "$prevId" && ErrorMsg "Prior and current certificates are different"
    prevId="$currId"
 
 # explicitly set value to '0'
@@ -102,9 +118,9 @@ trap "rm $SERVERCONFIG; CleanUp" INT
    i=0
    while test $((i++)) -lt "$UNLIMITED"; do
       $SCRIPTDIR/enroll.sh
-      RC=$((RC+$?))
+      test $? -eq 0 || ErrorMsg "Failed enrollment prematurely"
       currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-      test "$currId" == "$prevId" && RC=$((RC+1))
+      test "$currId" == "$prevId" && ErrorMsg "Prior and current certificates do not differ"
       prevId="$currId"
    done
 
@@ -115,9 +131,9 @@ trap "rm $SERVERCONFIG; CleanUp" INT
    i=0
    while test $((i++)) -lt "$UNLIMITED"; do
       $SCRIPTDIR/enroll.sh
-      RC=$((RC+$?))
+      test $? -eq 0 || ErrorMsg "Failed enrollment prematurely"
       currId=$($PKI -f display -c $CLIENTCERT | awk '/Subject Key Identifier:/ {getline;print $1}')
-      test "$currId" == "$prevId" && RC=$((RC+1))
+      test "$currId" == "$prevId" && ErrorMsg "Prior and current certificates do not differ"
       prevId="$currId"
    done
 rm $SERVERCONFIG
