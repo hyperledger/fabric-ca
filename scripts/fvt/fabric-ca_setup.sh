@@ -7,6 +7,7 @@ INITCONFIG="$TESTDATA/initFabricCaFvt.json"
 DST_KEY="$TESTDATA/fabric-ca-key.pem"
 DST_CERT="$TESTDATA/fabric-ca-cert.pem"
 MYSQL_PORT="3306"
+CA_DEFAULT_PORT="7054"
 POSTGRES_PORT="5432"
 export PGPASSWORD='postgres'
 GO_VER="1.7.1"
@@ -289,7 +290,7 @@ function resetFabricCa(){
 
 function listFabricCa(){
    echo "Listening servers;"
-   lsof -n -i tcp:9888
+   lsof -n -i tcp:${USER_CA_PORT-$CA_DEFAULT_PORT}
 
 
    case $DRIVER in
@@ -345,6 +346,7 @@ function startHaproxy() {
    local i=0
    local proxypids=$(lsof -n -i tcp | awk '$1=="haproxy" && !($2 in a) {a[$2]=$2;print a[$2]}')
    test -n "$proxypids" && kill $proxypids
+   local server_port=${USER_CA_PORT-$CA_DEFAULT_PORT}
    #sudo sed -i 's/ *# *$UDPServerRun \+514/$UDPServerRun 514/' /etc/rsyslog.conf
    #sudo sed -i 's/ *# *$ModLoad \+imudp/$ModLoad imudp/' /etc/rsyslog.conf
    case $TLS_DISABLE in
@@ -371,7 +373,7 @@ backend fabric-cas
       mode tcp
       balance roundrobin";
    while test $((i++)) -lt $inst; do
-      echo "      server server$i  127.0.0.$i:9888"
+      echo "      server server$i  127.0.0.$i:$server_port"
    done)
    ;;
    true)
@@ -407,7 +409,7 @@ backend fabric-cas
       http-request set-header X-Forwarded-Port %[dst_port]
       balance roundrobin";
    while test $((i++)) -lt $inst; do
-      echo "      server server$i  127.0.0.$i:9888"
+      echo "      server server$i  127.0.0.$i:$server_port"
    done)
    ;;
    esac
@@ -420,19 +422,20 @@ function startFabricCa() {
    local timeout=8
    local now=0
    local server_addr=127.0.0.$inst
-   local server_port=9888
+   # if not explcitly set, use default
+   test -n "${USER_CA_PORT-$CA_DEFAULT_PORT}" && local server_port="-port ${USER_CA_PORT-$CA_DEFAULT_PORT}" || local server_port=""
 
    cd $FABRIC_CA/bin
    inst=0
-   $FABRIC_CAEXEC server start -address $server_addr -port $server_port -ca $DST_CERT \
+   $FABRIC_CAEXEC server start -address $server_addr $server_port -ca $DST_CERT \
                     -ca-key $DST_KEY -config $RUNCONFIG 2>&1 | sed 's/^/     /' &
-   until test "$started" = "$server_addr:$server_port" -o "$now" -gt "$timeout"; do
-      started=$(ss -ltnp src $server_addr:$server_port | awk 'NR!=1 {print $4}')
+   until test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" -o "$now" -gt "$timeout"; do
+      started=$(ss -ltnp src $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} | awk 'NR!=1 {print $4}')
       sleep .5
       let now+=1
    done
-   printf "FABRIC_CA server on $server_addr:$server_port "
-   if test "$started" = "$server_addr:$server_port"; then
+   printf "FABRIC_CA server on $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} "
+   if test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}"; then
       echo "STARTED"
    else
       RC=$((RC+1))
@@ -448,9 +451,10 @@ function killAllFabricCas() {
    test -n "$proxypids" && kill $proxypids
 }
 
-while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:" option; do
+while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:o:" option; do
   case "$option" in
      d)   DRIVER="$OPTARG" ;;
+     r)   USER_CA_PORT="$OPTARG" ;;
      p)   HTTP_PORT="$OPTARG" ;;
      n)   FABRIC_CA_INSTANCES="$OPTARG" ;;
      i)   GITID="$OPTARG" ;;
