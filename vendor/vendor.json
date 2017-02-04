@@ -466,7 +466,6 @@
 		},
 		{
 			"checksumSHA1": "nQCS/1ymeW+6UYa2vOXtxcvj2mY=",
-			"origin": "github.com/hyperledger/fabric-ca/vendor/github.com/hyperledger/fabric/bccsp",
 			"path": "github.com/hyperledger/fabric/bccsp",
 			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
 			"revisionTime": "2017-01-21T00:31:30Z"
@@ -500,6 +499,12 @@
 			"path": "github.com/hyperledger/fabric/bccsp/utils",
 			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
 			"revisionTime": "2017-01-21T00:31:30Z"
+		},
+		{
+			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
+			"path": "github.com/inconshreveable/mousetrap",
+			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
+			"revisionTime": "2014-10-17T20:07:13Z"
 		},
 		{
 			"checksumSHA1": "e31lcI8tZLaulsX4PZCFBAyC920=",
@@ -620,6 +625,12 @@
 			"path": "github.com/spf13/cast",
 			"revision": "2580bc98dc0e62908119e4737030cc2fdfc45e4c",
 			"revisionTime": "2016-09-26T08:42:49Z"
+		},
+		{
+			"checksumSHA1": "7qRuI2uyis6CoKEaaWm4Dq8dxvA=",
+			"path": "github.com/spf13/cobra",
+			"revision": "35136c09d8da66b901337c6e86fd8e88a1a255bd",
+			"revisionTime": "2017-01-30T21:45:31Z"
 		},
 		{
 			"checksumSHA1": "dkruahfhuLXXuyeCuRpsWlcRK+8=",
