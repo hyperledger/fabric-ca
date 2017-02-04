@@ -439,3 +439,9 @@ func MakeFileAbs(file, dir string) (string, error) {
 	}
 	return path, nil
 }
+
+// Fatal logs a fatal message and exits
+func Fatal(format string, v ...interface{}) {
+	log.Fatalf(format, v)
+	os.Exit(1)
+}

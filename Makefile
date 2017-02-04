@@ -18,6 +18,7 @@
 #   - all (default) - builds all targets and runs all tests
 #   - license - check all go files for license headers
 #   - fabric-ca - builds the fabric-ca executable
+#   - fabric-ca-server - builds the fabric-ca-server executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - ldap-tests - runs the LDAP tests
@@ -81,6 +82,11 @@ fabric-ca:
 	@mkdir -p bin && go build -o bin/fabric-ca
 	@echo "Built bin/fabric-ca"
 
+fabric-ca-server:
+	@echo "Building fabric-ca-server in bin directory ..."
+	@mkdir -p bin && go build -o bin/fabric-ca-server ./cmd/fabric-ca-server
+	@echo "Built bin/fabric-ca-server"
+
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
 # directory so that subsequent builds are faster
 build/docker/bin/fabric-ca:
@@ -127,7 +133,7 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 build/sampleconfig.tar.bz2: $(SAMPLECONFIG)
 	tar -jc -C images/fabric-ca/config $(patsubst images/fabric-ca/config/%,%,$(SAMPLECONFIG)) > $@
 
-unit-tests: checks fabric-ca
+unit-tests: checks fabric-ca fabric-ca-server
 	@scripts/run_tests
 
 container-tests: ldap-tests
