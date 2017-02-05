@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -135,7 +136,7 @@ registry:
           hf.Revoker: true
 
 #############################################################################
-# Database section
+#  Database section
 #############################################################################
 database:
 
@@ -160,7 +161,7 @@ affiliations:
       - department1
 
 #############################################################################
-#    Signing section
+#  Signing section
 #############################################################################
 signing:
     profiles:
@@ -169,8 +170,26 @@ signing:
         - cert sign
       expiry: 8000h
 
+###########################################################################
+#  Certificate Signing Request section for generating the CA certificate
+###########################################################################
+csr:
+   cn: fabric-ca-server
+   names:
+      - C: US
+        ST: "North Carolina"
+        L:
+        O: Hyperledger
+        OU: Fabric
+   hosts:
+     - <<<MYHOST>>>
+   ca:
+      pathlen:
+      pathlenzero:
+      expiry:
+
 #############################################################################
-#   Crypto section configures the crypto primitives used for all
+#  Crypto section configures the crypto primitives used for all
 #############################################################################
 crypto:
   software:
@@ -182,8 +201,10 @@ crypto:
 )
 
 var (
-	// cfgFileName is the name of the fabric-ca-server's config file
+	// cfgFileName is the name of the config file
 	cfgFileName string
+	// serverCfg is the server's config
+	serverCfg *lib.ServerConfig
 )
 
 // Initialize config
@@ -203,18 +224,27 @@ func configInit() (err error) {
 		if err != nil {
 			return fmt.Errorf("Failed to create default configuration file: %s", err)
 		}
-		log.Infof("Created a default configuration file at %s", cfgFileName)
+		log.Infof("Created default configuration file at %s", cfgFileName)
 	} else {
 		log.Infof("Configuration file location: %s", cfgFileName)
 	}
 
-	// Call viper to read the config
+	// Read the config
 	viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
 	err = viper.ReadInConfig()
 	if err != nil {
 		return fmt.Errorf("Failed to read config file: %s", err)
 	}
+
+	// Unmarshal the config into 'serverCfg'
+	var cfg lib.ServerConfig
+	err = viper.Unmarshal(&cfg)
+	if err != nil {
+		return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+	}
+
+	serverCfg = &cfg
 
 	return nil
 }
@@ -238,7 +268,7 @@ func createDefaultConfigFile() error {
 	// bootstrap user ID and password
 	up := viper.GetString("user")
 	if up == "" {
-		return errors.New("The '-u user:pass' option is required")
+		return fmt.Errorf("The '-u user:pass' option is required; see '%s init -h'", cmdName)
 	}
 	ups := strings.Split(up, ":")
 	if len(ups) < 2 {

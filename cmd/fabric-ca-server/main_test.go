@@ -80,4 +80,6 @@ func TestClean(t *testing.T) {
 	defYaml, _ := getDefaultConfigFile()
 	os.Remove(defYaml)
 	os.Remove(testYaml)
+	os.Remove("ca-key.pem")
+	os.Remove("ca-cert.pem")
 }
