@@ -42,6 +42,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/jmoiron/sqlx"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -442,6 +443,26 @@ func MakeFileAbs(file, dir string) (string, error) {
 
 // Fatal logs a fatal message and exits
 func Fatal(format string, v ...interface{}) {
-	log.Fatalf(format, v)
+	log.Fatalf(format, v...)
 	os.Exit(1)
+}
+
+// GetUser returns username and password from CLI input
+func GetUser() (string, string, error) {
+	up := viper.GetString("user")
+
+	log.Debugf("Username and Password: %s", up)
+
+	if up == "" {
+		return "", "", errors.New("The '-u user:pass' option is required")
+	}
+	ups := strings.Split(up, ":")
+	if len(ups) < 2 {
+		return "", "", fmt.Errorf("The value '%s' on the command line is missing a colon separator", up)
+	}
+	if len(ups) > 2 {
+		ups = []string{ups[0], strings.Join(ups[1:], ":")}
+	}
+
+	return ups[0], ups[1], nil
 }

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultServerProtocol = "https"
+	defaultServerProtocol = "http"
 	defaultServerAddr     = "localhost"
 	defaultServerPort     = "7054"
 )

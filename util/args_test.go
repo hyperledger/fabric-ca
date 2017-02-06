@@ -61,7 +61,7 @@ func TestSetDefaultServerPort(t *testing.T) {
 
 func TestOpts(t *testing.T) {
 	testOpt(t, "-protocol", "protocol", "protocol")
-	testOpt(t, "-protocol", "", "https")
+	testOpt(t, "-protocol", "", "http")
 	testOpt(t, "-address", "addr", "addr")
 	testOpt(t, "-address", "", "localhost")
 	testOpt(t, "-port", "port", "port")

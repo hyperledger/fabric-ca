@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
 )
 
 func TestGetEnrollmentIDFromPEM(t *testing.T) {
@@ -249,6 +250,26 @@ func TestMakeFileAbs(t *testing.T) {
 	makeFileAbs(t, "/a/b/c", "", "/a/b/c")
 	makeFileAbs(t, "c", "/a/b", "/a/b/c")
 	makeFileAbs(t, "../c", "/a/b", "/a/c")
+}
+
+func TestGetUser(t *testing.T) {
+	os.Unsetenv("FABRIC_CA_CLIENT_USER")
+	viper.BindEnv("user", "FABRIC_CA_CLIENT_USER")
+	os.Setenv("FABRIC_CA_CLIENT_USER", "foo:bar")
+
+	user, pass, err := GetUser()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if user != "foo" {
+		t.Error("Failed to retrieve correst username")
+	}
+
+	if pass != "bar" {
+		t.Error("Failed to retrieve correst password")
+	}
+
 }
 
 func makeFileAbs(t *testing.T, file, dir, expect string) {
