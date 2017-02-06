@@ -63,7 +63,7 @@ type GetTCertBatchRequestNet struct {
 	GetTCertBatchRequest
 	// KeySigs is an optional array of public keys and corresponding signatures.
 	// If not set, the server generates it's own keys based on a key derivation function
-	// which cryptographically relates the TCert to an ECert.
+	// which cryptographically relates the TCerts to an ECert.
 	KeySigs []KeySig `json:"key_sigs,omitempty"`
 }
 

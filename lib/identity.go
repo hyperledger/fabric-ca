@@ -25,6 +25,8 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 func newIdentity(client *Client, name string, key []byte, cert []byte) *Identity {
@@ -40,6 +42,7 @@ type Identity struct {
 	name   string
 	ecert  *Signer
 	client *Client
+	CSP    bccsp.BCCSP
 }
 
 // GetName returns the identity name
@@ -190,10 +193,29 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("adding token-based authorization header")
 	cert := i.ecert.cert
 	key := i.ecert.key
-	token, err := util.CreateToken(cert, key, body)
+	if i.CSP == nil {
+		csp, error := getDefaultBCCSPInstance()
+		if error != nil {
+			return fmt.Errorf("Default BCCSP instance failed with error : %s", error)
+		}
+		i.CSP = csp
+	}
+	token, err := util.CreateToken(i.CSP, cert, key, body)
 	if err != nil {
 		return fmt.Errorf("Failed to add token authorization header: %s", err)
 	}
 	req.Header.Set("authorization", token)
 	return nil
+}
+
+func getDefaultBCCSPInstance() (bccsp.BCCSP, error) {
+	defaultBccsp, bccspError := factory.GetDefault()
+	if bccspError != nil {
+		return nil, fmt.Errorf("BCCSP initialiazation failed with error : %s", bccspError)
+	}
+	if defaultBccsp == nil {
+		return nil, errors.New("Cannot get default instance of BCCSP")
+	}
+
+	return defaultBccsp, nil
 }

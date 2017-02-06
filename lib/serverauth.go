@@ -120,7 +120,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		}
 		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 		// verify token
-		cert, err2 := util.VerifyToken(authHdr, body)
+		cert, err2 := util.VerifyToken(MyCSP, authHdr, body)
 		if err2 != nil {
 			log.Debugf("Failed to verify token: %s", err2)
 			return authError
