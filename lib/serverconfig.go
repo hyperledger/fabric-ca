@@ -17,19 +17,60 @@ limitations under the License.
 package lib
 
 import (
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib/tls"
+)
+
+const (
+	// DefaultServerPort is the default listening port for the fabric-ca server
+	DefaultServerPort = 7054
+
+	// DefaultServerAddr is the default listening address for the fabric-ca server
+	DefaultServerAddr = "0.0.0.0"
 )
 
 // ServerConfig is the fabric-ca server's config
 type ServerConfig struct {
-	Port  int
-	Debug bool
-	CA    ServerConfigCA
-	CSR   csr.CertificateRequest
+	Port     int
+	Address  string
+	TLS      tls.ServerTLSConfig
+	Debug    bool
+	CA       ServerConfigCA
+	Signing  *config.Signing
+	CSR      csr.CertificateRequest
+	Registry ServerConfigRegistry
+	LDAP     ldap.Config
+	DB       ServerConfigDB
+	Remote   string
 }
 
 // ServerConfigCA is the CA config for the fabric-ca server
 type ServerConfigCA struct {
 	Keyfile  string
 	Certfile string
+}
+
+// ServerConfigDB is the database part of the server's config
+type ServerConfigDB struct {
+	Type       string
+	Datasource string
+	TLS        tls.ClientTLSConfig
+}
+
+// ServerConfigRegistry is the registry part of the server's config
+type ServerConfigRegistry struct {
+	MaxEnrollments int
+	Identities     []ServerConfigIdentity
+}
+
+// ServerConfigIdentity is identity information in the server's config
+type ServerConfigIdentity struct {
+	ID             string
+	Pass           string
+	Type           string
+	Affiliation    string
+	MaxEnrollments int
+	Attributes     map[string]string
 }

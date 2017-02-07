@@ -25,11 +25,18 @@ import (
 	"github.com/cloudflare/cfssl/log"
 )
 
-// ClientTLSConfig defines the root ca and client certificate and key files
+// ServerTLSConfig defines key material for a TLS server
+type ServerTLSConfig struct {
+	Enabled  bool   `json:"enabled,omitempty"`
+	KeyFile  string `json:"keyfile"`
+	CertFile string `json:"certfile"`
+}
+
+// ClientTLSConfig defines the key material for a TLS client
 type ClientTLSConfig struct {
-	// The filenames of pem files for CA certificates
-	CACertFiles []string     `json:"ca_certfiles"`
-	Client      KeyCertFiles `json:"client,omitempty"`
+	Enabled   bool         `json:"enabled,omitempty"`
+	CertFiles []string     `json:"certfiles"`
+	Client    KeyCertFiles `json:"client"`
 }
 
 // KeyCertFiles defines the files need for client on TLS
@@ -40,38 +47,36 @@ type KeyCertFiles struct {
 
 // GetClientTLSConfig creates a tls.Config object from certs and roots
 func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
-	log.Debug("Get Client TLS Configuration")
+	//if !cfg.Enabled {
+	//	return nil, nil
+	//}
 	var certs []tls.Certificate
 
 	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
 	clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
 	if err != nil {
-		log.Warningf("Client Cert or Key not provided, if server requires mutual TLS, the connection will fail [error: %s]", err)
+		log.Debugf("Client Cert or Key not provided, if server requires mutual TLS, the connection will fail [error: %s]", err)
 	}
 
 	certs = append(certs, clientCert)
 
-	caCertPool := x509.NewCertPool()
+	rootCAPool := x509.NewCertPool()
 
-	if len(cfg.CACertFiles) == 0 {
-		log.Error("No CA cert files provided. If server requires TLS, connection will fail")
-	}
-
-	for _, cacert := range cfg.CACertFiles {
-		caCert, err := ioutil.ReadFile(cacert)
+	for _, certfile := range cfg.CertFiles {
+		cert, err := ioutil.ReadFile(certfile)
 		if err != nil {
 			return nil, err
 		}
-		ok := caCertPool.AppendCertsFromPEM(caCert)
+		ok := rootCAPool.AppendCertsFromPEM(cert)
 		if !ok {
-			return nil, fmt.Errorf("Failed to parse and append certificate [certificate: %s]", cacert)
+			return nil, fmt.Errorf("Failed to process certificate from file %s", certfile)
 		}
 	}
 
 	config := &tls.Config{
 		Certificates: certs,
-		RootCAs:      caCertPool,
+		RootCAs:      rootCAPool,
 	}
 
 	return config, nil

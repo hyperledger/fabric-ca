@@ -18,11 +18,11 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 
-	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // startCmd represents the enroll command
@@ -35,8 +35,8 @@ func init() {
 	startCmd.RunE = runStart
 	rootCmd.AddCommand(startCmd)
 	flags := startCmd.Flags()
-	util.FlagInt(flags, "port", "p", getDefaultListeningPort(),
-		"Listening port")
+	util.FlagString(flags, "addr", "a", lib.DefaultServerAddr, "Listening address")
+	util.FlagInt(flags, "port", "p", lib.DefaultServerPort, "Listening port")
 	registerCommonFlags(flags)
 }
 
@@ -45,10 +45,13 @@ func runStart(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		return fmt.Errorf("Usage: too many arguments.\n%s", startCmd.UsageString())
 	}
-	log.Infof("Starting the %s", shortName)
-	log.Debugf("tls.key: '%s'", viper.GetString("tls.key"))
-	log.Debugf("tls.cert: '%s'", viper.GetString("tls.cert"))
-	log.Debugf("tls.enabled: %v", viper.GetBool("tls.enabled"))
-	log.Infof("Listening on port %v ...", viper.GetInt("port"))
+	server := lib.Server{
+		HomeDir: filepath.Dir(cfgFileName),
+		Config:  serverCfg,
+	}
+	err := server.Start()
+	if err != nil {
+		return err
+	}
 	return nil
 }

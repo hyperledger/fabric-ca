@@ -285,18 +285,20 @@ func createDefaultConfigFile() error {
 	if len(pass) == 0 {
 		return errors.New("An empty password in the '-u user:pass' option is not permitted")
 	}
+	// Get hostname
+	myhost, err := os.Hostname()
+	if err != nil {
+		return err
+	}
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
+	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	// Now write the file
-	err := os.MkdirAll(filepath.Dir(cfgFileName), 0644)
+	err = os.MkdirAll(filepath.Dir(cfgFileName), 0644)
 	if err != nil {
 		return err
 	}
 	// Now write the file
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
-}
-
-func getDefaultListeningPort() int {
-	return 7054
 }
