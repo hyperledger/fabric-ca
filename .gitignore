@@ -3,3 +3,9 @@ build
 coverage.xml
 *.csr
 *.der
+testdata/fabric-ca-cert.pem
+testdata/fabric-ca-key.pem
+testdata/fabric*ca.db
+testdata/initFabricCaFvt.json
+testdata/openssl.cnf.base.this
+testdata/runFabricCaFvt.json

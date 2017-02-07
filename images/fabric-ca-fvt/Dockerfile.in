@@ -1,0 +1,54 @@
+FROM hyperledger/fabric-baseimage:_BASE_TAG_
+
+ENV DEBIAN_FRONTEND noninteractive
+ENV PATH "/usr/local/go/bin/:${PATH}"
+ENV GOPATH "/opt/gopath"
+ENV PGDATA "/usr/local/pgsql/data/"
+ENV PGUSER "postgres"
+ENV PGPASSWORD "postgres"
+ENV PGVER _PGVER_
+
+# Avoid ERROR:
+#   invoke-rc.d: policy-rc.d denied execution of start.
+RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
+
+# Update system
+RUN apt-get -y update && apt-get -y install locales
+RUN sed -i -e 's/^[[:blank:]]*#[[:blank:]]*en_US.UTF-8[[:blank:]]*UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+RUN printf "LANG=en_US.UTF-8\nLANGUAGE=en_US.UTF-8\n" > /etc/default/locale
+RUN dpkg-reconfigure locales && update-locale LANG=en_US.UTF-8
+
+# Install more test depedencies
+RUN echo "mysql-server mysql-server/root_password password mysql" | debconf-set-selections
+RUN echo "mysql-server mysql-server/root_password_again password mysql" | debconf-set-selections
+RUN apt-get -y install lsof haproxy postgresql-$PGVER postgresql-client-common \
+                       isag jq git html2text debconf-utils zsh htop python2.7-minimal \
+                       mysql-client  mysql-common mysql-server
+RUN apt-get -y autoremove
+
+# Configure and start postgres
+RUN echo $PGUSER:$PGUSER | chpasswd
+RUN mkdir -p $PGDATA && chown postgres:postgres $PGDATA
+RUN su $PGUSER -c "/usr/lib/postgresql/$PGVER/bin/initdb -D $PGDATA"
+RUN su $PGUSER -c "/usr/lib/postgresql/$PGVER/bin/pg_ctl start -D $PGDATA" && sleep 10 && psql -U postgres -h localhost -c "ALTER USER $PGUSER WITH PASSWORD '$PGPASSWORD';"
+RUN echo "host all  all    0.0.0.0/0  trust" >> ${PGDATA}/pg_hba.conf
+RUN echo "listen_addresses='*'" >> ${PGDATA}/postgresql.conf
+
+# Install fabric-ca dependencies
+RUN go get github.com/go-sql-driver/mysql
+RUN go get github.com/lib/pq
+
+# Dummy docker exec to fool make
+# we don't need docker
+RUN touch /usr/local/bin/docker && chmod 777 /usr/local/bin/docker
+
+# Use python2, not 3
+RUN ln -s /usr/bin/python2.7 /usr/local/bin/python && chmod 777 /usr/local/bin/python
+
+# Clean up APT when done.
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+COPY payload/start.sh /start.sh
+
+WORKDIR ${GOPATH}/src/github.com/hyperledger/fabric-ca
+ENTRYPOINT [ "/start.sh" ]
+CMD ["make", "fvt-tests"]
