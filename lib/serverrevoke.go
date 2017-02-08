@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"encoding/json"
@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -82,13 +83,13 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Debugf("Revoke request: %+v", req)
 
 	if req.Serial != "" && req.AKI != "" {
-		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
+		err = MyCertDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
 
-		user, err := userRegistry.GetUser(req.Name, nil)
+		user, err := UserRegistry.GetUser(req.Name, nil)
 		if err != nil {
 			err = fmt.Errorf("Failed to get user %s: %s", req.Name, err)
 			return notFound(w, err)
@@ -96,7 +97,8 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		// Set user state to -1 for revoked user
 		if user != nil {
-			userInfo, err := userRegistry.GetUserInfo(req.Name)
+			var userInfo spi.UserInfo
+			userInfo, err = UserRegistry.GetUserInfo(req.Name)
 			if err != nil {
 				err = fmt.Errorf("Failed to get user info %s: %s", req.Name, err)
 				return notFound(w, err)
@@ -104,18 +106,26 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 			userInfo.State = -1
 
-			err = userRegistry.UpdateUser(userInfo)
+			err = UserRegistry.UpdateUser(userInfo)
 			if err != nil {
 				log.Warningf("Revoke failed: %s", err)
 				return dbErr(w, err)
 			}
 		}
 
+		var recs []CertRecord
+		recs, err = MyCertDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
+		if err != nil {
+			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name, err)
+			return dbErr(w, err)
+		}
+		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
+
 	} else {
 		return badRequest(w, errors.New("Either Name or Serial and AKI are required for a revoke request"))
 	}
 
-	log.Debug("Revoke was successful: %+v", req)
+	log.Debugf("Revoke was successful: %+v", req)
 
 	result := map[string]string{}
 	return cfsslapi.SendResponse(w, result)

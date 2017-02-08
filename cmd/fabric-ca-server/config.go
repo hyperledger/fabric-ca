@@ -137,18 +137,43 @@ registry:
 
 #############################################################################
 #  Database section
+#  Supported types are: "sqlite3", "postgres", and "mysql".
+#  The datasource value depends on the type.
+#  If the type is "sqlite3", the datasource value is a file name to use
+#  as the database store.  Since "sqlite3" is an embedded database, it
+#  may not be used if you want to run the fabric-ca-server in a cluster.
+#  To run the fabric-ca-server in a cluster, you must choose "postgres"
+#  or "mysql".
 #############################################################################
 database:
-
   type: sqlite3
-  datasource: fabric-ca.db
-
+  datasource: fabric-ca-server.db
   tls:
       enabled: false
-      cafiles:
-        - root.pem
-      certfile: tls-cert.pem
-      keyfile: tls-key.pem
+      certfiles:
+        - db-server-cert.pem
+      client:
+        certfile: db-client-cert.pem
+        keyfile: db-client-key.pem
+
+#############################################################################
+#  LDAP section
+#  If LDAP is enabled, the fabric-ca-server calls LDAP to:
+#  1) authenticate enrollment ID and secret (i.e. username and password)
+#     for enrollment requests;
+#  2) To retrieve identity attributes
+#############################################################################
+ldap:
+   # Enables or disables the LDAP client (default: false)
+   enabled: false
+   # The URL of the LDAP server
+   url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
+   tls:
+      certfiles:
+        - ldap-server-cert.pem
+      client:
+         certfile: ldap-client-cert.pem
+         keyfile: ldap-client-key.pem
 
 #############################################################################
 #  Affiliation section

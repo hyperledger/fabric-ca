@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib_test
 
 import (
 	"os"
@@ -22,8 +22,9 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
-	"github.com/hyperledger/fabric-ca/cli/server/spi"
+	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -55,11 +56,8 @@ func TestSQLite(t *testing.T) {
 		os.RemoveAll(dbPath)
 		os.MkdirAll(dbPath, 0755)
 	}
-	var cfg = new(Config)
-	cfg.DBdriver = "sqlite3"
-	cfg.DataSource = dbPath + "/fabric-ca.db"
-
-	db, _, err := dbutil.NewUserRegistrySQLLite3(cfg.DataSource)
+	dataSource := dbPath + "/fabric-ca.db"
+	db, _, err := dbutil.NewUserRegistrySQLLite3(dataSource)
 	if err != nil {
 		t.Error("Failed to open connection to DB")
 	}

@@ -19,7 +19,8 @@ package lib
 import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 )
 
@@ -33,17 +34,19 @@ const (
 
 // ServerConfig is the fabric-ca server's config
 type ServerConfig struct {
-	Port     int
-	Address  string
-	TLS      tls.ServerTLSConfig
-	Debug    bool
-	CA       ServerConfigCA
-	Signing  *config.Signing
-	CSR      csr.CertificateRequest
-	Registry ServerConfigRegistry
-	LDAP     ldap.Config
-	DB       ServerConfigDB
-	Remote   string
+	Port         int
+	Address      string
+	TLS          tls.ServerTLSConfig
+	Debug        bool
+	CSP          *csp.Config
+	CA           ServerConfigCA
+	Signing      *config.Signing
+	CSR          csr.CertificateRequest
+	Registry     ServerConfigRegistry
+	Affiliations map[string]interface{}
+	LDAP         ldap.Config
+	DB           ServerConfigDB
+	Remote       string
 }
 
 // ServerConfigCA is the CA config for the fabric-ca server

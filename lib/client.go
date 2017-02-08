@@ -344,11 +344,12 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 	if !body.Success {
 		return nil, fmt.Errorf("Server returned failure for request:\n%s", reqStr)
 	}
+	log.Debugf("Response body result: %+v", body.Result)
 	return body.Result, nil
 }
 
 func (c *Client) getURL(endpoint string) (string, error) {
-	nurl, err := normalizeURL(c.ServerURL)
+	nurl, err := NormalizeURL(c.ServerURL)
 	if err != nil {
 		return "", err
 	}
@@ -366,7 +367,8 @@ func (c *Client) getClientConfig(path string) ([]byte, error) {
 	return fileBytes, nil
 }
 
-func normalizeURL(addr string) (*url.URL, error) {
+// NormalizeURL normalizes a URL (from cfssl)
+func NormalizeURL(addr string) (*url.URL, error) {
 	addr = strings.TrimSpace(addr)
 	u, err := url.Parse(addr)
 	if err != nil {

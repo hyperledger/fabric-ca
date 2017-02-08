@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -28,12 +27,9 @@ import (
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 )
-
-const enrollmentIDHdrName = "__eid__"
 
 // registerHandler for register requests
 type registerHandler struct {
@@ -52,8 +48,7 @@ func NewRegisterHandler() (h http.Handler, err error) {
 func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Debug("Register request received")
 
-	reg := NewRegisterUser()
-	body, err := ioutil.ReadAll(r.Body)
+	reqBody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
@@ -61,43 +56,26 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Parse request body
 	var req api.RegistrationRequestNet
-	err = json.Unmarshal(body, &req)
+	err = json.Unmarshal(reqBody, &req)
 	if err != nil {
 		return err
 	}
 
 	// Register User
 	callerID := r.Header.Get(enrollmentIDHdrName)
-	tok, err := reg.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
+	tok, err := h.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("Registration completed - Sending response to clients")
-	return cfsslapi.SendResponse(w, []byte(tok))
-}
+	resp := &api.RegistrationResponseNet{RegistrationResponse: api.RegistrationResponse{Secret: string(tok)}}
 
-// Register for registering a user
-type Register struct {
-	cfg *Config
-}
-
-const (
-	roles          string = "roles"
-	peer           string = "peer"
-	client         string = "client"
-	registrarRoles string = "hf.Registrar.Roles"
-)
-
-// NewRegisterUser is a constructor
-func NewRegisterUser() *Register {
-	r := new(Register)
-	r.cfg = CFG
-	return r
+	log.Debugf("Registration completed - sending response %+v", resp)
+	return cfsslapi.SendResponse(w, resp)
 }
 
 // RegisterUser will register a user
-func (r *Register) RegisterUser(id string, userType string, group string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
+func (h *registerHandler) RegisterUser(id string, userType string, group string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
 	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %s, registrar: %s\n",
 		id, group, attributes, registrar)
 
@@ -106,50 +84,44 @@ func (r *Register) RegisterUser(id string, userType string, group string, attrib
 
 	if registrar != "" {
 		// Check the permissions of member named 'registrar' to perform this registration
-		err = r.canRegister(registrar, userType)
+		err = h.canRegister(registrar, userType)
 		if err != nil {
+			log.Debugf("Registration of '%s' failed: %s", id, err)
 			return "", err
 		}
 	}
 
-	err = r.validateID(id, userType, group)
+	err = h.validateID(id, userType, group)
 	if err != nil {
+		log.Debugf("Registration of '%s' failed: %s", id, err)
 		return "", err
 	}
 
-	tok, err = r.registerUserID(id, userType, group, attributes, opt...)
+	tok, err = h.registerUserID(id, userType, group, attributes, opt...)
 
 	if err != nil {
+		log.Debugf("Registration of '%s' failed: %s", id, err)
 		return "", err
 	}
 
 	return tok, nil
 }
 
-// func (r *Register) validateAndGenerateEnrollID(id, group string, attr []api.Attribute) (string, error) {
-func (r *Register) validateID(id string, userType string, group string) error {
+func (h *registerHandler) validateID(id string, userType string, group string) error {
 	log.Debug("Validate ID")
-	// Check whether the group is required for the current user.
-
-	// group is required if the type is client or peer.
-	// group is not required if the type is validator or auditor.
-	if r.requireGroup(userType) {
-		valid, err := r.isValidGroup(group)
+	// Check whether the affiliation group is required for the current user.
+	if h.requireGroup(userType) {
+		// If yes, is the group valid
+		err := h.isValidGroup(group)
 		if err != nil {
 			return err
 		}
-
-		if !valid {
-			return errors.New("Invalid type " + userType)
-
-		}
 	}
-
 	return nil
 }
 
 // registerUserID registers a new user and its enrollmentID, role and state
-func (r *Register) registerUserID(id string, userType string, group string, attributes []api.Attribute, opt ...string) (string, error) {
+func (h *registerHandler) registerUserID(id string, userType string, group string, attributes []api.Attribute, opt ...string) (string, error) {
 	log.Debugf("Registering user id: %s\n", id)
 
 	var tok string
@@ -165,15 +137,15 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 		Type:           userType,
 		Group:          group,
 		Attributes:     attributes,
-		MaxEnrollments: CFG.UsrReg.MaxEnrollments,
+		MaxEnrollments: MaxEnrollments,
 	}
 
-	_, err := lib.UserRegistry.GetUser(id, nil)
+	_, err := UserRegistry.GetUser(id, nil)
 	if err == nil {
 		return "", fmt.Errorf("User '%s' is already registered", id)
 	}
 
-	err = lib.UserRegistry.InsertUser(insert)
+	err = UserRegistry.InsertUser(insert)
 	if err != nil {
 		return "", err
 	}
@@ -181,40 +153,33 @@ func (r *Register) registerUserID(id string, userType string, group string, attr
 	return tok, nil
 }
 
-func (r *Register) isValidGroup(group string) (bool, error) {
+func (h *registerHandler) isValidGroup(group string) error {
 	log.Debug("Validating group: " + group)
 
-	_, err := lib.UserRegistry.GetGroup(group)
+	_, err := UserRegistry.GetGroup(group)
 	if err != nil {
-		log.Error("Error occured getting group: ", err)
-		return false, err
+		return fmt.Errorf("Failed getting affiliation group '%s': %s", group, err)
 	}
 
-	return true, nil
+	return nil
 }
 
-func (r *Register) requireGroup(userType string) bool {
-	log.Debug("Check if group required for user type: ", userType)
-
-	userType = strings.ToLower(userType)
-
-	if userType == peer || userType == client {
-		return true
-	}
-
-	return false
+func (h *registerHandler) requireGroup(idType string) bool {
+	log.Debugf("An affiliation group is required for identity type %s", idType)
+	// Require an affiliation group for all identity types
+	return true
 }
 
-func (r *Register) canRegister(registrar string, userType string) error {
+func (h *registerHandler) canRegister(registrar string, userType string) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
-	user, err := lib.UserRegistry.GetUser(registrar, nil)
+	user, err := UserRegistry.GetUser(registrar, nil)
 	if err != nil {
 		return fmt.Errorf("Registrar does not exist: %s", err)
 	}
 
 	var roles []string
-	rolesStr := user.GetAttribute(registrarRoles)
+	rolesStr := user.GetAttribute("hf.Registrar.Roles")
 	if rolesStr != "" {
 		roles = strings.Split(rolesStr, ",")
 	} else {

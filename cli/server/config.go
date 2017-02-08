@@ -26,8 +26,9 @@ import (
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib"
 	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 
@@ -168,6 +169,9 @@ func configInit(cfg *cli.Config) {
 	if CFG.Debug {
 		log.Level = log.LevelDebug
 	}
+
+	lib.CACertFile = CFG.CAFile
+	lib.CAKeyFile = CFG.CAKeyFile
 
 	log.Debugf("CFSSL server config is: %+v", cfg)
 	log.Debugf("Fabric CA server config is: %+v", CFG)

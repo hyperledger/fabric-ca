@@ -33,9 +33,13 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
-	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
-	"github.com/hyperledger/fabric-ca/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/api"
+	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/ldap"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/go-sql-driver/mysql" // import to support MySQL
@@ -43,16 +47,37 @@ import (
 	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
 )
 
+// FIXME: These variables are temporary and will be removed once
+// the cobra/viper move is complete and we no longer support the fabric command.
+// The correct way is to pass the Server object (and thus ServerConfig)
+// to the endpoint handler constructors, thus using no global variables.
+var (
+	EnrollSigner     signer.Signer
+	UserRegistry     spi.UserRegistry
+	MaxEnrollments   int
+	MyCertDBAccessor *CertDBAccessor
+	CAKeyFile        string
+	CACertFile       string
+	MyCSP            bccsp.BCCSP
+)
+
 // Server is the fabric-ca server
 type Server struct {
 	// The home directory for the server
 	HomeDir string
+	// BlockingStart if true makes the Start function blocking;
+	// It is non-blocking by default.
+	BlockingStart bool
 	// The server's configuration
 	Config *ServerConfig
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
 	db *sqlx.DB
+	// The crypto service provider (BCCSP)
+	csp bccsp.BCCSP
+	// The certificate DB accessor
+	certDBAccessor *CertDBAccessor
 	// The user registry
 	registry spi.UserRegistry
 	// The signer used for enrollment
@@ -61,20 +86,23 @@ type Server struct {
 	mux *http.ServeMux
 	// The current listener for this server
 	listener net.Listener
+	// An error which occurs when serving
+	serveError error
 }
 
 // Init initializes a fabric-ca server
 func (s *Server) Init(renew bool) (err error) {
-	// Sanity check config
-	if s.Config == nil {
-		return errors.New("fabric-ca-server's config is nil")
+	// Initialize the config, setting defaults, etc
+	err = s.initConfig()
+	if err != nil {
+		return err
 	}
-	// Init home directory if not set
-	if s.HomeDir == "" {
-		s.HomeDir, err = os.Getwd()
-		if err != nil {
-			return fmt.Errorf("Failed to initialize server's home directory: %s", err)
-		}
+	// Initialize the Crypto Service Provider
+	s.csp, err = libcsp.Get(s.Config.CSP)
+	MyCSP = s.csp
+	if err != nil {
+		log.Errorf("Failed to get the crypto service provider: %s", err)
+		return err
 	}
 	// Initialize key materials
 	err = s.initKeyMaterial(renew)
@@ -96,9 +124,9 @@ func (s *Server) Init(renew bool) (err error) {
 }
 
 // Start the fabric-ca server
-func (s *Server) Start() error {
+func (s *Server) Start() (err error) {
 
-	var err error
+	s.serveError = nil
 
 	if s.listener != nil {
 		return errors.New("server is already started")
@@ -109,6 +137,13 @@ func (s *Server) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// TEMP
+	CAKeyFile = s.Config.CA.Keyfile
+	CACertFile = s.Config.CA.Certfile
+
+	// Register http handlers
+	s.registerHandlers()
 
 	// Start listening and serving
 	return s.listenAndServe()
@@ -184,11 +219,75 @@ func (s *Server) initKeyMaterial(renew bool) error {
 	return nil
 }
 
+// RegisterBootstrapUser registers the bootstrap user with appropriate privileges
+func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
+	// Initialize the config, setting defaults, etc
+	if user == "" || pass == "" {
+		return errors.New("empty user and/or pass not allowed")
+	}
+	err := s.initConfig()
+	if err != nil {
+		return fmt.Errorf("Failed to register bootstrap user '%s': %s", user, err)
+	}
+	id := ServerConfigIdentity{
+		ID:          user,
+		Pass:        pass,
+		Type:        "user",
+		Affiliation: affiliation,
+		Attributes: map[string]string{
+			"hf.Registrar.Roles":         "client,user,peer,validator,auditor",
+			"hf.Registrar.DelegateRoles": "client,user,validator,auditor",
+			"hf.Revoker":                 "true",
+		},
+	}
+	registry := &s.Config.Registry
+	registry.Identities = append(registry.Identities, id)
+	log.Debugf("Registered bootstrap identity: %+v", id)
+	return nil
+}
+
+// Do any ize the config, setting any defaults and making filenames absolute
+func (s *Server) initConfig() (err error) {
+	// Init home directory if not set
+	if s.HomeDir == "" {
+		s.HomeDir, err = os.Getwd()
+		if err != nil {
+			return fmt.Errorf("Failed to initialize server's home directory: %s", err)
+		}
+	}
+	// Init config if not set
+	if s.Config == nil {
+		s.Config = new(ServerConfig)
+	}
+	// Set config defaults
+	cfg := s.Config
+	if cfg.Address == "" {
+		cfg.Address = DefaultServerAddr
+	}
+	if cfg.Port == 0 {
+		cfg.Port = DefaultServerPort
+	}
+	if cfg.CA.Certfile == "" {
+		cfg.CA.Certfile = "ca-cert.pem"
+	}
+	if cfg.CA.Keyfile == "" {
+		cfg.CA.Keyfile = "ca-key.pem"
+	}
+	if cfg.CSR.CN == "" {
+		cfg.CSR.CN = "fabric-ca-server"
+	}
+	// Set log level if debug is true
+	if cfg.Debug {
+		log.Level = log.LevelDebug
+	}
+	return nil
+}
+
 // Initialize the database for the server
 func (s *Server) initDB() error {
 	db := &s.Config.DB
 
-	log.Debug("Initializing database")
+	log.Debugf("Initializing '%s' data base at '%s'", db.Type, db.Datasource)
 
 	var err error
 	var exists bool
@@ -204,9 +303,6 @@ func (s *Server) initDB() error {
 		}
 		db.Datasource = ds
 	}
-
-	log.Debugf("Database type is '%s' and data source is '%s'", db.Type, db.Datasource)
-
 	switch db.Type {
 	case "sqlite3":
 		s.db, exists, err = dbutil.NewUserRegistrySQLLite3(db.Datasource)
@@ -227,7 +323,53 @@ func (s *Server) initDB() error {
 		return fmt.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
 	}
 
-	log.Infof("Initialized %s data base at %s; exists: %v", db.Type, db.Datasource, exists)
+	// Set the certificate DB accessor
+	s.certDBAccessor = NewCertDBAccessor(s.db)
+	MyCertDBAccessor = s.certDBAccessor
+
+	// Initialize the user registry.
+	// If LDAP is not configured, the fabric-ca server functions as a user
+	// registry based on the database.
+	err = s.initUserRegistry()
+	if err != nil {
+		return err
+	}
+
+	// If the DB doesn't exist, bootstrap it
+	if !exists {
+		err = s.loadUsersTable()
+		if err != nil {
+			return err
+		}
+		err = s.loadAffiliationsTable()
+		if err != nil {
+			return err
+		}
+	}
+	log.Infof("Initialized %s data base at %s", db.Type, db.Datasource)
+	return nil
+}
+
+// Initialize the user registry interface
+func (s *Server) initUserRegistry() error {
+	log.Debug("Initializing user registry")
+	var err error
+	ldapCfg := &s.Config.LDAP
+
+	if ldapCfg.Enabled {
+		// Use LDAP for the user registry
+		s.registry, err = ldap.NewClient(ldapCfg)
+		UserRegistry = s.registry
+		log.Debugf("Initialized LDAP user registry; err=%s", err)
+		return err
+	}
+
+	// Use the DB for the user registry
+	dbAccessor := new(Accessor)
+	dbAccessor.SetDB(s.db)
+	s.registry = dbAccessor
+	UserRegistry = s.registry
+	log.Debug("Initialized DB user registry")
 	return nil
 }
 
@@ -264,12 +406,54 @@ func (s *Server) initEnrollmentSigner() (err error) {
 		ForceRemote: c.Remote != "",
 	}
 	s.enrollSigner, err = universal.NewSigner(root, policy)
+	EnrollSigner = s.enrollSigner
 	if err != nil {
 		return err
 	}
-	//s.enrollSigner.SetDBAccessor(InitCertificateAccessor(s.db))
+	s.enrollSigner.SetDBAccessor(s.certDBAccessor)
 
 	// Successful enrollment
+	return nil
+}
+
+// Register all endpoint handlers
+func (s *Server) registerHandlers() {
+	s.mux = http.NewServeMux()
+	s.registerHandlerLog("register", NewRegisterHandler)
+	s.registerHandlerLog("enroll", NewEnrollHandler)
+	s.registerHandlerLog("reenroll", NewReenrollHandler)
+	s.registerHandlerLog("revoke", NewRevokeHandler)
+	s.registerHandlerLog("tcert", NewTCertHandler)
+}
+
+// Register an endpoint handler and log success or error
+func (s *Server) registerHandlerLog(
+	path string,
+	getHandler func() (http.Handler, error)) {
+	err := s.registerHandler(path, getHandler)
+	if err != nil {
+		log.Warningf("Endpoint '%s' is disabled: %s", path, err)
+	} else {
+		log.Infof("Endpoint '%s' is enabled", path)
+	}
+}
+
+// Register an endpoint handler and return an error if unsuccessful
+func (s *Server) registerHandler(
+	path string,
+	getHandler func() (http.Handler, error)) (err error) {
+
+	var handler http.Handler
+
+	handler, err = getHandler()
+	if err != nil {
+		return fmt.Errorf("Endpoint '%s' is disabled: %s", path, err)
+	}
+	path, handler, err = NewAuthWrapper(path, handler, err)
+	if err != nil {
+		return fmt.Errorf("Endpoint '%s' has been disabled: %s", path, err)
+	}
+	s.mux.Handle(path, handler)
 	return nil
 }
 
@@ -301,26 +485,167 @@ func (s *Server) listenAndServe() (err error) {
 		if err != nil {
 			return fmt.Errorf("TLS listen failed: %s", err)
 		}
-		log.Infof("Listening on https://%s", addr)
+		log.Infof("Listening at https://%s", addr)
 	} else {
 		listener, err = net.Listen("tcp", addr)
 		if err != nil {
 			return fmt.Errorf("TCP listen failed: %s", err)
 		}
-		log.Infof("Listening on http://%s", addr)
+		log.Infof("Listening at http://%s", addr)
 	}
 	s.listener = listener
+
+	// Start serving requests, either blocking or non-blocking
+	if s.BlockingStart {
+		return s.serve()
+	}
 	go s.serve()
 	return nil
 }
 
-func (s *Server) serve() {
-	err := http.Serve(s.listener, s.mux)
-	log.Errorf("Server has stopped serving: %s", err)
+func (s *Server) serve() error {
+	s.serveError = http.Serve(s.listener, s.mux)
+	log.Errorf("Server has stopped serving: %s", s.serveError)
 	if s.listener != nil {
 		s.listener.Close()
 		s.listener = nil
 	}
+	return s.serveError
+}
+
+// loadUsersTable adds the configured users to the table if not already found
+func (s *Server) loadUsersTable() error {
+	log.Debug("Loading users table")
+	registry := &s.Config.Registry
+	for _, id := range registry.Identities {
+		log.Debugf("Loading identity '%s'", id.ID)
+		err := s.addIdentity(&id, false)
+		if err != nil {
+			return err
+		}
+	}
+	log.Debug("Successfully loaded users table")
+	return nil
+}
+
+// loadAffiliationsTable adds the configured affiliations to the table
+func (s *Server) loadAffiliationsTable() error {
+	log.Debug("Loading affiliations table")
+	err := s.loadAffiliationsTableR(s.Config.Affiliations, "")
+	if err == nil {
+		log.Debug("Successfully loaded affiliations table")
+	}
+	return err
+}
+
+// Recursive function to load the affiliations table hierarchy
+func (s *Server) loadAffiliationsTableR(val interface{}, parentPath string) (err error) {
+	var path string
+	if val == nil {
+		return nil
+	}
+	switch val.(type) {
+	case string:
+		path = affiliationPath(val.(string), parentPath)
+		err = s.addAffiliation(path, parentPath)
+		if err != nil {
+			return err
+		}
+	case []string:
+		for _, ele := range val.([]string) {
+			err = s.loadAffiliationsTableR(ele, parentPath)
+			if err != nil {
+				return err
+			}
+		}
+	case []interface{}:
+		for _, ele := range val.([]interface{}) {
+			err = s.loadAffiliationsTableR(ele, parentPath)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		for name, ele := range val.(map[string]interface{}) {
+			path = affiliationPath(name, parentPath)
+			err = s.addAffiliation(path, parentPath)
+			if err != nil {
+				return err
+			}
+			err = s.loadAffiliationsTableR(ele, path)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// Add an identity to the registry
+func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
+	user, _ := s.registry.GetUser(id.ID, nil)
+	if user != nil {
+		if errIfFound {
+			return fmt.Errorf("Identity '%s' is already registered", id.ID)
+		}
+		log.Debugf("Loaded identity: %+v", id)
+		return nil
+	}
+	maxEnrollments, err := s.getMaxEnrollments(id.MaxEnrollments)
+	if err != nil {
+		return err
+	}
+	rec := spi.UserInfo{
+		Name:           id.ID,
+		Pass:           id.Pass,
+		Type:           id.Type,
+		Group:          id.Affiliation,
+		Attributes:     s.convertAttrs(id.Attributes),
+		MaxEnrollments: maxEnrollments,
+	}
+	err = s.registry.InsertUser(rec)
+	if err != nil {
+		return fmt.Errorf("Failed to insert user '%s': %s", id.ID, err)
+	}
+	log.Debugf("Registered identity: %+v", id)
+	return nil
+}
+
+func (s *Server) addAffiliation(path, parentPath string) error {
+	log.Debugf("Adding affiliation %s", path)
+	return s.registry.InsertGroup(path, parentPath)
+}
+
+func (s *Server) convertAttrs(inAttrs map[string]string) []api.Attribute {
+	outAttrs := make([]api.Attribute, 0)
+	for name, value := range inAttrs {
+		outAttrs = append(outAttrs, api.Attribute{
+			Name:  name,
+			Value: value,
+		})
+	}
+	return outAttrs
+}
+
+// Get max enrollments relative to the configured max
+func (s *Server) getMaxEnrollments(requestedMax int) (int, error) {
+	configuredMax := s.Config.Registry.MaxEnrollments
+	if requestedMax < 0 {
+		return configuredMax, nil
+	}
+	if configuredMax == 0 {
+		// no limit, so grant any request
+		return requestedMax, nil
+	}
+	if requestedMax == 0 && configuredMax != 0 {
+		return 0, fmt.Errorf("Infinite enrollments is not permitted; max is %d",
+			configuredMax)
+	}
+	if requestedMax > configuredMax {
+		return 0, fmt.Errorf("Max enrollments of %d is not permitted; max is %d",
+			requestedMax, configuredMax)
+	}
+	return requestedMax, nil
 }
 
 // Make all file names in the config absolute
@@ -347,4 +672,11 @@ func writeFile(file string, buf []byte, perm os.FileMode) error {
 		return err
 	}
 	return ioutil.WriteFile(file, buf, perm)
+}
+
+func affiliationPath(name, parent string) string {
+	if parent == "" {
+		return name
+	}
+	return fmt.Sprintf("%s.%s", parent, name)
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"bytes"
@@ -42,11 +42,11 @@ type fcaAuthHandler struct {
 
 var authError = cerr.NewBadRequest(errors.New("authorization failure"))
 
-// NewAuthWrapper is auth wrapper constructor
-// Only the "sign" and "enroll" URIs use basic auth for the enrollment secret
-// The others require a token
+// NewAuthWrapper is auth wrapper constructor.
+// Only the "enroll" URI uses basic auth for the enrollment secret, while all
+// others require a token which proves ownership of an ecert.
 func NewAuthWrapper(path string, handler http.Handler, err error) (string, http.Handler, error) {
-	if path == "sign" || path == "enroll" {
+	if path == "enroll" {
 		handler, err = newBasicAuthHandler(handler, err)
 		return wrappedPath(path), handler, err
 	}
@@ -63,7 +63,6 @@ func newTokenAuthHandler(handler http.Handler, errArg error) (h http.Handler, er
 }
 
 func newAuthHandler(basic, token bool, handler http.Handler, errArg error) (h http.Handler, err error) {
-	log.Debug("newAuthHandler")
 	if errArg != nil {
 		return nil, errArg
 	}
@@ -85,12 +84,7 @@ func (ah *fcaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Handle performs authentication
 func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
-	log.Infof("Received request\n%s", util.HTTPRequestToString(r))
-	cfg := CFG
-	if !cfg.Authentication {
-		log.Debug("Authentication is disabled")
-		return nil
-	}
+	log.Debugf("Received request\n%s", util.HTTPRequestToString(r))
 	authHdr := r.Header.Get("authorization")
 	if authHdr == "" {
 		log.Debug("No authorization header")
@@ -102,18 +96,18 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			log.Debugf("Basic auth is not allowed; found %s", authHdr)
 			return errBasicAuthNotAllowed
 		}
-		u, err := userRegistry.GetUser(user, nil)
+		u, err := UserRegistry.GetUser(user, nil)
 		if err != nil {
-			return err
+			log.Debugf("Failed to get user '%s': %s", user, err)
+			return authError
 		}
 		err = u.Login(pwd)
 		if err != nil {
-			return err
+			log.Debugf("Failed to login '%s': %s", user, err)
+			return authError
 		}
 		log.Debug("User/Pass was correct")
 		r.Header.Set(enrollmentIDHdrName, user)
-		// TODO: Do the following
-		// 2) Update state of 'user' in DB as enrolled and return true.
 		return nil
 	}
 	// Perform token verification
@@ -121,24 +115,29 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		// read body
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
+			log.Debugf("Failed to read body: %s", err)
 			return authError
 		}
 		r.Body = ioutil.NopCloser(bytes.NewReader(body))
 		// verify token
 		cert, err2 := util.VerifyToken(authHdr, body)
 		if err2 != nil {
+			log.Debugf("Failed to verify token: %s", err2)
 			return authError
 		}
+		id := util.GetEnrollmentIDFromX509Certificate(cert)
+		log.Debugf("Checking for revocation/expiration of certificate owned by '%s'", id)
 		// Check for certificate revocation and expiration
 		revokedOrExpired, checked := revoke.VerifyCertificate(cert)
 		if revokedOrExpired {
-			log.Debug("Certificate was either revoked or has expired")
+			log.Debugf("Certificate was either revoked or has expired owned by '%s'", id)
 			return authError
 		}
 		if !checked {
 			log.Debug("A failure occurred while checking for revocation and expiration")
 			return authError
 		}
+		log.Debugf("Successful authentication of '%s'", id)
 		r.Header.Set(enrollmentIDHdrName, util.GetEnrollmentIDFromX509Certificate(cert))
 	}
 	return nil

@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
-	"github.com/hyperledger/fabric-ca/cli/server/ldap"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/ldap"
 )
 
 const (
@@ -352,7 +352,7 @@ func testEnrollingUser(t *testing.T) {
 }
 
 func TestGetCertificatesByID(t *testing.T) {
-	certRecord, err := certDBAccessor.GetCertificatesByID("testUser2")
+	certRecord, err := lib.MyCertDBAccessor.GetCertificatesByID("testUser2")
 	if err != nil {
 		t.Errorf("Error occured while getting certificate for id 'testUser2', [error: %s]", err)
 	}
@@ -362,7 +362,7 @@ func TestGetCertificatesByID(t *testing.T) {
 }
 
 func TestRevokeCertificatesByID(t *testing.T) {
-	_, err := certDBAccessor.RevokeCertificatesByID("testUser2", 1)
+	_, err := lib.MyCertDBAccessor.RevokeCertificatesByID("testUser2", 1)
 	if err != nil {
 		t.Errorf("Error occured while revoking certificate for id 'testUser2', [error: %s]", err)
 	}
