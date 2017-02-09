@@ -2,11 +2,19 @@
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
 
-function genClientConfig() {
+genClientConfig() {
    local CLIENTCONFIG="$1"
+   test -z "${FABRIC_CA}" && FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
+   test -z "${TESTDATA}" && TESTDATA="$FABRIC_CA/testdata"
+
    cat > "$CLIENTCONFIG" <<-EOF
 {
-  "tls_disable":true
+  "tls_disable":false,
+  "ca_certfiles":["$TESTDATA/root.pem"],
+  "client":{
+             "keyfile":"$TESTDATA/tls_client-key.pem",
+             "certfile":"$TESTDATA/tls_client-cert.pem"
+  }
 }
 EOF
 }
@@ -50,7 +58,7 @@ pollServer() {
    while test "$(($(date +%s)-starttime))" -lt "$timeout" -a $rc -ne 0
    do
       sleep 1
-      printf "\r%s%03d" "Waiting for $app start on $host:$port ..." "$now"
+      printf "\r%s%03d" "Waiting for $app start on $host:$port ..." "$(($(date +%s)-starttime))"
       isReachable "$host" "$port"
       rc=$?
    done
@@ -88,6 +96,14 @@ CleanUp() {
    printf "%s test ended.\n" $TESTCASE
 }
 
+
+function ErrorMsg() {
+   local msg="$1"
+   local rc="$2"
+   : ${rc:="RC"}
+   echo -e "\033[31m ****** ERROR ****** $msg \033[0m"
+   let $rc+=1
+}
 
 function ErrorExit() {
    $FABRIC_CA/scripts/fabric-ca_setup.sh -R
@@ -160,10 +176,21 @@ function keyCheck() {
    local alg="$3"
    : ${alg:="rsa"}
    test -f "$cert" -a -f "$key" || return 1
+
    # check to see that the public/private key pair match
-   k_hash=$(openssl $alg -noout -modulus -in $key  2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
-   c_hash=$(openssl x509 -noout -modulus -in $cert 2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
+   case "$alg" in
+   rsa|dsa)
+       k_hash=$(openssl $alg -noout -modulus -in $key  2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
+       c_hash=$(openssl x509 -noout -modulus -in $cert 2>&1| awk -F'=' '/=/ {print $2}' | openssl md5 | awk '{print $NF}')
+   ;;
+   *)
+       k_hash=$(openssl $alg        -pubout -in $key  2>/dev/null| openssl md5 | awk '{print $NF}')
+       c_hash=$(openssl x509 -noout -pubkey -in $cert            | openssl md5 | awk '{print $NF}')
+   ;;
+   esac
+
    test -z "$k_hash" -o -z "$c_hash" && return 1
    test "$k_hash" == "$c_hash" || return 1
+
    return 0
 }

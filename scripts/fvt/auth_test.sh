@@ -3,15 +3,35 @@ FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
 RC=0
-HOST="localhost:10888"
 SERVERCONFIG="/tmp/config.json.$RANDOM"
+
+if test -n "$TLS_ON"; then
+   TLS_DISABLE='false'
+else
+   case "$FABRIC_TLS" in
+      true) TLS_DISABLE='false' ;;
+     false) TLS_DISABLE='true'  ;;
+         *) TLS_DISABLE='true'  ;;
+   esac
+fi
 
 # default value
 cat > "$SERVERCONFIG" <<EOF
 {
- "tls_disable":true,
+ "tls_disable":$TLS_DISABLE,
  "driver":"sqlite3",
- "data_source":"fabric-ca.db",
+ "data_source":"fabric_ca.db",
+ "ca_cert":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/fabric-ca-cert.pem",
+ "ca_key":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/fabric-ca-key.pem",
+ "tls":{
+   "tls_cert":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/tls_server-cert.pem",
+   "tls_key":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/tls_server-key.pem",
+   "mutual_tls_ca":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/root.pem",
+   "db_client":{
+     "ca_certfiles":["/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/root.pem"],
+     "client":{"keyfile":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/tls_server-key.pem","certfile":"/home/ibmadmin/gopath/src/github.com/hyperledger/fabric-ca/testdata/tls_server-cert.pem"}
+   }
+ },
  "users": {
     "admin": {
       "pass": "adminpw",
@@ -52,40 +72,41 @@ for driver in sqlite3 ; do
    test $? -ne 0 && ErrorExit "Failed to setup server"
    # Success case - send passwd
    $SCRIPTDIR/enroll.sh -u admin -p adminpw
-   RC=$((RC+$?))
+   test $? -ne 0 && ErrorMsg "Failed to enroll admin"
    # Fail case - send null passwd
    $SCRIPTDIR/enroll.sh -u admin -p ""
-   test $? -eq 0 && RC=$((RC+1))
+   test $? -eq 0 && ErrorMsg "Improperly enrolled admin with null passwd"
    # Fail case - send bogus passwd
    $SCRIPTDIR/enroll.sh -u admin -p xxxxxx
-   test $? -eq 0 && RC=$((RC+1))
+   test $? -eq 0 && ErrorMsg "Improperly enrolled admin with bad passwd"
 
    # - auth disabled
-   $SCRIPTDIR/fabric-ca_setup.sh -R
-   $SCRIPTDIR/fabric-ca_setup.sh -A -I -S -X -d $driver
+   $SCRIPTDIR/fabric-ca_setup.sh  -R
+   $SCRIPTDIR/fabric-ca_setup.sh  -A -I -S -X -d $driver
+   test $? -ne 0 && ErrorExit "Failed to setup server"
    # Success case - send correct passwd
    $SCRIPTDIR/enroll.sh -u admin -p adminpw
-   RC=$((RC+$?))
+   test $? -ne 0 && ErrorMsg "Authentication disabled: failed to enroll admin with vaild passwd"
    # Success case - send null passwd
    $SCRIPTDIR/enroll.sh -u admin -p ""
-   RC=$((RC+$?))
+   test $? -ne 0 && ErrorMsg "Authentication disabled: failed to enroll admin with null passwd"
    # Success case - send bogus passwd
    $SCRIPTDIR/enroll.sh -u admin -p xxxxxx
-   RC=$((RC+$?))
+   test $? -ne 0 && ErrorMsg "Authentication disabled: failed to enroll admin with bad passwd"
 
    # - default (auth enabled)
-   $SCRIPTDIR/fabric-ca_setup.sh -R
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -d $driver -g "$SERVERCONFIG"
+   $SCRIPTDIR/fabric-ca_setup.sh  -R
+   $SCRIPTDIR/fabric-ca_setup.sh  -I -S -X -d $driver -g "$SERVERCONFIG"
    test $? -ne 0 && ErrorExit "Failed to setup server"
    # Success case - send passwd
    $SCRIPTDIR/enroll.sh -u admin -p adminpw
-   RC=$((RC+$?))
+   test $? -ne 0 && ErrorMsg "Failed to enroll admin"
    # Fail case - send null passwd
    $SCRIPTDIR/enroll.sh -u admin -p ""
-   test $? -eq 0 && RC=$((RC+1))
+   test $? -eq 0 && ErrorMsg "Improperly enrolled admin with null passwd"
    # Fail case - send bogus passwd
    $SCRIPTDIR/enroll.sh -u admin -p xxxxxx
-   test $? -eq 0 && RC=$((RC+1))
+   test $? -eq 0 && ErrorMsg "Improperly enrolled admin with bad passwd"
 
 done
 rm $SERVERCONFIG

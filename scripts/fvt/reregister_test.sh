@@ -3,7 +3,10 @@ FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 KEYSTORE="/tmp/keyStore"
-HOST="localhost:10888"
+REGISTRAR="admin"
+REGIRSTRARPWD="adminpw"
+#REGISTRAR="revoker"
+#REGIRSTRARPWD="revokerpw"
 HTTP_PORT="3755"
 RC=0
 
@@ -12,7 +15,7 @@ RC=0
 function enrollUser() {
    local USERNAME=$1
    mkdir -p $KEYSTORE/$USERNAME
-   export FABRIC_CA_HOME=$KEYSTORE/admin
+   export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
    OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME)
    echo "$OUT"
    PASSWD="$(echo $OUT | tail -n1 | awk '{print $NF}')"
@@ -48,43 +51,44 @@ echo $HTTP_PID
 trap "kill $HTTP_PID; CleanUp" INT
 
 export FABRIC_CA_DEBUG
-mkdir -p $KEYSTORE/admin
-export FABRIC_CA_HOME=$KEYSTORE/admin
+mkdir -p $KEYSTORE/$REGISTRAR
+export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
 
 #for driver in sqlite3 postgres mysql; do
 for driver in sqlite3 ; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $FABRIC_CA_HOME
    $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver
-   RC=$((RC+$?))
-
-   $SCRIPTDIR/enroll.sh -u admin -p adminpw -x $FABRIC_CA_HOME
    if test $? -ne 0; then
-      echo "Failed to enroll admin"
-      RC=$((RC+1))
+      ErrorMsg "Failed to setup fabric-ca server"
       continue
    fi
 
+   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGIRSTRARPWD -x $FABRIC_CA_HOME
+   if test $? -ne 0; then
+      ErrorMsg "Failed to enroll $REGISTRAR"
+      continue
+   fi
 
    $SCRIPTDIR/register.sh -u ${USERNAME} -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME
    if test $? -ne 0; then
-      echo "Failed to register $USERNAME"
-      RC=$((RC+1))
+      ErrorMsg "Failed to register $USERNAME"
       continue
    fi
 
    for i in {2..8}; do
       $SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME
-      if test $? -eq 0; then
-         echo "Duplicate registration of " $USERNAME
-         RC=$((RC+1))
-      fi
+      test $? -eq 0 && ErrorMsg "Duplicate registration of " $USERNAME
    done
 
-   for s in {1..4}; do
-      verifyServerTraffic $HOST server${s} 10 "" "" lt
-      RC=$((RC+$?))
-      sleep 1
-   done
+   # all servers should register = number of successful requests
+   # but...it's only available when tls is disabled
+   if test "$FABRIC_TLS" = 'false'; then
+      for s in {1..4}; do
+         verifyServerTraffic $HOST server${s} 10 "" "" lt
+         test $? -eq 0 || ErrorMsg "verifyServerTraffic failed"
+         sleep 1
+      done
+   fi
 
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $FABRIC_CA_HOME
 done
