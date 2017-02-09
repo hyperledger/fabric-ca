@@ -45,10 +45,7 @@ var (
 
 func init() {
 	// Get the default config file path
-	cfg, err := getDefaultConfigFile()
-	if err != nil {
-		panic(err)
-	}
+	cfg := util.GetDefaultConfigFile(cmdName)
 
 	// All env variables must be prefixed
 	viper.SetEnvPrefix(envVarPrefix)

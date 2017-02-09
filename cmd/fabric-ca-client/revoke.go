@@ -17,7 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -46,17 +51,41 @@ var revokeCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(revokeCmd)
 	revokeFlags := revokeCmd.Flags()
-	util.FlagString(revokeFlags, "userid", "u", "", "Enrollment ID (Optional)")
+	util.FlagString(revokeFlags, "eid", "e", "", "Enrollment ID (Optional)")
+	util.FlagString(revokeFlags, "serial", "s", "", "Serial Number")
+	util.FlagString(revokeFlags, "aki", "a", "", "AKI")
+	util.FlagString(revokeFlags, "reason", "r", "", "Reason for revoking")
 }
 
 // The client revoke main logic
 func runRevoke() error {
-	log.Debug("Entered Revoke")
+	log.Debug("Revoke Entered")
 
-	enrollmentID := viper.GetString("userid")
-	_ = enrollmentID
+	var err error
+	enrollmentID := viper.GetString("eid")
 
-	log.Infof("User Revoked")
+	client := lib.Client{
+		HomeDir: filepath.Dir(cfgFileName),
+		Config:  clientCfg,
+	}
 
-	return nil
+	id, err := client.LoadMyIdentity()
+	if err != nil {
+		return err
+	}
+
+	serial := viper.GetString("serial")
+	aki := viper.GetString("aki")
+
+	if enrollmentID == "" && serial == "" {
+		return fmt.Errorf("Invalid usage; either ENROLLMENT_ID or both --serial and --aki are required")
+	}
+
+	return id.Revoke(
+		&api.RevocationRequest{
+			Name:   enrollmentID,
+			Serial: serial,
+			AKI:    aki,
+		})
+
 }

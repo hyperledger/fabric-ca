@@ -58,8 +58,8 @@ DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-fvt
 
 path-map.fabric-ca := ./
-path.map.fabric-ca-client := ./cmd/fabric-ca-client
-path.map.fabric-ca-server := ./cmd/fabric-ca-server
+path-map.fabric-ca-client := ./cmd/fabric-ca-client
+path-map.fabric-ca-server := ./cmd/fabric-ca-server
 
 include docker-env.mk
 

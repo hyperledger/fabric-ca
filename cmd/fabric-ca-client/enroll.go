@@ -17,8 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
@@ -29,7 +33,7 @@ var (
 
 // initCmd represents the init command
 var enrollCmd = &cobra.Command{
-	Use:   "enroll",
+	Use:   "enroll -u http://user:userpw@serverAddr:serverPort",
 	Short: "Enroll user",
 	Long:  "Enroll user with fabric-ca server",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -49,8 +53,6 @@ var enrollCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(enrollCmd)
-	enrollFlags := enrollCmd.Flags()
-	util.FlagString(enrollFlags, "user", "u", "", "user:pass for user being enrolled")
 }
 
 // The client enroll main logic
@@ -67,9 +69,23 @@ func runEnroll() error {
 		Secret: pass,
 	}
 
-	_ = req
+	client := lib.Client{
+		HomeDir: filepath.Dir(cfgFileName),
+		Config:  clientCfg,
+	}
 
-	log.Infof("User Enrolled")
+	ID, err := client.Enroll(req)
+	if err != nil {
+		return err
+	}
+
+	err = ID.Store()
+	if err != nil {
+		return fmt.Errorf("Failed to store enrollment information: %s", err)
+	}
+
+	log.Infof("Enrollment information was successfully stored in %s and %s",
+		client.GetMyKeyFile(), client.GetMyCertFile())
 
 	return nil
 }

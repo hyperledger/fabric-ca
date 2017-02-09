@@ -1,5 +1,5 @@
 {
- "tls_disable":false,
+ "tls_disable":true,
  "driver":"sqlite3",
  "data_source":"fabric-ca.db",
  "user_registry": {

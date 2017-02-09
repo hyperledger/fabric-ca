@@ -150,12 +150,10 @@ func TestCreateHome(t *testing.T) {
 	}
 	os.Setenv("HOME", tempDir)
 
-	_, err = CreateHome()
+	dir, err := CreateClientHome()
 	if err != nil {
 		t.Errorf("Failed to create home directory, error: %s", err)
 	}
-
-	dir := filepath.Join(tempDir, "fabric-cop")
 
 	if _, err = os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
@@ -163,26 +161,19 @@ func TestCreateHome(t *testing.T) {
 		}
 	}
 
+	os.RemoveAll(dir)
 }
 
-func TestGetDefaultHomeDir(t *testing.T) {
-	os.Setenv("CA_CFG_PATH", "")
-	os.Setenv("HOME", "")
-	home := GetDefaultHomeDir()
-	if home != "/var/hyperledger/fabric/dev/fabric-ca" {
-		t.Errorf("Incorrect default home (%s) path retrieved", home)
-	}
+func TestGetDefaultConfigFile(t *testing.T) {
+	os.Unsetenv("FABRIC_CA_HOME")
+	os.Unsetenv("FABRIC_CA_CLIENT_HOME")
 
 	os.Setenv("HOME", "/tmp")
-	home = GetDefaultHomeDir()
-	if home != "/tmp/fabric-ca" {
-		t.Errorf("Incorrect $HOME (%s) path retrieved", home)
-	}
 
-	os.Setenv("CA_CFG_PATH", "/tmp")
-	home = GetDefaultHomeDir()
-	if home != "/tmp" {
-		t.Errorf("Incorrect $CA_CFG_PATH (%s) path retrieved", home)
+	defConfigFile := filepath.Join("/tmp", ".fabric-ca-client/fabric-ca-client-config.yaml")
+	defConfig := GetDefaultConfigFile("fabric-ca-client")
+	if defConfigFile != defConfig {
+		t.Errorf("Incorrect default config (%s) path retrieved", defConfig)
 	}
 
 }
@@ -238,10 +229,14 @@ func TestStrContained(t *testing.T) {
 
 func TestFileExists(t *testing.T) {
 	name := "../testdata/csr.json"
-
 	exists := FileExists(name)
 	if exists == false {
 		t.Error("File does not exist")
+	}
+	name = "better-not-exist"
+	exists = FileExists(name)
+	if exists == true {
+		t.Error("File 'better-not-exist' should not exist")
 	}
 }
 
@@ -253,9 +248,9 @@ func TestMakeFileAbs(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	os.Unsetenv("FABRIC_CA_CLIENT_USER")
-	viper.BindEnv("user", "FABRIC_CA_CLIENT_USER")
-	os.Setenv("FABRIC_CA_CLIENT_USER", "foo:bar")
+	os.Unsetenv("FABRIC_CA_CLIENT_URL")
+	viper.BindEnv("url", "FABRIC_CA_CLIENT_URL")
+	os.Setenv("FABRIC_CA_CLIENT_URL", "http://foo:bar@localhost:7054")
 
 	user, pass, err := GetUser()
 	if err != nil {
@@ -263,11 +258,11 @@ func TestGetUser(t *testing.T) {
 	}
 
 	if user != "foo" {
-		t.Error("Failed to retrieve correst username")
+		t.Error("Failed to retrieve correct username")
 	}
 
 	if pass != "bar" {
-		t.Error("Failed to retrieve correst password")
+		t.Error("Failed to retrieve correct password")
 	}
 
 }

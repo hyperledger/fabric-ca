@@ -48,7 +48,7 @@ var (
 
 func init() {
 	// Get the default config file path
-	cfg := getDefaultConfigFile()
+	cfg := util.GetDefaultConfigFile(cmdName)
 
 	// All env variables must be prefixed
 	viper.SetEnvPrefix(envVarPrefix)
@@ -64,9 +64,9 @@ func init() {
 	// Set global flags used by all commands
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
-	util.FlagString(pflags, "url", "", url, "URL of the Fabric-ca server")
-	util.FlagString(pflags, "host", "", host, "Hostname")
-	util.FlagString(pflags, "enrollid", "e", "", "Enrollment ID")
+	util.FlagString(pflags, "url", "u", url, "URL of the Fabric-ca server")
+	util.FlagString(pflags, "myhost", "m", host,
+		"Hostname to include in the certificate signing request during enrollment")
 	util.FlagBool(pflags, "debug", "d", false, "Enable debug logging")
 
 }

@@ -52,6 +52,7 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	//}
 	var certs []tls.Certificate
 
+	log.Debugf("CA Files: %s\n", cfg.CertFiles)
 	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
 	clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
@@ -63,14 +64,18 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 
 	rootCAPool := x509.NewCertPool()
 
-	for _, certfile := range cfg.CertFiles {
-		cert, err := ioutil.ReadFile(certfile)
+	if len(cfg.CertFiles) == 0 {
+		log.Debug("No CA cert files provided. If server requires TLS, connection will fail")
+	}
+
+	for _, cacert := range cfg.CertFiles {
+		caCert, err := ioutil.ReadFile(cacert)
 		if err != nil {
 			return nil, err
 		}
-		ok := rootCAPool.AppendCertsFromPEM(cert)
+		ok := rootCAPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return nil, fmt.Errorf("Failed to process certificate from file %s", certfile)
+			return nil, fmt.Errorf("Failed to process certificate from file %s", cacert)
 		}
 	}
 

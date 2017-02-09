@@ -18,6 +18,7 @@ package client
 
 import (
 	"path"
+	"path/filepath"
 
 	"github.com/hyperledger/fabric-ca/lib"
 
@@ -28,7 +29,7 @@ import (
 // LoadClient loads client configuration file
 func loadClient(loadIdentity bool, configFile string) (*lib.Client, *lib.Identity, error) {
 	if configFile == "" {
-		configFile = path.Join(util.GetDefaultHomeDir(), "client-config.json")
+		configFile = path.Join(filepath.Dir(util.GetDefaultConfigFile("fabric-ca-client")), "client-config.json")
 	}
 	log.Infof("Fabric-ca Client Configuration File: %s", configFile)
 

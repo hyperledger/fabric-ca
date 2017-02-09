@@ -21,22 +21,15 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
-	"path"
 	"testing"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/util"
 )
 
 func TestInitCA(t *testing.T) {
-	FCAHome, err := util.CreateHome()
-	if err != nil {
-		log.Fatalf("Failed to create fabric-ca home directory.")
-	}
-
 	req := csr.CertificateRequest{
 		KeyRequest: csr.NewBasicKeyRequest(),
 	}
@@ -65,11 +58,11 @@ func TestInitCA(t *testing.T) {
 		}
 
 		cli.PrintCert(key, csrPEM, cert)
-		certerr := ioutil.WriteFile(path.Join(FCAHome, "server-cert.pem"), cert, 0755)
+		certerr := ioutil.WriteFile("server-cert.pem", cert, 0755)
 		if certerr != nil {
 			log.Fatal("Error writing server-cert.pem to CA_CFG_PATH directory")
 		}
-		keyerr := ioutil.WriteFile(path.Join(FCAHome, "server-key.pem"), key, 0755)
+		keyerr := ioutil.WriteFile("server-key.pem", key, 0755)
 		if keyerr != nil {
 			log.Fatal("Error writing server-key.pem to CA_CFG_PATH directory")
 		}
@@ -77,7 +70,6 @@ func TestInitCA(t *testing.T) {
 		var ca *csr.CAConfig
 		req.CA = ca
 		if req.CA != nil {
-			err = errors.New("ca section only permitted in initca")
 			return
 		}
 
@@ -141,4 +133,9 @@ func TestInitCommand(t *testing.T) {
 	os.Args = []string{"server", "init", CSRJSON}
 	Command()
 	os.Args = osArgs
+}
+
+func TestCleanUp(t *testing.T) {
+	os.Remove("server-cert.pem")
+	os.Remove("server-key.pem")
 }

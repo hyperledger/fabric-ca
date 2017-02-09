@@ -34,6 +34,7 @@ import (
 	"math/big"
 	mrand "math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -361,18 +362,10 @@ func HTTPResponseToString(resp *http.Response) string {
 		resp.StatusCode, resp.Status, string(body))
 }
 
-// CreateHome will create a home directory if it does not exist
-func CreateHome() (string, error) {
+// CreateClientHome will create a home directory if it does not exist
+func CreateClientHome() (string, error) {
 	log.Debug("CreateHome")
-	home := os.Getenv("CA_CFG_PATH")
-	if home == "" {
-		home = os.Getenv("HOME")
-		if home != "" {
-			home = path.Join(home, "/fabric-cop")
-		} else {
-			home = "/var/hyperledger/fabric/dev/fabric-cop"
-		}
-	}
+	home := filepath.Join(GetDefaultConfigFile("fabric-ca-client"))
 
 	if _, err := os.Stat(home); err != nil {
 		if os.IsNotExist(err) {
@@ -385,18 +378,35 @@ func CreateHome() (string, error) {
 	return home, nil
 }
 
-// GetDefaultHomeDir returns the default fabric-cas home
-func GetDefaultHomeDir() string {
-	home := os.Getenv("CA_CFG_PATH")
-	if home == "" {
-		home = os.Getenv("HOME")
-		if home != "" {
-			home = path.Join(home, "/fabric-ca")
-		} else {
-			home = "/var/hyperledger/fabric/dev/fabric-ca"
+// GetDefaultConfigFile gets the default path for the config file to display in usage message
+func GetDefaultConfigFile(cmdName string) string {
+	if cmdName == "fabric-ca-server" {
+		var fname = fmt.Sprintf("%s-config.yaml", cmdName)
+		// First check home env variables
+		home := "."
+		envs := []string{"FABRIC_CA_SERVER_HOME", "FABRIC_CA_HOME", "HOME"}
+		for _, env := range envs {
+			envVal := os.Getenv(env)
+			if envVal != "" {
+				home = envVal
+				break
+			}
+		}
+		return path.Join(home, fname)
+	}
+
+	var fname = fmt.Sprintf("%s-config.yaml", cmdName)
+	// First check home env variables
+	home := "."
+	envs := []string{"FABRIC_CA_CLIENT_HOME", "FABRIC_CA_HOME", "HOME"}
+	for _, env := range envs {
+		envVal := os.Getenv(env)
+		if envVal != "" {
+			home = envVal
+			break
 		}
 	}
-	return home
+	return path.Join(home, ".fabric-ca-client", fname)
 }
 
 // GetX509CertificateFromPEM converts a PEM buffer to an X509 Certificate
@@ -449,20 +459,27 @@ func Fatal(format string, v ...interface{}) {
 
 // GetUser returns username and password from CLI input
 func GetUser() (string, string, error) {
-	up := viper.GetString("user")
+	fabricCAServerURL := viper.GetString("url")
 
-	log.Debugf("Username and Password: %s", up)
-
-	if up == "" {
-		return "", "", errors.New("The '-u user:pass' option is required")
-	}
-	ups := strings.Split(up, ":")
-	if len(ups) < 2 {
-		return "", "", fmt.Errorf("The value '%s' on the command line is missing a colon separator", up)
-	}
-	if len(ups) > 2 {
-		ups = []string{ups[0], strings.Join(ups[1:], ":")}
+	URL, err := url.Parse(fabricCAServerURL)
+	if err != nil {
+		return "", "", err
 	}
 
-	return ups[0], ups[1], nil
+	user := URL.User
+	if user == nil {
+		return "", "", errors.New("No username and password provided as part of URL")
+	}
+
+	eid := user.Username()
+	if eid == "" {
+		return "", "", errors.New("No username provided as part of URL")
+	}
+
+	pass, _ := user.Password()
+	if pass == "" {
+		return "", "", errors.New("No password provided as part of URL")
+	}
+
+	return eid, pass, nil
 }

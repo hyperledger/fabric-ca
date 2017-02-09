@@ -188,8 +188,7 @@ func getServer(t *testing.T) *lib.Server {
 
 func getTestClient() *lib.Client {
 	return &lib.Client{
-		ServerURL:  fmt.Sprintf("http://localhost:%d", port),
-		HomeDir:    "../testdata",
-		ConfigFile: "../testdata/empty.json",
+		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+		HomeDir: "../testdata",
 	}
 }

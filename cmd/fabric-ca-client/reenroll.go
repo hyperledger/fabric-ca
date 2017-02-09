@@ -17,7 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -52,9 +57,30 @@ func init() {
 func runReenroll() error {
 	log.Debug("Entered Reenroll")
 
-	_ = csrFile
+	client := lib.Client{
+		HomeDir: filepath.Dir(cfgFileName),
+		Config:  clientCfg,
+	}
 
-	log.Infof("User Reenrolled")
+	id, err := client.LoadMyIdentity()
+	if err != nil {
+		return err
+	}
+
+	req := &api.ReenrollmentRequest{}
+
+	newID, err := id.Reenroll(req)
+	if err != nil {
+		return fmt.Errorf("Failed to store enrollment information: %s", err)
+	}
+
+	err = newID.Store()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Enrollment information was successfully stored in %s and %s",
+		client.GetMyKeyFile(), client.GetMyCertFile())
 
 	return nil
 }

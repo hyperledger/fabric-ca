@@ -19,12 +19,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -81,42 +82,51 @@ serverURL: <<<URL>>>
 #    TLS section for the client's listenting port
 #############################################################################
 tls:
-# Enable TLS (default: false)
-enabled: false
+   # Enable TLS (default: false)
+   enabled: false
 
-# TLS for the client's listenting port (default: false)
-caFile:
-certFile:
-keyFile:
+   # TLS for the client's listenting port (default: false)
+   certfiles:
+   client:
+      certfile:
+      keyfile:
+
 #############################################################################
 #  Certificate Signing Request section for generating the CSR for
 #  an enrollment certificate (ECert)
 #############################################################################
 csr:
-cn: <<<ENROLLMENT_ID>>>
-names:
-  - C: US
-    ST: "North Carolina"
-    L:
-    O: Hyperledger
-    OU: Fabric
-hosts:
- - <<<MYHOST>>>
-ca:
-  pathlen:
-  pathlenzero:
-  expiry:
+   cn: <<<ENROLLMENT_ID>>>
+   names:
+      - C: US
+        ST: "North Carolina"
+        L:
+        O: Hyperledger
+        OU: Fabric
+   hosts:
+      - <<<MYHOST>>>
+   ca:
+      pathlen:
+      pathlenzero:
+      expiry:
 `
 )
 
 var (
 	// cfgFileName is the name of the client's config file
 	cfgFileName string
+
+	// clientCfg is the client's config
+	clientCfg *lib.ClientConfig
 )
 
 func configInit() error {
 
 	var err error
+
+	if cfgFileName != "" {
+		log.Infof("User provided config file: %s\n", cfgFileName)
+	}
 
 	// Make the config file name absolute
 	if !filepath.IsAbs(cfgFileName) {
@@ -139,57 +149,45 @@ func configInit() error {
 
 	// Call viper to read the config
 	viper.SetConfigFile(cfgFileName)
+	viper.SetConfigType("yaml")
 	viper.AutomaticEnv() // read in environment variables that match
 	err = viper.ReadInConfig()
 	if err != nil {
 		return fmt.Errorf("Failed to read config file: %s", err)
 	}
 
-	return nil
-
-}
-
-// Get the default path for the config file to display in usage message
-func getDefaultConfigFile() string {
-	var fname = fmt.Sprintf("%s-config.yaml", cmdName)
-	// First check home env variables
-	home := "."
-	envs := []string{"FABRIC_CA_CLIENT_HOME", "CA_CFG_PATH", "HOME"}
-	for _, env := range envs {
-		envVal := os.Getenv(env)
-		if envVal != "" {
-			home = envVal
-			break
-		}
+	// Unmarshal the config into 'clientCfg'
+	clientCfg = new(lib.ClientConfig)
+	err = viper.Unmarshal(clientCfg)
+	if err != nil {
+		util.Fatal("Failed to unmarshall client config: %s", err)
 	}
-	return path.Join(home, ".fabric-ca-client", fname)
+
+	return nil
 }
 
 func createDefaultConfigFile() error {
-	var err error
 	// Create a default config, if URL provided via CLI or envar update config files
-	url := viper.GetString("url")
-	if url == "" {
-		url = util.GetServerURL()
-	}
-
-	enrollID := viper.GetString("enrollid")
-
-	host := viper.GetString("host")
-	if host == "" {
-		host, err = os.Hostname()
+	var cfg string
+	fabricCAServerURL := viper.GetString("url")
+	if fabricCAServerURL == "" {
+		fabricCAServerURL = util.GetServerURL()
+	} else {
+		URL, err := url.Parse(fabricCAServerURL)
 		if err != nil {
-			log.Error(err)
+			return err
 		}
+		fabricCAServerURL = fmt.Sprintf("%s://%s", URL.Scheme, URL.Host) // URL.Scheme + "://" + URL.Host
 	}
+
+	myhost := viper.GetString("myhost")
 
 	// Do string subtitution to get the default config
-	cfg := strings.Replace(defaultCfgTemplate, "<<<URL>>>", url, 1)
-	cfg = strings.Replace(defaultCfgTemplate, "<<<ENROLLMENT_ID>>>", enrollID, 1)
-	cfg = strings.Replace(defaultCfgTemplate, "<<<MYHOST>>>", host, 1)
+	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
+	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 
 	// Now write the file
-	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
+	err := os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {
 		return err
 	}

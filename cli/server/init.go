@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/csr"
@@ -74,7 +75,7 @@ func initMain(args []string, c cli.Config) (err error) {
 		return err
 	}
 
-	FCAHome, err := util.CreateHome()
+	FCAHome := filepath.Dir(util.GetDefaultConfigFile("fabric-ca-server"))
 	if err != nil {
 		return err
 	}

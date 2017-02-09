@@ -131,11 +131,6 @@ func startMain(args []string, c cli.Config) error {
 	log.Debug("server.startMain")
 	var err error
 
-	homeDir, err = util.CreateHome()
-	if err != nil {
-		return err
-	}
-
 	configInit(&c)
 
 	if c.CAFile == "" || c.CAKeyFile == "" {
