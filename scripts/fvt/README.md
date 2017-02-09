@@ -13,7 +13,7 @@ Depending on the security settings and options requested, root authority may be 
 
 This is also true of the ``fabric-ca_setup.sh`` documented below.
 
-Tests have been verified to run on Ubuntu linux.
+Tests have been verified to run on Ubuntu 16.04.1 (Xenial).
 
 ### Prerequisites
 * Go 1.6+ installation or later
