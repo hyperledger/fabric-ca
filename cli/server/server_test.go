@@ -60,7 +60,7 @@ func startServer() {
 		serverStarted = true
 		fmt.Println("starting fabric-ca server ...")
 		os.Setenv("FABRIC_CA_DEBUG", "true")
-		os.Setenv("FABRIC_CA_HOME", dir)
+		os.Setenv("CA_CFG_PATH", dir)
 		go runServer()
 		time.Sleep(10 * time.Second)
 		fmt.Println("Fabric CA server started")

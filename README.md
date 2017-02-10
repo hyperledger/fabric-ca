@@ -71,7 +71,7 @@ unlimited enrollments.
 Executing the following fabric-ca command will generate a private key and self-signed
 x509 certificate to start the fabric-ca server in the `Start the fabric-ca server` section.
 These two PEM files will be generated and stored in the directory
-`$FABRIC_CA_HOME`: server-cert.pem and server-key.pem.
+`$CA_CFG_PATH`: server-cert.pem and server-key.pem.
 They can be used as input parameters to `-ca` and `-ca-key` in the command to
 start the fabric-ca server.
 
@@ -273,9 +273,9 @@ path can be specified by setting the `FABRIC_CA_CERT_FILE` environment variable 
 The enrollment key is stored at `$FABRIC_CA_ENROLLMENT_DIR/key.pem` by default, but a different
 path can be specified by setting the `FABRIC_CA_KEY_FILE` environment variable to an absolute path name or a path relative to the current working directory.
 
-The default value of the `FABRIC_CA_ENROLLMENT_DIR` environment variable is `$FABRIC_CA_HOME`.
+The default value of the `FABRIC_CA_ENROLLMENT_DIR` environment variable is `$CA_CFG_PATH`.
 
-The default value of the `FABRIC_CA_HOME` environment variable is `$HOME/fabric-ca`.
+The default value of the `CA_CFG_PATH` environment variable is `$HOME/fabric-ca`.
 
 ### Reenroll
 

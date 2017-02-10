@@ -22,13 +22,13 @@ future=$(date +"$next_year%m%d%H%M%SZ")
 function enrollUser() {
    local USERNAME=$1
    mkdir -p $KEYSTORE/$USERNAME
-   export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
-   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME)
+   export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
+   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH)
    echo "$OUT"
    PASSWD="$(echo "$OUT" | head -n1 | awk '{print $NF}')"
-   export FABRIC_CA_HOME=$KEYSTORE/$USERNAME
-   test -d $FABRIC_CA_HOME || mkdir -p $FABRIC_CA_HOME
-   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $FABRIC_CA_HOME
+   export CA_CFG_PATH=$KEYSTORE/$USERNAME
+   test -d $CA_CFG_PATH || mkdir -p $CA_CFG_PATH
+   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $CA_CFG_PATH
 }
 
 while getopts "du:t:k:l:" option; do
@@ -79,8 +79,8 @@ trap "kill $HTTP_PID; CleanUp" INT
 
 export FABRIC_CA_DEBUG
 mkdir -p $KEYSTORE/$REGISTRAR
-export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
-test -d $FABRIC_CA_HOME || mkdir -p $FABRIC_CA_HOME
+export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
+test -d $CA_CFG_PATH || mkdir -p $CA_CFG_PATH
 
 #for driver in sqlite3 postgres mysql; do
 for driver in sqlite3 ; do
@@ -96,8 +96,8 @@ for driver in sqlite3 ; do
       continue
    fi
 
-   FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
-   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGISTRARPWD -x $FABRIC_CA_HOME
+   CA_CFG_PATH=$KEYSTORE/$REGISTRAR
+   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGISTRARPWD -x $CA_CFG_PATH
    if test $? -ne 0; then
       ErrorMsg "Failed to enroll $REGISTRAR"
       continue
@@ -108,10 +108,10 @@ for driver in sqlite3 ; do
       if test $? -ne 0; then
          echo "Failed to enroll user${i}"
       else
-         FABRIC_CA_HOME=$KEYSTORE/user${i}
-         test -d $FABRIC_CA_HOME || mkdir -p $FABRIC_CA_HOME
+         CA_CFG_PATH=$KEYSTORE/user${i}
+         test -d $CA_CFG_PATH || mkdir -p $CA_CFG_PATH
          # user can be reenrolled even though MAX_ENROLLMENTS set to '1'
-         $SCRIPTDIR/reenroll.sh -x $FABRIC_CA_HOME
+         $SCRIPTDIR/reenroll.sh -x $CA_CFG_PATH
          test $? -ne 0 && ErrorMsg "Failed to reenroll user${i}"
       fi
       sleep 1
@@ -134,13 +134,13 @@ for driver in sqlite3 ; do
 
    #for cert in EXPIRED UNRIPE UNSUPPORTED; do
    for cert in EXPIRED UNRIPE ; do
-      FABRIC_CA_HOME=$KEYSTORE/user1
-      cat $HOME/${cert}-cert.pem |sed -n '/BEGIN CERTIFICATE/,/END CERTIFICATE/p' > $FABRIC_CA_HOME/cert.pem
-      cat $HOME/${cert}-key.pem | openssl ec -outform pem -out $FABRIC_CA_HOME/key.pem
-      #cp $HOME/${cert}-key.pem  $FABRIC_CA_HOME/key.pem
-      openssl ec -in $FABRIC_CA_HOME/key.pem -text
-      openssl x509 -in $FABRIC_CA_HOME/cert.pem -text
-      $SCRIPTDIR/reenroll.sh -x $FABRIC_CA_HOME
+      CA_CFG_PATH=$KEYSTORE/user1
+      cat $HOME/${cert}-cert.pem |sed -n '/BEGIN CERTIFICATE/,/END CERTIFICATE/p' > $CA_CFG_PATH/cert.pem
+      cat $HOME/${cert}-key.pem | openssl ec -outform pem -out $CA_CFG_PATH/key.pem
+      #cp $HOME/${cert}-key.pem  $CA_CFG_PATH/key.pem
+      openssl ec -in $CA_CFG_PATH/key.pem -text
+      openssl x509 -in $CA_CFG_PATH/cert.pem -text
+      $SCRIPTDIR/reenroll.sh -x $CA_CFG_PATH
       test $? -eq 0 && ErrorMsg "reenrolled user1 with unsupported cert"
    done
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $KEYSTORE

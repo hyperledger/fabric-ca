@@ -67,11 +67,11 @@ func TestInitCA(t *testing.T) {
 		cli.PrintCert(key, csrPEM, cert)
 		certerr := ioutil.WriteFile(path.Join(FCAHome, "server-cert.pem"), cert, 0755)
 		if certerr != nil {
-			log.Fatal("Error writing server-cert.pem to FABRIC_CA_HOME directory")
+			log.Fatal("Error writing server-cert.pem to CA_CFG_PATH directory")
 		}
 		keyerr := ioutil.WriteFile(path.Join(FCAHome, "server-key.pem"), key, 0755)
 		if keyerr != nil {
-			log.Fatal("Error writing server-key.pem to FABRIC_CA_HOME directory")
+			log.Fatal("Error writing server-key.pem to CA_CFG_PATH directory")
 		}
 	} else {
 		var ca *csr.CAConfig

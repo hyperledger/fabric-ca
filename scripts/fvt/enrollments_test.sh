@@ -5,9 +5,9 @@ TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
 RC=0
 SERVERCONFIG="/tmp/serverConfig.json"
-export FABRIC_CA_HOME="$HOME/fabric-ca"
-CLIENTCONFIG="$FABRIC_CA_HOME/fabric-ca/fabric-ca_client.json"
-CLIENTCERT="$FABRIC_CA_HOME/cert.pem"
+export CA_CFG_PATH="$HOME/fabric-ca"
+CLIENTCONFIG="$CA_CFG_PATH/fabric-ca/fabric-ca_client.json"
+CLIENTCERT="$CA_CFG_PATH/cert.pem"
 PKI="$SCRIPTDIR/utils/pki"
 
 MAX_ENROLL="$1"

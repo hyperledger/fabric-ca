@@ -11,7 +11,7 @@ $($FABRIC_TLS) && HOST="https://localhost:8888"
 while getopts "du:p:t:l:x:" option; do
   case "$option" in
      d)   FABRIC_CA_DEBUG="true" ;;
-     x)   FABRIC_CA_HOME="$OPTARG" ;;
+     x)   CA_CFG_PATH="$OPTARG" ;;
      u)   USERNAME="$OPTARG" ;;
      p)   USERPSWD="$OPTARG"
           test -z "$USERPSWD" && AUTH=false
@@ -20,10 +20,10 @@ while getopts "du:p:t:l:x:" option; do
      l)   KEYLEN="$OPTARG" ;;
   esac
 done
-test -z "$FABRIC_CA_HOME" && FABRIC_CA_HOME="$HOME/fabric-ca"
-test -z "$CLIENTCERT" && CLIENTCERT="$FABRIC_CA_HOME/cert.pem"
-test -z "$CLIENTKEY" && CLIENTKEY="$FABRIC_CA_HOME/key.pem"
-test -f "$FABRIC_CA_HOME" || mkdir -p $FABRIC_CA_HOME
+test -z "$CA_CFG_PATH" && CA_CFG_PATH="$HOME/fabric-ca"
+test -z "$CLIENTCERT" && CLIENTCERT="$CA_CFG_PATH/cert.pem"
+test -z "$CLIENTKEY" && CLIENTKEY="$CA_CFG_PATH/key.pem"
+test -f "$CA_CFG_PATH" || mkdir -p $CA_CFG_PATH
 
 : ${FABRIC_CA_DEBUG="false"}
 : ${AUTH="true"}
@@ -35,7 +35,7 @@ $($AUTH) || unset USERPSWD
 
 test "$KEYTYPE" = "ecdsa" && sslcmd="ec"
 
-genClientConfig "$FABRIC_CA_HOME/client-config.json"
+genClientConfig "$CA_CFG_PATH/client-config.json"
 $FABRIC_CAEXEC client enroll "$USERNAME" "$USERPSWD" "$HOST" <(echo "{
     \"hosts\": [
         \"admin@fab-client.raleigh.ibm.com\",

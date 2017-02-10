@@ -314,7 +314,7 @@ function initFabricCa() {
    test -f $FABRIC_CAEXEC || ErrorExit "fabric-ca executable not found (use -B to build)"
    cd $FABRIC_CA/bin
 
-   export FABRIC_CA_HOME=$HOME/fabric-ca
+   export CA_CFG_PATH=$HOME/fabric-ca
    genInitConfig
    $FABRIC_CAEXEC server init $INITCONFIG
 

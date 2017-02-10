@@ -17,7 +17,7 @@ $($FABRIC_TLS) && TLS="-T"
 # group is required if the type is client or peer.
 $SCRIPTDIR/fabric-ca_setup.sh -R
 $SCRIPTDIR/fabric-ca_setup.sh -I -S -X $TLS
-export FABRIC_CA_HOME=/tmp/keyStore/admin
+export CA_CFG_PATH=/tmp/keyStore/admin
 $SCRIPTDIR/enroll.sh -u admin -p adminpw
 $SCRIPTDIR/register.sh -u user1 -t client -g bank_a
 test $? -ne 0 && ErrorMsg "Failed to register user1:client:bank_a"

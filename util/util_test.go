@@ -166,7 +166,7 @@ func TestCreateHome(t *testing.T) {
 }
 
 func TestGetDefaultHomeDir(t *testing.T) {
-	os.Setenv("FABRIC_CA_HOME", "")
+	os.Setenv("CA_CFG_PATH", "")
 	os.Setenv("HOME", "")
 	home := GetDefaultHomeDir()
 	if home != "/var/hyperledger/fabric/dev/fabric-ca" {
@@ -179,10 +179,10 @@ func TestGetDefaultHomeDir(t *testing.T) {
 		t.Errorf("Incorrect $HOME (%s) path retrieved", home)
 	}
 
-	os.Setenv("FABRIC_CA_HOME", "/tmp")
+	os.Setenv("CA_CFG_PATH", "/tmp")
 	home = GetDefaultHomeDir()
 	if home != "/tmp" {
-		t.Errorf("Incorrect $FABRIC_CA_HOME (%s) path retrieved", home)
+		t.Errorf("Incorrect $CA_CFG_PATH (%s) path retrieved", home)
 	}
 
 }

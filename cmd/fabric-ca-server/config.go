@@ -225,7 +225,7 @@ func getDefaultConfigFile() (string, error) {
 	// First check home env variables
 	home := os.Getenv("FABRIC_CA_SERVER_HOME")
 	if home == "" {
-		home = os.Getenv("FABRIC_CA_HOME")
+		home = os.Getenv("CA_CFG_PATH")
 	}
 	if home != "" {
 		return path.Join(home, fname), nil
