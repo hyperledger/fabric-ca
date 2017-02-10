@@ -1,909 +1,724 @@
 {
-   "swagger": "2.0",
-   "info": {
-      "version": "0.7.0",
-      "title": "Fabric CA API",
-      "description": "Hyperledger Fabric CA APIs provides certificate authority services for the blockchain."
-   },
-   "schemes": [
-      "https",
-      "http"
-   ],
-   "consumes": [
-      "application/json"
-   ],
-   "produces": [
-      "application/json"
-   ],
-   "tags": [
-      {
-         "name": "fabric-ca",
-         "description": "Fabric CA related APIs"
+  "swagger": "2.0",
+  "info": {
+    "version": "0.7.0",
+    "title": "Fabric CA Server API",
+    "description": "Hyperledger Fabric CA Server APIs provides certificate authority services for the blockchain."
+  },
+  "schemes": [
+    "https",
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "tags": [
+    {
+      "name": "fabric-ca-server",
+      "description": "Fabric CA server APIs"
+    }
+  ],
+  "paths": {
+    "/api/v1/cfssl/enroll": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Enroll a new identity and return an enrollment certificate.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An HTTP basic authorization header where:  \n*  *user* is the enrollment ID;  \n*  *password* is the enrollment secret.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "hosts": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A comma-separated list of host names to associate with the certificate."
+                },
+                "request": {
+                  "type": "string",
+                  "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
+                },
+                "profile": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The name of the signing profile to use when issuing the certificate."
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The label used in HSM operations"
+                }
+              },
+              "required": [
+                "request"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully enrolled a new identity",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "string",
+                  "description": "The enrollment certificate in base 64 encoded format."
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "A array of error messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "A array of informational messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
       }
-   ],
-   "paths": {
-      "/api/v1/cfssl/enroll": {
-         "post": {
-            "tags": [
-               "fabric-ca"
-            ],
-            "description": "Enroll a new identity and return an enrollment certificate.",
-            "parameters": [
-               {
-                  "name": "Authorization",
-                  "in": "header",
-                  "description": "An HTTP basic authorization header where:  \n*   *user* is the enrollment ID;  \n*  *password* is the enrollment secret.",
-                  "required": true,
-                  "type": "string"
-               },
-               {
-                  "name": "body",
-                  "in": "body",
-                  "description": "The request body",
-                  "required": true,
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "id": {
-                           "type": "string",
-                           "description": "The enrollment ID"
-                        },
-                        "secret": {
-                           "type": "string",
-                           "description": "The enrollment secret which was returned from the register call"
-                        },
-                        "hosts": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "A comma-separated list of host names to associate with the certificate."
-                        },
-                        "profile": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "The name of the signing profile to use when issuing the certificate."
-                        },
-                        "label": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "The label used in HSM operations"
-                        },
-                        "csr": {
-                           "type": "object",
-                           "properties": {
-                              "CN": {
-                                 "type": "string",
-                                 "description": "The common name"
-                              },
-                              "names": {
-                                 "type": "array",
-                                 "description": "An array of unique items",
-                                 "items": {
-                                    "type": "object",
-                                    "properties": {
-                                       "C": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The country name"
-                                       },
-                                       "ST": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The state name"
-                                       },
-                                       "L": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The locality name"
-                                       },
-                                       "O": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The organization name"
-                                       },
-                                       "OU": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The organization name"
-                                       },
-                                       "SerialNumber": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The requested serial number"
-                                       }
-                                    }
-                                 }
-                              },
-                              "hosts": {
-                                 "type": "array",
-                                 "description": "An array of A host name items",
-                                 "items": {
-                                    "type": "string",
-                                    "description": "A host name"
-                                 }
-                              },
-                              "key": {
-                                 "type": "object",
-                                 "properties": {
-                                    "algo": {
-                                       "type": "string",
-                                       "description": "The key algorithm name"
-                                    },
-                                    "size": {
-                                       "type": "string",
-                                       "description": "The key size in bytes"
-                                    }
-                                 },
-                                 "required": [
-                                    "algo",
-                                    "size"
-                                 ]
-                              },
-                              "serial_number": {
-                                 "type": [
-                                    "string",
-                                    "null"
-                                 ],
-                                 "description": "An optional requested serial number"
-                              }
-                           },
-                           "required": [
-                              "CN",
-                              "names",
-                              "hosts",
-                              "key"
-                           ]
-                        }
-                     },
-                     "required": [
-                        "id",
-                        "secret",
-                        "csr"
-                     ]
-                  }
-               }
-            ],
-            "responses": {
-               "200": {
-                  "description": "Successfully enrolled a new identity",
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "Success": {
-                           "type": "boolean",
-                           "description": "Boolean indicating if the request was successful."
-                        },
-                        "Result": {
-                           "type": "string",
-                           "description": "The enrollment certificate in base 64 encoded format."
-                        },
-                        "Errors": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of error."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "An error message"
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        },
-                        "Messages": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of message."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "A more specific message."
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "Success",
-                        "Result",
-                        "Errors",
-                        "Messages"
-                     ]
-                  }
-               }
+    },
+    "/api/v1/cfssl/reenroll": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Reenroll an enrollment certificate.  This is useful for renewing an enrollment certificate before it expires or because it has been compromised.\n",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "hosts": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "A comma-separated list of host names to associate with the certificate."
+                },
+                "request": {
+                  "type": "string",
+                  "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
+                },
+                "profile": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The name of the signing profile to use when issuing the certificate."
+                },
+                "label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The label used in HSM operations"
+                }
+              },
+              "required": [
+                "request"
+              ]
             }
-         }
-      },
-      "/api/v1/cfssl/reenroll": {
-         "post": {
-            "tags": [
-               "fabric-ca"
-            ],
-            "description": "Reenroll an enrollment certificate.  This is useful for renewing an enrollment certificate before it expires or because it has been compromised.\n",
-            "parameters": [
-               {
-                  "name": "Authorization",
-                  "in": "header",
-                  "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:  \n* an enrollment certificate;  \n* a signature over the certificate and body of request.",
-                  "required": true,
-                  "type": "string"
-               },
-               {
-                  "name": "body",
-                  "in": "body",
-                  "description": "The request body",
-                  "required": true,
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "hosts": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "A comma-separated list of host names to associate with the certificate."
-                        },
-                        "profile": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "The name of the signing profile to use when issuing the certificate."
-                        },
-                        "label": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "The label used in HSM operations"
-                        },
-                        "csr": {
-                           "type": "object",
-                           "properties": {
-                              "CN": {
-                                 "type": "string",
-                                 "description": "The common name"
-                              },
-                              "names": {
-                                 "type": "array",
-                                 "description": "An array of unique items",
-                                 "items": {
-                                    "type": "object",
-                                    "properties": {
-                                       "C": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The country name"
-                                       },
-                                       "ST": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The state name"
-                                       },
-                                       "L": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The locality name"
-                                       },
-                                       "O": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The organization name"
-                                       },
-                                       "OU": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The organization name"
-                                       },
-                                       "SerialNumber": {
-                                          "type": [
-                                             "string",
-                                             "null"
-                                          ],
-                                          "description": "The requested serial number"
-                                       }
-                                    }
-                                 }
-                              },
-                              "hosts": {
-                                 "type": "array",
-                                 "description": "An array of A host name items",
-                                 "items": {
-                                    "type": "string",
-                                    "description": "A host name"
-                                 }
-                              },
-                              "key": {
-                                 "type": "object",
-                                 "properties": {
-                                    "algo": {
-                                       "type": "string",
-                                       "description": "The key algorithm name"
-                                    },
-                                    "size": {
-                                       "type": "string",
-                                       "description": "The key size in bytes"
-                                    }
-                                 },
-                                 "required": [
-                                    "algo",
-                                    "size"
-                                 ]
-                              },
-                              "serial_number": {
-                                 "type": [
-                                    "string",
-                                    "null"
-                                 ],
-                                 "description": "An optional requested serial number"
-                              }
-                           },
-                           "required": [
-                              "CN",
-                              "names",
-                              "hosts",
-                              "key"
-                           ]
-                        }
-                     },
-                     "required": [
-                        "csr"
-                     ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully registered identity",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "string",
+                  "description": "The enrollment certificate in base 64 encoded format."
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "A array of error messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
                   }
-               }
-            ],
-            "responses": {
-               "200": {
-                  "description": "Successfully registered identity",
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "Success": {
-                           "type": "boolean",
-                           "description": "Boolean indicating if the request was successful."
-                        },
-                        "Result": {
-                           "type": "string",
-                           "description": "The enrollment certificate in base 64 encoded format."
-                        },
-                        "Errors": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of error."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "An error message"
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        },
-                        "Messages": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of message."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "A more specific message."
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "Success",
-                        "Result",
-                        "Errors",
-                        "Messages"
-                     ]
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "A array of informational messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
                   }
-               }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
             }
-         }
-      },
-      "/api/v1/cfssl/register": {
-         "post": {
-            "tags": [
-               "fabric-ca"
-            ],
-            "description": "Register a new identity with the Fabric CA.  \nAn enrollment secret is returned which can then be used, along with the enrollment ID, to enroll a new identity.  \nThe caller must have **hf.Registrar** authority.",
-            "parameters": [
-               {
-                  "name": "Authorization",
-                  "in": "header",
-                  "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:  \n* an enrollment certificate;  \n* a signature over the certificate and body of request.",
-                  "required": true,
-                  "type": "string"
-               },
-               {
-                  "name": "body",
-                  "in": "body",
-                  "description": "The request body",
-                  "required": true,
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "id": {
-                           "type": "string",
-                           "description": "The enrollment ID which uniquely identifies an identity"
-                        },
-                        "type": {
-                           "type": "string",
-                           "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
-                        },
-                        "secret": {
-                           "type": [
-                              "string",
-                              "null"
-                           ],
-                           "description": "The enrollment secret.  If not provided, a random secret is generated."
-                        },
-                        "max_enrollments": {
-                           "type": [
-                              "integer",
-                              "null"
-                           ],
-                           "description": "The maximum number of times that the secret can be used to enroll.  \nIf 0, use the configured max_enrollments of the fabric-ca server;  \nIf > 0 and <= configured max enrollments of the fabric-ca server, use max_enrollments;  \nIf > configured max enrollments of the fabric-ca server, error."
-                        },
-                        "affiliation_path": {
-                           "type": "string",
-                           "description": "The affiliation path of the new identity.\n"
-                        },
-                        "attrs": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "name": {
-                                    "type": "string",
-                                    "description": "Attribute name"
-                                 },
-                                 "value": {
-                                    "type": "string",
-                                    "description": "Value of attribute"
-                                 }
-                              },
-                              "required": [
-                                 "name",
-                                 "value"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "id",
-                        "type",
-                        "affiliation_path",
-                        "attrs"
-                     ]
-                  }
-               }
-            ],
-            "responses": {
-               "201": {
-                  "description": "Successfully registered identity",
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "secret": {
-                           "type": "string",
-                           "description": "$enrollmentSecret"
-                        }
-                     },
-                     "required": [
-                        "secret"
-                     ]
-                  }
-               }
-            }
-         }
-      },
-      "/api/v1/cfssl/revoke": {
-         "post": {
-            "tags": [
-               "fabric-ca"
-            ],
-            "description": "Perform revocation of one of the following: \n* a specific certificate identified by a serial number and AKI (Authority Key Identitifer), or  \n* all certificates associated with the identity and prevent any future enrollments for this identity.  \nThe caller must have the **hf.Revoker** attribute.",
-            "parameters": [
-               {
-                  "name": "Authorization",
-                  "in": "header",
-                  "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:  \n* an enrollment certificate;  \n* a signature over the certificate and body of request.",
-                  "required": true,
-                  "type": "string"
-               },
-               {
-                  "name": "body",
-                  "in": "body",
-                  "description": "The request body",
-                  "required": true,
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "to_revoke": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "id": {
-                                    "type": [
-                                       "string",
-                                       "null"
-                                    ],
-                                    "description": "The enrollment ID of the identity whose certificates are to be revoked,  \nincluding both enrollment certificates and transaction certificates.   \nAll future enrollment attempts for this identity will be rejected.  \nIf this field is specified, the *serial* and *aki* fields are ignored."
-                                 },
-                                 "cert": {
-                                    "type": "object",
-                                    "properties": {
-                                       "aki": {
-                                          "type": "string",
-                                          "description": "The Authority Key Identifier of the certificate which is to be revoked.  \nThe *serial* field must also be specified."
-                                       },
-                                       "serial": {
-                                          "type": "string",
-                                          "description": "The serial number of the certificate which is to be revoked.  \nThe *aki* (Authority Key Identifier) field must also be specified."
-                                       }
-                                    },
-                                    "required": [
-                                       "aki",
-                                       "serial"
-                                    ]
-                                 },
-                                 "reason": {
-                                    "type": [
-                                       "string",
-                                       "null"
-                                    ],
-                                    "description": "The reason for revocation.  \nSee https://godoc.org/golang.org/x/crypto/ocsp for valid values.  \nThe default value is 0 (ocsp.Unspecified)."
-                                 }
-                              },
-                              "required": [
-                                 "cert"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "to_revoke"
-                     ]
-                  }
-               }
-            ],
-            "responses": {
-               "200": {
-                  "description": "Successfully completed the revocation",
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "Success": {
-                           "type": "boolean",
-                           "description": "Boolean indicating if the request was successful."
-                        },
-                        "Result": {
-                           "type": "object",
-                           "properties": {
-                              "revoked": {
-                                 "type": "array",
-                                 "description": "An array of unique items",
-                                 "items": {
-                                    "type": "object",
-                                    "properties": {
-                                       "aki": {
-                                          "type": "string",
-                                          "description": "The Authority Key Identifier of a revoked certificate"
-                                       },
-                                       "serial": {
-                                          "type": "string",
-                                          "description": "The serial number of a revoked certificate"
-                                       }
-                                    },
-                                    "required": [
-                                       "aki",
-                                       "serial"
-                                    ]
-                                 }
-                              }
-                           },
-                           "description": "An array of AKI (Authority Key Identifier) and serial number tuples, each identifying a certificate which was revoked by this operation.",
-                           "required": [
-                              "revoked"
-                           ]
-                        },
-                        "Errors": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of error."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "An error message"
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        },
-                        "Messages": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of message."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "A more specific message."
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "Success",
-                        "Result",
-                        "Errors",
-                        "Messages"
-                     ]
-                  }
-               }
-            }
-         }
-      },
-      "/api/v1/cfssl/tcert": {
-         "post": {
-            "tags": [
-               "fabric-ca"
-            ],
-            "description": "Get a batch of transaction certificates with optional attributes.",
-            "parameters": [
-               {
-                  "name": "Authorization",
-                  "in": "header",
-                  "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:  \n* an enrollment certificate;  \n* a signature over the certificate and body of request.",
-                  "required": true,
-                  "type": "string"
-               },
-               {
-                  "name": "body",
-                  "in": "body",
-                  "description": "The request body",
-                  "required": true,
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "count": {
-                           "type": "integer",
-                           "description": "The number of transaction certificates to return."
-                        },
-                        "attr_names": {
-                           "type": "array",
-                           "description": "An array of The name of an attribute whose name and value to put in each transaction certificate. items",
-                           "items": {
-                              "type": "string",
-                              "description": "The name of an attribute whose name and value to put in each transaction certificate."
-                           }
-                        },
-                        "encrypt_attrs": {
-                           "type": "boolean",
-                           "description": "If true, encrypt the attribute(s) in each transaction certificate."
-                        },
-                        "validity_period": {
-                           "type": "integer",
-                           "description": "The number of nanoseconds each transaction certificate will be valid before expiration."
-                        }
-                     },
-                     "required": [
-                        "count",
-                        "attr_names",
-                        "encrypt_attrs",
-                        "validity_period"
-                     ]
-                  }
-               }
-            ],
-            "responses": {
-               "200": {
-                  "description": "Successfully enrolled a new identity",
-                  "schema": {
-                     "type": "object",
-                     "properties": {
-                        "Success": {
-                           "type": "boolean",
-                           "description": "Boolean indicating if the request was successful."
-                        },
-                        "Result": {
-                           "type": "object",
-                           "properties": {
-                              "id": {
-                                 "type": "integer",
-                                 "description": "Transaction batch identifier"
-                              },
-                              "ts": {
-                                 "type": "integer",
-                                 "description": "Time stamp"
-                              },
-                              "key": {
-                                 "type": "string",
-                                 "description": "Base 64 encoded key"
-                              },
-                              "tcerts": {
-                                 "type": "array",
-                                 "description": "An array of unique items",
-                                 "items": {
-                                    "type": "object",
-                                    "properties": {
-                                       "cert": {
-                                          "type": "string",
-                                          "description": "Based 64 encoded transaction certificate"
-                                       },
-                                       "keys": {
-                                          "type": "array",
-                                          "description": "An array of unique items",
-                                          "items": {
-                                             "type": "object",
-                                             "properties": {
-                                                "name": {
-                                                   "type": "string",
-                                                   "description": "Attribute name"
-                                                },
-                                                "value": {
-                                                   "type": "string",
-                                                   "description": "Base 64 encoded symmetric key"
-                                                }
-                                             },
-                                             "required": [
-                                                "name",
-                                                "value"
-                                             ]
-                                          }
-                                       }
-                                    },
-                                    "required": [
-                                       "cert",
-                                       "keys"
-                                    ]
-                                 }
-                              }
-                           },
-                           "required": [
-                              "id",
-                              "ts",
-                              "key",
-                              "tcerts"
-                           ]
-                        },
-                        "Errors": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of error."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "An error message"
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        },
-                        "Messages": {
-                           "type": "array",
-                           "description": "An array of unique items",
-                           "items": {
-                              "type": "object",
-                              "properties": {
-                                 "code": {
-                                    "type": "integer",
-                                    "description": "Integer code denoting the type of message."
-                                 },
-                                 "message": {
-                                    "type": "string",
-                                    "description": "A more specific message."
-                                 }
-                              },
-                              "required": [
-                                 "code",
-                                 "message"
-                              ]
-                           }
-                        }
-                     },
-                     "required": [
-                        "Success",
-                        "Result",
-                        "Errors",
-                        "Messages"
-                     ]
-                  }
-               }
-            }
-         }
+          }
+        }
       }
-   }
+    },
+    "/api/v1/cfssl/register": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Register a new identity with the Fabric CA server.   \nAn enrollment secret is returned which can then be used, along with the enrollment ID, to enroll a new identity.   \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "The enrollment ID which uniquely identifies an identity"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                },
+                "secret": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The enrollment secret.  If not provided, a random secret is generated."
+                },
+                "max_enrollments": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                },
+                "affiliation_path": {
+                  "type": "string",
+                  "description": "The affiliation path of the new identity.\n"
+                },
+                "attrs": {
+                  "type": "array",
+                  "description": "An array of attribute names and values to give to the registered identity.",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Attribute name"
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "Value of attribute"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "affiliation_path",
+                "attrs"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully registered identity",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                    "credentials": {
+                      "type": "string",
+                      "description": "The base64 encoded enrollment secret of the newly registered identity."
+                    }
+                  },
+                  "required": [
+                    "credentials"
+                  ]
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of information messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cfssl/revoke": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Perform revocation of one of the following:  \n* a specific certificate identified by a serial number and AKI (Authority Key Identitifer), or   \n* all certificates associated with the identity and prevent any future enrollments for this identity.   \nThe caller must have the **hf.Revoker** attribute.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The enrollment ID of the identity whose certificates are to be revoked, including both enrollment certificates and transaction certificates. \nAll future enrollment attempts for this identity will be rejected.   \nIf this field is specified, the *serial* and *aki* fields are ignored."
+                },
+                "aki": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The Authority Key Identifier of the certificate which is to be revoked.   \nThe *serial* field must also be specified."
+                },
+                "serial": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The serial number of the certificate which is to be revoked.   \nThe *aki* (Authority Key Identifier) field must also be specified."
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "The reason for revocation.   \nSee https://godoc.org/golang.org/x/crypto/ocsp for valid values.   \nThe default value is 0 (ocsp.Unspecified)."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully completed the revocation",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "string",
+                  "description": "Message related to revocation"
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of information messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cfssl/tcert": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get a batch of transaction certificates with optional attributes.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer",
+                  "description": "The number of transaction certificates to return."
+                },
+                "attr_names": {
+                  "type": "array",
+                  "description": "An array of The name of an attribute whose name and value to put in each transaction certificate. items",
+                  "items": {
+                    "type": "string",
+                    "description": "The name of an attribute whose name and value to put in each transaction certificate."
+                  }
+                },
+                "encrypt_attrs": {
+                  "type": "boolean",
+                  "description": "If true, encrypt the attribute(s) in each transaction certificate."
+                },
+                "validity_period": {
+                  "type": "integer",
+                  "description": "The number of nanoseconds each transaction certificate will be valid before expiration."
+                }
+              },
+              "required": [
+                "count",
+                "attr_names",
+                "encrypt_attrs",
+                "validity_period"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved a batch of transaction certificates.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "Transaction batch identifier"
+                    },
+                    "ts": {
+                      "type": "integer",
+                      "description": "Time stamp"
+                    },
+                    "key": {
+                      "type": "string",
+                      "description": "Base 64 encoded key"
+                    },
+                    "tcerts": {
+                      "type": "array",
+                      "description": "An array of transaction certificates",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "cert": {
+                            "type": "string",
+                            "description": "Based 64 encoded transaction certificate"
+                          },
+                          "keys": {
+                            "type": "array",
+                            "description": "An array of decryption keys, assuming encryption was enabled.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Attribute name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "description": "Base 64 encoded symmetric key"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "cert",
+                          "keys"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "ts",
+                    "key",
+                    "tcerts"
+                  ]
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of informational messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
 }
