@@ -37,12 +37,7 @@ func init() {
 	flags := startCmd.Flags()
 	util.FlagInt(flags, "port", "p", getDefaultListeningPort(),
 		"Listening port")
-	util.FlagBool(flags, "tls.enabled", "s", false,
-		"Enable TLS on the listening port")
-	util.FlagString(flags, "tls.key", "", "key.pem",
-		"PEM-encoded key file for TLS")
-	util.FlagString(flags, "tls.cert", "", "cert.pem",
-		"PEM-encoded certificate file for TLS")
+	registerCommonFlags(flags)
 }
 
 // The server start main logic
