@@ -15,12 +15,12 @@ RC=0
 function enrollUser() {
    local USERNAME=$1
    mkdir -p $KEYSTORE/$USERNAME
-   export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
-   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME)
+   export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
+   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH)
    echo "$OUT"
    PASSWD="$(echo $OUT | tail -n1 | awk '{print $NF}')"
-   export FABRIC_CA_HOME=$KEYSTORE/$USERNAME
-   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $FABRIC_CA_HOME
+   export CA_CFG_PATH=$KEYSTORE/$USERNAME
+   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $CA_CFG_PATH
 }
 
 while getopts "du:t:k:l:" option; do
@@ -52,31 +52,31 @@ trap "kill $HTTP_PID; CleanUp" INT
 
 export FABRIC_CA_DEBUG
 mkdir -p $KEYSTORE/$REGISTRAR
-export FABRIC_CA_HOME=$KEYSTORE/$REGISTRAR
+export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
 
 #for driver in sqlite3 postgres mysql; do
 for driver in sqlite3 ; do
-   $SCRIPTDIR/fabric-ca_setup.sh -R -x $FABRIC_CA_HOME
+   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver
    if test $? -ne 0; then
       ErrorMsg "Failed to setup fabric-ca server"
       continue
    fi
 
-   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGIRSTRARPWD -x $FABRIC_CA_HOME
+   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGIRSTRARPWD -x $CA_CFG_PATH
    if test $? -ne 0; then
       ErrorMsg "Failed to enroll $REGISTRAR"
       continue
    fi
 
-   $SCRIPTDIR/register.sh -u ${USERNAME} -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME
+   $SCRIPTDIR/register.sh -u ${USERNAME} -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH
    if test $? -ne 0; then
       ErrorMsg "Failed to register $USERNAME"
       continue
    fi
 
    for i in {2..8}; do
-      $SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME
+      $SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH
       test $? -eq 0 && ErrorMsg "Duplicate registration of " $USERNAME
    done
 
@@ -90,7 +90,7 @@ for driver in sqlite3 ; do
       done
    fi
 
-   $SCRIPTDIR/fabric-ca_setup.sh -R -x $FABRIC_CA_HOME
+   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
 done
 kill $HTTP_PID
 wait $HTTP_PID

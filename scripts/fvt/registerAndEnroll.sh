@@ -9,12 +9,12 @@ RC=0
 function enrollUser() {
    local USERNAME=$1
    mkdir -p $KEYSTORE/$USERNAME
-   export FABRIC_CA_HOME=$KEYSTORE/admin
-   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $FABRIC_CA_HOME)
+   export CA_CFG_PATH=$KEYSTORE/admin
+   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH)
    echo "$OUT"
    PASSWD="$(echo "$OUT" | head -n1 | awk '{print $NF}')"
-   export FABRIC_CA_HOME=$KEYSTORE/$USERNAME
-   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $FABRIC_CA_HOME
+   export CA_CFG_PATH=$KEYSTORE/$USERNAME
+   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $CA_CFG_PATH
    rc=$?
    return $rc
 }
@@ -40,8 +40,8 @@ done
 
 export FABRIC_CA_DEBUG
 mkdir -p $KEYSTORE/admin
-export FABRIC_CA_HOME=$KEYSTORE/admin
-$SCRIPTDIR/enroll.sh -u admin -p adminpw -x $FABRIC_CA_HOME
+export CA_CFG_PATH=$KEYSTORE/admin
+$SCRIPTDIR/enroll.sh -u admin -p adminpw -x $CA_CFG_PATH
 test $? -eq 0 || ErrorExit "Failed to enroll admin"
 
 for i in $USERNAME; do

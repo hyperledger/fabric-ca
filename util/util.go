@@ -364,7 +364,7 @@ func HTTPResponseToString(resp *http.Response) string {
 // CreateHome will create a home directory if it does not exist
 func CreateHome() (string, error) {
 	log.Debug("CreateHome")
-	home := os.Getenv("FABRIC_CA_HOME")
+	home := os.Getenv("CA_CFG_PATH")
 	if home == "" {
 		home = os.Getenv("HOME")
 		if home != "" {
@@ -387,7 +387,7 @@ func CreateHome() (string, error) {
 
 // GetDefaultHomeDir returns the default fabric-cas home
 func GetDefaultHomeDir() string {
-	home := os.Getenv("FABRIC_CA_HOME")
+	home := os.Getenv("CA_CFG_PATH")
 	if home == "" {
 		home = os.Getenv("HOME")
 		if home != "" {

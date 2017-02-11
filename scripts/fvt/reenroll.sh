@@ -16,7 +16,7 @@ $($FABRIC_TLS) && HOST="https://localhost:8888"
 
 while getopts "k:l:x:" option; do
   case "$option" in
-     x)   FABRIC_CA_HOME="$OPTARG" ;;
+     x)   CA_CFG_PATH="$OPTARG" ;;
      k)   KEYTYPE="$OPTARG" ;;
      l)   KEYLEN="$OPTARG" ;;
   esac
@@ -25,12 +25,12 @@ done
 : ${KEYTYPE="ecdsa"}
 : ${KEYLEN="256"}
 : ${FABRIC_CA_DEBUG="false"}
-test -z "$FABRIC_CA_HOME" && FABRIC_CA_HOME=$HOME/fabric-ca
-CLIENTCERT="$FABRIC_CA_HOME/cert.pem"
-CLIENTKEY="$FABRIC_CA_HOME/key.pem"
-export FABRIC_CA_HOME
+test -z "$CA_CFG_PATH" && CA_CFG_PATH=$HOME/fabric-ca
+CLIENTCERT="$CA_CFG_PATH/cert.pem"
+CLIENTKEY="$CA_CFG_PATH/key.pem"
+export CA_CFG_PATH
 
-genClientConfig "$FABRIC_CA_HOME/client-config.json"
+genClientConfig "$CA_CFG_PATH/client-config.json"
 $FABRIC_CAEXEC client reenroll $HOST <(echo "{
     \"hosts\": [
         \"admin@fab-client.raleigh.ibm.com\",

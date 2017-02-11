@@ -251,7 +251,7 @@ func startServer() int {
 
 func runServer() {
 	os.Setenv("FABRIC_CA_DEBUG", "true")
-	os.Setenv("FABRIC_CA_HOME", dir)
+	os.Setenv("CA_CFG_PATH", dir)
 	s := new(server.Server)
 	s.ConfigDir = tdDir
 	s.ConfigFile = testCfgFile
