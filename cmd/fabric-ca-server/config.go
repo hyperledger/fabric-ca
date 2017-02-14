@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -124,15 +123,16 @@ registry:
   maxEnrollments: 0
 
   # Contains user information which is used when LDAP is disabled
-  user:
-    <<<ADMIN>>>:
+  identities:
+     - name: <<<ADMIN>>>
        pass: <<<ADMINPW>>>
        type: client
-       affiliation: org1.department1
+       affiliation: ""
        attrs:
           hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
+          hf.IntermediateCA: true
 
 #############################################################################
 #  Database section
@@ -189,6 +189,12 @@ affiliations:
 #############################################################################
 signing:
     profiles:
+      ca:
+         usage:
+           - cert sign
+         expiry: 8000h
+         caconstraint:
+           isca: true
     default:
       usage:
         - cert sign
@@ -270,26 +276,12 @@ func configInit() (err error) {
 	return nil
 }
 
-// Get the default path for the config file to display in usage message
-func getDefaultConfigFile() (string, error) {
-	var fname = fmt.Sprintf("%s-config.yaml", cmdName)
-	// First check home env variables
-	home := os.Getenv("FABRIC_CA_SERVER_HOME")
-	if home == "" {
-		home = os.Getenv("CA_CFG_PATH")
-	}
-	if home != "" {
-		return path.Join(home, fname), nil
-	}
-	return fname, nil
-}
-
 func createDefaultConfigFile() error {
-	// Create a default config, but only if they provided a
-	// bootstrap user ID and password
+	// Create a default config, but only if they provided an administrative
+	// user ID and password
 	up := viper.GetString("boot")
 	if up == "" {
-		return fmt.Errorf("The '-b user:pass' option is required; see '%s init -h'", cmdName)
+		return errors.New("The '-b user:pass' option is required")
 	}
 	ups := strings.Split(up, ":")
 	if len(ups) < 2 {
@@ -316,7 +308,7 @@ func createDefaultConfigFile() error {
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	// Now write the file
-	err = os.MkdirAll(filepath.Dir(cfgFileName), 0644)
+	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {
 		return err
 	}

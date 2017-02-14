@@ -28,7 +28,7 @@ import (
 	"strconv"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/cloudflare/cfssl/csr"
+	cfcsr "github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
@@ -70,6 +70,8 @@ type Server struct {
 	BlockingStart bool
 	// The server's configuration
 	Config *ServerConfig
+	// The parent server URL, which is non-null if this is an intermediate server
+	ParentServerURL string
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
@@ -186,22 +188,10 @@ func (s *Server) initKeyMaterial(renew bool) error {
 		}
 	}
 
-	// Create the certificate request, copying from config
-	ptr := &s.Config.CSR
-	req := csr.CertificateRequest{
-		CN:    ptr.CN,
-		Names: ptr.Names,
-		Hosts: ptr.Hosts,
-		// FIXME: NewBasicKeyRequest only does ecdsa 256; use config
-		KeyRequest:   csr.NewBasicKeyRequest(),
-		CA:           ptr.CA,
-		SerialNumber: ptr.SerialNumber,
-	}
-
-	// Initialize the CA now
-	cert, _, key, err := initca.New(&req)
+	// Get the CA cert and key
+	cert, key, err := s.getCACertAndKey()
 	if err != nil {
-		return fmt.Errorf("Failed to initialize CA [%s]\nRequest was %#v", err, req)
+		return fmt.Errorf("Failed to initialize CA: %s", err)
 	}
 
 	// Store the key and certificate to file
@@ -219,6 +209,58 @@ func (s *Server) initKeyMaterial(renew bool) error {
 	return nil
 }
 
+// Get the CA certificate and key for this server
+func (s *Server) getCACertAndKey() (cert, key []byte, err error) {
+	log.Debugf("Getting CA cert and key; parent server URL is '%s'", s.ParentServerURL)
+	if s.ParentServerURL != "" {
+		// This is an intermediate CA, so call the parent fabric-ca-server
+		// to get the key and cert
+		clientCfg := s.Config.Client
+		if clientCfg == nil {
+			clientCfg = &ClientConfig{}
+		}
+		if clientCfg.Enrollment.Profile == "" {
+			clientCfg.Enrollment.Profile = "ca"
+		}
+		if clientCfg.Enrollment.CSR == nil {
+			clientCfg.Enrollment.CSR = &api.CSRInfo{}
+		}
+		if clientCfg.Enrollment.CSR.CA == nil {
+			clientCfg.Enrollment.CSR.CA = &cfcsr.CAConfig{PathLength: 0, PathLenZero: true}
+		}
+		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
+		var id *Identity
+		id, err = clientCfg.Enroll(s.ParentServerURL, s.HomeDir)
+		if err != nil {
+			return nil, nil, err
+		}
+		ecert := id.GetECert()
+		if ecert == nil {
+			return nil, nil, errors.New("No ECert from parent server")
+		}
+		cert = ecert.Cert()
+		key = ecert.Key()
+	} else {
+		// This is a root CA, so call cfssl to get the key and cert.
+		csr := &s.Config.CSR
+		req := cfcsr.CertificateRequest{
+			CN:    csr.CN,
+			Names: csr.Names,
+			Hosts: csr.Hosts,
+			// FIXME: NewBasicKeyRequest only does ecdsa 256; use config
+			KeyRequest:   cfcsr.NewBasicKeyRequest(),
+			CA:           csr.CA,
+			SerialNumber: csr.SerialNumber,
+		}
+		// Call CFSSL to initialize the CA
+		cert, _, key, err = initca.New(&req)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	return cert, key, nil
+}
+
 // RegisterBootstrapUser registers the bootstrap user with appropriate privileges
 func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	// Initialize the config, setting defaults, etc
@@ -230,14 +272,15 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 		return fmt.Errorf("Failed to register bootstrap user '%s': %s", user, err)
 	}
 	id := ServerConfigIdentity{
-		ID:          user,
+		Name:        user,
 		Pass:        pass,
 		Type:        "user",
 		Affiliation: affiliation,
-		Attributes: map[string]string{
+		Attrs: map[string]string{
 			"hf.Registrar.Roles":         "client,user,peer,validator,auditor",
 			"hf.Registrar.DelegateRoles": "client,user,validator,auditor",
 			"hf.Revoker":                 "true",
+			"hf.IntermediateCA":          "true",
 		},
 	}
 	registry := &s.Config.Registry
@@ -387,6 +430,7 @@ func (s *Server) initEnrollmentSigner() (err error) {
 			Profiles: map[string]*config.SigningProfile{},
 			Default:  config.DefaultConfig(),
 		}
+		policy.Default.CAConstraint.IsCA = true
 	}
 
 	// Make sure the policy reflects the new remote
@@ -518,7 +562,7 @@ func (s *Server) loadUsersTable() error {
 	log.Debug("Loading users table")
 	registry := &s.Config.Registry
 	for _, id := range registry.Identities {
-		log.Debugf("Loading identity '%s'", id.ID)
+		log.Debugf("Loading identity '%s'", id.Name)
 		err := s.addIdentity(&id, false)
 		if err != nil {
 			return err
@@ -535,7 +579,8 @@ func (s *Server) loadAffiliationsTable() error {
 	if err == nil {
 		log.Debug("Successfully loaded affiliations table")
 	}
-	return err
+	log.Debug("Successfully loaded groups table")
+	return nil
 }
 
 // Recursive function to load the affiliations table hierarchy
@@ -583,10 +628,10 @@ func (s *Server) loadAffiliationsTableR(val interface{}, parentPath string) (err
 
 // Add an identity to the registry
 func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
-	user, _ := s.registry.GetUser(id.ID, nil)
+	user, _ := s.registry.GetUser(id.Name, nil)
 	if user != nil {
 		if errIfFound {
-			return fmt.Errorf("Identity '%s' is already registered", id.ID)
+			return fmt.Errorf("Identity '%s' is already registered", id.Name)
 		}
 		log.Debugf("Loaded identity: %+v", id)
 		return nil
@@ -596,16 +641,16 @@ func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
 		return err
 	}
 	rec := spi.UserInfo{
-		Name:           id.ID,
+		Name:           id.Name,
 		Pass:           id.Pass,
 		Type:           id.Type,
 		Group:          id.Affiliation,
-		Attributes:     s.convertAttrs(id.Attributes),
+		Attributes:     s.convertAttrs(id.Attrs),
 		MaxEnrollments: maxEnrollments,
 	}
 	err = s.registry.InsertUser(rec)
 	if err != nil {
-		return fmt.Errorf("Failed to insert user '%s': %s", id.ID, err)
+		return fmt.Errorf("Failed to insert user '%s': %s", id.Name, err)
 	}
 	log.Debugf("Registered identity: %+v", id)
 	return nil
@@ -667,7 +712,7 @@ func (s *Server) makeFileNamesAbsolute() error {
 }
 
 func writeFile(file string, buf []byte, perm os.FileMode) error {
-	err := os.MkdirAll(filepath.Dir(file), perm)
+	err := os.MkdirAll(filepath.Dir(file), 0755)
 	if err != nil {
 		return err
 	}

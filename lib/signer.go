@@ -40,6 +40,16 @@ type Signer struct {
 	client *Client
 }
 
+// Key returns the key bytes of this signer
+func (s *Signer) Key() []byte {
+	return s.key
+}
+
+// Cert returns the cert bytes of this signer
+func (s *Signer) Cert() []byte {
+	return s.cert
+}
+
 // RevokeSelf revokes only the certificate associated with this signer
 func (s *Signer) RevokeSelf() error {
 	log.Debugf("RevokeSelf %s", s.name)

@@ -16,10 +16,37 @@ limitations under the License.
 
 package lib
 
-import "github.com/hyperledger/fabric-ca/lib/tls"
+import (
+	"net/url"
+
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/tls"
+)
 
 // ClientConfig is the fabric-ca client's config
 type ClientConfig struct {
-	URL string              `mapstructure:"url"`
-	TLS tls.ClientTLSConfig `mapstructure:"tls"`
+	URL        string                `yaml:"url,omitempty"`
+	TLS        tls.ClientTLSConfig   `yaml:"tls,omitempty"`
+	Enrollment api.EnrollmentRequest `yaml:"enrollment,omitempty"`
+}
+
+// Enroll a client given the server's URL and the client's home directory.
+// The URL may be of the form: http://user:pass@host:port where user and pass
+// are the enrollment ID and secret, respectively.
+func (c *ClientConfig) Enroll(rawurl, home string) (id *Identity, err error) {
+	purl, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	if purl.User != nil {
+		name := purl.User.Username()
+		secret, _ := purl.User.Password()
+		c.Enrollment.Name = name
+		c.Enrollment.Secret = secret
+		purl.User = nil
+	}
+	c.URL = purl.String()
+	c.TLS.Enabled = purl.Scheme == "https"
+	client := &Client{HomeDir: home, Config: c}
+	return client.Enroll(&c.Enrollment)
 }

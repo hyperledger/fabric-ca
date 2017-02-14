@@ -77,10 +77,10 @@ type ServerConfigRegistry struct {
 
 // ServerConfigIdentity is identity information in the server's config
 type ServerConfigIdentity struct {
-	ID             string
+	Name           string
 	Pass           string
 	Type           string
 	Affiliation    string
 	MaxEnrollments int
-	Attributes     map[string]string
+	Attrs          map[string]string
 }

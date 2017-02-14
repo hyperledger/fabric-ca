@@ -18,11 +18,9 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
@@ -51,11 +49,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		return fmt.Errorf("Usage: too many arguments.\n%s", initCmd.UsageString())
 	}
-	server := lib.Server{
-		HomeDir: filepath.Dir(cfgFileName),
-		Config:  serverCfg,
-	}
-	err := server.Init(false)
+	err := getServer().Init(false)
 	if err != nil {
 		util.Fatal("Initialization failure: %s", err)
 	}

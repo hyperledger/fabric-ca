@@ -18,6 +18,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hyperledger/fabric-ca/lib"
@@ -57,7 +58,7 @@ func init() {
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
 	util.FlagString(pflags, "url", "u", "", "URL of the parent fabric-ca-server")
 	util.FlagString(pflags, "boot", "b", "",
-		"The user:pass for bootstrap admin (required to build default config file")
+		"The user:pass for bootstrap admin which is required to build default config file")
 
 	// Register flags for all tagged and exported fields in the config
 	serverCfg = &lib.ServerConfig{}
@@ -103,4 +104,14 @@ func registerCommonFlags(flags *pflag.FlagSet) {
 		"PEM-encoded key file used for TLS")
 	util.FlagString(flags, "tls.certfile", "", "cert.pem",
 		"PEM-encoded certificate file used for TLS")
+}
+
+// Get a server for the init and start commands
+func getServer() *lib.Server {
+	return &lib.Server{
+		HomeDir:         filepath.Dir(cfgFileName),
+		Config:          serverCfg,
+		BlockingStart:   blockingStart,
+		ParentServerURL: viper.GetString("url"),
+	}
 }

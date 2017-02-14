@@ -63,12 +63,12 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Register User
 	callerID := r.Header.Get(enrollmentIDHdrName)
-	tok, err := h.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
+	secret, err := h.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
 	if err != nil {
 		return err
 	}
 
-	resp := &api.RegistrationResponseNet{RegistrationResponse: api.RegistrationResponse{Secret: string(tok)}}
+	resp := &api.RegistrationResponseNet{RegistrationResponse: api.RegistrationResponse{Secret: secret}}
 
 	log.Debugf("Registration completed - sending response %+v", resp)
 	return cfsslapi.SendResponse(w, resp)

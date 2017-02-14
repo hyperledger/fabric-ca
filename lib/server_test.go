@@ -19,22 +19,24 @@ package lib_test
 import (
 	"fmt"
 	"os"
+	"path"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 )
 
 const (
-	port = 7055
+	rootPort         = 7055
+	rootDir          = "rootDir"
+	intermediatePort = 7056
+	intermediateDir  = "intDir"
 )
 
-func TestBegin(t *testing.T) {
-	clean()
-}
-
 func TestServerInit(t *testing.T) {
-	server := getServer(t)
+	server := getRootServer(t)
 	if server == nil {
 		return
 	}
@@ -52,14 +54,14 @@ func TestServerInit(t *testing.T) {
 	}
 }
 
-func TestRunningServer(t *testing.T) {
+func TestRootServer(t *testing.T) {
 	var err error
 	var admin, user1 *lib.Identity
 	var rr *api.RegistrationResponse
 	var recs []lib.CertRecord
 
 	// Start the server
-	server := getServer(t)
+	server := getRootServer(t)
 	if server == nil {
 		return
 	}
@@ -67,14 +69,14 @@ func TestRunningServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Server start failed: %s", err)
 	}
+	defer server.Stop()
 	// Enroll request
-	client := getTestClient()
+	client := getRootClient()
 	admin, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
 	})
 	if err != nil {
-		server.Stop()
 		t.Fatalf("Failed to enroll admin/adminpw: %s", err)
 	}
 	// Register user1
@@ -84,7 +86,6 @@ func TestRunningServer(t *testing.T) {
 		Group: "hyperledger.fabric.security",
 	})
 	if err != nil {
-		server.Stop()
 		t.Fatalf("Failed to register user1: %s", err)
 	}
 	// Enroll user1
@@ -93,7 +94,6 @@ func TestRunningServer(t *testing.T) {
 		Secret: rr.Secret,
 	})
 	if err != nil {
-		server.Stop()
 		t.Fatalf("Failed to enroll user1: %s", err)
 	}
 	// The admin ID should have 1 cert in the DB now
@@ -126,13 +126,11 @@ func TestRunningServer(t *testing.T) {
 	// User1 get's batch of tcerts
 	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
 	if err != nil {
-		server.Stop()
 		t.Fatalf("Failed to get tcerts for user1: %s", err)
 	}
 	// Revoke user1's identity
 	err = admin.Revoke(&api.RevocationRequest{Name: "user1"})
 	if err != nil {
-		server.Stop()
 		t.Fatalf("Failed to revoke user1's identity: %s", err)
 	}
 	// User1 should not be allowed to get tcerts now that it is revoked
@@ -149,32 +147,90 @@ func TestRunningServer(t *testing.T) {
 	}
 }
 
-func TestEnd(t *testing.T) {
-	clean()
-}
+func TestIntermediateServer(t *testing.T) {
+	var err error
 
-func clean() {
-	var files = []string{"key.pem", "cert.pem", "ca-key.pem", "ca-cert.pem", "fabric-ca-server.db"}
-	for _, file := range files {
-		os.Remove(file)
+	// Start the root server
+	rootServer := getRootServer(t)
+	if rootServer == nil {
+		return
+	}
+	err = rootServer.Start()
+	if err != nil {
+		t.Fatalf("Root server start failed: %s", err)
+	}
+	defer rootServer.Stop()
+
+	for idx := 0; idx < 3; idx++ {
+		testIntermediateServer(idx, t)
+	}
+
+	// Stop both servers
+	err = rootServer.Stop()
+	if err != nil {
+		t.Errorf("Root server stop failed: %s", err)
 	}
 }
 
-func getServer(t *testing.T) *lib.Server {
+func testIntermediateServer(idx int, t *testing.T) {
+	// Init the intermediate server
+	intermediateServer := getIntermediateServer(idx, t)
+	if intermediateServer == nil {
+		return
+	}
+	err := intermediateServer.Init(true)
+	if err != nil {
+		t.Fatalf("Intermediate server init failed: %s", err)
+	}
+	// Start it
+	err = intermediateServer.Start()
+	if err != nil {
+		t.Fatalf("Intermediate server start failed: %s", err)
+	}
+	time.Sleep(time.Second)
+	// Stop it
+	intermediateServer.Stop()
+}
+
+func TestEnd(t *testing.T) {
+	os.RemoveAll(rootDir)
+	os.RemoveAll(intermediateDir)
+}
+
+func getRootServerURL() string {
+	return fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
+}
+
+func getRootServer(t *testing.T) *lib.Server {
+	return getServer(rootPort, rootDir, "", t)
+}
+
+func getIntermediateServer(idx int, t *testing.T) *lib.Server {
+	return getServer(
+		intermediatePort,
+		path.Join(intermediateDir, strconv.Itoa(idx)),
+		getRootServerURL(),
+		t)
+}
+
+func getServer(port int, home, parentURL string, t *testing.T) *lib.Server {
+	os.RemoveAll(home)
 	affiliations := map[string]interface{}{
 		"hyperledger": map[string]interface{}{
 			"fabric":    []string{"ledger", "orderer", "security"},
 			"fabric-ca": nil,
 			"sdk":       nil,
 		},
-		"sawtooth": nil,
+		"org2": nil,
 	}
 	srv := &lib.Server{
 		Config: &lib.ServerConfig{
-			Port:         7055,
+			Port:         port,
 			Debug:        true,
 			Affiliations: affiliations,
 		},
+		HomeDir:         home,
+		ParentServerURL: parentURL,
 	}
 	// The bootstrap user's affiliation is the empty string, which
 	// means the user is at the affiliation root
@@ -186,7 +242,15 @@ func getServer(t *testing.T) *lib.Server {
 	return srv
 }
 
-func getTestClient() *lib.Client {
+func getRootClient() *lib.Client {
+	return getTestClient(rootPort)
+}
+
+func getIntermediateClient() *lib.Client {
+	return getTestClient(intermediatePort)
+}
+
+func getTestClient(port int) *lib.Client {
 	return &lib.Client{
 		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
 		HomeDir: "../testdata",

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
@@ -78,7 +80,7 @@ func TestBogus(t *testing.T) {
 }
 
 func TestClean(t *testing.T) {
-	defYaml, _ := getDefaultConfigFile()
+	defYaml := util.GetDefaultConfigFile(cmdName)
 	os.Remove(defYaml)
 	os.Remove(testYaml)
 	os.Remove("ca-key.pem")
