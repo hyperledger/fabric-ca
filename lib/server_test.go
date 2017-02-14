@@ -203,6 +203,8 @@ func TestRunningTLSServer(t *testing.T) {
 		t.Errorf("Failed to enroll over TLS: %s", err)
 	}
 
+	time.Sleep(1 * time.Second)
+
 	err = srv.Stop()
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)

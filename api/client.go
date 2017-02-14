@@ -26,19 +26,21 @@ import (
 // RegistrationRequest for a new identity
 type RegistrationRequest struct {
 	// Name is the unique name of the identity
-	Name string `json:"id"`
+	Name string `json:"id" help:"Unique name of the identity"`
 	// Type of identity being registered (e.g. "peer, app, user")
-	Type string `json:"type"`
+	Type string `json:"type" help:"Type of identity being registered (e.g. 'peer, app, user')"`
 	// Secret is an optional password.  If not specified,
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret,omitempty" help:"The enrollment secret for the identity being registered"`
 	// MaxEnrollments is the maximum number of times the secret can
 	// be reused to enroll.
-	MaxEnrollments int `json:"max_enrollments,omitempty"`
+	MaxEnrollments int `json:"max_enrollments,omitempty" help:"The maximum number of times the secret can be reused to enroll."`
 	// is returned in the response.
 	// Group name associated with the identity
-	Group string `json:"group"`
+	Group string `json:"group" help:"Name associated with the identity"`
+	// Attr is used to support a single attribute provided through the fabric-ca-client CLI
+	Attr string `help:"Attributes associated with this identity (e.g. hf.Revoker=true)"`
 	// Attributes associated with this identity
 	Attributes []Attribute `json:"attrs,omitempty"`
 }

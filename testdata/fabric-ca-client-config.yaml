@@ -55,7 +55,7 @@ tls:
 #  an enrollment certificate (ECert)
 #############################################################################
 csr:
-  cn: admin
+  cn: admin2
   names:
     - C: US
       ST: "North Carolina"
@@ -63,8 +63,21 @@ csr:
       O: Hyperledger
       OU: Fabric
   hosts:
-    - saads-mbp.raleigh.ibm.com
+   - hostname
   ca:
     pathlen:
     pathlenzero:
     expiry:
+
+#############################################################################
+#  Registration section used to register a new user with fabric-ca server
+#############################################################################
+id:
+  name: testRegister
+  type: user
+  group: bank_a
+  attributes:
+    - name: hf.Revoker
+      value: true
+    - name: hf.foo
+      value: bar
