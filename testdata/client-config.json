@@ -1,8 +1,11 @@
 {
   "serverURL":"http://localhost:7054",
-  "certfiles":["../../testdata/root.pem"],
-  "client": {
-     "keyfile":"../../testdata/tls_client-key.pem",
-     "certfile":"../../testdata/tls_client-cert.pem"
+  "tls":{
+    "enabled":false,
+    "ca_certfiles":["root.pem"],
+    "client":{
+      "keyfile":"tls_client-key.pem",
+      "certfile":"tls_client-cert.pem"
+    }
   }
 }

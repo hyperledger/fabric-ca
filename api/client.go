@@ -52,17 +52,17 @@ type RegistrationResponse struct {
 // EnrollmentRequest is a request to enroll an identity
 type EnrollmentRequest struct {
 	// The identity name to enroll
-	Name string `json:"name"`
+	Name string `json:"name" skip:"true"`
 	// The secret returned via Register
-	Secret string `json:"secret,omitempty"`
+	Secret string `json:"secret,omitempty" skip:"true"`
 	// Hosts is a comma-separated host list in the CSR
-	Hosts string `json:"hosts,omitempty"`
+	Hosts string `json:"hosts,omitempty" help:"Comma-separated host list"`
 	// Profile is the name of the signing profile to use in issuing the certificate
-	Profile string `json:"profile,omitempty"`
+	Profile string `json:"profile,omitempty" help:"Name of the signing profile to use in issuing the certificate"`
 	// Label is the label to use in HSM operations
-	Label string `json:"label,omitempty"`
+	Label string `json:"label,omitempty" help:"Label to use in HSM operations"`
 	// CSR is Certificate Signing Request info
-	CSR *CSRInfo `json:"csr,omitempty"`
+	CSR *CSRInfo `json:"csr,omitempty" help:"Certificate Signing Request info"`
 }
 
 // ReenrollmentRequest is a request to reenroll an identity.

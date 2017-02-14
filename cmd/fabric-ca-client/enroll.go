@@ -18,13 +18,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"path/filepath"
+	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -59,22 +59,20 @@ func init() {
 func runEnroll() error {
 	log.Debug("Entered Enroll")
 
-	user, pass, err := util.GetUser()
+	rawurl := viper.GetString("url")
+	ID, err := clientCfg.Enroll(rawurl, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
 
-	req := &api.EnrollmentRequest{
-		Name:   user,
-		Secret: pass,
+	cfgFile, err := ioutil.ReadFile(cfgFileName)
+	if err != nil {
+		return err
 	}
 
-	client := lib.Client{
-		HomeDir: filepath.Dir(cfgFileName),
-		Config:  clientCfg,
-	}
+	cfg := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
 
-	ID, err := client.Enroll(req)
+	err = ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
 	if err != nil {
 		return err
 	}
@@ -85,7 +83,7 @@ func runEnroll() error {
 	}
 
 	log.Infof("Enrollment information was successfully stored in %s and %s",
-		client.GetMyKeyFile(), client.GetMyCertFile())
+		ID.GetMyKeyFile(), ID.GetMyCertFile())
 
 	return nil
 }

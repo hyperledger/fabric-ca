@@ -19,10 +19,12 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 // ServerTLSConfig defines key material for a TLS server
@@ -34,9 +36,10 @@ type ServerTLSConfig struct {
 
 // ClientTLSConfig defines the key material for a TLS client
 type ClientTLSConfig struct {
-	Enabled   bool     `help:"Enable TLS for client connection"`
-	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
-	Client    KeyCertFiles
+	Enabled       bool   `help:"Enable TLS for client connection"`
+	CertFiles     string `help:"PEM-encoded comma separated list of trusted certificate files (e.g. root1.pem, root2.pem)"`
+	CertFilesList []string
+	Client        KeyCertFiles
 }
 
 // KeyCertFiles defines the files need for client on TLS
@@ -47,9 +50,6 @@ type KeyCertFiles struct {
 
 // GetClientTLSConfig creates a tls.Config object from certs and roots
 func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
-	//if !cfg.Enabled {
-	//	return nil, nil
-	//}
 	var certs []tls.Certificate
 
 	log.Debugf("CA Files: %s\n", cfg.CertFiles)
@@ -57,18 +57,18 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
 	clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
 	if err != nil {
-		log.Debugf("Client Cert or Key not provided, if server requires mutual TLS, the connection will fail [error: %s]", err)
+		log.Debugf("Client Cert or Key not provided, if server requires mutual TLS, the connection will fail: %s", err)
 	}
 
 	certs = append(certs, clientCert)
 
 	rootCAPool := x509.NewCertPool()
 
-	if len(cfg.CertFiles) == 0 {
-		log.Debug("No CA cert files provided. If server requires TLS, connection will fail")
+	if len(cfg.CertFilesList) == 0 {
+		return nil, errors.New("No CA certificate files provided")
 	}
 
-	for _, cacert := range cfg.CertFiles {
+	for _, cacert := range cfg.CertFilesList {
 		caCert, err := ioutil.ReadFile(cacert)
 		if err != nil {
 			return nil, err
@@ -85,4 +85,29 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	}
 
 	return config, nil
+}
+
+// AbsTLSClient makes TLS client files absolute
+func AbsTLSClient(cfg *ClientTLSConfig, configDir string) error {
+	var err error
+
+	for i := 0; i < len(cfg.CertFilesList); i++ {
+		cfg.CertFilesList[i], err = util.MakeFileAbs(cfg.CertFilesList[i], configDir)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	cfg.Client.CertFile, err = util.MakeFileAbs(cfg.Client.CertFile, configDir)
+	if err != nil {
+		return err
+	}
+
+	cfg.Client.KeyFile, err = util.MakeFileAbs(cfg.Client.KeyFile, configDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

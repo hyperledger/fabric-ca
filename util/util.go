@@ -384,7 +384,7 @@ func HTTPResponseToString(resp *http.Response) string {
 // CreateClientHome will create a home directory if it does not exist
 func CreateClientHome() (string, error) {
 	log.Debug("CreateHome")
-	home := filepath.Join(GetDefaultConfigFile("fabric-ca-client"))
+	home := filepath.Dir(GetDefaultConfigFile("fabric-ca-client"))
 
 	if _, err := os.Stat(home); err != nil {
 		if os.IsNotExist(err) {

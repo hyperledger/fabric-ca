@@ -219,3 +219,13 @@ func getDefaultBCCSPInstance() (bccsp.BCCSP, error) {
 
 	return defaultBccsp, nil
 }
+
+// GetMyKeyFile returns the path to this identity's key file
+func (i *Identity) GetMyKeyFile() string {
+	return i.client.GetMyKeyFile()
+}
+
+// GetMyCertFile returns the path to this identity's key file
+func (i *Identity) GetMyCertFile() string {
+	return i.client.GetMyCertFile()
+}

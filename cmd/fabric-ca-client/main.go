@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -38,6 +39,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		util.CmdRunBegin()
+
+		log.Debugf("Client configuration settings: %+v", clientCfg)
+
 		return nil
 	},
 }
@@ -54,8 +58,6 @@ func init() {
 	viper.SetEnvPrefix(envVarPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	url := util.GetServerURL()
-
 	host, err := os.Hostname()
 	if err != nil {
 		log.Error(err)
@@ -64,10 +66,18 @@ func init() {
 	// Set global flags used by all commands
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
-	util.FlagString(pflags, "url", "u", url, "URL of the Fabric-ca server")
 	util.FlagString(pflags, "myhost", "m", host,
 		"Hostname to include in the certificate signing request during enrollment")
-	util.FlagBool(pflags, "debug", "d", false, "Enable debug logging")
+
+	clientCfg = &lib.ClientConfig{}
+	tags := map[string]string{
+		"help.csr.cn":           "The common name field of the certificate signing request to a parent fabric-ca-server",
+		"help.csr.serialnumber": "The serial number in a certificate signing request to a parent fabric-ca-server",
+	}
+	err = util.RegisterFlags(pflags, clientCfg, tags)
+	if err != nil {
+		panic(err)
+	}
 
 }
 
