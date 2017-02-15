@@ -247,7 +247,7 @@ function installPrereq() {
    installDocker || ErrorExit "installDocker failed"
    go get github.com/go-sql-driver/mysql || ErrorExit "install go-sql-driver failed"
    go get github.com/lib/pq || ErrorExit "install pq failed"
-   apt-get -y install haproxy postgresql postgresql-contrib \
+   apt-get -y install haproxy postgresql postgresql-contrib postgresql-client-common \
                    vim-haproxy haproxy-doc postgresql-doc locales-all \
                    libdbd-pg-perl isag jq git || ErrorExit "haproxy installed failed"
    export DEBIAN_FRONTEND=noninteractive
