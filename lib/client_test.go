@@ -208,6 +208,21 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 	}
 }
 
+func TestNormalizeUrl(t *testing.T) {
+	_, err := normalizeURL("")
+	if err != nil {
+		t.Errorf("normalizeURL empty: %s", err)
+	}
+	_, err = normalizeURL("http://host:7054:x/path")
+	if err != nil {
+		t.Errorf("normalizeURL colons: %s", err)
+	}
+	_, err = normalizeURL("http://host:7054/path")
+	if err != nil {
+		t.Errorf("normalizeURL failed: %s", err)
+	}
+}
+
 func TestSendBadPost(t *testing.T) {
 	c := new(Client)
 	curl := "fake"

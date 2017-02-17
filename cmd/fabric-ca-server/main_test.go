@@ -82,4 +82,5 @@ func TestClean(t *testing.T) {
 	os.Remove(testYaml)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
+	os.Remove("fabric-ca-server.db")
 }

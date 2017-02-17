@@ -38,7 +38,6 @@ import (
 	apiocsp "github.com/cloudflare/cfssl/api/ocsp"
 	"github.com/cloudflare/cfssl/api/scan"
 	"github.com/cloudflare/cfssl/api/signhandler"
-	"github.com/cloudflare/cfssl/bundler"
 	"github.com/cloudflare/cfssl/cli"
 	"github.com/cloudflare/cfssl/cli/ocspsign"
 	"github.com/cloudflare/cfssl/config"
@@ -175,7 +174,6 @@ func (s *Server) serverMain(args []string, c cli.Config) error {
 		return errors.New("argument is provided but not defined; please refer to the usage by flag -h")
 	}
 
-	bundler.IntermediateStash = conf.IntDir
 	var err error
 
 	if err = ubiquity.LoadPlatforms(conf.Metadata); err != nil {

@@ -175,8 +175,8 @@ func configInit(cfg *cli.Config) {
 
 // Make TLS client files absolute
 func absTLSClient(cfg *tls.ClientTLSConfig) {
-	for i := 0; i < len(cfg.CACertFiles); i++ {
-		cfg.CACertFiles[i] = abs(cfg.CACertFiles[i])
+	for i := 0; i < len(cfg.CertFiles); i++ {
+		cfg.CertFiles[i] = abs(cfg.CertFiles[i])
 	}
 	cfg.Client.CertFile = abs(cfg.Client.CertFile)
 	cfg.Client.KeyFile = abs(cfg.Client.KeyFile)

@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package lib
+package lib_test
 
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/hyperledger/fabric-ca/lib"
 )
 
 const (
@@ -29,20 +31,18 @@ const (
 )
 
 func TestServerInit(t *testing.T) {
-	config := &ServerConfig{
-		CA: ServerConfigCA{
-			Keyfile:  keyfile,
-			Certfile: certfile,
-		},
-		CSR: csr.CertificateRequest{
-			CN: "TestCN",
-		},
-	}
-	server := Server{
-		HomeDir: ".",
-		Config:  config,
-	}
+	server := &lib.Server{}
 	err := server.Init(false)
+	if err == nil {
+		t.Errorf("Server init with empty config should have failed")
+	}
+	server.Config = getServerConfig()
+	err = server.Init(false)
+	if err != nil {
+		t.Errorf("Server init with empty home directory failed: %s", err)
+	}
+	server = getServer()
+	err = server.Init(false)
 	if err != nil {
 		t.Errorf("Server init no renew failed: %s", err)
 	}
@@ -52,7 +52,41 @@ func TestServerInit(t *testing.T) {
 	}
 }
 
+func TestServerStartStop(t *testing.T) {
+	server := getServer()
+	err := server.Start()
+	if err != nil {
+		t.Errorf("Server start failed: %s", err)
+	}
+	time.Sleep(time.Second)
+	err = server.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
 func TestCleanup(t *testing.T) {
 	os.Remove(keyfile)
 	os.Remove(certfile)
+	os.Remove("fabric-ca-server.db")
+}
+
+func getServer() *lib.Server {
+	return &lib.Server{
+		HomeDir: ".",
+		Config:  getServerConfig(),
+	}
+}
+
+func getServerConfig() *lib.ServerConfig {
+	return &lib.ServerConfig{
+		Port: 7055,
+		CA: lib.ServerConfigCA{
+			Keyfile:  keyfile,
+			Certfile: certfile,
+		},
+		CSR: csr.CertificateRequest{
+			CN: "TestCN",
+		},
+	}
 }
