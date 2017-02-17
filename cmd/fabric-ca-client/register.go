@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -76,7 +75,7 @@ func runRegister() error {
 	regReq := new(api.RegistrationRequest)
 	err = json.Unmarshal(buf, regReq)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failure json unmarshaling file '%s': %s", regFile, err)
 	}
 
 	client := lib.Client{
@@ -94,12 +93,7 @@ func runRegister() error {
 		return err
 	}
 
-	secretBytes, err := base64.StdEncoding.DecodeString(resp.Secret)
-	if err != nil {
-		return fmt.Errorf("Failed decoding response: %s", err)
-	}
-
-	fmt.Printf("One time password: %s\n", string(secretBytes))
+	fmt.Printf("One time password: %s\n", resp.Secret)
 
 	return nil
 }

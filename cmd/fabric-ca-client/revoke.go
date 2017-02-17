@@ -81,11 +81,16 @@ func runRevoke() error {
 		return fmt.Errorf("Invalid usage; either ENROLLMENT_ID or both --serial and --aki are required")
 	}
 
-	return id.Revoke(
+	err = id.Revoke(
 		&api.RevocationRequest{
 			Name:   enrollmentID,
 			Serial: serial,
 			AKI:    aki,
 		})
 
+	if err == nil {
+		log.Infof("Revocation was successful")
+	}
+
+	return err
 }

@@ -81,7 +81,7 @@ const (
 port: 7054
 
 # Enables debug logging (default: false)
-debug: true
+debug: false
 
 #############################################################################
 #  TLS section for the server's listening port
@@ -90,9 +90,8 @@ tls:
   # Enable TLS (default: false)
   enabled: false
   # TLS for the server's listening port (default: false)
-  cafile: root.pem
-  certfile: tls_server-cert.pem
-  keyfile: tls_server-key.pem
+  certfile: ca-cert.pem
+  keyfile: ca-key.pem
 
 #############################################################################
 #  The CA section contains the key and certificate files used when
@@ -131,7 +130,7 @@ registry:
        type: client
        affiliation: org1.department1
        attrs:
-          hf.Registrar.Roles: "client,user,peer,validator,auditor"
+          hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
 
@@ -263,13 +262,10 @@ func configInit() (err error) {
 	}
 
 	// Unmarshal the config into 'serverCfg'
-	var cfg lib.ServerConfig
-	err = viper.Unmarshal(&cfg)
+	err = viper.Unmarshal(serverCfg)
 	if err != nil {
 		return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
 	}
-
-	serverCfg = &cfg
 
 	return nil
 }
@@ -291,9 +287,9 @@ func getDefaultConfigFile() (string, error) {
 func createDefaultConfigFile() error {
 	// Create a default config, but only if they provided a
 	// bootstrap user ID and password
-	up := viper.GetString("user")
+	up := viper.GetString("boot")
 	if up == "" {
-		return fmt.Errorf("The '-u user:pass' option is required; see '%s init -h'", cmdName)
+		return fmt.Errorf("The '-b user:pass' option is required; see '%s init -h'", cmdName)
 	}
 	ups := strings.Split(up, ":")
 	if len(ups) < 2 {
@@ -308,7 +304,7 @@ func createDefaultConfigFile() error {
 		return fmt.Errorf("The user name must be less than 1024 characters: '%s'", user)
 	}
 	if len(pass) == 0 {
-		return errors.New("An empty password in the '-u user:pass' option is not permitted")
+		return errors.New("An empty password in the '-b user:pass' option is not permitted")
 	}
 	// Get hostname
 	myhost, err := os.Hostname()

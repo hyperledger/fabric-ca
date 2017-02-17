@@ -25,8 +25,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var blockingStart = true
-
 // startCmd represents the enroll command
 var startCmd = &cobra.Command{
 	Use:   "start",
