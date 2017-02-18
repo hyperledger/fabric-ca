@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"encoding/json"
@@ -24,7 +24,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 
 	"github.com/jmoiron/sqlx"
@@ -106,7 +106,6 @@ func (d *Accessor) checkDB() error {
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
 func (d *Accessor) SetDB(db *sqlx.DB) {
 	d.db = db
-	return
 }
 
 // InsertUser inserts user into database
@@ -374,7 +373,7 @@ func (u *DBUser) Login(pass string) error {
 
 	// Check the password
 	if u.Pass != pass {
-		return errors.New("Incorrect username/password provided")
+		return errors.New("Incorrect password")
 	}
 
 	// If the maxEnrollments is set (i.e. >= 0), make sure we haven't exceeded this number of logins.

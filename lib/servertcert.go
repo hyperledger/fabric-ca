@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"crypto/x509"
@@ -26,7 +26,7 @@ import (
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
 )
@@ -48,16 +48,16 @@ func NewTCertHandler() (h http.Handler, err error) {
 
 func initTCertHandler() (h http.Handler, err error) {
 	log.Debug("Initializing TCert handler")
-	mgr, err := tcert.LoadMgr(CFG.CAKeyFile, CFG.CAFile)
+	mgr, err := tcert.LoadMgr(CAKeyFile, CACertFile)
 	if err != nil {
 		return nil, err
 	}
 	// FIXME: The root prekey must be stored persistently in DB and retrieved here if not found
-	rootKey, err := libcsp.GenRootKey(csp)
+	rootKey, err := csp.GenRootKey(MyCSP)
 	if err != nil {
 		return nil, err
 	}
-	keyTree := tcert.NewKeyTree(csp, rootKey)
+	keyTree := tcert.NewKeyTree(MyCSP, rootKey)
 	handler := &cfsslapi.HTTPHandler{
 		Handler: &tcertHandler{mgr: mgr, keyTree: keyTree},
 		Methods: []string{"POST"},
@@ -146,7 +146,7 @@ func getCertFromAuthHdr(r *http.Request) (*x509.Certificate, error) {
 
 // getUserinfo returns the users requested attribute values and user's affiliation path
 func getUserInfo(id string, attrNames []string) ([]tcert.Attribute, []string, error) {
-	user, err := userRegistry.GetUser(id, attrNames)
+	user, err := UserRegistry.GetUser(id, attrNames)
 	if err != nil {
 		return nil, nil, err
 	}

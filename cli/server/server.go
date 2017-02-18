@@ -47,10 +47,9 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
-	"github.com/hyperledger/fabric-ca/cli/server/spi"
+	"github.com/hyperledger/fabric-ca/lib"
 	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -80,16 +79,12 @@ Flags:
 )
 
 var (
-	conf           cli.Config
-	enrollSigner   signer.Signer
-	ocspSigner     ocsp.Signer
-	db             *sqlx.DB
-	homeDir        string
-	configDir      string
-	configFile     string
-	userRegistry   spi.UserRegistry
-	certDBAccessor *CertDBAccessor
-	csp            bccsp.BCCSP
+	conf       cli.Config
+	ocspSigner ocsp.Signer
+	db         *sqlx.DB
+	homeDir    string
+	configDir  string
+	configFile string
 )
 
 var (
@@ -148,7 +143,7 @@ func startMain(args []string, c cli.Config) error {
 	}
 
 	// Initialize the Crypto Service Provider
-	csp, err = libcsp.Get(CFG.CSP)
+	lib.MyCSP, err = libcsp.Get(CFG.CSP)
 	if err != nil {
 		log.Errorf("Failed to get the crypto service provider: %s", err)
 		return err
@@ -182,7 +177,7 @@ func (s *Server) serverMain(args []string, c cli.Config) error {
 
 	log.Info("Initializing signer")
 
-	if enrollSigner, err = SignerFromConfigAndDB(c, db); err != nil {
+	if lib.EnrollSigner, err = SignerFromConfigAndDB(c, db); err != nil {
 		log.Warningf("couldn't initialize signer: %v", err)
 	}
 
@@ -229,7 +224,7 @@ func registerHandlers() {
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {
-			if path, handler, err = NewAuthWrapper(path, handler, err); err != nil {
+			if path, handler, err = lib.NewAuthWrapper(path, handler, err); err != nil {
 				log.Warningf("endpoint '%s' has been disabled: %v", path, err)
 			} else {
 				log.Infof("endpoint '%s' is enabled", path)
@@ -277,45 +272,45 @@ var endpoints = map[string]func() (http.Handler, error){
 
 	// The following are the fabric-ca specific endpoints
 	"register": NewRegisterHandler,
-	"enroll":   NewEnrollHandler,
-	"reenroll": NewReenrollHandler,
-	"revoke":   NewRevokeHandler,
-	"tcert":    NewTCertHandler,
+	"enroll":   lib.NewEnrollHandler,
+	"reenroll": lib.NewReenrollHandler,
+	"revoke":   lib.NewRevokeHandler,
+	"tcert":    lib.NewTCertHandler,
 
 	// The remainder are the CFSSL endpoints
 	"sign": func() (http.Handler, error) {
-		if enrollSigner == nil {
+		if lib.EnrollSigner == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewHandlerFromSigner(enrollSigner)
+		return signhandler.NewHandlerFromSigner(lib.EnrollSigner)
 	},
 
 	"authsign": func() (http.Handler, error) {
-		if enrollSigner == nil {
+		if lib.EnrollSigner == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewAuthHandlerFromSigner(enrollSigner)
+		return signhandler.NewAuthHandlerFromSigner(lib.EnrollSigner)
 	},
 
 	"info": func() (http.Handler, error) {
-		if enrollSigner == nil {
+		if lib.EnrollSigner == nil {
 			return nil, errBadSigner
 		}
-		return info.NewHandler(enrollSigner)
+		return info.NewHandler(lib.EnrollSigner)
 	},
 
 	"gencrl": func() (http.Handler, error) {
-		if enrollSigner == nil {
+		if lib.EnrollSigner == nil {
 			return nil, errBadSigner
 		}
 		return crl.NewHandler(), nil
 	},
 
 	"newcert": func() (http.Handler, error) {
-		if enrollSigner == nil {
+		if lib.EnrollSigner == nil {
 			return nil, errBadSigner
 		}
-		h := generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, enrollSigner)
+		h := generator.NewCertGeneratorHandlerFromSigner(generator.CSRValidate, lib.EnrollSigner)
 		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
 			cg := h.(api.HTTPHandler).Handler.(*generator.CertGeneratorHandler)
 			if err := cg.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
@@ -369,6 +364,7 @@ var endpoints = map[string]func() (http.Handler, error){
 // signer.Signer object with a specified db
 func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 	// If there is a config, use its signing policy. Otherwise create a default policy.
+	var err error
 	var policy *config.Signing
 	if c.CFG != nil {
 		policy = c.CFG.Signing
@@ -381,24 +377,24 @@ func SignerFromConfigAndDB(c cli.Config, db *sqlx.DB) (signer.Signer, error) {
 
 	// Make sure the policy reflects the new remote
 	if c.Remote != "" {
-		err := policy.OverrideRemotes(c.Remote)
+		err = policy.OverrideRemotes(c.Remote)
 		if err != nil {
 			log.Infof("Invalid remote %v, reverting to configuration default", c.Remote)
 			return nil, err
 		}
 	}
 
-	enrollSigner, err := universal.NewSigner(cli.RootFromConfig(&c), policy)
+	lib.EnrollSigner, err = universal.NewSigner(cli.RootFromConfig(&c), policy)
 	if err != nil {
 		return nil, err
 	}
 
 	if db != nil {
 		certAccessor := InitCertificateAccessor(db)
-		enrollSigner.SetDBAccessor(certAccessor)
+		lib.EnrollSigner.SetDBAccessor(certAccessor)
 	}
 
-	return enrollSigner, nil
+	return lib.EnrollSigner, nil
 }
 
 // Start will start server

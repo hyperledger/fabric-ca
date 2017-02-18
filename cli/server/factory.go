@@ -21,8 +21,9 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/cli/server/dbutil"
-	"github.com/hyperledger/fabric-ca/cli/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -35,7 +36,7 @@ func InitUserRegistry(cfg *Config) error {
 
 	if cfg.LDAP != nil {
 		// LDAP is being used for the user registry
-		userRegistry, err = ldap.NewClient(cfg.LDAP)
+		lib.UserRegistry, err = ldap.NewClient(cfg.LDAP)
 		if err != nil {
 			return err
 		}
@@ -66,10 +67,10 @@ func InitUserRegistry(cfg *Config) error {
 			return fmt.Errorf("invalid 'DBDriver' in config file: %s", cfg.DBdriver)
 		}
 
-		dbAccessor := new(Accessor)
+		dbAccessor := new(lib.Accessor)
 		dbAccessor.SetDB(db)
 
-		userRegistry = dbAccessor
+		lib.UserRegistry = dbAccessor
 
 		// If the DB doesn't exist, bootstrap the DB
 		if !exists {
@@ -88,7 +89,6 @@ func InitUserRegistry(cfg *Config) error {
 // InitCertificateAccessor extends CFSSL database APIs for Certificates table
 func InitCertificateAccessor(db *sqlx.DB) certdb.Accessor {
 	log.Debug("Initialize Certificate Accessor")
-	certDBAccess := NewCertDBAccessor(db)
-	certDBAccessor = certDBAccess
-	return certDBAccess
+	lib.MyCertDBAccessor = lib.NewCertDBAccessor(db)
+	return lib.MyCertDBAccessor
 }

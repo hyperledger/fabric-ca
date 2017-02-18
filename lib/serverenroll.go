@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package lib
 
 import (
 	"fmt"
@@ -73,7 +73,7 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	cert, err := enrollSigner.Sign(req)
+	cert, err := EnrollSigner.Sign(req)
 	if err != nil {
 		err = fmt.Errorf("Failed signing for endpoint %s: %s", sh.endpoint, err)
 		log.Error(err.Error())

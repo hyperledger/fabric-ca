@@ -70,7 +70,11 @@ func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, erro
 
 // Register registers a new identity
 // @param req The registration request
-func (i *Identity) Register(req *api.RegistrationRequest) (*api.RegistrationResponse, error) {
+func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationResponse, err error) {
+	var reqBody []byte
+	var secret string
+	var resp interface{}
+
 	log.Debugf("Register %+v", req)
 	if req.Name == "" {
 		return nil, errors.New("Register was called without a Name set")
@@ -79,19 +83,28 @@ func (i *Identity) Register(req *api.RegistrationRequest) (*api.RegistrationResp
 		return nil, errors.New("Register was called without a Group set")
 	}
 
-	reqBody, err := util.Marshal(req, "RegistrationRequest")
+	reqBody, err = util.Marshal(req, "RegistrationRequest")
 	if err != nil {
 		return nil, err
 	}
 
 	// Send a post to the "register" endpoint with req as body
-	secret, err := i.Post("register", reqBody)
+	resp, err = i.Post("register", reqBody)
 	if err != nil {
 		return nil, err
 	}
 
+	switch resp.(type) {
+	case string:
+		secret = resp.(string)
+	case map[string]interface{}:
+		secret = resp.(map[string]interface{})["credential"].(string)
+	default:
+		return nil, fmt.Errorf("Response is neither string nor map: %+v", resp)
+	}
+
 	log.Debug("The register request completely successfully")
-	return &api.RegistrationResponse{Secret: secret.(string)}, nil
+	return &api.RegistrationResponse{Secret: secret}, nil
 }
 
 // Reenroll reenrolls an existing Identity and returns a new Identity

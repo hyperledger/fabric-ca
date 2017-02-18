@@ -17,7 +17,6 @@ limitations under the License.
 package client
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -69,12 +68,7 @@ func registerMain(args []string, c cli.Config) error {
 		return err
 	}
 
-	secretBytes, err := base64.StdEncoding.DecodeString(resp.Secret)
-	if err != nil {
-		return fmt.Errorf("Failed decoding response: %s", err)
-	}
-
-	fmt.Printf("One time password: %s\n", string(secretBytes))
+	fmt.Printf("Password: %s\n", string(resp.Secret))
 
 	return nil
 }

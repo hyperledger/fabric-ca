@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/spf13/viper"
 )
 
@@ -99,13 +100,13 @@ func (b *Bootstrap) registerGroup(name string, parentName string) error {
 	log.Debugf("Registering affiliation group (%s) with parent (%s)", name, parentName)
 
 	var err error
-	_, err = userRegistry.GetGroup(name)
+	_, err = lib.UserRegistry.GetGroup(name)
 	if err == nil {
 		log.Error("Group already registered")
 		return errors.New("Group already registered")
 	}
 
-	err = userRegistry.InsertGroup(name, parentName)
+	err = lib.UserRegistry.InsertGroup(name, parentName)
 	if err != nil {
 		log.Error(err)
 	}

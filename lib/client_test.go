@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package lib
+package lib_test
 
 import (
 	"bytes"
@@ -29,6 +29,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/cli/server"
+	. "github.com/hyperledger/fabric-ca/lib"
 )
 
 var (
@@ -51,7 +52,7 @@ func TestAllClient(t *testing.T) {
 
 	testRegister(c, t)
 	testEnrollIncorrectPassword(c, t)
-	testEnroll(c, t)
+	testEnrollGeneric(c, t)
 	testDoubleEnroll(c, t)
 	testReenroll(c, t)
 	testRevocation(c, t, "revoker", "revokerpw", true, true)
@@ -102,7 +103,7 @@ func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 	}
 }
 
-func testEnroll(c *Client, t *testing.T) {
+func testEnrollGeneric(c *Client, t *testing.T) {
 
 	req := &api.EnrollmentRequest{
 		Name:   "testUser",
@@ -129,7 +130,7 @@ func testEnroll(c *Client, t *testing.T) {
 
 	err = id.Store()
 	if err != nil {
-		t.Errorf("testEnroll: store failed: %s", err)
+		t.Errorf("testEnrollGeneric: store failed: %s", err)
 	}
 
 }
@@ -209,17 +210,17 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 }
 
 func TestNormalizeUrl(t *testing.T) {
-	_, err := normalizeURL("")
+	_, err := NormalizeURL("")
 	if err != nil {
-		t.Errorf("normalizeURL empty: %s", err)
+		t.Errorf("NormalizeURL empty: %s", err)
 	}
-	_, err = normalizeURL("http://host:7054:x/path")
+	_, err = NormalizeURL("http://host:7054:x/path")
 	if err != nil {
-		t.Errorf("normalizeURL colons: %s", err)
+		t.Errorf("NormalizeURL colons: %s", err)
 	}
-	_, err = normalizeURL("http://host:7054/path")
+	_, err = NormalizeURL("http://host:7054/path")
 	if err != nil {
-		t.Errorf("normalizeURL failed: %s", err)
+		t.Errorf("NormalizeURL failed: %s", err)
 	}
 }
 
