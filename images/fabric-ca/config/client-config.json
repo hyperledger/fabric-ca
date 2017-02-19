@@ -1,5 +1,0 @@
-{
-"ca_certfiles":["/.fabric-ca/root.pem"],
-"client":{"keyfile":"/.fabric-ca/tls_client-key.pem",
-    "certfile":"/.fabric-ca/tls_client-cert.pem"}
-}

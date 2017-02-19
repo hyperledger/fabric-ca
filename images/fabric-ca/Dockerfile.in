@@ -1,14 +1,13 @@
 FROM hyperledger/fabric-baseos:_BASE_TAG_
-ENV CA_CFG_PATH /etc/hyperledger/fabric-ca
-ENV CERT_PATH /.fabric-ca
-RUN mkdir -p $CA_CFG_PATH /var/hyperledger/fabric-ca
-COPY payload/fabric-ca /usr/local/bin
-
-# Copy the configuration files
-ADD payload/sampleconfig.tar.bz2 $CA_CFG_PATH
+ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca-server
+RUN mkdir -p $FABRIC_CA_HOME /var/hyperledger/fabric-ca-server
+COPY payload/fabric-ca-client /usr/local/bin
+RUN chmod +x /usr/local/bin/fabric-ca-client
+COPY payload/fabric-ca-server /usr/local/bin
+RUN chmod +x /usr/local/bin/fabric-ca-server
 
 # Copy the same certificates that are currently hardcoded into the peers
-ADD payload/certfiles.tar.bz2 $CERT_PATH
+ADD payload/fabric-ca.tar.bz2 $FABRIC_CA_HOME
 
 EXPOSE 7054
-CMD fabric-ca server start -address 0.0.0.0 -config $CA_CFG_PATH/server-config.json
+CMD fabric-ca-server start -b admin:adminpw

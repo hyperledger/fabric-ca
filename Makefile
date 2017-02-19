@@ -51,11 +51,10 @@ endif
 
 BASEIMAGE_RELEASE = 0.3.0
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
-SAMPLECONFIG = $(shell git ls-files images/fabric-ca/config)
-CERTFILES = $(shell git ls-files images/fabric-ca/certs)
 
 DOCKER_ORG = hyperledger
-IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-fvt
+# IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-fvt
+IMAGES = $(PROJECT_NAME)
 
 path-map.fabric-ca := ./
 path-map.fabric-ca-client := ./cmd/fabric-ca-client
@@ -98,14 +97,14 @@ bin/%:
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
 # directory so that subsequent builds are faster
-build/docker/bin/fabric-ca:
+build/docker/bin/%:
 	@echo "Building $@"
 	@mkdir -p $(@D) build/docker/$(@F)/pkg
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
 		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)
+		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@touch $@
 
 build/docker/busybox:
@@ -113,17 +112,6 @@ build/docker/busybox:
 	@$(DRUN) \
 		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		make -f busybox/Makefile install BINDIR=$(@D)
-
-# payload definitions
-build/image/$(PROJECT_NAME)/payload:	build/docker/bin/fabric-ca \
-					build/sampleconfig.tar.bz2 \
-					build/certfiles.tar.bz2
-
-build/image/$(PROJECT_NAME)-fvt/payload: images/fabric-ca-fvt/start.sh
-
-build/image/%/payload:
-	mkdir -p $@
-	cp $^ $@
 
 build/image/%/$(DUMMY): Makefile build/image/%/payload
 	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
@@ -138,13 +126,22 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 	docker tag $(DOCKER_NAME) $(DOCKER_NAME):$(DOCKER_TAG)
 	@touch $@
 
-build/sampleconfig.tar.bz2: $(SAMPLECONFIG)
-	@echo "Building $(SAMPLECONFIG)"
-	tar -jc -C images/fabric-ca/config $(patsubst images/fabric-ca/config/%,%,$(SAMPLECONFIG)) > $@
+build/image/fabric-ca/payload: \
+	build/docker/bin/fabric-ca-client \
+	build/docker/bin/fabric-ca-server \
+   build/fabric-ca.tar.bz2
+build/image/fabric-ca-fvt/payload: \
+	build/docker/bin/fabric-ca
+	images/fabric-ca-fvt/start.sh
+build/image/%/payload:
+	@echo "Copying $^ to $@"
+	mkdir -p $@
+	cp $^ $@
 
-build/certfiles.tar.bz2: $(CERTFILES)
-	@echo "Building $(CERTFILES)"
-	tar -jc -C images/fabric-ca/certs $(patsubst images/fabric-ca/certs/%,%,$(CERTFILES)) > $@
+build/fabric-ca.tar.bz2: $(shell git ls-files images/fabric-ca/payload)
+build/%.tar.bz2:
+	@echo "Building $@"
+	@tar -jc -C images/$*/payload $(notdir $^) > $@
 
 unit-tests: checks fabric-ca fabric-ca-server fabric-ca-client
 	@scripts/run_tests
