@@ -90,6 +90,7 @@ Use "fabric-ca-client [command] --help" for more information about a command.
 
 
 ### fabric-ca server configuration options
+The server configuration file is in $HOME/fabric-ca-server-config.yaml. 
 
 **tls_disable (Default: false)** - Setting to true will disable TLS
 
@@ -97,19 +98,23 @@ Use "fabric-ca-client [command] --help" for more information about a command.
 can use its one time password to enroll itself. Default is 0, allows for
 unlimited enrollments.
 
+If there is no fabric-ca-server-config.yaml in $HOME, don't worry. Just run 
+#./fabric-ca-server init -u admin:adminpw
+It will generate the default fabric-ca-server-config.yaml.
+
 ### Initialize the fabric-ca server  
 
 Executing the following fabric-ca command will generate a private key and self-signed
 x509 certificate to start the fabric-ca server in the `Start the fabric-ca server` section.
 These two PEM files will be generated and stored in the directory
-`$CA_CFG_PATH`: server-cert.pem and server-key.pem.
+`$CA_CFG_PATH`: ca-cert.pem and ca-key.pem.
 They can be used as input parameters to `-ca` and `-ca-key` in the command to
 start the fabric-ca server.
 
 ```
-# fabric-ca server init ../testdata/csr_dsa.json
+# fabric-ca-server init -u admin:adminpw
 ```
-The `../testdata/csr_dsa.json` file can be customized to generate x509
+It will be customized to generate x509
 certificates and keys that support both RSA and Elliptic Curve (ECDSA).
 
 The following setting is an example of the implementation of Elliptic Curve
@@ -260,12 +265,12 @@ the CA certificate and CA key are stored.
 Run the following command to start fabric-ca server:
 
 ```
-# fabric-ca server start -config ../testdata/server-config.json
+#./fabric-ca-server start 
 ```
 
 It is now listening on localhost port 7054.
 
-You can customize your fabric-ca config file at `../testdata/server-config.json`.  For example,
+You can customize your fabric-ca config file at `$HOME/fabric-ca-server-config.yaml`.  For example,
 if you want to disable authentication, you can do so by setting `authentication` to
 `false`.  This prevents the fabric-ca server from looking at the authorization header.
 Auhentication is added by fabric-ca since CFSSL does not perform authentication.  A standard HTTP
@@ -291,11 +296,11 @@ The table below defines all the properties that can be set in the config file.
 
 ### Enroll the admin client
 
-See the `FABRIC_CA/testdata/server-config.json` file and note the "admin" user with a password of "adminpw".
+See the `$HOME/fabric-ca-server-config.yaml` file and note the "admin" user with a password of "adminpw".
 The following command gets an ecert for the admin user.
 
 ```
-# fabric-ca client enroll -config ../testdata/client-config.json admin adminpw http://localhost:7054
+#./fabric-ca-client enroll -config $HOME/.fabric-ca-client/fabric-ca-client-config.yaml -u http://admin:adminpw@localhost:7054
 ```
 
 The enrollment certificate is stored at `$FABRIC_CA_ENROLLMENT_DIR/cert.pem` by default, but a different
@@ -316,7 +321,7 @@ command except no username or password is required.  Instead, your previously st
 key is used to authenticate to the fabric-ca server.
 
 ```
-# fabric-ca client reenroll -config ../testdata/client-config.json http://localhost:7054
+#./fabric-ca-client reenroll -config $HOME/.fabric-ca-client/fabric-ca-client-config.yaml -u http://admin:adminpw@localhost:7054
 ```
 
 The enrollment certificate and enrollment key are stored in the same location as described in the previous section for the `enroll` command.
@@ -324,7 +329,7 @@ The enrollment certificate and enrollment key are stored in the same location as
 You can specify a new Certificate Signing Request JSON information when issue the reenroll command
 
 ```
-# fabric-ca client reenroll -config ../testdata/client-config.json http://localhost:7054 ../testdata/csr.json
+#./fabric-ca-client reenroll -config $HOME/.fabric-ca-client/fabric-ca-client-config.yaml -u http://admin:adminpw@localhost:7054 -f ../testdata/csr.json
 ```
 
 ### Register a new user
@@ -359,7 +364,7 @@ registerrequest.json:
 The following command will register the user.
 
 ```
-# fabric-ca client register -config ../testdata/client-config.json ../testdata/registerrequest.json http://localhost:7054
+#./fabric-ca-client register -f ../testdata/registerrequest.json -c $HOME/.fabric-ca-client/fabric-ca-client-config.yaml 
 ```
 
 ### LDAP
