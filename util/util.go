@@ -259,7 +259,7 @@ func VerifyToken(csp bccsp.BCCSP, token string, body []byte) (*x509.Certificate,
 	b64Body := B64Encode(body)
 	sigString := b64Body + "." + b64Cert
 
-	pk2, err := csp.KeyImport(x509Cert, &bccsp.X509PublicKeyImportOpts{Temporary: false})
+	pk2, err := csp.KeyImport(x509Cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
 	if err != nil {
 		return nil, fmt.Errorf("Public Key import into BCCSP failed with error : %s", err)
 	}
@@ -526,5 +526,5 @@ func GetKeyFromBytes(csp bccsp.BCCSP, key []byte) (bccsp.Key, error) {
 		return nil, fmt.Errorf("Failed to marshal EC private key: %s", err)
 	}
 
-	return csp.KeyImport(pkb, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: false})
+	return csp.KeyImport(pkb, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
 }

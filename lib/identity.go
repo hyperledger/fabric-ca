@@ -194,11 +194,7 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	cert := i.ecert.cert
 	key := i.ecert.key
 	if i.CSP == nil {
-		csp, error := getDefaultBCCSPInstance()
-		if error != nil {
-			return fmt.Errorf("Default BCCSP instance failed with error : %s", error)
-		}
-		i.CSP = csp
+		i.CSP = factory.GetDefault()
 	}
 	token, err := util.CreateToken(i.CSP, cert, key, body)
 	if err != nil {
@@ -206,16 +202,4 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	}
 	req.Header.Set("authorization", token)
 	return nil
-}
-
-func getDefaultBCCSPInstance() (bccsp.BCCSP, error) {
-	defaultBccsp, bccspError := factory.GetDefault()
-	if bccspError != nil {
-		return nil, fmt.Errorf("BCCSP initialiazation failed with error : %s", bccspError)
-	}
-	if defaultBccsp == nil {
-		return nil, errors.New("Cannot get default instance of BCCSP")
-	}
-
-	return defaultBccsp, nil
 }

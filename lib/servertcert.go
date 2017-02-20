@@ -26,9 +26,9 @@ import (
 	cerr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
 )
 
 // Handler for tcert requests
@@ -53,7 +53,7 @@ func initTCertHandler() (h http.Handler, err error) {
 		return nil, err
 	}
 	// FIXME: The root prekey must be stored persistently in DB and retrieved here if not found
-	rootKey, err := csp.GenRootKey(MyCSP)
+	rootKey, err := genRootKey(MyCSP)
 	if err != nil {
 		return nil, err
 	}
@@ -162,4 +162,10 @@ func getUserInfo(id string, attrNames []string) ([]tcert.Attribute, []string, er
 		}
 	}
 	return attrs, user.GetAffiliationPath(), nil
+}
+
+// genRootKey generates a new root key
+func genRootKey(csp bccsp.BCCSP) (bccsp.Key, error) {
+	opts := &bccsp.AES256KeyGenOpts{Temporary: true}
+	return csp.KeyGen(opts)
 }

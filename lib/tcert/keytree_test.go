@@ -18,6 +18,9 @@ package tcert
 
 import (
 	"bytes"
+	"flag"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
@@ -25,16 +28,23 @@ import (
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	err := factory.InitFactories(nil)
+	if err != nil {
+		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+	}
+	os.Exit(m.Run())
+}
+
 func TestKeyTree(t *testing.T) {
 
 	log.Level = log.LevelDebug
 
 	path := []string{"A", "B", "C"}
 
-	csp, err := factory.GetDefault()
-	if err != nil {
-		t.Fatalf("Failed to get BCCSP factory: %s", err)
-	}
+	csp := factory.GetDefault()
 	opts := &bccsp.AES256KeyGenOpts{Temporary: true}
 	rootKey, err := csp.KeyGen(opts)
 	if err != nil {

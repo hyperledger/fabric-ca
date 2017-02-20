@@ -18,14 +18,11 @@ package util
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
@@ -47,11 +44,7 @@ func TestECCreateToken(t *testing.T) {
 	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
-
+	csp := factory.GetDefault()
 	ECtoken, err := CreateToken(csp, cert, privKey, body)
 	if err != nil {
 		t.Fatalf("CreatToken failed: %s", err)
@@ -131,11 +124,7 @@ func TestRSACreateToken(t *testing.T) {
 	privKey, _ := ioutil.ReadFile(getPath("rsa-key.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
-
+	csp := factory.GetDefault()
 	RSAtoken, err := CreateToken(csp, cert, privKey, body)
 	if err != nil {
 		t.Fatalf("CreatToken failed with error : %s", err)
@@ -153,10 +142,7 @@ func TestCreateTokenDiffKey(t *testing.T) {
 	privKey, _ := ioutil.ReadFile(getPath("rsa-key.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
+	csp := factory.GetDefault()
 	_, err := CreateToken(csp, cert, privKey, body)
 	if err == nil {
 		t.Fatalf("TestCreateTokenDiffKey passed but should have failed")
@@ -172,10 +158,7 @@ func TestCreateTokenDiffKey2(t *testing.T) {
 	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
+	csp := factory.GetDefault()
 	_, err := CreateToken(csp, cert, privKey, body)
 	if err == nil {
 		t.Fatalf("TestCreateTokenDiffKey2 passed but should have failed")
@@ -186,10 +169,7 @@ func TestCreateTokenDiffKey2(t *testing.T) {
 func TestEmptyToken(t *testing.T) {
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
+	csp := factory.GetDefault()
 	_, err := VerifyToken(csp, "", body)
 	if err == nil {
 		t.Fatalf("TestEmptyToken passed but should have failed")
@@ -200,10 +180,7 @@ func TestEmptyCert(t *testing.T) {
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
+	csp := factory.GetDefault()
 	_, err := CreateToken(csp, cert, []byte(""), body)
 	if err == nil {
 		t.Fatalf("TestEmptyCert passed but should have failed")
@@ -214,11 +191,7 @@ func TestEmptyKey(t *testing.T) {
 	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
 	body := []byte("request byte array")
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
-
+	csp := factory.GetDefault()
 	_, err := CreateToken(csp, []byte(""), privKey, body)
 	if err == nil {
 		t.Fatalf("TestEmptyKey passed but should have failed")
@@ -229,11 +202,7 @@ func TestEmptyBody(t *testing.T) {
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
 	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
 
-	csp, error := getDefaultBCCSPInstance()
-	if error != nil {
-		t.Errorf("Default BCCSP instance failed with error %s", error)
-	}
-
+	csp := factory.GetDefault()
 	_, err := CreateToken(csp, cert, privKey, []byte(""))
 	if err != nil {
 		t.Fatalf("CreateToken failed: %s", err)
@@ -419,16 +388,4 @@ func makeFileAbs(t *testing.T, file, dir, expect string) {
 	if path != expect {
 		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
 	}
-}
-
-func getDefaultBCCSPInstance() (bccsp.BCCSP, error) {
-	defaultBccsp, bccspError := factory.GetDefault()
-	if bccspError != nil {
-		return nil, fmt.Errorf("BCCSP initialiazation failed with error : %s", bccspError)
-	}
-	if defaultBccsp == nil {
-		return nil, errors.New("Cannot get default instance of BCCSP")
-	}
-
-	return defaultBccsp, nil
 }

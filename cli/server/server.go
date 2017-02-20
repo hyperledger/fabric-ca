@@ -48,8 +48,8 @@ import (
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/cloudflare/cfssl/ubiquity"
 	"github.com/hyperledger/fabric-ca/lib"
-	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -137,12 +137,7 @@ func startMain(args []string, c cli.Config) error {
 		return errors.New("Failed to start server. No certificate/key file provided. Please specify certificate/key file via CLI or configuration file")
 	}
 
-	// Initialize the Crypto Service Provider
-	lib.MyCSP, err = libcsp.Get(CFG.CSP)
-	if err != nil {
-		log.Errorf("Failed to get the crypto service provider: %s", err)
-		return err
-	}
+	lib.MyCSP = factory.GetDefault()
 
 	// Initialize the user registry
 	err = InitUserRegistry(CFG)

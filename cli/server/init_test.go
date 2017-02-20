@@ -19,6 +19,8 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -27,7 +29,18 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
+	bccsp "github.com/hyperledger/fabric/bccsp/factory"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	err := bccsp.InitFactories(nil)
+	if err != nil {
+		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+	}
+	os.Exit(m.Run())
+}
 
 func TestInitCA(t *testing.T) {
 	req := csr.CertificateRequest{

@@ -34,12 +34,12 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/hyperledger/fabric-ca/api"
-	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/go-sql-driver/mysql" // import to support MySQL
@@ -99,13 +99,9 @@ func (s *Server) Init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
-	// Initialize the Crypto Service Provider
-	s.csp, err = libcsp.Get(s.Config.CSP)
-	MyCSP = s.csp
-	if err != nil {
-		log.Errorf("Failed to get the crypto service provider: %s", err)
-		return err
-	}
+
+	MyCSP = factory.GetDefault()
+
 	// Initialize key materials
 	err = s.initKeyMaterial(renew)
 	if err != nil {
@@ -323,6 +319,12 @@ func (s *Server) initConfig() (err error) {
 	if cfg.Debug {
 		log.Level = log.LevelDebug
 	}
+	// Init the BCCSP
+	err = factory.InitFactories(s.Config.CSP)
+	if err != nil {
+		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+	}
+
 	return nil
 }
 
