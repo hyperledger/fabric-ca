@@ -23,8 +23,8 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -42,7 +42,7 @@ var enrollCmd = &cobra.Command{
 			return nil
 		}
 
-		err := runEnroll()
+		err := runEnroll(cmd)
 		if err != nil {
 			return err
 		}
@@ -56,14 +56,25 @@ func init() {
 }
 
 // The client enroll main logic
-func runEnroll() error {
+func runEnroll(cmd *cobra.Command) error {
 	log.Debug("Entered Enroll")
 
-	rawurl := viper.GetString("url")
-	ID, err := clientCfg.Enroll(rawurl, filepath.Dir(cfgFileName))
+	_, _, err := util.GetUser()
 	if err != nil {
 		return err
 	}
+
+	err = configInit(cmd.Name())
+	if err != nil {
+		return err
+	}
+
+	ID, err := clientCfg.Enroll(clientCfg.URL, filepath.Dir(cfgFileName))
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Client configuration settings: %+v", clientCfg)
 
 	cfgFile, err := ioutil.ReadFile(cfgFileName)
 	if err != nil {

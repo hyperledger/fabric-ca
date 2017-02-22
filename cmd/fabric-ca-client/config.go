@@ -125,6 +125,14 @@ id:
   attributes:
     - name:
       value:
+
+#############################################################################
+#  Enrollment section used to enroll a user with fabric-ca server
+#############################################################################
+enrollment:
+  hosts:
+  profile:
+  label:
 `
 )
 
@@ -136,7 +144,7 @@ var (
 	clientCfg *lib.ClientConfig
 )
 
-func configInit() error {
+func configInit(command string) error {
 
 	var err error
 
@@ -149,6 +157,13 @@ func configInit() error {
 		cfgFileName, err = filepath.Abs(cfgFileName)
 		if err != nil {
 			return fmt.Errorf("Failed to get full path of config file: %s", err)
+		}
+	}
+
+	if command != "enroll" {
+		err = checkForEnrollment()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -186,6 +201,7 @@ func configInit() error {
 	clientCfg.TLS.Enabled = purl.Scheme == "https"
 
 	processCertFiles(&clientCfg.TLS)
+
 	if clientCfg.ID.Attr != "" {
 		processAttributes()
 	}
@@ -203,7 +219,7 @@ func createDefaultConfigFile() error {
 		if err != nil {
 			return err
 		}
-		fabricCAServerURL = fmt.Sprintf("%s://%s", URL.Scheme, URL.Host) // URL.Scheme + "://" + URL.Host
+		fabricCAServerURL = fmt.Sprintf("%s://%s", URL.Scheme, URL.Host)
 	}
 
 	myhost := viper.GetString("myhost")
@@ -211,9 +227,11 @@ func createDefaultConfigFile() error {
 	// Do string subtitution to get the default config
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
+	user, _, err := util.GetUser()
+	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
 	// Now write the file
-	err := os.MkdirAll(filepath.Dir(cfgFileName), 0755)
+	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {
 		return err
 	}
@@ -223,6 +241,7 @@ func createDefaultConfigFile() error {
 
 // processCertFiles parses comma seperated string to generate a string array
 func processCertFiles(cfg *tls.ClientTLSConfig) {
+	log.Debug("Process comma seperated cert files")
 	CertFiles := strings.Split(cfg.CertFiles, ",")
 	cfg.CertFilesList = make([]string, 0)
 
@@ -236,4 +255,15 @@ func processAttributes() {
 	splitAttr := strings.Split(clientCfg.ID.Attr, "=")
 	clientCfg.ID.Attributes[0].Name = splitAttr[0]
 	clientCfg.ID.Attributes[0].Value = strings.Join(splitAttr[1:], "")
+}
+
+func checkForEnrollment() error {
+	log.Debug("Checking for enrollment")
+
+	client := lib.Client{
+		HomeDir: filepath.Dir(cfgFileName),
+		Config:  clientCfg,
+	}
+
+	return client.Enrollment()
 }

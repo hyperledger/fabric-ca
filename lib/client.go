@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -355,6 +356,14 @@ func (c *Client) getURL(endpoint string) (string, error) {
 	}
 	rtn := fmt.Sprintf("%s/api/v1/cfssl/%s", nurl, endpoint)
 	return rtn, nil
+}
+
+// Enrollment checks to see if client is enrolled (i.e. enrollment information exists)
+func (c *Client) Enrollment() error {
+	if !util.FileExists(c.GetMyCertFile()) || !util.FileExists(c.GetMyKeyFile()) {
+		return errors.New("Enrollment information does not exist. Please execute enroll command first. Example: fabric-ca-client enroll -u http://user:userpw@serverAddr:serverPort")
+	}
+	return nil
 }
 
 func (c *Client) getClientConfig(path string) ([]byte, error) {

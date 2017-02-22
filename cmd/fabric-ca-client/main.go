@@ -33,14 +33,7 @@ var rootCmd = &cobra.Command{
 	Use:   cmdName,
 	Short: longName,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		err := configInit()
-		if err != nil {
-			return err
-		}
-
 		util.CmdRunBegin()
-
-		log.Debugf("Client configuration settings: %+v", clientCfg)
 
 		return nil
 	},
