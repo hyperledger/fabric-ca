@@ -351,10 +351,10 @@
 			"revisionTime": "2016-10-24T21:11:04Z"
 		},
 		{
-			"checksumSHA1": "k+1s90cSICkfqAhjaOjiTp3TY0o=",
+			"checksumSHA1": "IF1nJebQQ3zA9cDvakxFojNwE1k=",
 			"path": "github.com/cloudflare/cfssl/signer/universal",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
+			"revision": "78c41e62d6bf943e35a7d5f74a57d875547499b9",
+			"revisionTime": "2016-12-15T22:50:54Z"
 		},
 		{
 			"checksumSHA1": "wlLiM75A/BrIzQkzlRDCnKI2rIU=",
