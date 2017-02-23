@@ -33,7 +33,7 @@ var (
 // TestInit tests fabric-ca-server init
 func TestInit(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
-	err := RunMain([]string{cmdName, "init", "-u", "admin:adminpw"})
+	err := RunMain([]string{cmdName, "init", "-b", "admin:adminpw"})
 	if err != nil {
 		t.Errorf("server init failed: %s", err)
 	}
@@ -42,21 +42,21 @@ func TestInit(t *testing.T) {
 		t.Errorf("server init -d failed: %s", err)
 	}
 	err = RunMain([]string{cmdName, "init", "-c", testYaml,
-		"-u", fmt.Sprintf("%s:foo", longUserName)})
+		"-b", fmt.Sprintf("%s:foo", longUserName)})
 	if err == nil {
-		t.Errorf("server init -u longUserName should have failed")
+		t.Errorf("server init -b longUserName should have failed")
 	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-u", "user:"})
+	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "user:"})
 	if err == nil {
 		t.Errorf("server init empty password should have failed")
 	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-u", "user"})
+	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "user"})
 	if err == nil {
 		t.Errorf("server init no colon should have failed")
 	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-u", "foo:bar"})
+	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "foo:bar"})
 	if err != nil {
-		t.Errorf("server init -c -u failed: %s", err)
+		t.Errorf("server init -c -b failed: %s", err)
 	}
 }
 

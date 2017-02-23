@@ -20,6 +20,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -40,7 +41,7 @@ var (
 			return nil
 		},
 	}
-	persistentFlags pflag.FlagSet
+	blockingStart = true
 )
 
 func init() {
@@ -51,12 +52,23 @@ func init() {
 	viper.SetEnvPrefix(envVarPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Set global flags used by all commands
+	// Set specific global flags used by all commands
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
-	util.FlagString(pflags, "user", "u", "",
-		"user:pass for bootstrap user is required to build default config if config file does not exist")
-	util.FlagBool(pflags, "debug", "d", false, "Enable debug logging")
+	util.FlagString(pflags, "url", "u", "", "URL of the parent fabric-ca-server")
+	util.FlagString(pflags, "boot", "b", "",
+		"The user:pass for bootstrap admin (required to build default config file")
+
+	// Register flags for all tagged and exported fields in the config
+	serverCfg = &lib.ServerConfig{}
+	tags := map[string]string{
+		"help.csr.cn":           "The common name field of the certificate signing request to a parent fabric-ca-server",
+		"help.csr.serialnumber": "The serial number in a certificate signing request to a parent fabric-ca-server",
+	}
+	err := util.RegisterFlags(pflags, serverCfg, tags)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // The fabric-ca server main

@@ -36,13 +36,11 @@ var (
 )
 
 // Config is the configuration object for this LDAP client
-// URL is of the form: ldap://adminDN:adminPassword@host:port/base
 type Config struct {
-	Enabled     bool   `json:"enabled"`
-	URL         string `json:"url"`
-	Base        string `json:"base,omitempty"`
-	UserFilter  string `json:"userfilter,omitempty"`
-	GroupFilter string `json:"groupfilter,omitempty"`
+	Enabled     bool   `def:"false" help:"Enable the LDAP client for authentication and attributes"`
+	URL         string `help:"LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base"`
+	UserFilter  string `def:"(uid=%s)" help:"The LDAP user filter to use when searching for users"`
+	GroupFilter string `def:"(memberUid=%s)" help:"The LDAP group filter for a single affiliation group"`
 }
 
 // NewClient creates an LDAP client
@@ -89,7 +87,7 @@ func NewClient(cfg *Config) (*Client, error) {
 		c.AdminDN = u.User.Username()
 		c.AdminPassword, _ = u.User.Password()
 	}
-	c.Base = cfgVal(cfg.Base, u.Path)
+	c.Base = u.Path
 	if c.Base != "" && strings.HasPrefix(c.Base, "/") {
 		c.Base = c.Base[1:]
 	}

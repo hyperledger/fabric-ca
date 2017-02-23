@@ -403,7 +403,7 @@ func GetDefaultConfigFile(cmdName string) string {
 		var fname = fmt.Sprintf("%s-config.yaml", cmdName)
 		// First check home env variables
 		home := "."
-		envs := []string{"FABRIC_CA_SERVER_HOME", "FABRIC_CA_HOME", "HOME"}
+		envs := []string{"FABRIC_CA_SERVER_HOME", "FABRIC_CA_HOME", "CA_CFG_PATH"}
 		for _, env := range envs {
 			envVal := os.Getenv(env)
 			if envVal != "" {
@@ -417,7 +417,7 @@ func GetDefaultConfigFile(cmdName string) string {
 	var fname = fmt.Sprintf("%s-config.yaml", cmdName)
 	// First check home env variables
 	home := "."
-	envs := []string{"FABRIC_CA_CLIENT_HOME", "FABRIC_CA_HOME", "HOME"}
+	envs := []string{"FABRIC_CA_CLIENT_HOME", "FABRIC_CA_HOME", "CA_CFG_PATH", "HOME"}
 	for _, env := range envs {
 		envVal := os.Getenv(env)
 		if envVal != "" {

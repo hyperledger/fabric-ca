@@ -27,22 +27,22 @@ import (
 
 // ServerTLSConfig defines key material for a TLS server
 type ServerTLSConfig struct {
-	Enabled  bool   `json:"enabled,omitempty"`
-	KeyFile  string `json:"keyfile"`
-	CertFile string `json:"certfile"`
+	Enabled  bool   `help:"Enable TLS on the listening port"`
+	CertFile string `def:"ca-cert.pem" help:"PEM-encoded TLS certificate file for server's listening port"`
+	KeyFile  string `def:"ca-key.pem" help:"PEM-encoded TLS key for server's listening port"`
 }
 
 // ClientTLSConfig defines the key material for a TLS client
 type ClientTLSConfig struct {
-	Enabled   bool         `json:"enabled,omitempty"`
-	CertFiles []string     `json:"certfiles"`
-	Client    KeyCertFiles `json:"client"`
+	Enabled   bool     `help:"Enable TLS for client connection"`
+	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
+	Client    KeyCertFiles
 }
 
 // KeyCertFiles defines the files need for client on TLS
 type KeyCertFiles struct {
-	KeyFile  string `json:"keyfile"`
-	CertFile string `json:"certfile"`
+	KeyFile  string `help:"PEM-encoded key file when mutual authentication is enabled"`
+	CertFile string `help:"PEM-encoded certificate file when mutual authenticate is enabled"`
 }
 
 // GetClientTLSConfig creates a tls.Config object from certs and roots
