@@ -1,6 +1,6 @@
 {
   "id": "test_user",
   "type": "client",
-  "group": "bank_a",
+  "affiliation": "bank_a",
   "attrs": [{"name":"test","value":"testValue"}]
 }

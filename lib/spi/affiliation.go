@@ -16,23 +16,19 @@ limitations under the License.
 
 package spi
 
-// NewGroup returns a group interface
-func NewGroup(group *GroupInfo) Group {
-	return group
+// AffiliationInfo defines a group name and its parent
+type AffiliationInfo struct {
+	Name     string `db:"name"`
+	ParentID string `db:"parent_id"`
+	Prekey   string `db:"prekey"`
+}
+
+// Affiliation is the API for a group
+type Affiliation interface {
+	GetName() string
 }
 
 // GetName returns the name of group
-func (g *GroupInfo) GetName() string {
+func (g *AffiliationInfo) GetName() string {
 	return g.Name
-}
-
-// GetChildren returns all the children of the group
-func (g *GroupInfo) GetChildren() ([]Group, error) {
-	// TODO: IMPLEMENT
-	return nil, nil
-}
-
-// GetParent returns the parent of the group
-func (g *GroupInfo) GetParent() string {
-	return g.ParentID
 }

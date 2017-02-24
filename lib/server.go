@@ -264,6 +264,8 @@ func (s *Server) getCACertAndKey() (cert, key []byte, err error) {
 // RegisterBootstrapUser registers the bootstrap user with appropriate privileges
 func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	// Initialize the config, setting defaults, etc
+	log.Debugf("RegisterBootstrapUser - User: %s, Pass: %s, affiliation: %s", user, pass, affiliation)
+
 	if user == "" || pass == "" {
 		return errors.New("empty user and/or pass not allowed")
 	}
@@ -644,7 +646,7 @@ func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
 		Name:           id.Name,
 		Pass:           id.Pass,
 		Type:           id.Type,
-		Group:          id.Affiliation,
+		Affiliation:    id.Affiliation,
 		Attributes:     s.convertAttrs(id.Attrs),
 		MaxEnrollments: maxEnrollments,
 	}
@@ -658,7 +660,7 @@ func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
 
 func (s *Server) addAffiliation(path, parentPath string) error {
 	log.Debugf("Adding affiliation %s", path)
-	return s.registry.InsertGroup(path, parentPath)
+	return s.registry.InsertAffiliation(path, parentPath)
 }
 
 func (s *Server) convertAttrs(inAttrs map[string]string) []api.Attribute {

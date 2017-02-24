@@ -79,9 +79,9 @@ func testRegister(c *Client, t *testing.T) {
 
 	// Register as admin
 	registerReq := &api.RegistrationRequest{
-		Name:  "TestUser",
-		Type:  "Client",
-		Group: "bank_a",
+		Name:        "TestUser",
+		Type:        "Client",
+		Affiliation: "bank_a",
 	}
 
 	_, err = id.Register(registerReq)
