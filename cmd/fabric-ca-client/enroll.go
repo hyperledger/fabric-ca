@@ -74,8 +74,6 @@ func runEnroll(cmd *cobra.Command) error {
 		return err
 	}
 
-	log.Debugf("Client configuration settings: %+v", clientCfg)
-
 	cfgFile, err := ioutil.ReadFile(cfgFileName)
 	if err != nil {
 		return err

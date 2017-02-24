@@ -174,7 +174,7 @@ func TestIntermediateServer(t *testing.T) {
 	}
 }
 func TestRunningTLSServer(t *testing.T) {
-	srv := getServer(rootPort, testdataDir, "", t)
+	srv := getServer(rootPort, testdataDir, "", 0, t)
 
 	srv.Config.TLS.Enabled = true
 	srv.Config.TLS.CertFile = "../testdata/tls_server-cert.pem"
@@ -244,7 +244,7 @@ func getRootServerURL() string {
 }
 
 func getRootServer(t *testing.T) *lib.Server {
-	return getServer(rootPort, rootDir, "", t)
+	return getServer(rootPort, rootDir, "", 0, t)
 }
 
 func getIntermediateServer(idx int, t *testing.T) *lib.Server {
@@ -252,10 +252,11 @@ func getIntermediateServer(idx int, t *testing.T) *lib.Server {
 		intermediatePort,
 		path.Join(intermediateDir, strconv.Itoa(idx)),
 		getRootServerURL(),
+		0,
 		t)
 }
 
-func getServer(port int, home, parentURL string, t *testing.T) *lib.Server {
+func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *lib.Server {
 	if home != testdataDir {
 		os.RemoveAll(home)
 	}
@@ -272,6 +273,9 @@ func getServer(port int, home, parentURL string, t *testing.T) *lib.Server {
 			Port:         port,
 			Debug:        true,
 			Affiliations: affiliations,
+			Registry: lib.ServerConfigRegistry{
+				MaxEnrollments: maxEnroll,
+			},
 		},
 		HomeDir:         home,
 		ParentServerURL: parentURL,

@@ -40,7 +40,7 @@ type fcaAuthHandler struct {
 	next  http.Handler
 }
 
-var authError = cerr.NewBadRequest(errors.New("authorization failure"))
+var authError = cerr.NewBadRequest(errors.New("Authorization failure"))
 
 // NewAuthWrapper is auth wrapper constructor.
 // Only the "enroll" URI uses basic auth for the enrollment secret, while all

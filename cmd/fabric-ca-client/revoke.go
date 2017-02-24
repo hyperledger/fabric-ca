@@ -88,7 +88,7 @@ func runRevoke() error {
 	aki := viper.GetString("aki")
 
 	if enrollmentID == "" && serial == "" {
-		return fmt.Errorf("Invalid usage; either ENROLLMENT_ID or both --serial and --aki are required")
+		return fmt.Errorf("Invalid usage; either --eid or both --serial and --aki are required")
 	}
 
 	err = id.Revoke(

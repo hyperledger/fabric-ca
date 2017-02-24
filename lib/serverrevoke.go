@@ -119,6 +119,11 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name, err)
 			return dbErr(w, err)
 		}
+
+		if len(recs) == 0 {
+			return fmt.Errorf("Enrollment ID '%s' has no revocable certificates", req.Name)
+		}
+
 		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
 
 	} else {

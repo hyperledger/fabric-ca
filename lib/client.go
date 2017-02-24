@@ -103,12 +103,12 @@ type Client struct {
 // Enroll enrolls a new identity
 // @param req The enrollment request
 func (c *Client) Enroll(req *api.EnrollmentRequest) (*Identity, error) {
-	log.Debugf("Enrolling %+v", req)
+	log.Debugf("Enrolling %+v", &req)
 
 	// Generate the CSR
 	csrPEM, key, err := c.GenCSR(req.CSR, req.Name)
 	if err != nil {
-		log.Debugf("enroll failure generating CSR: %s", err)
+		log.Debugf("Enroll failure generating CSR: %s", err)
 		return nil, err
 	}
 
@@ -154,7 +154,7 @@ func (c *Client) newIdentityFromResponse(result interface{}, id string, key []by
 
 // GenCSR generates a CSR (Certificate Signing Request)
 func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, []byte, error) {
-	log.Debugf("GenCSR %+v", req)
+	log.Debugf("GenCSR %+v", &req)
 
 	cr := c.newCertificateRequest(req)
 	cr.CN = id
@@ -215,6 +215,7 @@ func (c *Client) GetMyKeyFile() string {
 	if file == "" {
 		file = path.Join(c.GetMyEnrollmentDir(), "key.pem")
 	}
+	log.Debugf("Key file location: %s", file)
 	return file
 }
 
@@ -224,6 +225,7 @@ func (c *Client) GetMyCertFile() string {
 	if file == "" {
 		file = path.Join(c.GetMyEnrollmentDir(), "cert.pem")
 	}
+	log.Debugf("Cert file location: %s", file)
 	return file
 }
 
@@ -332,7 +334,7 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 		}
 		if len(body.Errors) > 0 {
 			msg := body.Errors[0].Message
-			return nil, fmt.Errorf("Error response from server was '%s' for request:\n%s", msg, reqStr)
+			return nil, fmt.Errorf("Error response from server was: %s", msg)
 		}
 	}
 	scode := resp.StatusCode

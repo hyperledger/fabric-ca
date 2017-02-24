@@ -355,7 +355,7 @@ func (u *DBUser) Login(pass string) error {
 		// If maxEnrollments is set to 0, user has unlimited enrollment
 		if u.MaxEnrollments != 0 {
 			if u.State >= u.MaxEnrollments {
-				return fmt.Errorf("The maximum number of enrollments is %d", u.MaxEnrollments)
+				return fmt.Errorf("No more enrollments left. The maximum number of enrollments is %d", u.MaxEnrollments)
 			}
 		}
 

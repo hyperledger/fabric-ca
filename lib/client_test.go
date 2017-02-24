@@ -34,7 +34,8 @@ import (
 
 var (
 	tdDir        = "../testdata"
-	fcaDB        = path.Join(tdDir, "fabric-ca.db")
+	fcaDB        = path.Join(tdDir, "fabric-ca-server.db")
+	fcaDB2       = path.Join(tdDir, "fabric-ca.db")
 	cfgFile      = path.Join(tdDir, "config.json")
 	testCfgFile  = "testconfig.json"
 	clientConfig = path.Join(tdDir, "client-config.json")
@@ -79,7 +80,7 @@ func testRegister(c *Client, t *testing.T) {
 
 	// Register as admin
 	registerReq := &api.RegistrationRequest{
-		Name:        "TestUser",
+		Name:        "TestUser2",
 		Type:        "Client",
 		Affiliation: "bank_a",
 	}
@@ -209,6 +210,79 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 	}
 }
 
+func TestCustomizableMaxEnroll(t *testing.T) {
+	os.Remove("../testdata/fabric-ca-server.db")
+
+	srv := getServer(rootPort, testdataDir, "", 3, t)
+
+	srv.Config.Registry.MaxEnrollments = 3
+	srv.Config.Debug = true
+
+	err := srv.Start()
+	if err != nil {
+		t.Errorf("Server start failed: %s", err)
+	}
+
+	testTooManyEnrollments(t)
+	testIncorrectEnrollment(t)
+
+	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
+func testTooManyEnrollments(t *testing.T) {
+	clientConfig := &ClientConfig{
+		URL: fmt.Sprintf("http://localhost:%d", rootPort),
+	}
+
+	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
+
+	_, err := clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+
+	_, err = clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+
+	id, err := clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+
+	_, err = clientConfig.Enroll(rawURL, testdataDir)
+	if err == nil {
+		t.Errorf("Enroll should have failed, no more enrollments left")
+	}
+
+	id.Store()
+}
+
+func testIncorrectEnrollment(t *testing.T) {
+	c := getTestClient(rootPort)
+
+	id, err := c.LoadMyIdentity()
+	if err != nil {
+		t.Error("Failed to load identity")
+	}
+
+	req := &api.RegistrationRequest{
+		Name:           "TestUser",
+		Type:           "Client",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 4,
+	}
+
+	_, err = id.Register(req)
+	if err == nil {
+		t.Error("Registration should have failed, can't register user with max enrollment greater than server max enrollment setting")
+	}
+}
+
 func TestNormalizeUrl(t *testing.T) {
 	_, err := NormalizeURL("")
 	if err != nil {
@@ -256,6 +330,7 @@ func startServer() int {
 
 	if !serverStarted {
 		os.Remove(fcaDB)
+		os.Remove(fcaDB2)
 		os.RemoveAll(dir)
 		serverStarted = true
 		fmt.Println("starting fabric-ca server ...")
@@ -281,5 +356,8 @@ func runServer() {
 func TestLast(t *testing.T) {
 	// Cleanup
 	os.Remove(fcaDB)
+	os.Remove(fcaDB2)
+	os.Remove("../testdata/cert.pem")
+	os.Remove("../testdata/key.pem")
 	os.RemoveAll(dir)
 }
