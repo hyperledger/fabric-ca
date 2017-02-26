@@ -342,12 +342,12 @@ func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 
 // B64Encode base64 encodes bytes
 func B64Encode(buf []byte) string {
-	return base64.RawStdEncoding.EncodeToString(buf)
+	return base64.StdEncoding.EncodeToString(buf)
 }
 
 // B64Decode base64 decodes a string
 func B64Decode(str string) (buf []byte, err error) {
-	return base64.RawStdEncoding.DecodeString(str)
+	return base64.StdEncoding.DecodeString(str)
 }
 
 // GetDB returns a handle to an established driver-specific database connection
