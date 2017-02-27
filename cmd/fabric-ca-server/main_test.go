@@ -18,71 +18,107 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
-	testYaml = "test.yaml"
+	initYaml  = "i.yaml"
+	startYaml = "s.yaml"
 )
 
 var (
-	longUserName = string(make([]byte, 10250))
+	longUserName = util.RandomString(1025)
 )
 
-// TestInit tests fabric-ca-server init
-func TestInit(t *testing.T) {
+var (
+	longFileName = util.RandomString(261)
+)
+
+// Create a config element in unexpected format
+var badSyntaxYaml = "bad.yaml"
+
+// Unsupported file type
+var unsupportedFileType = "config.txt"
+
+type TestData struct {
+	input    []string // input
+	expected string   // expected result
+}
+
+// checkTest validates success cases
+func checkTest(in *TestData, t *testing.T) {
+	err := RunMain(in.input)
+	if err != nil {
+		t.Errorf("FAILED:\n \tin: %v;\n \tout: %v\n \texpected: SUCCESS\n", in.input, err.Error())
+	}
+}
+
+// errorTest validates error cases
+func errorTest(in *TestData, t *testing.T) {
+	err := RunMain(in.input)
+	if err != nil {
+		matched, _ := regexp.MatchString(in.expected, err.Error())
+		if !matched {
+			t.Errorf("FAILED:\n \tin: %v;\n \tout: %v;\n \texpected: %v\n", in.input, err.Error(), in.expected)
+		}
+	} else {
+		t.Errorf("FAILED:\n \tin: %v;\n \tout: <nil>\n \texpected: %v\n", in.input, in.expected)
+	}
+}
+
+func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
-	err := RunMain([]string{cmdName, "init", "-b", "admin:adminpw"})
-	if err != nil {
-		t.Errorf("server init failed: %s", err)
+	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
+
+	errorCases := []TestData{
+		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
+		{[]string{cmdName, "init", "-b", "user:pass", "ca.key"}, "too many arguments"},
+		{[]string{cmdName, "init", "-b", "user::"}, "Failed to read"},
+		{[]string{cmdName, "init", "-c", badSyntaxYaml, "-b", "user:pass"}, "Incorrect format"},
+		{[]string{cmdName, "init", "-c", initYaml, "-b", fmt.Sprintf("%s:foo", longUserName)}, "than 1024 characters"},
+		{[]string{cmdName, "init", "-c", fmt.Sprintf("%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
+		{[]string{cmdName, "init", "-c", unsupportedFileType}, "Unsupported Config Type"},
+		{[]string{cmdName, "init", "-c", initYaml, "-b", "user"}, "missing a colon"},
+		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
+		{[]string{cmdName, "bogus", "-c", initYaml, "-b", "user:pass"}, "unknown command"},
+		{[]string{cmdName, "start", "-c"}, "needs an argument:"},
+		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "too many arguments"},
 	}
-	err = RunMain([]string{cmdName, "init", "-d"})
-	if err != nil {
-		t.Errorf("server init -d failed: %s", err)
-	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml,
-		"-b", fmt.Sprintf("%s:foo", longUserName)})
-	if err == nil {
-		t.Errorf("server init -b longUserName should have failed")
-	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "user:"})
-	if err == nil {
-		t.Errorf("server init empty password should have failed")
-	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "user"})
-	if err == nil {
-		t.Errorf("server init no colon should have failed")
-	}
-	err = RunMain([]string{cmdName, "init", "-c", testYaml, "-b", "foo:bar"})
-	if err != nil {
-		t.Errorf("server init -c -b failed: %s", err)
+
+	for _, e := range errorCases {
+		errorTest(&e, t)
+		_ = os.Remove(initYaml)
 	}
 }
 
-// TestStart tests fabric-ca-server start
-func TestStart(t *testing.T) {
+func TestValid(t *testing.T) {
+	os.Unsetenv(homeEnvVar)
 	blockingStart = false
-	err := RunMain([]string{cmdName, "start"})
-	if err != nil {
-		t.Errorf("server start failed: %s", err)
-	}
-}
 
-// TestBogus tests a negative test case
-func TestBogus(t *testing.T) {
-	err := RunMain([]string{cmdName, "bogus"})
-	if err == nil {
-		t.Errorf("server bogus passed but should have failed")
+	os.Setenv("CA_CFG_PATH", ".")
+	validCases := []TestData{
+		{[]string{cmdName, "init", "-b", "admin:a:d:m:i:n:p:w"}, ""},
+		{[]string{cmdName, "init", "-d"}, ""},
+		{[]string{cmdName, "start", "-c", startYaml}, ""},
+	}
+
+	for _, v := range validCases {
+		checkTest(&v, t)
 	}
 }
 
 func TestClean(t *testing.T) {
 	defYaml := util.GetDefaultConfigFile(cmdName)
 	os.Remove(defYaml)
-	os.Remove(testYaml)
+	os.Remove(initYaml)
+	os.Remove(startYaml)
+	os.Remove(badSyntaxYaml)
+	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
 	os.Remove("fabric-ca-server.db")
