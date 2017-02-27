@@ -17,6 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -26,6 +31,7 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -49,6 +55,7 @@ const (
 var (
 	defYaml    string
 	fabricCADB = path.Join(tdDir, db)
+	srv        *lib.Server
 )
 
 // TestCreateDefaultConfigFile test to make sure default config file gets generated correctly
@@ -85,22 +92,22 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 func TestClientCommandsNoTLS(t *testing.T) {
 	os.Remove(fabricCADB)
 
-	srv := getServer()
+	srv = getServer()
 	srv.HomeDir = tdDir
 	srv.Config.Debug = true
 
-	err := srv.RegisterBootstrapUser("admin", "adminpw", "bank1")
+	err := srv.RegisterBootstrapUser("admin", "adminpw", "banks.bank_a.Dep1")
 	if err != nil {
 		t.Errorf("Failed to register bootstrap user: %s", err)
 	}
 
-	err = srv.RegisterBootstrapUser("admin2", "adminpw2", "bank1")
+	err = srv.RegisterBootstrapUser("admin2", "adminpw2", "banks.bank_a")
 	if err != nil {
 		t.Errorf("Failed to register bootstrap user: %s", err)
 	}
 
 	aff := make(map[string]interface{})
-	aff["banks"] = "bank_a"
+	aff["banks"] = []string{"bank_a", "bank_b", "bank_c"}
 
 	srv.Config.Affiliations = aff
 
@@ -119,27 +126,6 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	err = srv.Stop()
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
-	}
-}
-
-func getServer() *lib.Server {
-	return &lib.Server{
-		HomeDir: ".",
-		Config:  getServerConfig(),
-	}
-}
-
-func getServerConfig() *lib.ServerConfig {
-	return &lib.ServerConfig{
-		Debug: true,
-		Port:  7054,
-		CA: lib.ServerConfigCA{
-			Keyfile:  keyfile,
-			Certfile: certfile,
-		},
-		CSR: csr.CertificateRequest{
-			CN: "TestCN",
-		},
 	}
 }
 
@@ -208,7 +194,7 @@ func testRegisterEnvVar(t *testing.T) {
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
 	os.Setenv("FABRIC_CA_CLIENT_ID_NAME", "testRegister2")
-	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "banks.bank_a")
+	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "banks.bank_b")
 	os.Setenv("FABRIC_CA_CLIENT_ID_TYPE", "client")
 
 	err := RunMain([]string{cmdName, "register"})
@@ -255,9 +241,53 @@ func testRevoke(t *testing.T) {
 		t.Errorf("No enrollment ID or serial/aki provided, should have failed")
 	}
 
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "admin"})
+	serial, aki, err := getSerialAKIByID("admin")
+	if err != nil {
+		t.Error(err)
+	}
+
+	aki = strings.ToUpper(aki)
+
+	// Revoker's affiliation: banks.bank_a
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "nonexistinguser"})
+	if err == nil {
+		t.Errorf("Non existing user being revoked, should have failed")
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "", "-s", serial})
+	if err == nil {
+		t.Errorf("Only serial specified, should have failed")
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "", "-s", "", "-a", aki})
+	if err == nil {
+		t.Errorf("Only aki specified, should have failed")
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-s", serial, "-a", aki})
+	if err != nil {
+		t.Errorf("client revoke -u -s -a failed: %s", err)
+	}
+
+	serial, aki, err = getSerialAKIByID("testRegister")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Revoked user's affiliation: banks.bank_c
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-s", serial, "-a", aki})
+	if err != nil {
+		t.Errorf("Revoker does not have the correct affiliation to revoke, should have failed")
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister3", "-s", "", "-a", ""})
 	if err != nil {
 		t.Errorf("client revoke -u -e failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister2", "-s", "", "-a", ""})
+	if err == nil {
+		t.Errorf("Revoker does not have the correct affiliation to revoke, should have failed")
 	}
 
 	os.Remove(defYaml) // Delete default config file
@@ -282,7 +312,7 @@ func testBogus(t *testing.T) {
 func TestClientCommandsUsingConfigFile(t *testing.T) {
 	os.Remove(fabricCADB)
 
-	srv := getServer()
+	srv = getServer()
 	srv.Config.Debug = true
 
 	err := srv.RegisterBootstrapUser("admin", "adminpw", "bank1")
@@ -314,7 +344,7 @@ func TestClientCommandsUsingConfigFile(t *testing.T) {
 func TestClientCommandsTLSEnvVar(t *testing.T) {
 	os.Remove(fabricCADB)
 
-	srv := getServer()
+	srv = getServer()
 	srv.Config.Debug = true
 
 	err := srv.RegisterBootstrapUser("admin", "adminpw", "bank1")
@@ -359,7 +389,7 @@ func TestClientCommandsTLSEnvVar(t *testing.T) {
 func TestClientCommandsTLS(t *testing.T) {
 	os.Remove(fabricCADB)
 
-	srv := getServer()
+	srv = getServer()
 	srv.Config.Debug = true
 
 	err := srv.RegisterBootstrapUser("admin", "adminpw", "bank1")
@@ -405,4 +435,46 @@ func TestRegisterWithoutEnroll(t *testing.T) {
 	if err == nil {
 		t.Errorf("Should have failed, as no enrollment information should exist. Enroll commands needs to be the first command to be executed")
 	}
+}
+
+func getServer() *lib.Server {
+	return &lib.Server{
+		HomeDir: ".",
+		Config:  getServerConfig(),
+	}
+}
+
+func getServerConfig() *lib.ServerConfig {
+	return &lib.ServerConfig{
+		Debug: true,
+		Port:  7054,
+		CA: lib.ServerConfigCA{
+			Keyfile:  keyfile,
+			Certfile: certfile,
+		},
+		CSR: csr.CertificateRequest{
+			CN: "TestCN",
+		},
+	}
+}
+
+func getSerialAKIByID(id string) (serial, aki string, err error) {
+	testdb, _, _ := dbutil.NewUserRegistrySQLLite3(srv.Config.DB.Datasource)
+	acc := lib.NewCertDBAccessor(testdb)
+
+	certs, _ := acc.GetCertificatesByID("admin")
+
+	block, _ := pem.Decode([]byte(certs[0].PEM))
+	if block == nil {
+		return "", "", errors.New("Failed to PEM decode certificate")
+	}
+	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", "", fmt.Errorf("Error from x509.ParseCertificate: %s", err)
+	}
+
+	serial = util.GetSerialAsHex(x509Cert.SerialNumber)
+	aki = hex.EncodeToString(x509Cert.AuthorityKeyId)
+
+	return
 }

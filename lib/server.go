@@ -61,6 +61,10 @@ var (
 	MyCSP            bccsp.BCCSP
 )
 
+const (
+	defaultDatabaseType = "sqlite3"
+)
+
 // Server is the fabric-ca server
 type Server struct {
 	// The home directory for the server
@@ -341,22 +345,23 @@ func (s *Server) initDB() error {
 
 	MaxEnrollments = s.Config.Registry.MaxEnrollments
 
-	if db.Type == "" {
-		db.Type = "sqlite3"
-	}
 	if db.Datasource == "" {
 		db.Datasource = "fabric-ca-server.db"
 	}
 
-	db.Datasource, err = util.MakeFileAbs(db.Datasource, s.HomeDir)
-	if err != nil {
-		return err
+	if db.Type == "" || db.Type == defaultDatabaseType {
+		db.Type = defaultDatabaseType
+
+		db.Datasource, err = util.MakeFileAbs(db.Datasource, s.HomeDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debugf("Initializing '%s' data base at '%s'", db.Type, db.Datasource)
 
 	switch db.Type {
-	case "sqlite3":
+	case defaultDatabaseType:
 		s.db, exists, err = dbutil.NewUserRegistrySQLLite3(db.Datasource)
 		if err != nil {
 			return err

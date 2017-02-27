@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
@@ -82,9 +83,29 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debugf("Revoke request: %+v", req)
 
+	req.AKI = strings.ToLower(req.AKI)
+	req.Serial = strings.ToLower(req.Serial)
+
 	if req.Serial != "" && req.AKI != "" {
+		certificate, err := MyCertDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
+		if err != nil {
+			log.Error(notFound(w, err))
+			return notFound(w, err)
+		}
+
+		userInfo, err2 := UserRegistry.GetUserInfo(certificate.ID)
+		if err2 != nil {
+			return err2
+		}
+
+		err2 = checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+		if err2 != nil {
+			return err2
+		}
+
 		err = MyCertDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
+			log.Error(notFound(w, err))
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
@@ -104,6 +125,11 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 				return notFound(w, err)
 			}
 
+			err = checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+			if err != nil {
+				return err
+			}
+
 			userInfo.State = -1
 
 			err = UserRegistry.UpdateUser(userInfo)
@@ -121,7 +147,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		if len(recs) == 0 {
-			return fmt.Errorf("Enrollment ID '%s' has no revocable certificates", req.Name)
+			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name)
 		}
 
 		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
@@ -134,4 +160,21 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	result := map[string]string{}
 	return cfsslapi.SendResponse(w, result)
+}
+
+// Make sure the revoker's affiliation is equal to or is a prefix of 'affiliation'
+func checkAffiliations(revoker string, affiliation string) error {
+	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, affiliation)
+	revokerAffiliation, err := getUserAff(revoker)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Affiliation of revoker: %s, affiliation of user being revoked: %s", revokerAffiliation, affiliation)
+
+	if !strings.HasPrefix(affiliation, revokerAffiliation) {
+		return fmt.Errorf("Revoker %s does not have proper affiliation to revoke user", revoker)
+	}
+
+	return nil
 }

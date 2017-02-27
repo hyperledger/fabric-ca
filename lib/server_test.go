@@ -27,6 +27,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (
@@ -209,6 +210,30 @@ func TestRunningTLSServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
 	}
+}
+
+func TestDefaultDatabase(t *testing.T) {
+	TestEnd(t)
+
+	srv := getServer(rootPort, testdataDir, "", 0, t)
+
+	err := srv.Start()
+	if err != nil {
+		t.Fatalf("Root server start failed: %s", err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+
+	exist := util.FileExists("../testdata/fabric-ca-server.db")
+	if !exist {
+		t.Error("Failed to create default sqlite fabric-ca-server.db")
+	}
+
 }
 
 func testIntermediateServer(idx int, t *testing.T) {

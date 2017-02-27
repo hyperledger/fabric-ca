@@ -75,7 +75,7 @@ csr:
 id:
   name: testRegister
   type: user
-  affiliation: banks.bank_a
+  affiliation: banks.bank_c
   attributes:
     - name: hf.Revoker
       value: true

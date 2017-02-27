@@ -190,7 +190,7 @@ func configInit(command string) error {
 	// Unmarshal the config into 'clientCfg'
 	err = viper.Unmarshal(clientCfg)
 	if err != nil {
-		util.Fatal("Failed to unmarshall client config: %s", err)
+		util.Fatal("Could not parse '%s': %s", cfgFileName, err)
 	}
 
 	purl, err := url.Parse(clientCfg.URL)

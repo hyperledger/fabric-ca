@@ -35,6 +35,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"golang.org/x/crypto/ocsp"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric/bccsp"
@@ -54,6 +57,20 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
+
+// RevocationReasonCodes is a map between string reason codes to integers as defined in RFC 5280
+var RevocationReasonCodes = map[string]int{
+	"unspecified":          ocsp.Unspecified,
+	"keycompromise":        ocsp.KeyCompromise,
+	"cacompromise":         ocsp.CACompromise,
+	"affiliationchanged":   ocsp.AffiliationChanged,
+	"superseded":           ocsp.Superseded,
+	"cessationofoperation": ocsp.CessationOfOperation,
+	"certificatehold":      ocsp.CertificateHold,
+	"removefromcrl":        ocsp.RemoveFromCRL,
+	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
+	"aacompromise":         ocsp.AACompromise,
+}
 
 //ECDSASignature forms the structure for R and S value for ECDSA
 type ECDSASignature struct {
@@ -527,4 +544,15 @@ func GetKeyFromBytes(csp bccsp.BCCSP, key []byte) (bccsp.Key, error) {
 	}
 
 	return csp.KeyImport(pkb, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
+}
+
+// GetSerialAsHex returns the serial number from certificate as hex format
+func GetSerialAsHex(serial *big.Int) string {
+	hex := fmt.Sprintf("%x", serial)
+
+	if utf8.RuneCountInString(hex) < 80 {
+		hex = fmt.Sprintf("0%s", hex)
+	}
+
+	return hex
 }

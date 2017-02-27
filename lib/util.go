@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 // userHasAttribute returns nil if the user has the attribute, or an
@@ -51,13 +52,26 @@ func getUserAttrValue(username, attrname string) (string, error) {
 
 }
 
+// getUserAff returns a user's affiliation
+func getUserAff(username string) (string, error) {
+	log.Debugf("getUserAff user=%s", username)
+	user, err := UserRegistry.GetUserInfo(username)
+	if err != nil {
+		return "", err
+	}
+	aff := user.Affiliation
+	log.Debugf("getUserAttrValue user=%s, aff=%s, value=%s", username, aff)
+	return aff, nil
+
+}
+
 // GetCertID returns both the serial number and AKI (Authority Key ID) for the certificate
 func GetCertID(bytes []byte) (string, string, error) {
 	cert, err := BytesToX509Cert(bytes)
 	if err != nil {
 		return "", "", err
 	}
-	serial := cert.SerialNumber.String()
+	serial := util.GetSerialAsHex(cert.SerialNumber)
 	aki := hex.EncodeToString(cert.AuthorityKeyId)
 	return serial, aki, nil
 }
