@@ -37,26 +37,57 @@ For fabric-ca developers, you may do as follows to clone and build:
 # cd fabric-ca
 # make
 ```
+It will generate fabric-ca-server and fabric-ca-client in the directory named bin.
 
 See the Makefile for various build targets and their descriptions.
 
 ### Explore the fabric-ca CLI
 
-The following shows the fabric-ca usage message:
+The following shows the fabric-ca-server usage message:
 
 
 ```
-# fabric-ca
-fabric-ca client       - client related commands
-fabric-ca server       - server related commands
-fabric-ca cfssl        - all cfssl commands
+# cd bin
+# ./fabric-ca-server
+Usage:
+  fabric-ca-server [command]
 
-For help, type "fabric-ca client", "fabric-ca server", or "fabric-ca cfssl".
+Available Commands:
+  init        Initialize the fabric-ca server
+  start       Start the fabric-ca server
+
+Flags:
+  -c, --config string   Configuration file (default "fabric-ca-server-config.yaml")
+  -d, --debug           Enable debug logging
+  -u, --user string     user:pass for bootstrap user is required to build default config if config file does not exist
+
+Use "fabric-ca-server [command] --help" for more information about a command.
+
+
+
 ```
 
-The fabric-ca client and server commands are what you will use.
-However, since fabric-ca is built on top of [CFSSL](https://github.com/cloudflare/cfssl) and CFSSL has its own CLI,
-you may issue any cfssl command with the `fabric-ca cfssl` command prefix.
+The following shows the fabric-ca-server usage message:
+# ./fabric-ca-client
+
+Usage:
+  fabric-ca-client [command]
+
+Available Commands:
+  enroll      Enroll user
+  reenroll    Reenroll user
+  register    Register user
+  revoke      Revoke user
+
+Flags:
+  -c, --config string     Configuration file (default "/root/.fabric-ca-client/fabric-ca-client-config.yaml")
+  -d, --debug             Enable debug logging
+  -e, --enrollid string   Enrollment ID
+      --host string       Hostname (default "fabric-cop")
+      --url string        URL of the Fabric-ca server (default "http://localhost:7054")
+
+Use "fabric-ca-client [command] --help" for more information about a command.
+
 
 ### fabric-ca server configuration options
 
