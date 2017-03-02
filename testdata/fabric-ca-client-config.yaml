@@ -1,0 +1,70 @@
+
+#############################################################################
+#   This is a configuration file for the fabric-ca-client command.
+#
+#   COMMAND LINE ARGUMENTS AND ENVIRONMENT VARIABLES
+#   ------------------------------------------------
+#   Each configuration element can be overridden via command line
+#   arguments or environment variables.  The precedence for determining
+#   the value of each element is as follows:
+#   1) command line argument
+#      Examples:
+#      a) --url https://localhost:7054
+#         To set the fabric-ca server url
+#   2) environment variable
+#      Examples:
+#      a) FABRIC_CA_CLIENT_URL=https://localhost:7054
+#         To set the fabric-ca server url
+#   3) configuration file
+#   4) default value (if there is one)
+#      All default values are shown beside each element below.
+#
+#   FILE NAME ELEMENTS
+#   ------------------
+#   All filename elements below end with the word "file".
+#   For example, see "certfile" and "keyfile" in the "ca" section.
+#   The value of each filename element can be a simple filename, a
+#   relative path, or an absolute path.  If the value is not an
+#   absolute path, it is interpretted as being relative to the location
+#   of this configuration file.
+#
+#############################################################################
+
+#############################################################################
+# Client Configuration
+#############################################################################
+
+# URL of the Fabric-ca-server (default: http://localhost:7054)
+URL: http://localhost:7054
+
+#############################################################################
+#    TLS section for the client's listenting port
+#############################################################################
+tls:
+  # Enable TLS (default: false)
+  enabled: false
+
+  # TLS for the client's listenting port (default: false)
+  certfiles: root.pem   # Comma Separated (e.g. root.pem, root2.pem)
+  client:
+    certfile: tls_client-cert.pem
+    keyfile: tls_client-key.pem
+
+#############################################################################
+#  Certificate Signing Request section for generating the CSR for
+#  an enrollment certificate (ECert)
+#############################################################################
+csr:
+  cn: admin
+  names:
+    - C: US
+      ST: "North Carolina"
+      L:
+      O: Hyperledger
+      OU: Fabric
+  hosts:
+    - saads-mbp.raleigh.ibm.com
+  ca:
+    pathlen:
+    pathlenzero:
+    expiry:

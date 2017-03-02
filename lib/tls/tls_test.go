@@ -16,26 +16,34 @@ limitations under the License.
 
 package tls
 
-import (
-	"encoding/json"
-	"io/ioutil"
-	"testing"
+import "testing"
+
+const (
+	configDir = "../../testdata"
+	caCert    = "root.pem"
+	certFile  = "tls_client-cert.pem"
+	keyFile   = "tls_client-key.pem"
 )
 
-const clientConfig = "../../testdata/client-config.json"
+type testTLSConfig struct {
+	TLS *ClientTLSConfig
+}
 
 func TestGetClientTLSConfig(t *testing.T) {
-	tlsConfig, err := ioutil.ReadFile(clientConfig)
-	if err != nil {
-		t.Errorf("Failed to read in TLS configuration file [error: %s]", err)
+
+	cfg := &ClientTLSConfig{
+		CertFilesList: []string{"root.pem"},
+		Client: KeyCertFiles{
+			KeyFile:  "tls_client-key.pem",
+			CertFile: "tls_client-cert.pem",
+		},
 	}
 
-	var cfg = new(ClientTLSConfig)
-	json.Unmarshal(tlsConfig, cfg)
+	AbsTLSClient(cfg, configDir)
 
-	_, err = GetClientTLSConfig(cfg)
+	_, err := GetClientTLSConfig(cfg)
 	if err != nil {
-		t.Errorf("Failed to get TLS Config [error: %s]", err)
+		t.Errorf("Failed to get TLS Config: %s", err)
 	}
 
 }

@@ -37,7 +37,7 @@ var (
 	fcaDB        = path.Join(tdDir, "fabric-ca.db")
 	cfgFile      = path.Join(tdDir, "config.json")
 	testCfgFile  = "testconfig.json"
-	clientConfig = path.Join(tdDir, "client-config2.json")
+	clientConfig = path.Join(tdDir, "client-config.json")
 	csrFile      = path.Join(tdDir, "csr.json")
 )
 
