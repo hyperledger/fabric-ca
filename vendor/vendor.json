@@ -465,40 +465,35 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
-			"checksumSHA1": "nQCS/1ymeW+6UYa2vOXtxcvj2mY=",
+			"checksumSHA1": "/RlYLEXYPFPm5giiXMQ0G48dO38=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "25dbdeeab8f3d4e431a5434bcee149ee30cf556e",
+			"revisionTime": "2017-03-01T22:45:42Z",
+			"tree": true
 		},
 		{
-			"checksumSHA1": "mpt6sOfAvP1FGrFYcwPSWfM00gs=",
+			"checksumSHA1": "mZiTBAdC8vYgoiTqx/jF5U80288=",
 			"path": "github.com/hyperledger/fabric/bccsp/factory",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
+			"revisionTime": "2017-02-27T00:00:38Z"
 		},
 		{
-			"checksumSHA1": "klpCQmE30Ij8lGToXio9N+MdhcA=",
+			"checksumSHA1": "jUreC9C2NfOxQFY6B/X/qgA4ZnI=",
 			"path": "github.com/hyperledger/fabric/bccsp/pkcs11",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
+			"revisionTime": "2017-02-27T00:00:38Z"
 		},
 		{
-			"checksumSHA1": "kF6Drg4G0a54XNskZlrq0Bazmt0=",
-			"path": "github.com/hyperledger/fabric/bccsp/signer",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
-		},
-		{
-			"checksumSHA1": "MgIVDdd6sgRZVdsMDSj2OA4So+U=",
+			"checksumSHA1": "tWml2yr912DQkoZNFobewwyoUXE=",
 			"path": "github.com/hyperledger/fabric/bccsp/sw",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
+			"revisionTime": "2017-02-27T00:00:38Z"
 		},
 		{
 			"checksumSHA1": "c/VlngqOYcd+b8pGVD2izQZnuHE=",
 			"path": "github.com/hyperledger/fabric/bccsp/utils",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
+			"revisionTime": "2017-02-27T00:00:38Z"
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
@@ -565,6 +560,12 @@
 			"path": "github.com/mattn/go-sqlite3",
 			"revision": "86681de00adef4f8040947b7d35f97000fc5a230",
 			"revisionTime": "2016-10-28T14:22:18Z"
+		},
+		{
+			"checksumSHA1": "1ZAIf3+ZaKGGwOEglVGjhz/Ax9s=",
+			"path": "github.com/miekg/pkcs11",
+			"revision": "55e2b933bc6d828eca462bf6017215b96981342c",
+			"revisionTime": "2017-01-29T20:05:30Z"
 		},
 		{
 			"checksumSHA1": "UuXgD2dDojfS8AViUEe15gLIWZE=",

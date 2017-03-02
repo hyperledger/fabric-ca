@@ -19,9 +19,9 @@ package lib
 import (
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 const (
@@ -44,7 +44,7 @@ type ServerConfig struct {
 	Address      string `def:"0.0.0.0" help:"Listening address of fabric-ca-server"`
 	Debug        bool   `def:"false" opt:"d" help:"Enable debug level logging"`
 	TLS          tls.ServerTLSConfig
-	CSP          *csp.Config
+	CSP          *factory.FactoryOpts
 	CA           ServerConfigCA
 	Signing      *config.Signing
 	CSR          csr.CertificateRequest

@@ -60,10 +60,7 @@ func initMain(args []string, c cli.Config) (err error) {
 		return err
 	}
 
-	bccsp, err := factory.GetDefault()
-	if err != nil {
-		return err
-	}
+	bccsp := factory.GetDefault()
 	_ = bccsp
 	//FIXME: replace the key generation and storage with BCCSP
 

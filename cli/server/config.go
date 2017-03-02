@@ -27,28 +27,28 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
-	libcsp "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
 
 	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
 
 // Config is the fabric-ca config structure
 type Config struct {
-	Debug          bool             `json:"debug,omitempty"`
-	Authentication bool             `json:"authentication,omitempty"`
-	Users          map[string]*User `json:"users,omitempty"`
-	DBdriver       string           `json:"driver"`
-	DataSource     string           `json:"data_source"`
-	UsrReg         UserReg          `json:"user_registry"`
-	LDAP           *ldap.Config     `json:"ldap,omitempty"`
-	CAFile         string           `json:"ca_cert"`
-	CAKeyFile      string           `json:"ca_key"`
-	TLSConf        TLSConfig        `json:"tls,omitempty"`
-	TLSDisable     bool             `json:"tls_disable,omitempty"`
-	CSP            *libcsp.Config   `json:"csp,omitempty"`
+	Debug          bool                 `json:"debug,omitempty"`
+	Authentication bool                 `json:"authentication,omitempty"`
+	Users          map[string]*User     `json:"users,omitempty"`
+	DBdriver       string               `json:"driver"`
+	DataSource     string               `json:"data_source"`
+	UsrReg         UserReg              `json:"user_registry"`
+	LDAP           *ldap.Config         `json:"ldap,omitempty"`
+	CAFile         string               `json:"ca_cert"`
+	CAKeyFile      string               `json:"ca_key"`
+	TLSConf        TLSConfig            `json:"tls,omitempty"`
+	TLSDisable     bool                 `json:"tls_disable,omitempty"`
+	CSP            *factory.FactoryOpts `json:"csp,omitempty"`
 }
 
 // UserReg defines the user registry properties
@@ -172,6 +172,12 @@ func configInit(cfg *cli.Config) {
 
 	lib.CACertFile = CFG.CAFile
 	lib.CAKeyFile = CFG.CAKeyFile
+
+	// Init the BCCSP
+	err = factory.InitFactories(CFG.CSP)
+	if err != nil {
+		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+	}
 
 	log.Debugf("CFSSL server config is: %+v", cfg)
 	log.Debugf("Fabric CA server config is: %+v", CFG)
