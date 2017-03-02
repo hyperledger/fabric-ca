@@ -22,7 +22,7 @@
     }
   ],
   "paths": {
-    "/api/v1/cfssl/enroll": {
+    "/enroll": {
       "post": {
         "tags": [
           "fabric-ca-server"
@@ -144,7 +144,7 @@
         }
       }
     },
-    "/api/v1/cfssl/reenroll": {
+    "/reenroll": {
       "post": {
         "tags": [
           "fabric-ca-server"
@@ -266,7 +266,7 @@
         }
       }
     },
-    "/api/v1/cfssl/register": {
+    "/register": {
       "post": {
         "tags": [
           "fabric-ca-server"
@@ -421,7 +421,7 @@
         }
       }
     },
-    "/api/v1/cfssl/revoke": {
+    "/revoke": {
       "post": {
         "tags": [
           "fabric-ca-server"
@@ -543,7 +543,7 @@
         }
       }
     },
-    "/api/v1/cfssl/tcert": {
+    "/tcert": {
       "post": {
         "tags": [
           "fabric-ca-server"

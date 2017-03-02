@@ -33,15 +33,16 @@ import (
 )
 
 // NewRevokeHandler is constructor for revoke handler
-func NewRevokeHandler() (h http.Handler, err error) {
+func NewRevokeHandler(server *Server) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
 	return &cfsslapi.HTTPHandler{
-		Handler: &revokeHandler{},
+		Handler: &revokeHandler{server: server},
 		Methods: []string{"POST"}}, nil
 }
 
 // revokeHandler for revoke requests
 type revokeHandler struct {
+	server *Server
 }
 
 // Handle an revoke request
@@ -60,7 +61,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	r.Body.Close()
 
-	cert, err := util.VerifyToken(MyCSP, authHdr, body)
+	cert, err := util.VerifyToken(h.server.csp, authHdr, body)
 	if err != nil {
 		return authErr(w, err)
 	}
@@ -69,7 +70,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	// to revoke a certificate.  This attribute comes from the user registry, which
 	// is either in the DB if LDAP is not configured, or comes from LDAP if LDAP is
 	// configured.
-	err = userHasAttribute(cert.Subject.CommonName, "hf.Revoker")
+	err = h.server.userHasAttribute(cert.Subject.CommonName, "hf.Revoker")
 	if err != nil {
 		return authErr(w, err)
 	}
@@ -86,31 +87,34 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	req.AKI = strings.ToLower(req.AKI)
 	req.Serial = strings.ToLower(req.Serial)
 
+	certDBAccessor := h.server.certDBAccessor
+	registry := h.server.registry
+
 	if req.Serial != "" && req.AKI != "" {
-		certificate, err := MyCertDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
+		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
 			log.Error(notFound(w, err))
 			return notFound(w, err)
 		}
 
-		userInfo, err2 := UserRegistry.GetUserInfo(certificate.ID)
+		userInfo, err2 := registry.GetUserInfo(certificate.ID)
 		if err2 != nil {
 			return err2
 		}
 
-		err2 = checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
 		if err2 != nil {
 			return err2
 		}
 
-		err = MyCertDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
+		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
 			log.Error(notFound(w, err))
 			return notFound(w, err)
 		}
 	} else if req.Name != "" {
 
-		user, err := UserRegistry.GetUser(req.Name, nil)
+		user, err := registry.GetUser(req.Name, nil)
 		if err != nil {
 			err = fmt.Errorf("Failed to get user %s: %s", req.Name, err)
 			return notFound(w, err)
@@ -119,20 +123,20 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		// Set user state to -1 for revoked user
 		if user != nil {
 			var userInfo spi.UserInfo
-			userInfo, err = UserRegistry.GetUserInfo(req.Name)
+			userInfo, err = registry.GetUserInfo(req.Name)
 			if err != nil {
 				err = fmt.Errorf("Failed to get user info %s: %s", req.Name, err)
 				return notFound(w, err)
 			}
 
-			err = checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+			err = h.checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
 			if err != nil {
 				return err
 			}
 
 			userInfo.State = -1
 
-			err = UserRegistry.UpdateUser(userInfo)
+			err = registry.UpdateUser(userInfo)
 			if err != nil {
 				log.Warningf("Revoke failed: %s", err)
 				return dbErr(w, err)
@@ -140,7 +144,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		var recs []CertRecord
-		recs, err = MyCertDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
+		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
 		if err != nil {
 			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name, err)
 			return dbErr(w, err)
@@ -162,10 +166,9 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	return cfsslapi.SendResponse(w, result)
 }
 
-// Make sure the revoker's affiliation is equal to or is a prefix of 'affiliation'
-func checkAffiliations(revoker string, affiliation string) error {
+func (h *revokeHandler) checkAffiliations(revoker string, affiliation string) error {
 	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, affiliation)
-	revokerAffiliation, err := getUserAff(revoker)
+	revokerAffiliation, err := h.server.getUserAffiliation(revoker)
 	if err != nil {
 		return err
 	}

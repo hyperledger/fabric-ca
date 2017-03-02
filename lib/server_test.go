@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
+	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 )
@@ -59,9 +59,9 @@ func TestServerInit(t *testing.T) {
 
 func TestRootServer(t *testing.T) {
 	var err error
-	var admin, user1 *lib.Identity
+	var admin, user1 *Identity
 	var rr *api.RegistrationResponse
-	var recs []lib.CertRecord
+	var recs []CertRecord
 
 	// Start the server
 	server := getRootServer(t)
@@ -100,7 +100,7 @@ func TestRootServer(t *testing.T) {
 		t.Fatalf("Failed to enroll user1: %s", err)
 	}
 	// The admin ID should have 1 cert in the DB now
-	recs, err = lib.MyCertDBAccessor.GetCertificatesByID("admin")
+	recs, err = server.CertDBAccessor().GetCertificatesByID("admin")
 	if err != nil {
 		t.Errorf("Could not get admin's certs from DB: %s", err)
 	}
@@ -186,7 +186,7 @@ func TestRunningTLSServer(t *testing.T) {
 		t.Errorf("Server start failed: %s", err)
 	}
 
-	clientConfig := &lib.ClientConfig{
+	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
 			CertFilesList: []string{"../testdata/root.pem"},
@@ -268,11 +268,11 @@ func getRootServerURL() string {
 	return fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
 }
 
-func getRootServer(t *testing.T) *lib.Server {
+func getRootServer(t *testing.T) *Server {
 	return getServer(rootPort, rootDir, "", 0, t)
 }
 
-func getIntermediateServer(idx int, t *testing.T) *lib.Server {
+func getIntermediateServer(idx int, t *testing.T) *Server {
 	return getServer(
 		intermediatePort,
 		path.Join(intermediateDir, strconv.Itoa(idx)),
@@ -281,7 +281,7 @@ func getIntermediateServer(idx int, t *testing.T) *lib.Server {
 		t)
 }
 
-func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *lib.Server {
+func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
 	if home != testdataDir {
 		os.RemoveAll(home)
 	}
@@ -293,12 +293,12 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *l
 		},
 		"org2": nil,
 	}
-	srv := &lib.Server{
-		Config: &lib.ServerConfig{
+	srv := &Server{
+		Config: &ServerConfig{
 			Port:         port,
 			Debug:        true,
 			Affiliations: affiliations,
-			Registry: lib.ServerConfigRegistry{
+			Registry: ServerConfigRegistry{
 				MaxEnrollments: maxEnroll,
 			},
 		},
@@ -315,17 +315,17 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *l
 	return srv
 }
 
-func getRootClient() *lib.Client {
+func getRootClient() *Client {
 	return getTestClient(rootPort)
 }
 
-func getIntermediateClient() *lib.Client {
+func getIntermediateClient() *Client {
 	return getTestClient(intermediatePort)
 }
 
-func getTestClient(port int) *lib.Client {
-	return &lib.Client{
-		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+func getTestClient(port int) *Client {
+	return &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
 		HomeDir: testdataDir,
 	}
 }

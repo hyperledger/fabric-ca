@@ -356,7 +356,7 @@ func (c *Client) getURL(endpoint string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rtn := fmt.Sprintf("%s/api/v1/cfssl/%s", nurl, endpoint)
+	rtn := fmt.Sprintf("%s/%s", nurl, endpoint)
 	return rtn, nil
 }
 

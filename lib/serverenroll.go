@@ -39,26 +39,27 @@ var (
 )
 
 // NewEnrollHandler is the constructor for the enroll handler
-func NewEnrollHandler() (h http.Handler, err error) {
-	return newSignHandler("enroll")
+func NewEnrollHandler(server *Server) (h http.Handler, err error) {
+	return newSignHandler(server, "enroll")
 }
 
 // NewReenrollHandler is the constructor for the reenroll handler
-func NewReenrollHandler() (h http.Handler, err error) {
-	return newSignHandler("reenroll")
+func NewReenrollHandler(server *Server) (h http.Handler, err error) {
+	return newSignHandler(server, "reenroll")
 }
 
 // signHandler for enroll or reenroll requests
 type signHandler struct {
+	server *Server
 	// "enroll" or "reenroll"
 	endpoint string
 }
 
 // newEnrollHandler is the constructor for an enroll or reenroll handler
-func newSignHandler(endpoint string) (h http.Handler, err error) {
+func newSignHandler(server *Server, endpoint string) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
 	return &cfapi.HTTPHandler{
-		Handler: &signHandler{endpoint: endpoint},
+		Handler: &signHandler{server: server, endpoint: endpoint},
 		Methods: []string{"POST"},
 	}, nil
 }
@@ -88,12 +89,12 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Make any authorization checks needed, depending on the contents
 	// of the CSR (Certificate Signing Request)
-	err = csrAuthCheck(&req, r)
+	err = sh.csrAuthCheck(&req, r)
 	if err != nil {
 		return err
 	}
 
-	cert, err := EnrollSigner.Sign(req)
+	cert, err := sh.server.enrollSigner.Sign(req)
 	if err != nil {
 		err = fmt.Errorf("Failed signing for endpoint %s: %s", sh.endpoint, err)
 		log.Error(err.Error())
@@ -107,7 +108,7 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 // of the CSR (Certificate Signing Request).
 // In particular, if the request is for an intermediate CA certificate,
 // the caller must have the "hf.IntermediateCA" attribute.
-func csrAuthCheck(req *signer.SignRequest, r *http.Request) error {
+func (sh *signHandler) csrAuthCheck(req *signer.SignRequest, r *http.Request) error {
 	// Decode and parse the request into a CSR so we can make checks
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
@@ -135,7 +136,7 @@ func csrAuthCheck(req *signer.SignRequest, r *http.Request) error {
 				log.Debug("CSR request received for an intermediate CA")
 				// This is a request for a CA certificate, so make sure the caller
 				// has the 'hf.IntermediateCA' attribute
-				return userHasAttribute(r.Header.Get(enrollmentIDHdrName), "hf.IntermediateCA")
+				return sh.server.userHasAttribute(r.Header.Get(enrollmentIDHdrName), "hf.IntermediateCA")
 			}
 		}
 	}
