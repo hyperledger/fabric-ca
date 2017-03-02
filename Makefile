@@ -17,7 +17,6 @@
 #
 #   - all (default) - builds all targets and runs all tests
 #   - license - check all go files for license headers
-#   - fabric-ca - builds the fabric-ca executable
 #   - fabric-ca-server - builds the fabric-ca-server executable
 #   - fabric-ca-client - builds the fabric-ca-client executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
@@ -53,10 +52,8 @@ BASEIMAGE_RELEASE = 0.3.0
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 DOCKER_ORG = hyperledger
-# IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-fvt
 IMAGES = $(PROJECT_NAME)
 
-path-map.fabric-ca := ./
 path-map.fabric-ca-client := ./cmd/fabric-ca-client
 path-map.fabric-ca-server := ./cmd/fabric-ca-server
 
@@ -86,7 +83,6 @@ lint: .FORCE
 vet: .FORCE
 	@scripts/check_vet
 
-fabric-ca: bin/fabric-ca
 fabric-ca-client: bin/fabric-ca-client
 fabric-ca-server: bin/fabric-ca-server
 
@@ -129,10 +125,7 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 build/image/fabric-ca/payload: \
 	build/docker/bin/fabric-ca-client \
 	build/docker/bin/fabric-ca-server \
-   build/fabric-ca.tar.bz2
-build/image/fabric-ca-fvt/payload: \
-	build/docker/bin/fabric-ca
-	images/fabric-ca-fvt/start.sh
+	build/fabric-ca.tar.bz2
 build/image/%/payload:
 	@echo "Copying $^ to $@"
 	mkdir -p $@
@@ -143,16 +136,13 @@ build/%.tar.bz2:
 	@echo "Building $@"
 	@tar -jc -C images/$*/payload $(notdir $^) > $@
 
-unit-tests: checks fabric-ca fabric-ca-server fabric-ca-client
+unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_tests
 
 container-tests: ldap-tests
 
 ldap-tests:
 	@scripts/run_ldap_tests
-
-fvt-tests: fabric-ca
-	@scripts/run_fvt_tests
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
