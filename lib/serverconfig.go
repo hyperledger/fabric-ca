@@ -16,9 +16,7 @@ limitations under the License.
 
 package lib
 
-import (
-	"github.com/hyperledger/fabric-ca/lib/tls"
-)
+import "github.com/hyperledger/fabric-ca/lib/tls"
 
 const (
 	// DefaultServerPort is the default listening port for the fabric-ca server
@@ -36,13 +34,23 @@ const (
 // "help" - the help message to display on the command line;
 // "skip" - to skip the field.
 type ServerConfig struct {
-	Port    int    `def:"7054" opt:"p" help:"Listening port of fabric-ca-server"`
+	// Listening port for the server
+	Port int `def:"7054" opt:"p" help:"Listening port of fabric-ca-server"`
+	// Bind address for the server
 	Address string `def:"0.0.0.0" help:"Listening address of fabric-ca-server"`
-	Debug   bool   `def:"false" opt:"d" help:"Enable debug level logging"`
-	TLS     tls.ServerTLSConfig
-	Client  *ClientConfig
-	// caCfg is the default CA's config
-	CAcfg   CAConfig `skip:"true"`
+	// Enables debug logging
+	Debug bool `def:"false" opt:"d" help:"Enable debug level logging"`
+	// TLS for the server's listening endpoint
+	TLS tls.ServerTLSConfig
+	// Optional client config for an intermediate server which acts as a client
+	// of the root (or parent) server
+	Client *ClientConfig
+	// CACfg is the default CA's config
+	CAcfg CAConfig `skip:"true"`
+	// The names of the CA configuration files
+	// This is empty unless there are non-default CAs served by this server
 	CAfiles []string `help:"CA configuration files"`
-	CAcount int      `def:"0" help:"Number of non-default CA instances"`
+	// The number of non-default CAs, which is useful for a dev environment to
+	// quickly start any number of CAs in a single server
+	CAcount int `def:"0" help:"Number of non-default CA instances"`
 }

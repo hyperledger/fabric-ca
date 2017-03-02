@@ -50,6 +50,8 @@ func TestClient1(t *testing.T) {
 	testInvalidAuthEnrollment(t)
 
 	server.Stop()
+
+	os.RemoveAll(serversDir)
 }
 
 func testInvalidAuthEnrollment(t *testing.T) {

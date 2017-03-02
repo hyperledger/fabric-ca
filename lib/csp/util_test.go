@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/cloudflare/cfssl/signer/universal"
 
 	. "github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric/bccsp"
@@ -171,26 +170,21 @@ func TestGetSignerFromCertFile(t *testing.T) {
 }
 
 func TestBccspBackedSigner(t *testing.T) {
-	root := &universal.Root{Config: make(map[string]string)}
-
-	_, works, err := BccspBackedSigner(root, nil, csp)
-	if works {
+	signer, err := BccspBackedSigner("", "", nil, csp)
+	if signer != nil {
 		t.Fatalf("BccspBackedSigner should not be valid for empty cert: %s", err)
 	}
 
-	root.Config["cert-file"] = "doesnotexist.pem"
-	_, works, err = BccspBackedSigner(root, nil, csp)
+	signer, err = BccspBackedSigner("doesnotexist.pem", "", nil, csp)
 	if err == nil {
 		t.Fatal("BccspBackedSigner should had failed to load cert")
 	}
-	if works {
+	if signer != nil {
 		t.Fatal("BccspBackedSigner should not be valid for non-existent cert")
 	}
 
-	root.Config["cert-file"] = "../../testdata/ec.pem"
-	_, works, err = BccspBackedSigner(root, nil, csp)
-	if !works {
+	signer, err = BccspBackedSigner("../../testdata/ec.pem", "../../testdata/ec-key.pem", nil, csp)
+	if signer == nil {
 		t.Fatalf("BccspBackedSigner should had found cert: %s", err)
 	}
-
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 // ClientConfig is the fabric-ca client's config
@@ -34,7 +35,8 @@ type ClientConfig struct {
 	ID         api.RegistrationRequest
 	Revoke     api.RevocationRequest
 	CAInfo     api.GetCAInfoRequest
-	CAName     string `help:"Name of CA"`
+	CAName     string               `help:"Name of CA"`
+	CSP        *factory.FactoryOpts `mapstructure:"bccsp"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.

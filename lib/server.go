@@ -70,12 +70,11 @@ func (s *Server) Init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
-
+	// Initialize the default CA hosted by the server
 	err = s.initDefaultCA(&s.CA, renew)
 	if err != nil {
 		return err
 	}
-
 	// Successful initialization
 	return nil
 }
@@ -181,7 +180,7 @@ func (s *Server) initConfig() (err error) {
 	if s.HomeDir == "" {
 		s.HomeDir, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("Failed to initialize server's home directory: %s", err)
+			return fmt.Errorf("Failed to get server's home directory: %s", err)
 		}
 	}
 	// Init config if not set
@@ -200,10 +199,10 @@ func (s *Server) initConfig() (err error) {
 	if cfg.Debug {
 		log.Level = log.LevelDebug
 	}
-
+	// Make file names absolute
 	s.makeFileNamesAbsolute()
+	// Create empty CA map
 	s.caMap = make(map[string]*CA)
-
 	return nil
 }
 

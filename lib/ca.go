@@ -29,14 +29,14 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/go-sql-driver/mysql" // import to support MySQL
@@ -66,7 +66,11 @@ type CA struct {
 	registry spi.UserRegistry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
-
+	// The tcert manager for this CA
+	tcertMgr *tcert.Mgr
+	// The key tree
+	keyTree *tcert.KeyTree
+	// The server hosting this CA
 	server *Server
 }
 
@@ -107,8 +111,12 @@ func (ca *CA) init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
-	// Initialize the Crypto Service Provider
-	ca.csp = factory.GetDefault()
+	// Initialize the crypto layer (BCCSP) for this CA
+	defaultKeyStoreDir := path.Join(ca.HomeDir, "msp", "keystore")
+	ca.csp, err = csp.InitBCCSP(&ca.Config.CSP, defaultKeyStoreDir)
+	if err != nil {
+		return err
+	}
 	// Initialize key materials
 	err = ca.initKeyMaterial(renew)
 	if err != nil {
@@ -124,6 +132,19 @@ func (ca *CA) init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
+	// Initialize TCert handling
+	keyfile := ca.Config.CA.Keyfile
+	certfile := ca.Config.CA.Certfile
+	ca.tcertMgr, err = tcert.LoadMgr(keyfile, certfile, ca.csp)
+	if err != nil {
+		return err
+	}
+	// FIXME: The root prekey must be stored persistently in DB and retrieved here if not found
+	rootKey, err := genRootKey(ca.csp)
+	if err != nil {
+		return err
+	}
+	ca.keyTree = tcert.NewKeyTree(ca.csp, rootKey)
 	log.Debug("CA initialization successful")
 	// Successful initialization
 	return nil
@@ -150,35 +171,43 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			log.Infof("Certificate file location: %s", certFile)
 			return nil
 		}
+
+		// If key file does not exist but certFile does, key file is probably
+		// stored by BCCSP, so check for that now.
+		if certFileExists {
+			_, _, _, err := csp.GetSignerFromCertFile(certFile, ca.csp)
+			if err == nil {
+				// Yes, it is stored by BCCSP
+				log.Info("The CA key and certificate already exist")
+				log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
+				log.Infof("The certificate is at: %s", certFile)
+				return nil
+			}
+		}
 	}
 
-	// Get the CA cert and key
-	cert, key, err := ca.getCACertAndKey()
+	// Get the CA cert
+	cert, err := ca.getCACert()
 	if err != nil {
-		return fmt.Errorf("Failed to initialize CA: %s", err)
+		return err
 	}
-
-	// Store the key and certificate to file
-	err = writeFile(keyFile, key, 0600)
-	if err != nil {
-		return fmt.Errorf("Failed to store key: %s", err)
-	}
+	// Store the certificate to file
 	err = writeFile(certFile, cert, 0644)
 	if err != nil {
 		return fmt.Errorf("Failed to store certificate: %s", err)
 	}
-	log.Info("The CA key and certificate files were generated")
-	log.Infof("Key file location: %s", keyFile)
-	log.Infof("Certificate file location: %s", certFile)
+	log.Infof("The CA key and certificate were generated for CA %s", ca.Config.CA.Name)
+	log.Infof("The key was stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
+	log.Infof("The certificate is at: %s", certFile)
 	return nil
 }
 
-// Get the CA certificate and key for this CA
-func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
-	log.Debugf("Getting CA cert and key; parent server URL is '%s'", ca.Config.ParentServer.URL)
+// Get the CA certificate for this CA
+func (ca *CA) getCACert() (cert []byte, err error) {
+	log.Debugf("Getting CA cert; parent server URL is '%s'", ca.Config.ParentServer.URL)
 	if ca.Config.ParentServer.URL != "" {
 		// This is an intermediate CA, so call the parent fabric-ca-server
-		// to get the key and cert
+		// to get the cert
 		clientCfg := ca.Config.Client
 		if clientCfg == nil {
 			clientCfg = &ClientConfig{}
@@ -194,39 +223,35 @@ func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
 		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
 		var resp *EnrollmentResponse
-		if ca.Config.ParentServer.CAName == "" {
-			ca.Config.ParentServer.CAName = ca.server.CA.Config.CA.Name
-		}
 		resp, err = clientCfg.Enroll(ca.Config.ParentServer.URL, ca.HomeDir)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		ecert := resp.Identity.GetECert()
 		if ecert == nil {
-			return nil, nil, errors.New("No ECert from parent server")
+			return nil, errors.New("No enrollment certificate returned by parent server")
 		}
 		cert = ecert.Cert()
-		key = ecert.Key()
 		// Store the chain file as the concatenation of the parent's chain plus the cert.
 		chainPath := ca.Config.CA.Chainfile
 		if chainPath == "" {
 			chainPath, err = util.MakeFileAbs("ca-chain.pem", ca.HomeDir)
 			if err != nil {
-				return nil, nil, fmt.Errorf("Failed to create intermediate chain file path: %s", err)
+				return nil, fmt.Errorf("Failed to create intermediate chain file path: %s", err)
 			}
 		}
 		chain := ca.concatChain(resp.ServerInfo.CAChain, cert)
 		err = os.MkdirAll(path.Dir(chainPath), 0755)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to create intermediate chain file directory: %s", err)
+			return nil, fmt.Errorf("Failed to create intermediate chain file directory: %s", err)
 		}
 		err = util.WriteFile(chainPath, chain, 0644)
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to create intermediate chain file: %s", err)
+			return nil, fmt.Errorf("Failed to create intermediate chain file: %s", err)
 		}
 		log.Debugf("Stored intermediate certificate chain at %s", chainPath)
 	} else {
-		// This is a root CA, so call cfssl to get the key and cert.
+		// This is a root CA, so create a CSR (Certificate Signing Request)
 		csr := &ca.Config.CSR
 		req := cfcsr.CertificateRequest{
 			CN:    csr.CN,
@@ -237,13 +262,18 @@ func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
 			CA:           csr.CA,
 			SerialNumber: csr.SerialNumber,
 		}
+		// Generate the key/signer
+		_, cspSigner, err := csp.BCCSPKeyRequestGenerate(&req, ca.csp)
+		if err != nil {
+			return nil, err
+		}
 		// Call CFSSL to initialize the CA
-		cert, _, key, err = initca.New(&req)
+		cert, _, err = initca.NewFromSigner(&req, cspSigner)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to create new CA certificate: %s", err)
+		}
 	}
-	if err != nil {
-		return nil, nil, err
-	}
-	return cert, key, nil
+	return cert, nil
 }
 
 // Return a certificate chain which is the concatenation of chain and cert
@@ -282,7 +312,7 @@ func (ca *CA) initConfig() (err error) {
 			return fmt.Errorf("Failed to initialize CA's home directory: %s", err)
 		}
 	}
-	log.Debug("CA Home Directory: ", ca.HomeDir)
+	log.Info("CA Home Directory: ", ca.HomeDir)
 	// Init config if not set
 	if ca.Config == nil {
 		ca.Config = new(CAConfig)
@@ -302,12 +332,6 @@ func (ca *CA) initConfig() (err error) {
 	if ca.server.Config.Debug {
 		log.Level = log.LevelDebug
 	}
-	// Init the BCCSP
-	err = factory.InitFactories(ca.Config.CSP)
-	if err != nil {
-		panic(fmt.Errorf("Could not initialize BCCSP Factories %s", err))
-	}
-
 	return nil
 }
 
@@ -419,23 +443,15 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 	}
 
 	// Make sure the policy reflects the new remote
-	ParentServerURL := ca.Config.ParentServer.URL
-	if ParentServerURL != "" {
-		err = policy.OverrideRemotes(ParentServerURL)
+	parentServerURL := ca.Config.ParentServer.URL
+	if parentServerURL != "" {
+		err = policy.OverrideRemotes(parentServerURL)
 		if err != nil {
 			return fmt.Errorf("Failed initializing enrollment signer: %s", err)
 		}
 	}
 
-	// Get CFSSL's universal root and signer
-	root := universal.Root{
-		Config: map[string]string{
-			"cert-file": c.CA.Certfile,
-			"key-file":  c.CA.Keyfile,
-		},
-		ForceRemote: ParentServerURL != "",
-	}
-	ca.enrollSigner, err = universal.NewSigner(root, policy)
+	ca.enrollSigner, err = csp.BccspBackedSigner(c.CA.Certfile, c.CA.Keyfile, policy, ca.csp)
 	if err != nil {
 		return err
 	}

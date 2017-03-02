@@ -35,7 +35,6 @@ import (
 	_ "github.com/cloudflare/cfssl/ocsp" // for ocspSignerFromConfig
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/cloudflare/cfssl/signer/local"
-	"github.com/cloudflare/cfssl/signer/universal"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
@@ -78,10 +77,6 @@ func InitBCCSP(optsPtr **factory.FactoryOpts, keyStoreDir string) (bccsp.BCCSP, 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get BCCSP: %s [opts: %+v]", err, opts)
 	}
-	universal.PrependLocalSignerToList(func(root *universal.Root, policy *config.Signing) (signer.Signer, bool, error) {
-		// This lambda function is needed to hide the local s.csp variable, so that it is available at callback time
-		return BccspBackedSigner(root, policy, csp)
-	})
 	if optsPtr != nil {
 		*optsPtr = opts
 	}
@@ -90,23 +85,30 @@ func InitBCCSP(optsPtr **factory.FactoryOpts, keyStoreDir string) (bccsp.BCCSP, 
 
 // BccspBackedSigner attempts to create a signer using csp bccsp.BCCSP. This csp could be SW (golang crypto)
 // PKCS11 or whatever BCCSP-conformant library is configured
-func BccspBackedSigner(root *universal.Root, policy *config.Signing, csp bccsp.BCCSP) (signer.Signer, bool, error) {
-	caFile := root.Config["cert-file"]
-	if caFile == "" {
-		return nil, false, nil
-	}
-
+func BccspBackedSigner(caFile, keyFile string, policy *config.Signing, csp bccsp.BCCSP) (signer.Signer, error) {
 	_, cspSigner, parsedCa, err := GetSignerFromCertFile(caFile, csp)
 	if err != nil {
-		log.Debug("Failed to load bccspBackedSigner: %s", err.Error())
-		return nil, false, err
+		// Fallback: attempt to read out of keyFile and import
+		log.Debugf("No key found in BCCSP keystore, attempting fallback")
+		var key bccsp.Key
+		key, err = ImportBCCSPKeyFromPEM(keyFile, csp, false)
+		if err != nil {
+			return nil, fmt.Errorf("Could not find the private key in BCCSP keystore nor in keyfile %s: %s", keyFile, err)
+		}
+
+		signer := &cspsigner.CryptoSigner{}
+		err = signer.Init(csp, key)
+		if err != nil {
+			return nil, fmt.Errorf("Failed initializing CryptoSigner: %s", err)
+		}
+		cspSigner = signer
 	}
 
 	signer, err := local.NewSigner(cspSigner, parsedCa, signer.DefaultSigAlgo(cspSigner), policy)
 	if err != nil {
-		return nil, false, fmt.Errorf("Failed to create new signer: %s", err.Error())
+		return nil, fmt.Errorf("Failed to create new signer: %s", err.Error())
 	}
-	return signer, true, nil
+	return signer, nil
 }
 
 // getBCCSPKeyOpts generates a key as specified in the request.

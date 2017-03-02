@@ -24,6 +24,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/mitchellh/mapstructure"
+	"github.com/op/go-logging"
 	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -142,6 +143,10 @@ func CmdRunBegin() {
 	// If -d or --debug, set debug logging level
 	if viper.GetBool("debug") {
 		log.Level = log.LevelDebug
+
+		logging.SetLevel(logging.INFO, "bccsp")
+		logging.SetLevel(logging.INFO, "bccsp_p11")
+		logging.SetLevel(logging.INFO, "bccsp_sw")
 	}
 }
 

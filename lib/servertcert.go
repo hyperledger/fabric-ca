@@ -33,9 +33,7 @@ import (
 
 // Handler for tcert requests
 type tcertHandler struct {
-	server  *Server
-	mgr     *tcert.Mgr
-	keyTree *tcert.KeyTree
+	server *Server
 }
 
 // newTCertHandler is constructor for tcert handler
@@ -44,7 +42,6 @@ func newTCertHandler(server *Server) (h http.Handler, err error) {
 		Handler: &tcertHandler{server: server},
 		Methods: []string{"POST"},
 	}
-
 	return handler, nil
 }
 
@@ -58,7 +55,6 @@ func (h *tcertHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
-
 	// Read and unmarshall the request body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -70,12 +66,8 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	caname := r.Header.Get(caHdrName)
-
-	err = h.initTCertHandler(h.server, caname)
-	if err != nil {
-		return fmt.Errorf("Failed to initialize TCert handler: %s", err)
-	}
+	// Get the CA targeted by this request
+	ca := h.server.caMap[r.Header.Get(caHdrName)]
 
 	// Get an X509 certificate from the authorization header associated with the caller
 	cert, err := getCertFromAuthHdr(r)
@@ -85,13 +77,13 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Get the user's attribute values and affiliation path
 	id := tcert.GetEnrollmentIDFromCert(cert)
-	attrs, affiliationPath, err := h.getUserInfo(id, req.AttrNames, caname)
+	attrs, affiliationPath, err := h.getUserInfo(id, req.AttrNames, ca)
 	if err != nil {
 		return err
 	}
 
 	// Get the prekey associated with the affiliation path
-	prekey, err := h.keyTree.GetKey(affiliationPath)
+	prekey, err := ca.keyTree.GetKey(affiliationPath)
 	if err != nil {
 		return fmt.Errorf("Failed to get prekey for identity %s: %s", id, err)
 	}
@@ -109,7 +101,7 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 		PreKey:         prekeyStr,
 	}
 
-	resp, err := h.mgr.GetBatch(tcertReq, cert)
+	resp, err := ca.tcertMgr.GetBatch(tcertReq, cert)
 	if err != nil {
 		return err
 	}
@@ -122,28 +114,9 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 
 }
 
-func (h *tcertHandler) initTCertHandler(server *Server, caname string) (err error) {
-	log.Debug("Initializing TCert handler")
-	keyfile := server.caMap[caname].Config.CA.Keyfile
-	certfile := server.caMap[caname].Config.CA.Certfile
-
-	h.mgr, err = tcert.LoadMgr(keyfile, certfile)
-	if err != nil {
-		return err
-	}
-	// FIXME: The root prekey must be stored persistently in DB and retrieved here if not found
-	rootKey, err := genRootKey(server.caMap[caname].csp)
-	if err != nil {
-		return err
-	}
-	h.keyTree = tcert.NewKeyTree(server.caMap[caname].csp, rootKey)
-
-	return nil
-}
-
 // getUserinfo returns the users requested attribute values and user's affiliation path
-func (h *tcertHandler) getUserInfo(id string, attrNames []string, caname string) ([]tcert.Attribute, []string, error) {
-	user, err := h.server.caMap[caname].registry.GetUser(id, attrNames)
+func (h *tcertHandler) getUserInfo(id string, attrNames []string, ca *CA) ([]tcert.Attribute, []string, error) {
+	user, err := ca.registry.GetUser(id, attrNames)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -263,7 +263,11 @@ func TestClean(t *testing.T) {
 	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
+	os.Remove("ca-cert.pem")
 	os.Remove("fabric-ca-server.db")
+	os.RemoveAll("msp")
+	os.Remove("../../testdata/fabric-ca-server.db")
+	os.Remove("../../testdata/ca-cert.pem")
 }
 
 func cleanUpMultiCAFiles() {

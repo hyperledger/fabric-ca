@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/csp"
 )
 
 func TestTCertWithoutAttribute(t *testing.T) {
@@ -95,7 +96,7 @@ func TestTCertWitAttributes(t *testing.T) {
 func getMgr(t *testing.T) *Mgr {
 	keyFile := "../../testdata/ec-key.pem"
 	certFile := "../../testdata/ec.pem"
-	mgr, err := LoadMgr(keyFile, certFile)
+	mgr, err := LoadMgr(keyFile, certFile, csp.GetDefaultBCCSP())
 	if err != nil {
 		t.Errorf("failed loading mgr: %s", err)
 		return nil

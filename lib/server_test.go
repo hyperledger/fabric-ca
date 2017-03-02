@@ -30,6 +30,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -282,9 +283,9 @@ func invalidTokenAuthorization(t *testing.T) {
 		t.Error(err)
 	}
 
-	key, err := ioutil.ReadFile("../testdata/ec-key.pem")
+	key, err := csp.ImportBCCSPKeyFromPEM("../testdata/ec-key.pem", CSP, true)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Failed importing key %s", err)
 	}
 
 	token, err := util.CreateToken(CSP, cert, key, emptyByte)
