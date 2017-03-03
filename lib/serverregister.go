@@ -76,7 +76,7 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 // RegisterUser will register a user
 func (h *registerHandler) RegisterUser(id string, userType string, group string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
-	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %s, registrar: %s\n",
+	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %+v, registrar: %s\n",
 		id, group, attributes, registrar)
 
 	var tok string

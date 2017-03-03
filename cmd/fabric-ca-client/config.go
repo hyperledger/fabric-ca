@@ -53,10 +53,14 @@ const (
 #      Examples:
 #      a) --url https://localhost:7054
 #         To set the fabric-ca server url
+#			 b) --tls.client.certfile certfile.pem
+#					To set the client certificate for TLS
 #   2) environment variable
 #      Examples:
 #      a) FABRIC_CA_CLIENT_URL=https://localhost:7054
 #         To set the fabric-ca server url
+#			 b) FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE=certfile.pem
+#					To set the client certificate for TLS
 #   3) configuration file
 #   4) default value (if there is one)
 #      All default values are shown beside each element below.
@@ -110,6 +114,17 @@ csr:
     pathlen:
     pathlenzero:
     expiry:
+
+#############################################################################
+#  Registration section used to register a new user with fabric-ca server
+#############################################################################
+id:
+  name:
+  type:
+  group:
+  attributes:
+    - name:
+      value:
 `
 )
 
@@ -171,7 +186,9 @@ func configInit() error {
 	clientCfg.TLS.Enabled = purl.Scheme == "https"
 
 	processCertFiles(&clientCfg.TLS)
-
+	if clientCfg.ID.Attr != "" {
+		processAttributes()
+	}
 	return nil
 }
 
@@ -212,4 +229,11 @@ func processCertFiles(cfg *tls.ClientTLSConfig) {
 	for i := range CertFiles {
 		cfg.CertFilesList = append(cfg.CertFilesList, strings.TrimSpace(CertFiles[i]))
 	}
+}
+
+// processAttributes parses attributes from command line
+func processAttributes() {
+	splitAttr := strings.Split(clientCfg.ID.Attr, "=")
+	clientCfg.ID.Attributes[0].Name = splitAttr[0]
+	clientCfg.ID.Attributes[0].Value = strings.Join(splitAttr[1:], "")
 }

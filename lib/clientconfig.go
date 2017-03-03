@@ -31,6 +31,7 @@ type ClientConfig struct {
 	TLS        tls.ClientTLSConfig
 	Enrollment api.EnrollmentRequest
 	CSR        csr.CertificateRequest
+	ID         api.RegistrationRequest
 }
 
 // Enroll a client given the server's URL and the client's home directory.

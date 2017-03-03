@@ -17,17 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // initCmd represents the init command
@@ -52,31 +47,11 @@ var registerCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(registerCmd)
-	registerFlags := registerCmd.Flags()
-	util.FlagString(registerFlags, "regfile", "f", "", "File containing registration info")
 }
 
 // The client register main logic
 func runRegister() error {
 	log.Debug("Entered Register")
-
-	regFile := viper.GetString("regfile")
-	if regFile == "" {
-		return errors.New("A registeration request file is required to register a user")
-	}
-
-	log.Debugf("Registeration Request File: %s", regFile)
-
-	buf, err := util.ReadFile(regFile)
-	if err != nil {
-		return err
-	}
-
-	regReq := new(api.RegistrationRequest)
-	err = json.Unmarshal(buf, regReq)
-	if err != nil {
-		return fmt.Errorf("Failure json unmarshaling file '%s': %s", regFile, err)
-	}
 
 	client := lib.Client{
 		HomeDir: filepath.Dir(cfgFileName),
@@ -88,12 +63,12 @@ func runRegister() error {
 		return err
 	}
 
-	resp, err := id.Register(regReq)
+	resp, err := id.Register(&clientCfg.ID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("One time password: %s\n", resp.Secret)
+	fmt.Printf("Password: %s\n", resp.Secret)
 
 	return nil
 }
