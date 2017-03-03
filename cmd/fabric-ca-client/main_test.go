@@ -56,9 +56,9 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 	os.Remove(defYaml)
 
-	fabricCAServerURL := "http://localhost:7058"
+	enrollURL := "http://admin:admin2@localhost:7058"
 
-	err := RunMain([]string{cmdName, "enroll", "-u", fabricCAServerURL, "-m", myhost})
+	err := RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-m", myhost})
 	if err == nil {
 		t.Errorf("No username/password provided, should have errored")
 	}
@@ -70,7 +70,7 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 
 	configFile := string(fileBytes)
 
-	if !strings.Contains(configFile, fabricCAServerURL) {
+	if !strings.Contains(configFile, "localhost:7058") {
 		t.Error("Failed to update default config file with url")
 	}
 
@@ -110,7 +110,6 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	}
 
 	testEnroll(t)
-	testReenroll(t)
 	testRegisterConfigFile(t)
 	testRegisterEnvVar(t)
 	testRegisterCommandLine(t)
@@ -149,7 +148,7 @@ func testEnroll(t *testing.T) {
 	t.Log("Testing Enroll CMD")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	os.RemoveAll(defYaml) // Clean up any left over config file
+	os.Remove(defYaml) // Clean up any left over config file
 
 	// Negative test case, enroll command without username/password
 	err := RunMain([]string{cmdName, "enroll", "-d"})
@@ -162,7 +161,7 @@ func testEnroll(t *testing.T) {
 		t.Errorf("client enroll -u failed: %s", err)
 	}
 
-	os.Remove(defYaml)
+	testReenroll(t)
 
 	err = RunMain([]string{cmdName, "enroll", "-u", "http://admin2:adminpw2@localhost:7055"})
 	if err == nil {
@@ -177,7 +176,7 @@ func testReenroll(t *testing.T) {
 	t.Log("Testing Reenroll CMD")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	err := RunMain([]string{cmdName, "reenroll", "-u", "http://localhost:7054"})
+	err := RunMain([]string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"})
 	if err != nil {
 		t.Errorf("client reenroll --url -f failed: %s", err)
 	}
@@ -342,7 +341,7 @@ func TestClientCommandsTLSEnvVar(t *testing.T) {
 	os.Setenv(clientKeyEnvVar, tlsClientKeyFile)
 	os.Setenv(clientCertEnvVar, tlsClientCertFile)
 
-	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "https://admin:adminpw@localhost:7054", "-d"})
+	err = RunMain([]string{cmdName, "enroll", "-d", "-c", testYaml, "-u", "https://admin:adminpw@localhost:7054", "-d"})
 	if err != nil {
 		t.Errorf("client enroll -c -u failed: %s", err)
 	}
@@ -355,7 +354,6 @@ func TestClientCommandsTLSEnvVar(t *testing.T) {
 	os.Unsetenv(rootCertEnvVar)
 	os.Unsetenv(clientKeyEnvVar)
 	os.Unsetenv(clientCertEnvVar)
-
 }
 
 func TestClientCommandsTLS(t *testing.T) {
@@ -376,15 +374,15 @@ func TestClientCommandsTLS(t *testing.T) {
 
 	srv.HomeDir = tdDir
 	srv.Config.TLS.Enabled = true
-	srv.Config.TLS.CertFile = "tls_server-cert.pem"
-	srv.Config.TLS.KeyFile = "tls_server-key.pem"
+	srv.Config.TLS.CertFile = tlsCertFile
+	srv.Config.TLS.KeyFile = tlsKeyFile
 
 	err = srv.Start()
 	if err != nil {
 		t.Errorf("Server start failed: %s", err)
 	}
 
-	err = RunMain([]string{cmdName, "enroll", "-c", "../../testdata/test.yaml", "--tls.certfiles", "root.pem", "--tls.client.keyfile", "tls_client-key.pem", "--tls.client.certfile", "tls_client-cert.pem", "-u", "https://admin:adminpw@localhost:7054", "-d"})
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "--tls.certfiles", rootCert, "--tls.client.keyfile", tlsClientKeyFile, "--tls.client.certfile", tlsClientCertFile, "-u", "https://admin:adminpw@localhost:7054", "-d"})
 	if err != nil {
 		t.Errorf("client enroll -c -u failed: %s", err)
 	}
@@ -400,4 +398,11 @@ func TestCleanUp(t *testing.T) {
 	os.Remove("../../testdata/key.pem")
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
+}
+
+func TestRegisterWithoutEnroll(t *testing.T) {
+	err := RunMain([]string{cmdName, "register", "-c", testYaml})
+	if err == nil {
+		t.Errorf("Should have failed, as no enrollment information should exist. Enroll commands needs to be the first command to be executed")
+	}
 }

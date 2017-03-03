@@ -84,6 +84,8 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	log.Debugf("Enrollment request: %+v\n", req)
+
 	// Make any authorization checks needed, depending on the contents
 	// of the CSR (Certificate Signing Request)
 	err = csrAuthCheck(&req, r)

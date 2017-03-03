@@ -31,6 +31,16 @@ var reenrollCmd = &cobra.Command{
 	Use:   "reenroll",
 	Short: "Reenroll user",
 	Long:  "Reenroll user with fabric-ca server",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		err := configInit(cmd.Name())
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Client configuration settings: %+v", clientCfg)
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			cmd.Help()
@@ -48,9 +58,6 @@ var reenrollCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(reenrollCmd)
-	reenrollFlags := reenrollCmd.Flags()
-	reenrollFlags.StringVarP(&csrFile, "csrfile", "f", "", "Certificate Signing Request information (Optional)")
-
 }
 
 // The client reenroll main logic
@@ -67,7 +74,12 @@ func runReenroll() error {
 		return err
 	}
 
-	req := &api.ReenrollmentRequest{}
+	req := &api.ReenrollmentRequest{
+		Hosts:   clientCfg.Enrollment.Hosts,
+		Label:   clientCfg.Enrollment.Label,
+		Profile: clientCfg.Enrollment.Profile,
+		CSR:     &clientCfg.CSR,
+	}
 
 	newID, err := id.Reenroll(req)
 	if err != nil {

@@ -19,7 +19,6 @@ package lib
 import (
 	"net/url"
 
-	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 )
@@ -30,7 +29,7 @@ type ClientConfig struct {
 	URL        string `def:"http://localhost:7054" opt:"u" help:"URL of fabric-ca-server"`
 	TLS        tls.ClientTLSConfig
 	Enrollment api.EnrollmentRequest
-	CSR        csr.CertificateRequest
+	CSR        api.CSRInfo
 	ID         api.RegistrationRequest
 }
 
@@ -51,6 +50,7 @@ func (c *ClientConfig) Enroll(rawurl, home string) (id *Identity, err error) {
 	}
 	c.URL = purl.String()
 	c.TLS.Enabled = purl.Scheme == "https"
+	c.Enrollment.CSR = &c.CSR
 	client := &Client{HomeDir: home, Config: c}
 	return client.Enroll(&c.Enrollment)
 }

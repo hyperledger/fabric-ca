@@ -33,6 +33,16 @@ var revokeCmd = &cobra.Command{
 	Use:   "revoke",
 	Short: "Revoke user",
 	Long:  "Revoke user with fabric-ca server",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		err := configInit(cmd.Name())
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Client configuration settings: %+v", clientCfg)
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			cmd.Help()
