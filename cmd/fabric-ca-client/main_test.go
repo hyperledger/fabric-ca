@@ -100,7 +100,7 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	}
 
 	aff := make(map[string]interface{})
-	aff["bank_a"] = "banks"
+	aff["banks"] = "bank_a"
 
 	srv.Config.Affiliations = aff
 
@@ -208,7 +208,7 @@ func testRegisterEnvVar(t *testing.T) {
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
 	os.Setenv("FABRIC_CA_CLIENT_ID_NAME", "testRegister2")
-	os.Setenv("FABRIC_CA_CLIENT_ID_GROUP", "bank_a")
+	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "banks.bank_a")
 	os.Setenv("FABRIC_CA_CLIENT_ID_TYPE", "client")
 
 	err := RunMain([]string{cmdName, "register"})
@@ -228,7 +228,7 @@ func testRegisterCommandLine(t *testing.T) {
 	t.Log("Testing Register CMD")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	err := RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister3", "--id.group", "bank_a", "--id.type", "client", "--id.attr", "hf.test=a=b"})
+	err := RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister3", "--id.affiliation", "banks.bank_a", "--id.type", "client", "--id.attr", "hf.test=a=b"})
 	if err != nil {
 		t.Errorf("client register failed: %s", err)
 	}

@@ -63,7 +63,7 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Register User
 	callerID := r.Header.Get(enrollmentIDHdrName)
-	secret, err := h.RegisterUser(req.Name, req.Type, req.Group, req.Attributes, callerID)
+	secret, err := h.RegisterUser(req.Name, req.Type, req.Affiliation, req.Attributes, callerID)
 	if err != nil {
 		return err
 	}
@@ -75,9 +75,9 @@ func (h *registerHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 }
 
 // RegisterUser will register a user
-func (h *registerHandler) RegisterUser(id string, userType string, group string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
-	log.Debugf("Received request to register user with id: %s, group: %s, attributes: %+v, registrar: %s\n",
-		id, group, attributes, registrar)
+func (h *registerHandler) RegisterUser(id string, userType string, affiliation string, attributes []api.Attribute, registrar string, opt ...string) (string, error) {
+	log.Debugf("Received request to register user with id: %s, affiliation: %s, attributes: %+v, registrar: %s\n",
+		id, affiliation, attributes, registrar)
 
 	var tok string
 	var err error
@@ -91,13 +91,13 @@ func (h *registerHandler) RegisterUser(id string, userType string, group string,
 		}
 	}
 
-	err = h.validateID(id, userType, group)
+	err = h.validateID(id, userType, affiliation)
 	if err != nil {
 		log.Debugf("Registration of '%s' failed: %s", id, err)
 		return "", err
 	}
 
-	tok, err = h.registerUserID(id, userType, group, attributes, opt...)
+	tok, err = h.registerUserID(id, userType, affiliation, attributes, opt...)
 
 	if err != nil {
 		log.Debugf("Registration of '%s' failed: %s", id, err)
@@ -107,12 +107,12 @@ func (h *registerHandler) RegisterUser(id string, userType string, group string,
 	return tok, nil
 }
 
-func (h *registerHandler) validateID(id string, userType string, group string) error {
+func (h *registerHandler) validateID(id string, userType string, affiliation string) error {
 	log.Debug("Validate ID")
-	// Check whether the affiliation group is required for the current user.
-	if h.requireGroup(userType) {
-		// If yes, is the group valid
-		err := h.isValidGroup(group)
+	// Check whether the affiliation is required for the current user.
+	if h.requireAffiliation(userType) {
+		// If yes, is the affiliation valid
+		err := h.isValidAffiliation(affiliation)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (h *registerHandler) validateID(id string, userType string, group string) e
 }
 
 // registerUserID registers a new user and its enrollmentID, role and state
-func (h *registerHandler) registerUserID(id string, userType string, group string, attributes []api.Attribute, opt ...string) (string, error) {
+func (h *registerHandler) registerUserID(id string, userType string, affiliation string, attributes []api.Attribute, opt ...string) (string, error) {
 	log.Debugf("Registering user id: %s\n", id)
 
 	var tok string
@@ -131,11 +131,13 @@ func (h *registerHandler) registerUserID(id string, userType string, group strin
 		tok = util.RandomString(12)
 	}
 
+	// affiliationPath(name, parent)
+
 	insert := spi.UserInfo{
 		Name:           id,
 		Pass:           tok,
 		Type:           userType,
-		Group:          group,
+		Affiliation:    affiliation,
 		Attributes:     attributes,
 		MaxEnrollments: MaxEnrollments,
 	}
@@ -153,20 +155,20 @@ func (h *registerHandler) registerUserID(id string, userType string, group strin
 	return tok, nil
 }
 
-func (h *registerHandler) isValidGroup(group string) error {
-	log.Debug("Validating group: " + group)
+func (h *registerHandler) isValidAffiliation(affiliation string) error {
+	log.Debug("Validating affiliation: " + affiliation)
 
-	_, err := UserRegistry.GetGroup(group)
+	_, err := UserRegistry.GetAffiliation(affiliation)
 	if err != nil {
-		return fmt.Errorf("Failed getting affiliation group '%s': %s", group, err)
+		return fmt.Errorf("Failed getting affiliation '%s': %s", affiliation, err)
 	}
 
 	return nil
 }
 
-func (h *registerHandler) requireGroup(idType string) bool {
-	log.Debugf("An affiliation group is required for identity type %s", idType)
-	// Require an affiliation group for all identity types
+func (h *registerHandler) requireAffiliation(idType string) bool {
+	log.Debugf("An affiliation is required for identity type %s", idType)
+	// Require an affiliation for all identity types
 	return true
 }
 

@@ -66,10 +66,10 @@ type TLSConfig struct {
 
 // User information
 type User struct {
-	Pass       string          `json:"pass"` // enrollment secret
-	Type       string          `json:"type"`
-	Group      string          `json:"group"`
-	Attributes []api.Attribute `json:"attrs,omitempty"`
+	Pass        string          `json:"pass"` // enrollment secret
+	Type        string          `json:"type"`
+	Affiliation string          `json:"affiliation"`
+	Attributes  []api.Attribute `json:"attrs,omitempty"`
 }
 
 // Constructor for fabric-ca config

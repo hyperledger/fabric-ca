@@ -73,15 +73,15 @@ func createSQLiteDBTables(datasource string) error {
 	}
 
 	log.Debug("Creating tables...")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		return err
 	}
 	log.Debug("Created users table")
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		return err
 	}
-	log.Debug("Created groups table")
+	log.Debug("Created affiliation table")
 
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return err
@@ -168,12 +168,12 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 	}
 
 	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
+	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
-		log.Errorf("Error creating groups table [error: %s] ", err)
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
 	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
@@ -254,12 +254,12 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Failed to open database (%s), err: %s", dbName, err)
 	}
 	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), user_group VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id))"); err != nil {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE groups (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
-		log.Errorf("Error creating groups table [error: %s] ", err)
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
 	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(20) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT '1970-01-01 00:00:01', revoked_at timestamp DEFAULT '1970-01-01 00:00:01', pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {

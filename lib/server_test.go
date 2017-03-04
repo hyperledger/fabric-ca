@@ -83,9 +83,9 @@ func TestRootServer(t *testing.T) {
 	}
 	// Register user1
 	rr, err = admin.Register(&api.RegistrationRequest{
-		Name:  "user1",
-		Type:  "user",
-		Group: "hyperledger.fabric.security",
+		Name:        "user1",
+		Type:        "user",
+		Affiliation: "hyperledger.fabric.security",
 	})
 	if err != nil {
 		t.Fatalf("Failed to register user1: %s", err)
@@ -108,9 +108,9 @@ func TestRootServer(t *testing.T) {
 	}
 	// User1 should not be allowed to register
 	_, err = user1.Register(&api.RegistrationRequest{
-		Name:  "user2",
-		Type:  "user",
-		Group: "hyperledger.fabric-ca",
+		Name:        "user2",
+		Type:        "user",
+		Affiliation: "hyperledger.fabric-ca",
 	})
 	if err == nil {
 		t.Errorf("Failed to register user1: %s", err)

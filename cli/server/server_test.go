@@ -109,9 +109,9 @@ func TestRegisterUser(t *testing.T) {
 	}
 
 	regReq := &api.RegistrationRequest{
-		Name:  "TestUser1",
-		Type:  "Client",
-		Group: "bank_a",
+		Name:        "TestUser1",
+		Type:        "Client",
+		Affiliation: "bank_a",
 	}
 
 	_, err = id.Register(regReq)
@@ -245,9 +245,9 @@ func TestMaxEnrollment(t *testing.T) {
 	CFG.UsrReg.MaxEnrollments = 2
 
 	regReq := &api.RegistrationRequest{
-		Name:  "MaxTestUser",
-		Type:  "Client",
-		Group: "bank_a",
+		Name:        "MaxTestUser",
+		Type:        "Client",
+		Affiliation: "bank_a",
 	}
 
 	resp, err := id.Register(regReq)

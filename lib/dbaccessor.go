@@ -25,7 +25,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-	"github.com/hyperledger/fabric-ca/util"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -39,8 +38,8 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO users (id, token, type, user_group, attributes, state, max_enrollments)
-	VALUES (:id, :token, :type, :user_group, :attributes, :state, :max_enrollments);`
+INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
+	VALUES (:id, :token, :type, :affiliation, :attributes, :state, :max_enrollments);`
 
 	deleteUser = `
 DELETE FROM users
@@ -48,23 +47,23 @@ DELETE FROM users
 
 	updateUser = `
 UPDATE users
-	SET token = :token, type = :type, user_group = :user_group, attributes = :attributes
+	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes
 	WHERE (id = :id);`
 
 	getUser = `
 SELECT * FROM users
 	WHERE (id = ?)`
 
-	insertGroup = `
-INSERT INTO groups (name, parent_id)
+	insertAffiliation = `
+INSERT INTO affiliations (name, parent_id)
 	VALUES (?, ?)`
 
-	deleteGroup = `
-DELETE FROM groups
+	deleteAffiliation = `
+DELETE FROM affiliations
 	WHERE (name = ?)`
 
-	getGroup = `
-SELECT name, parent_id FROM groups
+	getAffiliation = `
+SELECT name, parent_id FROM affiliations
 	WHERE (name = ?)`
 )
 
@@ -73,17 +72,10 @@ type UserRecord struct {
 	Name           string `db:"id"`
 	Pass           string `db:"token"`
 	Type           string `db:"type"`
-	Group          string `db:"user_group"`
+	Affiliation    string `db:"affiliation"`
 	Attributes     string `db:"attributes"`
 	State          int    `db:"state"`
 	MaxEnrollments int    `db:"max_enrollments"`
-}
-
-// GroupRecord defines the properties of a group
-type GroupRecord struct {
-	Name     string `db:"name"`
-	ParentID string `db:"parent_id"`
-	Prekey   string `db:"prekey"`
 }
 
 // Accessor implements db.Accessor interface.
@@ -126,7 +118,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 		Name:           user.Name,
 		Pass:           user.Pass,
 		Type:           user.Type,
-		Group:          user.Group,
+		Affiliation:    user.Affiliation,
 		Attributes:     string(attrBytes),
 		State:          user.State,
 		MaxEnrollments: user.MaxEnrollments,
@@ -189,7 +181,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 		Name:           user.Name,
 		Pass:           user.Pass,
 		Type:           user.Type,
-		Group:          user.Group,
+		Affiliation:    user.Affiliation,
 		Attributes:     string(attributes),
 		State:          user.State,
 		MaxEnrollments: user.MaxEnrollments,
@@ -255,7 +247,7 @@ func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
 	userInfo.Name = userRec.Name
 	userInfo.Pass = userRec.Pass
 	userInfo.Type = userRec.Type
-	userInfo.Group = userRec.Group
+	userInfo.Affiliation = userRec.Affiliation
 	userInfo.State = userRec.State
 	userInfo.MaxEnrollments = userRec.MaxEnrollments
 	userInfo.Attributes = attributes
@@ -263,39 +255,14 @@ func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
 	return userInfo, nil
 }
 
-// InsertGroup inserts group into database
-func (d *Accessor) InsertGroup(name string, parentID string) error {
-	log.Debugf("DB: Insert Group (%s)", name)
+// InsertAffiliation inserts affiliation into database
+func (d *Accessor) InsertAffiliation(name string, parentID string) error {
+	log.Debugf("DB: Insert Affiliation (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(d.db.Rebind(insertGroup), name, parentID)
-	if err != nil {
-		return err
-	}
-
-	/*
-		preKeyString := crypto.CreateRootPreKey()
-
-		_, err = d.db.Exec("UPDATE groups SET prekey = ? WHERE (name = ?)", preKeyString, name)
-		if err != nil {
-			return err
-		}
-	*/
-
-	return nil
-}
-
-// DeleteGroup deletes group from database
-func (d *Accessor) DeleteGroup(name string) error {
-	log.Debugf("DB: Delete Group (%s)", name)
-	err := d.checkDB()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.db.Exec(deleteGroup, name)
+	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, parentID)
 	if err != nil {
 		return err
 	}
@@ -303,33 +270,38 @@ func (d *Accessor) DeleteGroup(name string) error {
 	return nil
 }
 
-// GetGroup gets group from database
-func (d *Accessor) GetGroup(name string) (spi.Group, error) {
-	log.Debugf("DB: Get Group (%s)", name)
+// DeleteAffiliation deletes affiliation from database
+func (d *Accessor) DeleteAffiliation(name string) error {
+	log.Debugf("DB: Delete Affiliation (%s)", name)
 	err := d.checkDB()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var groupInfo spi.GroupInfo
-
-	err = d.db.Get(&groupInfo, d.db.Rebind(getGroup), name)
+	_, err = d.db.Exec(deleteAffiliation, name)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &groupInfo, nil
+	return nil
 }
 
-// GetRootGroup gets root group from database
-func (d *Accessor) GetRootGroup() (spi.Group, error) {
-	log.Debugf("DB: Get root group")
+// GetAffiliation gets affiliation from database
+func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
+	log.Debugf("DB: Get Affiliation (%s)", name)
 	err := d.checkDB()
 	if err != nil {
 		return nil, err
 	}
-	// TODO: IMPLEMENT
-	return nil, util.ErrNotImplemented
+
+	var affiliationInfo spi.AffiliationInfo
+
+	err = d.db.Get(&affiliationInfo, d.db.Rebind(getAffiliation), name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &affiliationInfo, nil
 }
 
 // Creates a DBUser object from the DB user record
@@ -339,7 +311,7 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	user.Pass = userRec.Pass
 	user.State = userRec.State
 	user.MaxEnrollments = userRec.MaxEnrollments
-	user.Group = userRec.Group
+	user.Affiliation = userRec.Affiliation
 	user.Type = userRec.Type
 
 	var attrs []api.Attribute
@@ -419,7 +391,7 @@ func (u *DBUser) Login(pass string) error {
 
 // GetAffiliationPath returns the complete path for the user's affiliation.
 func (u *DBUser) GetAffiliationPath() []string {
-	affiliationPath := strings.Split(u.Group, "/")
+	affiliationPath := strings.Split(u.Affiliation, ".")
 	return affiliationPath
 }
 

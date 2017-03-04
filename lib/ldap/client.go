@@ -195,23 +195,23 @@ func (lc *Client) DeleteUser(id string) error {
 	return errNotSupported
 }
 
-// GetGroup returns an affiliation group
-func (lc *Client) GetGroup(name string) (spi.Group, error) {
+// GetAffiliation returns an affiliation group
+func (lc *Client) GetAffiliation(name string) (spi.Affiliation, error) {
 	return nil, errNotSupported
 }
 
-// GetRootGroup returns the root affiliation group
-func (lc *Client) GetRootGroup() (spi.Group, error) {
+// GetRootAffiliation returns the root affiliation group
+func (lc *Client) GetRootAffiliation() (spi.Affiliation, error) {
 	return nil, errNotSupported
 }
 
-// InsertGroup adds an affiliation group
-func (lc *Client) InsertGroup(name string, parentID string) error {
+// InsertAffiliation adds an affiliation group
+func (lc *Client) InsertAffiliation(name string, parentID string) error {
 	return errNotSupported
 }
 
-// DeleteGroup deletes an affiliation group
-func (lc *Client) DeleteGroup(name string) error {
+// DeleteAffiliation deletes an affiliation group
+func (lc *Client) DeleteAffiliation(name string) error {
 	return errNotSupported
 }
 

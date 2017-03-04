@@ -34,7 +34,7 @@ const (
 
 	sqliteTruncateTables = `
 DELETE FROM Users;
-DELETE FROM Groups;
+DELETE FROM affiliations;
 `
 )
 
@@ -95,8 +95,8 @@ func testEverything(ta TestAccessor, t *testing.T) {
 	testInsertAndGetUser(ta, t)
 	testDeleteUser(ta, t)
 	testUpdateUser(ta, t)
-	testInsertAndGetGroup(ta, t)
-	testDeleteGroup(ta, t)
+	testInsertAndGetAffiliation(ta, t)
+	testDeleteAffiliation(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
@@ -187,39 +187,39 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 
 }
 
-func testInsertAndGetGroup(ta TestAccessor, t *testing.T) {
+func testInsertAndGetAffiliation(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
-	err := ta.Accessor.InsertGroup("Bank1", "Banks")
+	err := ta.Accessor.InsertAffiliation("Bank1", "Banks")
 	if err != nil {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
 	}
 
-	group, err := ta.Accessor.GetGroup("Bank1")
+	group, err := ta.Accessor.GetAffiliation("Bank1")
 	if err != nil {
 		t.Errorf("Error occured during querying of name: %s, error: %s", "Bank1", err)
 	}
 
-	if group.GetName() != "Bank1" || group.GetParent() != "Banks" {
+	if group.GetName() != "Bank1" {
 		t.Error("Failed to query")
 	}
 
 }
 
-func testDeleteGroup(ta TestAccessor, t *testing.T) {
+func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
-	err := ta.Accessor.InsertGroup("Bank2", "Banks")
+	err := ta.Accessor.InsertAffiliation("Banks.Bank2", "Banks")
 	if err != nil {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank2", err)
 	}
 
-	err = ta.Accessor.DeleteGroup("Bank2")
+	err = ta.Accessor.DeleteAffiliation("Banks.Bank2")
 	if err != nil {
 		t.Errorf("Error occured during deletion of group: %s, error: %s", "Bank2", err)
 	}
 
-	_, err = ta.Accessor.GetGroup("Bank2")
+	_, err = ta.Accessor.GetAffiliation("Banks.Bank2")
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
 	}
