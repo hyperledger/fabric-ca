@@ -44,8 +44,8 @@ tls:
   # Enable TLS (default: false)
   enabled: false
 
-  # TLS for the client's listenting port (default: false)
-  certfiles: root.pem   # Comma Separated (e.g. root.pem, root2.pem)
+  # TLS for the client's listenting port
+  certfiles: root.pem   # Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
   client:
     certfile: tls_client-cert.pem
     keyfile: tls_client-key.pem

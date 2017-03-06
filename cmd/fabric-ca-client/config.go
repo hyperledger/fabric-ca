@@ -90,8 +90,8 @@ tls:
   # Enable TLS (default: false)
   enabled: false
 
-  # TLS for the client's listenting port (default: false)
-  certfiles: 				# Comma Separated (e.g. root.pem, root2.pem)
+  # TLS for the client's listenting port
+  certfiles:			# Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
   client:
     certfile:
     keyfile:
@@ -239,14 +239,17 @@ func createDefaultConfigFile() error {
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0755)
 }
 
-// processCertFiles parses comma seperated string to generate a string array
+// processCertFiles parses comma separated string to generate a string array
 func processCertFiles(cfg *tls.ClientTLSConfig) {
-	log.Debug("Process comma seperated cert files")
-	CertFiles := strings.Split(cfg.CertFiles, ",")
-	cfg.CertFilesList = make([]string, 0)
+	log.Debugf("Process comma separated cert files: %s", cfg.CertFiles)
+	if cfg.CertFiles != "" {
+		CertFiles := strings.Split(cfg.CertFiles, ",")
 
-	for i := range CertFiles {
-		cfg.CertFilesList = append(cfg.CertFilesList, strings.TrimSpace(CertFiles[i]))
+		cfg.CertFilesList = make([]string, 0)
+
+		for i := range CertFiles {
+			cfg.CertFilesList = append(cfg.CertFilesList, strings.TrimSpace(CertFiles[i]))
+		}
 	}
 }
 
