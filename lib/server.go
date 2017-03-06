@@ -242,6 +242,25 @@ func (s *Server) getCACertAndKey() (cert, key []byte, err error) {
 	return cert, key, nil
 }
 
+// Get the CA chain
+func (s *Server) getCAChain() (chain []byte, err error) {
+	if s.Config == nil {
+		return nil, errors.New("The server has no configuration")
+	}
+	ca := &s.Config.CA
+	// If the chain file exists, we always return the chain from here
+	if util.FileExists(ca.Chainfile) {
+		return util.ReadFile(ca.Chainfile)
+	}
+	// Otherwise, if this is a root CA, we always return the contents of the CACertfile
+	if s.ParentServerURL == "" {
+		return util.ReadFile(ca.Certfile)
+	}
+	// If this is an intermediate CA but the ca.Chainfile doesn't exist,
+	// it is an error.  It should have been created during intermediate CA enrollment.
+	return nil, fmt.Errorf("Chain file does not exist at %s", ca.Chainfile)
+}
+
 // RegisterBootstrapUser registers the bootstrap user with appropriate privileges
 func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	// Initialize the config, setting defaults, etc
@@ -453,11 +472,12 @@ func (s *Server) initEnrollmentSigner() (err error) {
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
 	s.mux = http.NewServeMux()
-	s.registerHandler("register", NewRegisterHandler, false, true)
-	s.registerHandler("enroll", NewEnrollHandler, true, false)
-	s.registerHandler("reenroll", NewReenrollHandler, true, false)
-	s.registerHandler("revoke", NewRevokeHandler, true, false)
-	s.registerHandler("tcert", NewTCertHandler, true, false)
+	s.registerHandler("info", newInfoHandler, false, false)
+	s.registerHandler("register", newRegisterHandler, false, true)
+	s.registerHandler("enroll", newEnrollHandler, true, false)
+	s.registerHandler("reenroll", newReenrollHandler, true, false)
+	s.registerHandler("revoke", newRevokeHandler, true, false)
+	s.registerHandler("tcert", newTCertHandler, true, false)
 }
 
 // Register an endpoint handler

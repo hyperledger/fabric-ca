@@ -22,6 +22,89 @@
     }
   ],
   "paths": {
+    "/info": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get server information.",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved server information",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                     "caname": {
+                        "type": "string",
+                        "description": "The name of the root CA associated with this server."
+                     },
+                     "cachain": {
+                        "type": "string",
+                        "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate."
+                     }
+                  }
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "A array of error messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "A array of informational messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
     "/enroll": {
       "post": {
         "tags": [

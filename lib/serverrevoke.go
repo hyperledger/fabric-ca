@@ -32,9 +32,8 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 )
 
-// NewRevokeHandler is constructor for revoke handler
-func NewRevokeHandler(server *Server) (h http.Handler, err error) {
-	// NewHandler is constructor for register handler
+// newRevokeHandler is constructor for revoke handler
+func newRevokeHandler(server *Server) (h http.Handler, err error) {
 	return &cfsslapi.HTTPHandler{
 		Handler: &revokeHandler{server: server},
 		Methods: []string{"POST"}}, nil

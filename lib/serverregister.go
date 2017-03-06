@@ -37,8 +37,8 @@ type registerHandler struct {
 	server *Server
 }
 
-// NewRegisterHandler is constructor for register handler
-func NewRegisterHandler(server *Server) (h http.Handler, err error) {
+// newRegisterHandler is constructor for register handler
+func newRegisterHandler(server *Server) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
 	return &cfsslapi.HTTPHandler{
 		Handler: &registerHandler{server: server},

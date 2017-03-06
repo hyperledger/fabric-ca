@@ -93,15 +93,24 @@ tls:
   keyfile: ca-key.pem
 
 #############################################################################
-#  The CA section contains the key and certificate files used when
-#  issuing enrollment certificates (ECerts) and transaction
+#  The CA section contains information related to the Certificate Authority
+#  including the name of the CA, which should be unique for all members
+#  of a blockchain network.  It also includes the key and certificate files
+#  used when issuing enrollment certificates (ECerts) and transaction
 #  certificates (TCerts).
+#  The chainfile (if it exists) contains the certificate chain which
+#  should be trusted for this CA, where the 1st in the chain is always the
+#  root CA certificate.
 #############################################################################
 ca:
-  # Certificate file (default: ca-cert.pem)
-  certfile: ca-cert.pem
+  # Name of this CA
+  name: <<<CANAME>>>
   # Key file (default: ca-key.pem)
   keyfile: ca-key.pem
+  # Certificate file (default: ca-cert.pem)
+  certfile: ca-cert.pem
+  # Chain file (default: chain-cert.pem)
+  chainfile: ca-chain.pem
 
 #############################################################################
 #  The registry section controls how the fabric-ca-server does two things:
@@ -301,10 +310,13 @@ func createDefaultConfigFile() error {
 	if err != nil {
 		return err
 	}
+	// Get domain name
+	mydomain := strings.Join(strings.Split(myhost, ".")[1:], ".")
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
+	cfg = strings.Replace(cfg, "<<<CANAME>>>", mydomain, 1)
 	// Now write the file
 	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {
