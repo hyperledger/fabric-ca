@@ -21,7 +21,6 @@ import (
 
 	cfapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/util"
 )
 
 // infoHandler handles the GET /info request
@@ -47,18 +46,11 @@ type serverInfoResponseNet struct {
 
 // Handle is the handler for the GET /info request
 func (ih *infoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-
 	log.Debug("Received request for server info")
-
-	caChain, err := ih.server.getCAChain()
+	resp := &serverInfoResponseNet{}
+	err := ih.server.fillServerInfo(resp)
 	if err != nil {
 		return err
 	}
-
-	resp := &serverInfoResponseNet{
-		CAName:  ih.server.Config.CA.Name,
-		CAChain: util.B64Encode(caChain),
-	}
-
 	return cfapi.SendResponse(w, resp)
 }

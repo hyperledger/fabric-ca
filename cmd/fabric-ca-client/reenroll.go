@@ -81,18 +81,20 @@ func runReenroll() error {
 		CSR:     &clientCfg.CSR,
 	}
 
-	newID, err := id.Reenroll(req)
+	resp, err := id.Reenroll(req)
 	if err != nil {
 		return fmt.Errorf("Failed to store enrollment information: %s", err)
 	}
 
-	err = newID.Store()
+	err = resp.Identity.Store()
 	if err != nil {
 		return err
 	}
 
-	log.Infof("Enrollment information was successfully stored in %s and %s",
-		client.GetMyKeyFile(), client.GetMyCertFile())
+	err = storeCAChain(clientCfg, &resp.ServerInfo)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

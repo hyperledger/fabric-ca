@@ -267,11 +267,9 @@ func processAttributes() {
 
 func checkForEnrollment() error {
 	log.Debug("Checking for enrollment")
-
 	client := lib.Client{
 		HomeDir: filepath.Dir(cfgFileName),
 		Config:  clientCfg,
 	}
-
-	return client.Enrollment()
+	return client.CheckEnrollment()
 }

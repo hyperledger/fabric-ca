@@ -100,7 +100,7 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 
 // Reenroll reenrolls an existing Identity and returns a new Identity
 // @param req The reenrollment request
-func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*Identity, error) {
+func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
 	log.Debugf("Reenrolling %s", &req)
 
 	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
@@ -119,12 +119,12 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*Identity, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result string
+	var result enrollmentResponseNet
 	err = i.Post("reenroll", body, &result)
 	if err != nil {
 		return nil, err
 	}
-	return i.client.newIdentityFromResponse(result, i.GetName(), key)
+	return i.client.newEnrollmentResponse(&result, i.GetName(), key)
 }
 
 // Revoke the identity associated with 'id'
@@ -165,7 +165,7 @@ func (i *Identity) Store() error {
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.
 func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}) error {
-	req, err := i.client.NewPost(endpoint, reqBody)
+	req, err := i.client.newPost(endpoint, reqBody)
 	if err != nil {
 		return err
 	}
@@ -189,14 +189,4 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	}
 	req.Header.Set("authorization", token)
 	return nil
-}
-
-// GetMyKeyFile returns the path to this identity's key file
-func (i *Identity) GetMyKeyFile() string {
-	return i.client.GetMyKeyFile()
-}
-
-// GetMyCertFile returns the path to this identity's key file
-func (i *Identity) GetMyCertFile() string {
-	return i.client.GetMyCertFile()
 }

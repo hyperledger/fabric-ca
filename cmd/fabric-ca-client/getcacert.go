@@ -64,12 +64,12 @@ func runGetCACert() error {
 		return err
 	}
 
-	return storeCAChain(client, si)
+	return storeCAChain(client.Config, si)
 }
 
 // Store the CAChain in the CACerts folder of MSP (Membership Service Provider)
-func storeCAChain(client *lib.Client, si *lib.GetServerInfoResponse) error {
-	mspDir := client.Config.MSPDir
+func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error {
+	mspDir := config.MSPDir
 	if !util.FileExists(mspDir) {
 		return fmt.Errorf("Directory does not exist: %s", mspDir)
 	}

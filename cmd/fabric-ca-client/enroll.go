@@ -69,10 +69,12 @@ func runEnroll(cmd *cobra.Command) error {
 		return err
 	}
 
-	ID, err := clientCfg.Enroll(clientCfg.URL, filepath.Dir(cfgFileName))
+	resp, err := clientCfg.Enroll(clientCfg.URL, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
+
+	ID := resp.Identity
 
 	cfgFile, err := ioutil.ReadFile(cfgFileName)
 	if err != nil {
@@ -91,8 +93,10 @@ func runEnroll(cmd *cobra.Command) error {
 		return fmt.Errorf("Failed to store enrollment information: %s", err)
 	}
 
-	log.Infof("Enrollment information was successfully stored in %s and %s",
-		ID.GetMyKeyFile(), ID.GetMyCertFile())
+	err = storeCAChain(clientCfg, &resp.ServerInfo)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

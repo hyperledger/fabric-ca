@@ -75,13 +75,14 @@ func TestRootServer(t *testing.T) {
 	defer server.Stop()
 	// Enroll request
 	client := getRootClient()
-	admin, err = client.Enroll(&api.EnrollmentRequest{
+	eresp, err := client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
 	})
 	if err != nil {
 		t.Fatalf("Failed to enroll admin/adminpw: %s", err)
 	}
+	admin = eresp.Identity
 	// Register user1
 	rr, err = admin.Register(&api.RegistrationRequest{
 		Name:        "user1",
@@ -92,13 +93,14 @@ func TestRootServer(t *testing.T) {
 		t.Fatalf("Failed to register user1: %s", err)
 	}
 	// Enroll user1
-	user1, err = client.Enroll(&api.EnrollmentRequest{
+	eresp, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "user1",
 		Secret: rr.Secret,
 	})
 	if err != nil {
 		t.Fatalf("Failed to enroll user1: %s", err)
 	}
+	user1 = eresp.Identity
 	// The admin ID should have 1 cert in the DB now
 	recs, err = server.CertDBAccessor().GetCertificatesByID("admin")
 	if err != nil {
@@ -117,10 +119,11 @@ func TestRootServer(t *testing.T) {
 		t.Errorf("Failed to register user1: %s", err)
 	}
 	// User1 renew
-	user1, err = user1.Reenroll(&api.ReenrollmentRequest{})
+	eresp, err = user1.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		t.Fatalf("Failed to reenroll user1: %s", err)
 	}
+	user1 = eresp.Identity
 	// User1 should not be allowed to revoke admin
 	err = user1.Revoke(&api.RevocationRequest{Name: "admin"})
 	if err == nil {

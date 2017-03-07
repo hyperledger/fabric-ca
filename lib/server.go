@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 
@@ -210,17 +211,35 @@ func (s *Server) getCACertAndKey() (cert, key []byte, err error) {
 			clientCfg.Enrollment.CSR.CA = &cfcsr.CAConfig{PathLength: 0, PathLenZero: true}
 		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
-		var id *Identity
-		id, err = clientCfg.Enroll(s.ParentServerURL, s.HomeDir)
+		var resp *EnrollmentResponse
+		resp, err = clientCfg.Enroll(s.ParentServerURL, s.HomeDir)
 		if err != nil {
 			return nil, nil, err
 		}
-		ecert := id.GetECert()
+		ecert := resp.Identity.GetECert()
 		if ecert == nil {
 			return nil, nil, errors.New("No ECert from parent server")
 		}
 		cert = ecert.Cert()
 		key = ecert.Key()
+		// Store the chain file as the concatenation of the parent's chain plus the cert.
+		chainPath := s.Config.CA.Chainfile
+		if chainPath == "" {
+			chainPath, err = util.MakeFileAbs("ca-chain.pem", s.HomeDir)
+			if err != nil {
+				return nil, nil, fmt.Errorf("Failed to create intermediate chain file path: %s", err)
+			}
+		}
+		chain := s.concatChain(resp.ServerInfo.CAChain, cert)
+		err = os.MkdirAll(path.Dir(chainPath), 0755)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to create intermediate chain file directory: %s", err)
+		}
+		err = util.WriteFile(chainPath, chain, 0644)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to create intermediate chain file: %s", err)
+		}
+		log.Debugf("Stored intermediate certificate chain at %s", chainPath)
 	} else {
 		// This is a root CA, so call cfssl to get the key and cert.
 		csr := &s.Config.CSR
@@ -240,6 +259,14 @@ func (s *Server) getCACertAndKey() (cert, key []byte, err error) {
 		return nil, nil, err
 	}
 	return cert, key, nil
+}
+
+// Return a chain which is the concatenation of chain and cert
+func (s *Server) concatChain(chain []byte, cert []byte) []byte {
+	result := make([]byte, len(chain)+len(cert))
+	copy(result[:len(chain)], chain)
+	copy(result[len(chain):], cert)
+	return result
 }
 
 // Get the CA chain
@@ -708,6 +735,7 @@ func (s *Server) makeFileNamesAbsolute() error {
 	fields := []*string{
 		&s.Config.CA.Certfile,
 		&s.Config.CA.Keyfile,
+		&s.Config.CA.Chainfile,
 		&s.Config.TLS.CertFile,
 		&s.Config.TLS.KeyFile,
 	}
@@ -756,6 +784,17 @@ func (s *Server) getUserAffiliation(username string) (string, error) {
 	aff := user.Affiliation
 	log.Debugf("getUserAttrValue user=%s, aff=%s, value=%s", username, aff)
 	return aff, nil
+}
+
+// Fill the server info structure appropriately
+func (s *Server) fillServerInfo(info *serverInfoResponseNet) error {
+	caChain, err := s.getCAChain()
+	if err != nil {
+		return err
+	}
+	info.CAName = s.Config.CA.Name
+	info.CAChain = util.B64Encode(caChain)
+	return nil
 }
 
 func writeFile(file string, buf []byte, perm os.FileMode) error {

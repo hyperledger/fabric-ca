@@ -37,6 +37,7 @@ import (
 
 const (
 	testYaml          = "../../testdata/test.yaml"
+	mspDir            = "../../testdata/msp"
 	myhost            = "hostname"
 	certfile          = "ec.pem"
 	keyfile           = "ec-key.pem"
@@ -135,7 +136,7 @@ func testGetCACert(t *testing.T) {
 	t.Log("Testing getcacert")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 	os.Remove(defYaml) // Clean up any left over config file
-	os.RemoveAll("cacerts")
+	os.RemoveAll("msp")
 	err := RunMain([]string{cmdName, "getcacert", "-d", "-u", "http://localhost:7054"})
 	if err != nil {
 		t.Errorf("getcainfo failed: %s", err)
@@ -149,6 +150,7 @@ func testGetCACert(t *testing.T) {
 		t.Error("getcacert with no URL should have failed but did not")
 	}
 	os.RemoveAll("cacerts")
+	os.RemoveAll("msp")
 	os.Remove(defYaml)
 }
 
@@ -451,6 +453,7 @@ func TestCleanUp(t *testing.T) {
 	os.Remove("../../testdata/key.pem")
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
+	os.RemoveAll(mspDir)
 }
 
 func TestRegisterWithoutEnroll(t *testing.T) {

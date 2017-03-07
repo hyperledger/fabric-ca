@@ -55,7 +55,15 @@ type signHandler struct {
 	endpoint string
 }
 
-// newEnrollHandler is the constructor for an enroll or reenroll handler
+// The enrollment response from the server
+type enrollmentResponseNet struct {
+	// Base64 encoded PEM-encoded ECert
+	Cert string
+	// The server information
+	ServerInfo serverInfoResponseNet
+}
+
+// newSignHandler is the constructor for an enroll or reenroll handler
 func newSignHandler(server *Server, endpoint string) (h http.Handler, err error) {
 	// NewHandler is constructor for register handler
 	return &cfapi.HTTPHandler{
@@ -94,6 +102,7 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	// Sign the certificate
 	cert, err := sh.server.enrollSigner.Sign(req)
 	if err != nil {
 		err = fmt.Errorf("Failed signing for endpoint %s: %s", sh.endpoint, err)
@@ -101,7 +110,14 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return cfapi.SendResponse(w, cert)
+	// Send the response with the cert and the server info
+	resp := &enrollmentResponseNet{Cert: util.B64Encode(cert)}
+	err = sh.server.fillServerInfo(&resp.ServerInfo)
+	if err != nil {
+		return err
+	}
+
+	return cfapi.SendResponse(w, resp)
 }
 
 // Make any authorization checks needed, depending on the contents

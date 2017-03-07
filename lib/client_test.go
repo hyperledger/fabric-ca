@@ -90,17 +90,17 @@ func testRegister(c *Client, t *testing.T) {
 		Secret: "adminpw",
 	}
 
-	id, err := c.Enroll(enrollReq)
+	eresp, err := c.Enroll(enrollReq)
 	if err != nil {
 		t.Fatalf("testRegister enroll of admin failed: %s", err)
 	}
 
-	err = id.Store()
+	err = eresp.Identity.Store()
 	if err != nil {
 		t.Fatalf("testRegister failed to store admin identity: %s", err)
 	}
 
-	adminID = id
+	adminID = eresp.Identity
 
 	// Register as admin
 	registerReq := &api.RegistrationRequest{
@@ -110,7 +110,7 @@ func testRegister(c *Client, t *testing.T) {
 		MaxEnrollments: 1,
 	}
 
-	resp, err := id.Register(registerReq)
+	resp, err := adminID.Register(registerReq)
 	if err != nil {
 		t.Fatalf("Register failed: %s", err)
 	}
@@ -120,10 +120,11 @@ func testRegister(c *Client, t *testing.T) {
 		Secret: resp.Secret,
 	}
 
-	id, err = c.Enroll(req)
+	eresp, err = c.Enroll(req)
 	if err != nil {
 		t.Fatalf("Enroll failed: %s", err)
 	}
+	id := eresp.Identity
 
 	if id.GetName() != "MyTestUser" {
 		t.Fatal("Incorrect name retrieved")
@@ -172,11 +173,12 @@ func testReenroll(c *Client, t *testing.T) {
 		t.Errorf("testReenroll: failed LoadMyIdentity: %s", err)
 		return
 	}
-	id, err = id.Reenroll(&api.ReenrollmentRequest{})
+	eresp, err := id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		t.Errorf("testReenroll: failed reenroll: %s", err)
 		return
 	}
+	id = eresp.Identity
 	err = id.Store()
 	if err != nil {
 		t.Errorf("testReenroll: failed Store: %s", err)
@@ -201,11 +203,12 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 		Name:   user,
 		Secret: resp.Secret,
 	}
-	id, err := c.Enroll(req)
+	eresp, err := c.Enroll(req)
 	if err != nil {
 		t.Errorf("enroll of user '%s' failed", user)
 		return
 	}
+	id := eresp.Identity
 	if ecertOnly {
 		err = id.GetECert().RevokeSelf()
 	} else {
@@ -281,10 +284,11 @@ func testTooManyEnrollments(t *testing.T) {
 		t.Errorf("Failed to enroll: %s", err)
 	}
 
-	id, err := clientConfig.Enroll(rawURL, testdataDir)
+	eresp, err := clientConfig.Enroll(rawURL, testdataDir)
 	if err != nil {
 		t.Errorf("Failed to enroll: %s", err)
 	}
+	id := eresp.Identity
 
 	_, err = clientConfig.Enroll(rawURL, testdataDir)
 	if err == nil {
@@ -318,15 +322,15 @@ func testIncorrectEnrollment(t *testing.T) {
 func TestNormalizeUrl(t *testing.T) {
 	_, err := NormalizeURL("")
 	if err != nil {
-		t.Errorf("NormalizeURL empty: %s", err)
+		t.Errorf("normalizeURL empty: %s", err)
 	}
 	_, err = NormalizeURL("http://host:7054:x/path")
 	if err != nil {
-		t.Errorf("NormalizeURL colons: %s", err)
+		t.Errorf("normalizeURL colons: %s", err)
 	}
 	_, err = NormalizeURL("http://host:7054/path")
 	if err != nil {
-		t.Errorf("NormalizeURL failed: %s", err)
+		t.Errorf("normalizeURL failed: %s", err)
 	}
 }
 
@@ -354,7 +358,6 @@ func getClient() *Client {
 
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.Remove("../testdata/cert.pem")
-	os.Remove("../testdata/key.pem")
+	os.RemoveAll("../testdata/msp")
 	os.RemoveAll(serversDir)
 }
