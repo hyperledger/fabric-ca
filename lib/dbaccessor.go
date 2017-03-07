@@ -47,7 +47,7 @@ DELETE FROM users
 
 	updateUser = `
 UPDATE users
-	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes
+	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes, state = :state
 	WHERE (id = :id);`
 
 	getUser = `

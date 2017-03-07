@@ -17,7 +17,10 @@ limitations under the License.
 package lib_test
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -28,6 +31,7 @@ import (
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 const (
@@ -140,12 +144,11 @@ func TestRootServer(t *testing.T) {
 		t.Fatalf("Failed to revoke user1's identity: %s", err)
 	}
 	// User1 should not be allowed to get tcerts now that it is revoked
-	/* FIXME: The call to revoke.VerifyCertificate in serverauth.go should fail
 	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
 	if err == nil {
 		t.Errorf("User1 should have failed to get tcerts since it is revoked")
 	}
-	*/
+
 	// Stop the server
 	err = server.Stop()
 	if err != nil {
@@ -236,7 +239,83 @@ func TestDefaultDatabase(t *testing.T) {
 	if !exist {
 		t.Error("Failed to create default sqlite fabric-ca-server.db")
 	}
+}
 
+func TestBadAuthHeader(t *testing.T) {
+	// Start the server
+	server := getRootServer(t)
+	if server == nil {
+		return
+	}
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+
+	time.Sleep(time.Second)
+
+	invalidTokenAuthorization(t)
+	invalidBasicAuthorization(t)
+
+	err = server.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+
+}
+
+func invalidTokenAuthorization(t *testing.T) {
+	client := getRootClient()
+
+	emptyByte := make([]byte, 0)
+
+	req, err := http.NewRequest("POST", "http://localhost:7055/enroll", bytes.NewReader(emptyByte))
+	if err != nil {
+		t.Error(err)
+	}
+
+	CSP := factory.GetDefault()
+
+	cert, err := ioutil.ReadFile("../testdata/ec.pem")
+	if err != nil {
+		t.Error(err)
+	}
+
+	key, err := ioutil.ReadFile("../testdata/ec-key.pem")
+	if err != nil {
+		t.Error(err)
+	}
+
+	token, err := util.CreateToken(CSP, cert, key, emptyByte)
+	if err != nil {
+		t.Errorf("Failed to add token authorization header: %s", err)
+	}
+
+	req.Header.Set("authorization", token)
+
+	err = client.SendReq(req, nil)
+
+	if err.Error() != "Error response from server was: Authorization failure" {
+		t.Error("Incorrect auth type set, request should have failed with authorization error")
+	}
+}
+
+func invalidBasicAuthorization(t *testing.T) {
+	client := getRootClient()
+
+	emptyByte := make([]byte, 0)
+
+	req, err := http.NewRequest("POST", "http://localhost:7055/register", bytes.NewReader(emptyByte))
+	if err != nil {
+		t.Error(err)
+	}
+
+	req.SetBasicAuth("admin", "adminpw")
+
+	err = client.SendReq(req, nil)
+	if err.Error() != "Error response from server was: Authorization failure" {
+		t.Error("Incorrect auth type set, request should have failed with authorization error")
+	}
 }
 
 func testIntermediateServer(idx int, t *testing.T) {
