@@ -112,6 +112,76 @@ func TestValid(t *testing.T) {
 	}
 }
 
+// Test to check that config and datasource files are created in correct location
+// based on the arguments passed to the fabric-ca-server and environment variables
+func TestDBLocation(t *testing.T) {
+	blockingStart = false
+	envs := []string{"FABRIC_CA_SERVER_HOME", "FABRIC_CA_HOME", "CA_CFG_PATH",
+		"FABRIC_CA_SERVER_DB_DATASOURCE"}
+	for _, env := range envs {
+		os.Unsetenv(env)
+	}
+
+	// Invoke server with -c arg set to serverConfig/config.yml (relative path)
+	cfgFile := "serverConfig/config.yml"
+	dsFile := "serverConfig/fabric-ca-server.db"
+	args := TestData{[]string{cmdName, "start", "-b", "admin:admin", "-c", cfgFile, "-p", "7091"}, ""}
+	checkConfigAndDBLoc(t, args, cfgFile, dsFile)
+	os.RemoveAll("serverConfig")
+
+	// Invoke server with -c arg set to serverConfig1/config.yml (relative path)
+	// and FABRIC_CA_SERVER_DB_DATASOURCE env variable set to fabric-ca-srv.db (relative path)
+	os.Setenv("FABRIC_CA_SERVER_DB_DATASOURCE", "fabric-ca-srv.db")
+	cfgFile = "serverConfig1/config.yml"
+	dsFile = "serverConfig1/fabric-ca-srv.db"
+	args = TestData{[]string{cmdName, "start", "-b", "admin:admin", "-c", cfgFile, "-p", "7092"}, ""}
+	checkConfigAndDBLoc(t, args, cfgFile, dsFile)
+	os.RemoveAll("serverConfig1")
+
+	// Invoke server with -c arg set to serverConfig2/config.yml (relative path)
+	// and FABRIC_CA_SERVER_DB_DATASOURCE env variable set to /tmp/fabric-ca-srv.db (absolute path)
+	cfgFile = "serverConfig2/config.yml"
+	dsFile = os.TempDir() + "/fabric-ca-srv.db"
+	os.Setenv("FABRIC_CA_SERVER_DB_DATASOURCE", dsFile)
+	args = TestData{[]string{cmdName, "start", "-b", "admin:admin", "-c", cfgFile, "-p", "7093"}, ""}
+	checkConfigAndDBLoc(t, args, cfgFile, dsFile)
+	os.RemoveAll("serverConfig2")
+	os.Remove(dsFile)
+
+	// Invoke server with -c arg set to /tmp/config/config.yml (absolute path)
+	// and FABRIC_CA_SERVER_DB_DATASOURCE env variable set to fabric-ca-srv.db (relative path)
+	cfgDir := os.TempDir() + "/config/"
+	cfgFile = cfgDir + "config.yml"
+	dsFile = "fabric-ca-srv.db"
+	os.Setenv("FABRIC_CA_SERVER_DB_DATASOURCE", dsFile)
+	args = TestData{[]string{cmdName, "start", "-b", "admin:admin", "-c", cfgFile, "-p", "7094"}, ""}
+	checkConfigAndDBLoc(t, args, cfgFile, cfgDir+dsFile)
+	os.RemoveAll(os.TempDir() + "/config")
+
+	// Invoke server with -c arg set to /tmp/config/config.yml (absolute path)
+	// and FABRIC_CA_SERVER_DB_DATASOURCE env variable set to /tmp/fabric-ca-srv.db (absolute path)
+	cfgFile = os.TempDir() + "/config/config.yml"
+	dsFile = os.TempDir() + "/fabric-ca-srv.db"
+	os.Setenv("FABRIC_CA_SERVER_DB_DATASOURCE", dsFile)
+	args = TestData{[]string{cmdName, "start", "-b", "admin:admin", "-c", cfgFile, "-p", "7095"}, ""}
+	checkConfigAndDBLoc(t, args, cfgFile, dsFile)
+	os.RemoveAll(os.TempDir() + "/config")
+	os.Remove(dsFile)
+}
+
+// Run server with specified args and check if the configuration and datasource
+// files exist in the specified locations
+func checkConfigAndDBLoc(t *testing.T, args TestData, cfgFile string, dsFile string) {
+	checkTest(&args, t)
+	if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+		t.Errorf("Server configuration file is not found in the expected location: %v, TestData: %v",
+			err.Error(), args)
+	} else if _, err := os.Stat(dsFile); os.IsNotExist(err) {
+		t.Errorf("Datasource is not located in the location %s: %v, TestData: %v",
+			dsFile, err.Error(), args)
+	}
+}
+
 func TestClean(t *testing.T) {
 	defYaml := util.GetDefaultConfigFile(cmdName)
 	os.Remove(defYaml)
