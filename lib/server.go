@@ -289,7 +289,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	}
 	registry := &s.Config.Registry
 	registry.Identities = append(registry.Identities, id)
-	log.Debugf("Registered bootstrap identity: %+v", id)
+	log.Debugf("Registered bootstrap identity: %+v", &id)
 	return nil
 }
 

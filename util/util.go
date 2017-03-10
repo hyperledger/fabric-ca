@@ -33,6 +33,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -71,6 +73,12 @@ var RevocationReasonCodes = map[string]int{
 	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
 	"aacompromise":         ocsp.AACompromise,
 }
+
+// SecretTag to tag a field as secret as in password, token
+const SecretTag = "secret"
+
+// PassExpr is the regular expression to check if a tag has 'password'
+var PassExpr = regexp.MustCompile(`[,]?password[,]?`)
 
 //ECDSASignature forms the structure for R and S value for ECDSA
 type ECDSASignature struct {
@@ -555,4 +563,29 @@ func GetSerialAsHex(serial *big.Int) string {
 	}
 
 	return hex
+}
+
+// StructToString converts a struct to a string. If a field
+// has a 'secret' tag, it is masked in the returned string
+func StructToString(si interface{}) string {
+	rval := reflect.ValueOf(si).Elem()
+	tipe := rval.Type()
+	var buffer bytes.Buffer
+	buffer.WriteString("{ ")
+	for i := 0; i < rval.NumField(); i++ {
+		tf := tipe.Field(i)
+		if !rval.FieldByName(tf.Name).CanSet() {
+			continue // skip unexported fields
+		}
+		var fStr string
+		tagv := tf.Tag.Get(SecretTag)
+		if PassExpr.MatchString(tagv) {
+			fStr = fmt.Sprintf("%s:**** ", tf.Name)
+		} else {
+			fStr = fmt.Sprintf("%s:%v ", tf.Name, rval.Field(i).Interface())
+		}
+		buffer.WriteString(fStr)
+	}
+	buffer.WriteString(" }")
+	return buffer.String()
 }

@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -373,7 +374,32 @@ func TestGetUser(t *testing.T) {
 	if pass != "bar" {
 		t.Error("Failed to retrieve correct password")
 	}
+}
 
+func TestStructToString(t *testing.T) {
+	var obj struct {
+		Name  string
+		Addr  string `json:"address"`
+		Pass  string `secret:"password"`
+		Pass1 string `secret:"password,token"`
+		Pass2 string `secret:"token,password"`
+		pass3 string `secret:"token,password,basic"`
+	}
+	obj.Name = "foo"
+	addr := "101, penn ave"
+	obj.Addr = addr
+	obj.Pass, obj.Pass1, obj.Pass2 = "bar", "bar", "bar"
+	obj.pass3 = "bar"
+	str := StructToString(&obj)
+	if strings.Index(str, "bar") > 0 {
+		t.Errorf("Password is not masked by the StructToString function: %s", str)
+	}
+	if strings.Index(str, "foo") < 0 {
+		t.Errorf("Name is masked by the StructToString function: %s", str)
+	}
+	if strings.Index(str, addr) < 0 {
+		t.Errorf("Addr is masked by the StructToString function: %s", str)
+	}
 }
 
 func makeFileAbs(t *testing.T, file, dir, expect string) {
