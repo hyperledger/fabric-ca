@@ -18,6 +18,7 @@ package lib
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -27,6 +28,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
@@ -50,6 +52,7 @@ import (
 
 const (
 	defaultDatabaseType = "sqlite3"
+	defaultClientAuth   = "noclientcert"
 )
 
 // Server is the fabric-ca server
@@ -537,6 +540,8 @@ func (s *Server) registerHandler(
 func (s *Server) listenAndServe() (err error) {
 
 	var listener net.Listener
+	var clientAuth tls.ClientAuthType
+	var ok bool
 
 	c := s.Config
 
@@ -556,7 +561,32 @@ func (s *Server) listenAndServe() (err error) {
 		if err != nil {
 			return err
 		}
-		config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+		if c.TLS.ClientAuth.Type == "" {
+			c.TLS.ClientAuth.Type = defaultClientAuth
+		}
+
+		log.Debugf("Client authentication type requested: %s", c.TLS.ClientAuth.Type)
+
+		authType := strings.ToLower(c.TLS.ClientAuth.Type)
+		if clientAuth, ok = clientAuthTypes[authType]; !ok {
+			return errors.New("Invalid client auth type provided")
+		}
+
+		var certPool *x509.CertPool
+		if authType != defaultClientAuth {
+			certPool, err = LoadPEMCertPool(c.TLS.ClientAuth.CertFiles)
+			if err != nil {
+				return err
+			}
+		}
+
+		config := &tls.Config{
+			Certificates: []tls.Certificate{cer},
+			ClientAuth:   clientAuth,
+			ClientCAs:    certPool,
+		}
+
 		listener, err = tls.Listen("tcp", addr, config)
 		if err != nil {
 			return fmt.Errorf("TLS listen failed: %s", err)

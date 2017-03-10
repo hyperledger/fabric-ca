@@ -26,7 +26,6 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -53,14 +52,14 @@ const (
 #      Examples:
 #      a) --url https://localhost:7054
 #         To set the fabric-ca server url
-#			 b) --tls.client.certfile certfile.pem
-#					To set the client certificate for TLS
+#      b) --tls.client.certfile certfile.pem
+#         To set the client certificate for TLS
 #   2) environment variable
 #      Examples:
 #      a) FABRIC_CA_CLIENT_URL=https://localhost:7054
 #         To set the fabric-ca server url
-#			 b) FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE=certfile.pem
-#					To set the client certificate for TLS
+#      b) FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE=certfile.pem
+#         To set the client certificate for TLS
 #   3) configuration file
 #   4) default value (if there is one)
 #      All default values are shown beside each element below.
@@ -89,13 +88,13 @@ URL: <<<URL>>>
 MSPDir:
 
 #############################################################################
-#    TLS section for the client's listenting port
+#    TLS section for the client's listening port
 #############################################################################
 tls:
   # Enable TLS (default: false)
   enabled: false
 
-  # TLS for the client's listenting port
+  # TLS section for secure socket connection
   certfiles:			# Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
   client:
     certfile:
@@ -205,7 +204,7 @@ func configInit(command string) error {
 
 	clientCfg.TLS.Enabled = purl.Scheme == "https"
 
-	processCertFiles(&clientCfg.TLS)
+	clientCfg.TLS.CertFilesList = util.ProcessCertFiles(clientCfg.TLS.CertFiles)
 
 	if clientCfg.ID.Attr != "" {
 		processAttributes()
@@ -245,20 +244,6 @@ func createDefaultConfigFile() error {
 	}
 	// Now write the file
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0755)
-}
-
-// processCertFiles parses comma separated string to generate a string array
-func processCertFiles(cfg *tls.ClientTLSConfig) {
-	log.Debugf("Process comma separated cert files: %s", cfg.CertFiles)
-	if cfg.CertFiles != "" {
-		CertFiles := strings.Split(cfg.CertFiles, ",")
-
-		cfg.CertFilesList = make([]string, 0)
-
-		for i := range CertFiles {
-			cfg.CertFilesList = append(cfg.CertFilesList, strings.TrimSpace(CertFiles[i]))
-		}
-	}
 }
 
 // processAttributes parses attributes from command line
