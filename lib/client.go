@@ -39,6 +39,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -100,6 +101,37 @@ type Client struct {
 	Config *ClientConfig
 }
 
+// GetServerInfoResponse is the response from the GetServerInfo call
+type GetServerInfoResponse struct {
+	// CAName is the name of the CA
+	CAName string
+	// CAChain is the PEM-encoded bytes of the fabric-ca-server's CA chain.
+	// The 1st element of the chain is the root CA cert
+	CAChain []byte
+}
+
+// GetServerInfo returns generic server information
+func (c *Client) GetServerInfo() (*GetServerInfoResponse, error) {
+	req, err := c.NewGet("info")
+	if err != nil {
+		return nil, err
+	}
+	sirn := &serverInfoResponseNet{}
+	err = c.SendReq(req, sirn)
+	if err != nil {
+		return nil, err
+	}
+	caChain, err := util.B64Decode(sirn.CAChain)
+	if err != nil {
+		return nil, err
+	}
+	si := &GetServerInfoResponse{
+		CAName:  sirn.CAName,
+		CAChain: caChain,
+	}
+	return si, nil
+}
+
 // Enroll enrolls a new identity
 // @param req The enrollment request
 func (c *Client) Enroll(req *api.EnrollmentRequest) (*Identity, error) {
@@ -130,7 +162,8 @@ func (c *Client) Enroll(req *api.EnrollmentRequest) (*Identity, error) {
 		return nil, err
 	}
 	post.SetBasicAuth(req.Name, req.Secret)
-	result, err := c.SendPost(post)
+	var result string
+	err = c.SendReq(post, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -275,11 +308,24 @@ func (c *Client) LoadCSRInfo(path string) (*api.CSRInfo, error) {
 	return &csrInfo, nil
 }
 
+// NewGet create a new GET request
+func (c *Client) NewGet(endpoint string) (*http.Request, error) {
+	curl, err := c.getURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("GET", curl, bytes.NewReader([]byte{}))
+	if err != nil {
+		return nil, fmt.Errorf("Failed creating GET request for %s: %s", curl, err)
+	}
+	return req, nil
+}
+
 // NewPost create a new post request
 func (c *Client) NewPost(endpoint string, reqBody []byte) (*http.Request, error) {
-	curl, cerr := c.getURL(endpoint)
-	if cerr != nil {
-		return nil, cerr
+	curl, err := c.getURL(endpoint)
+	if err != nil {
+		return nil, err
 	}
 	req, err := http.NewRequest("POST", curl, bytes.NewReader(reqBody))
 	if err != nil {
@@ -288,8 +334,8 @@ func (c *Client) NewPost(endpoint string, reqBody []byte) (*http.Request, error)
 	return req, nil
 }
 
-// SendPost sends a request to the LDAP server and returns a response
-func (c *Client) SendPost(req *http.Request) (interface{}, error) {
+// SendReq sends a request to the fabric-ca-server and fills in the result
+func (c *Client) SendReq(req *http.Request, result interface{}) error {
 	reqStr := util.HTTPRequestToString(req)
 	log.Debugf("Sending request\n%s", reqStr)
 
@@ -300,12 +346,12 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 
 		err := tls.AbsTLSClient(&c.Config.TLS, c.HomeDir)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		tlsConfig, err := tls.GetClientTLSConfig(&c.Config.TLS)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get client TLS config: %s", err)
+			return fmt.Errorf("Failed to get client TLS config: %s", err)
 		}
 
 		tr.TLSClientConfig = tlsConfig
@@ -314,14 +360,14 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 	httpClient := &http.Client{Transport: tr}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("POST failure [%s]; not sending\n%s", err, reqStr)
+		return fmt.Errorf("POST failure [%s]; not sending\n%s", err, reqStr)
 	}
 	var respBody []byte
 	if resp.Body != nil {
 		respBody, err = ioutil.ReadAll(resp.Body)
 		defer resp.Body.Close()
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read response [%s] of request:\n%s", err, reqStr)
+			return fmt.Errorf("Failed to read response [%s] of request:\n%s", err, reqStr)
 		}
 		log.Debugf("Received response\n%s", util.HTTPResponseToString(resp))
 	}
@@ -330,25 +376,28 @@ func (c *Client) SendPost(req *http.Request) (interface{}, error) {
 		body = new(cfsslapi.Response)
 		err = json.Unmarshal(respBody, body)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse response [%s] for request:\n%s", err, reqStr)
+			return fmt.Errorf("Failed to parse response [%s] for request:\n%s", err, reqStr)
 		}
 		if len(body.Errors) > 0 {
 			msg := body.Errors[0].Message
-			return nil, fmt.Errorf("Error response from server was: %s", msg)
+			return fmt.Errorf("Error response from server was: %s", msg)
 		}
 	}
 	scode := resp.StatusCode
 	if scode >= 400 {
-		return nil, fmt.Errorf("Failed with server status code %d for request:\n%s", scode, reqStr)
+		return fmt.Errorf("Failed with server status code %d for request:\n%s", scode, reqStr)
 	}
 	if body == nil {
-		return nil, nil
+		return fmt.Errorf("Empty response body:\n%s", reqStr)
 	}
 	if !body.Success {
-		return nil, fmt.Errorf("Server returned failure for request:\n%s", reqStr)
+		return fmt.Errorf("Server returned failure for request:\n%s", reqStr)
 	}
 	log.Debugf("Response body result: %+v", body.Result)
-	return body.Result, nil
+	if result != nil {
+		return mapstructure.Decode(body.Result, result)
+	}
+	return nil
 }
 
 func (c *Client) getURL(endpoint string) (string, error) {

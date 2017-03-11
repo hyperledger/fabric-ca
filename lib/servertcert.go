@@ -38,8 +38,8 @@ type tcertHandler struct {
 	keyTree *tcert.KeyTree
 }
 
-// NewTCertHandler is constructor for tcert handler
-func NewTCertHandler(server *Server) (h http.Handler, err error) {
+// newTCertHandler is constructor for tcert handler
+func newTCertHandler(server *Server) (h http.Handler, err error) {
 	handler, err := initTCertHandler(server)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize TCert handler: %s", err)

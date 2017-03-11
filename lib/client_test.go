@@ -54,6 +54,7 @@ func TestClient(t *testing.T) {
 
 	c := getClient()
 
+	testGetServerInfo(c, t)
 	testRegister(c, t)
 	testEnrollIncorrectPassword(c, t)
 	testDoubleEnroll(c, t)
@@ -68,6 +69,17 @@ func TestClient(t *testing.T) {
 
 	server.Stop()
 
+}
+
+func testGetServerInfo(c *Client, t *testing.T) {
+
+	si, err := c.GetServerInfo()
+	if err != nil {
+		t.Fatalf("Failed to get server info: %s", err)
+	}
+	if si == nil {
+		t.Fatal("Server info is nil")
+	}
 }
 
 func testRegister(c *Client, t *testing.T) {
@@ -326,7 +338,7 @@ func TestSendBadPost(t *testing.T) {
 	curl := "fake"
 	reqBody := []byte("")
 	req, _ := http.NewRequest("POST", curl, bytes.NewReader(reqBody))
-	_, err := c.SendPost(req)
+	err := c.SendReq(req, nil)
 	if err == nil {
 		t.Error("Sending post should have failed")
 	}

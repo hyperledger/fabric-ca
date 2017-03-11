@@ -58,8 +58,10 @@ type ServerConfig struct {
 
 // ServerConfigCA is the CA config for the fabric-ca server
 type ServerConfigCA struct {
-	Certfile string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
-	Keyfile  string `def:"ca-key.pem" help:"PEM-encoded CA key file"`
+	Name      string `opt:"n" help:"Certificate Authority name"`
+	Keyfile   string `def:"ca-key.pem" help:"PEM-encoded CA key file"`
+	Certfile  string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
+	Chainfile string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
 }
 
 // ServerConfigDB is the database part of the server's config

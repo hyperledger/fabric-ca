@@ -55,6 +55,10 @@ func (ah *fcaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Handle performs authentication
 func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	log.Debugf("Received request\n%s", util.HTTPRequestToString(r))
+	if !ah.basic && !ah.token {
+		// No authentication required
+		return nil
+	}
 	authHdr := r.Header.Get("authorization")
 	if authHdr == "" {
 		log.Debug("No authorization header")

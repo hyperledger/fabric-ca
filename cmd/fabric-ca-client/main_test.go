@@ -116,6 +116,7 @@ func TestClientCommandsNoTLS(t *testing.T) {
 		t.Errorf("Server start failed: %s", err)
 	}
 
+	testGetCACert(t)
 	testEnroll(t)
 	testRegisterConfigFile(t)
 	testRegisterEnvVar(t)
@@ -127,6 +128,28 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
 	}
+}
+
+// TestGetCACert tests fabric-ca-client getcacert
+func testGetCACert(t *testing.T) {
+	t.Log("Testing getcacert")
+	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
+	os.Remove(defYaml) // Clean up any left over config file
+	os.RemoveAll("cacerts")
+	err := RunMain([]string{cmdName, "getcacert", "-d", "-u", "http://localhost:7054"})
+	if err != nil {
+		t.Errorf("getcainfo failed: %s", err)
+	}
+	err = RunMain([]string{cmdName, "getcacert", "-d", "-u", "http://localhost:9999"})
+	if err == nil {
+		t.Error("getcacert with bogus URL should have failed but did not")
+	}
+	err = RunMain([]string{cmdName, "getcacert", "-d"})
+	if err == nil {
+		t.Error("getcacert with no URL should have failed but did not")
+	}
+	os.RemoveAll("cacerts")
+	os.Remove(defYaml)
 }
 
 // TestEnroll tests fabric-ca-client enroll

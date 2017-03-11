@@ -38,13 +38,13 @@ var (
 	basicConstraintsOID = asn1.ObjectIdentifier{2, 5, 29, 19}
 )
 
-// NewEnrollHandler is the constructor for the enroll handler
-func NewEnrollHandler(server *Server) (h http.Handler, err error) {
+// newEnrollHandler is the constructor for the enroll handler
+func newEnrollHandler(server *Server) (h http.Handler, err error) {
 	return newSignHandler(server, "enroll")
 }
 
-// NewReenrollHandler is the constructor for the reenroll handler
-func NewReenrollHandler(server *Server) (h http.Handler, err error) {
+// newReenrollHandler is the constructor for the reenroll handler
+func newReenrollHandler(server *Server) (h http.Handler, err error) {
 	return newSignHandler(server, "reenroll")
 }
 

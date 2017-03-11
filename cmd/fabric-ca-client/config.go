@@ -83,6 +83,11 @@ const (
 # URL of the Fabric-ca-server (default: http://localhost:7054)
 URL: <<<URL>>>
 
+# Membership Service Provider (MSP) directory
+# This is useful when the client is used to enroll a peer or orderer, so
+# that the enrollment artifacts are stored in the format expected by MSP.
+MSPDir:
+
 #############################################################################
 #    TLS section for the client's listenting port
 #############################################################################
@@ -228,6 +233,9 @@ func createDefaultConfigFile() error {
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	user, _, err := util.GetUser()
+	if err != nil {
+		return err
+	}
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
 	// Now write the file
