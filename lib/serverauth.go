@@ -33,12 +33,20 @@ const (
 	enrollmentIDHdrName = "__eid__"
 )
 
+// AuthType is the enum for authentication types: basic and token
+type authType int
+
+const (
+	noAuth authType = iota
+	basic           // basic = 1
+	token           // token = 2
+)
+
 // Fabric CA authentication handler
 type fcaAuthHandler struct {
-	server *Server
-	basic  bool
-	token  bool
-	next   http.Handler
+	server   *Server
+	authType authType
+	next     http.Handler
 }
 
 var authError = cerr.NewBadRequest(errors.New("Authorization failure"))
@@ -55,7 +63,7 @@ func (ah *fcaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Handle performs authentication
 func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	log.Debugf("Received request\n%s", util.HTTPRequestToString(r))
-	if !ah.basic && !ah.token {
+	if ah.authType == noAuth {
 		// No authentication required
 		return nil
 	}
@@ -66,7 +74,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	}
 	user, pwd, ok := r.BasicAuth()
 	if ok {
-		if !ah.basic {
+		if ah.authType != basic {
 			log.Debugf("Basic auth is not allowed; found %s", authHdr)
 			return errBasicAuthNotAllowed
 		}
@@ -85,7 +93,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		return nil
 	}
 	// Perform token verification
-	if ah.token {
+	if ah.authType == token {
 		// read body
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
