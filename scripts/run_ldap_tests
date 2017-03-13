@@ -8,7 +8,7 @@
 # IMAGE is the name of docker image
 OLC=openldap-fabric-ca
 IMAGE=osixia/openldap
-COP=$GOPATH/src/github.com/hyperledger/fabric-ca
+CA=$GOPATH/src/github.com/hyperledger/fabric-ca
 
 # Start the LDAP container
 function startContainer {
@@ -41,7 +41,7 @@ function addUser {
    ADMINPW=admin
    USER=uid=jsmith,dc=example,dc=org
    USERPW=jsmithpw
-   docker cp $COP/scripts/$LDIF $OLC:/tmp
+   docker cp $CA/scripts/$LDIF $OLC:/tmp
    docker exec $OLC ldapadd -cxD $ADMIN -w $ADMINPW -f /tmp/$LDIF
    docker exec $OLC ldappasswd -xD $ADMIN -w $ADMINPW $USER -s $USERPW
    return 0
@@ -50,7 +50,7 @@ function addUser {
 # Run the LDAP test cases
 function runTests {
    echo "Running LDAP test cases ..."
-   cd $COP/cli/server/ldap
+   cd $CA/cli/server/ldap
    go test . -cover | tee /tmp/ldap-test.results
    echo "LDAP test cases are complete"
 }
@@ -88,5 +88,5 @@ stopContainer
 
 #removeImage
 
-$COP/scripts/check_test_results /tmp/ldap-test.results
+$CA/scripts/check_test_results /tmp/ldap-test.results
 exit $?
