@@ -699,7 +699,7 @@ func (s *Server) CertDBAccessor() *CertDBAccessor {
 }
 
 func (s *Server) convertAttrs(inAttrs map[string]string) []api.Attribute {
-	outAttrs := make([]api.Attribute, 0)
+	var outAttrs []api.Attribute
 	for name, value := range inAttrs {
 		outAttrs = append(outAttrs, api.Attribute{
 			Name:  name,
