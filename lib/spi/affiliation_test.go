@@ -19,10 +19,19 @@ package spi
 import "testing"
 
 func TestGetName(t *testing.T) {
-	aff := &AffiliationInfo{Name: "Bank_a", Prekey: "1234"}
+	aff := &AffiliationImpl{Name: "Bank_a", Prekey: "1234"}
 	name := aff.GetName()
 
 	if name != "Bank_a" {
 		t.Error("Name does not match, expected 'Bank_a'")
+	}
+}
+
+func TestGetPrekey(t *testing.T) {
+	aff := &AffiliationImpl{Name: "Bank_a", Prekey: "1234"}
+	name := aff.GetPrekey()
+
+	if name != "1234" {
+		t.Error("Prekey does not match, expected '1234'")
 	}
 }

@@ -78,7 +78,7 @@ func createSQLiteDBTables(datasource string) error {
 	}
 	log.Debug("Created users table")
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		return err
 	}
 	log.Debug("Created affiliation table")
@@ -176,7 +176,7 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
@@ -262,7 +262,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), parent_id VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
