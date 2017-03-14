@@ -63,37 +63,38 @@ func (ah *fcaAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Handle performs authentication
 func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) error {
 	log.Debugf("Received request\n%s", util.HTTPRequestToString(r))
-	if ah.authType == noAuth {
+	authHdr := r.Header.Get("authorization")
+	switch ah.authType {
+	case noAuth:
 		// No authentication required
 		return nil
-	}
-	authHdr := r.Header.Get("authorization")
-	if authHdr == "" {
-		log.Debug("No authorization header")
-		return errNoAuthHdr
-	}
-	user, pwd, ok := r.BasicAuth()
-	if ok {
-		if ah.authType != basic {
-			log.Debugf("Basic auth is not allowed; found %s", authHdr)
-			return errBasicAuthNotAllowed
+	case basic:
+		if authHdr == "" {
+			log.Debug("No authorization header")
+			return errNoAuthHdr
 		}
-		u, err := ah.server.registry.GetUser(user, nil)
-		if err != nil {
-			log.Debugf("Failed to get user '%s': %s", user, err)
-			return authError
+		user, pwd, ok := r.BasicAuth()
+		if ok {
+			if ah.authType != basic {
+				log.Debugf("Basic auth is not allowed; found %s", authHdr)
+				return errBasicAuthNotAllowed
+			}
+			u, err := ah.server.registry.GetUser(user, nil)
+			if err != nil {
+				log.Debugf("Failed to get user '%s': %s", user, err)
+				return authError
+			}
+			err = u.Login(pwd)
+			if err != nil {
+				log.Debugf("Failed to login '%s': %s", user, err)
+				return authError
+			}
+			log.Debug("User/Pass was correct")
+			r.Header.Set(enrollmentIDHdrName, user)
+			return nil
 		}
-		err = u.Login(pwd)
-		if err != nil {
-			log.Debugf("Failed to login '%s': %s", user, err)
-			return authError
-		}
-		log.Debug("User/Pass was correct")
-		r.Header.Set(enrollmentIDHdrName, user)
-		return nil
-	}
-	// Perform token verification
-	if ah.authType == token {
+		return authError
+	case token:
 		// read body
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -121,8 +122,11 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		}
 		log.Debugf("Successful authentication of '%s'", id)
 		r.Header.Set(enrollmentIDHdrName, util.GetEnrollmentIDFromX509Certificate(cert))
+		return nil
+	default: // control should never reach here
+		log.Errorf("No handler for the authentication type: %d", ah.authType)
+		return authError
 	}
-	return nil
 }
 
 func wrappedPath(path string) string {
