@@ -499,20 +499,19 @@ func (s *Server) initEnrollmentSigner() (err error) {
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
 	s.mux = http.NewServeMux()
-	s.registerHandler("info", newInfoHandler, false, false)
-	s.registerHandler("register", newRegisterHandler, false, true)
-	s.registerHandler("enroll", newEnrollHandler, true, false)
-	s.registerHandler("reenroll", newReenrollHandler, true, false)
-	s.registerHandler("revoke", newRevokeHandler, true, false)
-	s.registerHandler("tcert", newTCertHandler, true, false)
+	s.registerHandler("info", newInfoHandler, noAuth)
+	s.registerHandler("register", newRegisterHandler, token)
+	s.registerHandler("enroll", newEnrollHandler, basic)
+	s.registerHandler("reenroll", newReenrollHandler, token)
+	s.registerHandler("revoke", newRevokeHandler, token)
+	s.registerHandler("tcert", newTCertHandler, token)
 }
 
 // Register an endpoint handler
 func (s *Server) registerHandler(
 	path string,
 	getHandler func(server *Server) (http.Handler, error),
-	basic bool,
-	token bool) {
+	at authType) {
 
 	var handler http.Handler
 
@@ -522,10 +521,9 @@ func (s *Server) registerHandler(
 		return
 	}
 	handler = &fcaAuthHandler{
-		server: s,
-		basic:  basic,
-		token:  token,
-		next:   handler,
+		server:   s,
+		authType: at,
+		next:     handler,
 	}
 	s.mux.Handle("/"+path, handler)
 	// TODO: Remove the following line once all SDKs stop using the prefixed paths
