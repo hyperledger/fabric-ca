@@ -185,7 +185,6 @@ func configInit(command string) error {
 
 	// Call viper to read the config
 	viper.SetConfigFile(cfgFileName)
-	viper.SetConfigType("yaml")
 	viper.AutomaticEnv() // read in environment variables that match
 	err = viper.ReadInConfig()
 	if err != nil {

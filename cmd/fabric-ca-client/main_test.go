@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"bufio"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
@@ -52,6 +53,54 @@ const (
 	clientKeyEnvVar   = "FABRIC_CA_CLIENT_TLS_CLIENT_KEYFILE"
 	clientCertEnvVar  = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
 )
+
+const jsonConfig = `{
+  "URL": "http://localhost:8888",
+  "tls": {
+    "enabled": false,
+    "certfiles": null,
+    "client": {
+      "certfile": null,
+      "keyfile": null
+    }
+  },
+  "csr": {
+    "cn": "admin",
+    "names": [
+      {
+        "C": "US",
+        "ST": "North Carolina",
+        "L": null,
+        "O": "Hyperledger",
+        "OU": "Fabric"
+      }
+    ],
+    "hosts": [
+      "charente"
+    ],
+    "ca": {
+      "pathlen": null,
+      "pathlenzero": null,
+      "expiry": null
+    }
+  },
+  "id": {
+    "name": null,
+    "type": null,
+    "group": null,
+    "attributes": [
+      {
+        "name": null,
+        "value": null
+      }
+    ]
+  },
+  "enrollment": {
+    "hosts": null,
+    "profile": null,
+    "label": null
+  }
+}`
 
 var (
 	defYaml    string
@@ -117,6 +166,7 @@ func TestClientCommandsNoTLS(t *testing.T) {
 		t.Errorf("Server start failed: %s", err)
 	}
 
+	testConfigFileTypes(t)
 	testGetCACert(t)
 	testEnroll(t)
 	testRegisterConfigFile(t)
@@ -129,6 +179,53 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
 	}
+}
+
+func testConfigFileTypes(t *testing.T) {
+	t.Log("Testing config file types")
+
+	// Viper supports file types:
+	//    yaml, yml, json, hcl, toml, props, prop, properties, so
+	// any other file type will result in an error. However, not all
+	// these file types are suitable to represent fabric-ca
+	// client/server config properties -- for example, props/prop/properties
+	// file type
+	err := RunMain([]string{cmdName, "enroll", "-u",
+		"http://admin:adminpw@localhost:7054", "-c", "config/client-config.txt"})
+	if err == nil {
+		t.Errorf("Enroll command invoked with -c config/client-config.txt should have failed: %v",
+			err.Error())
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-u",
+		"http://admin:adminpw@localhost:7054", "-c", "config/client-config.mf"})
+	if err == nil {
+		t.Errorf("Enroll command invoked with -c config/client-config.mf should have failed: %v",
+			err.Error())
+	}
+
+	fName := os.TempDir() + "/client-config.json"
+	f, err := os.Create(fName)
+	if err != nil {
+		t.Fatalf("Unable to create json config file: %v", err.Error())
+	}
+	w := bufio.NewWriter(f)
+	nb, err := w.WriteString(jsonConfig)
+	if err != nil {
+		t.Fatalf("Unable to write to json config file: %v", err.Error())
+	}
+	t.Logf("Wrote %d bytes to %s", nb, fName)
+	w.Flush()
+
+	err = RunMain([]string{cmdName, "enroll", "-u",
+		"http://admin:adminpw@localhost:7054", "-c", fName})
+	if err != nil {
+		t.Errorf("Enroll command invoked with -c %s failed: %v",
+			fName, err.Error())
+	}
+
+	// Reset the config file name
+	cfgFileName = util.GetDefaultConfigFile("fabric-ca-client")
 }
 
 // TestGetCACert tests fabric-ca-client getcacert
