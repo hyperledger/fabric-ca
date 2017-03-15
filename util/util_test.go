@@ -257,10 +257,14 @@ func TestCreateHome(t *testing.T) {
 func TestGetDefaultConfigFile(t *testing.T) {
 	os.Unsetenv("FABRIC_CA_HOME")
 	os.Unsetenv("FABRIC_CA_CLIENT_HOME")
+	os.Unsetenv("FABRIC_CA_SERVER_HOME")
+
+	const clientConfig = "fabric-ca-client-config.yaml"
+	const serverConfig = "fabric-ca-server-config.yaml"
 
 	os.Setenv("HOME", "/tmp")
 
-	expected := filepath.Join("/tmp", ".fabric-ca-client/fabric-ca-client-config.yaml")
+	expected := filepath.Join("/tmp/.fabric-ca-client/", clientConfig)
 	real := GetDefaultConfigFile("fabric-ca-client")
 	if real != expected {
 		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
@@ -268,7 +272,30 @@ func TestGetDefaultConfigFile(t *testing.T) {
 	}
 
 	os.Setenv("FABRIC_CA_HOME", "/tmp")
-	expected = filepath.Join("/tmp", "fabric-ca-server-config.yaml")
+	expected = filepath.Join("/tmp", clientConfig)
+	real = GetDefaultConfigFile("fabric-ca-client")
+	if real != expected {
+		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
+			expected, real)
+	}
+
+	expected = filepath.Join("/tmp", serverConfig)
+	real = GetDefaultConfigFile("fabric-ca-server")
+	if real != expected {
+		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
+			expected, real)
+	}
+
+	os.Setenv("FABRIC_CA_CLIENT_HOME", "/tmp/client")
+	expected = filepath.Join("/tmp/client", clientConfig)
+	real = GetDefaultConfigFile("fabric-ca-client")
+	if real != expected {
+		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
+			expected, real)
+	}
+
+	os.Setenv("FABRIC_CA_SERVER_HOME", "/tmp/server")
+	expected = filepath.Join("/tmp/server", serverConfig)
 	real = GetDefaultConfigFile("fabric-ca-server")
 	if real != expected {
 		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",

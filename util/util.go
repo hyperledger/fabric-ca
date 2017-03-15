@@ -441,16 +441,17 @@ func GetDefaultConfigFile(cmdName string) string {
 
 	var fname = fmt.Sprintf("%s-config.yaml", cmdName)
 	// First check home env variables
-	home := "."
-	envs := []string{"FABRIC_CA_CLIENT_HOME", "FABRIC_CA_HOME", "CA_CFG_PATH", "HOME"}
+	var home string
+	envs := []string{"FABRIC_CA_CLIENT_HOME", "FABRIC_CA_HOME", "CA_CFG_PATH"}
 	for _, env := range envs {
 		envVal := os.Getenv(env)
 		if envVal != "" {
 			home = envVal
-			break
+			return path.Join(home, fname)
 		}
 	}
-	return path.Join(home, ".fabric-ca-client", fname)
+
+	return path.Join(os.Getenv("HOME"), ".fabric-ca-client", fname)
 }
 
 // GetX509CertificateFromPEM converts a PEM buffer to an X509 Certificate
