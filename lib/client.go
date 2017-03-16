@@ -38,6 +38,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -132,6 +133,10 @@ func (c *Client) Init() error {
 		err = os.MkdirAll(c.caCertsDir, 0755)
 		if err != nil {
 			return fmt.Errorf("Failed to create cacerts directory: %s", err)
+		}
+		err = factory.InitFactories(nil)
+		if err != nil {
+			return fmt.Errorf("Failed to initialize BCCSP: %s", err)
 		}
 		c.initialized = true
 	}
