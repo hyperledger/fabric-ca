@@ -126,7 +126,7 @@ csr:
 id:
   name:
   type:
-  group:
+  affiliation:
   attributes:
     - name:
       value:
