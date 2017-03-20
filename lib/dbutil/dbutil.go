@@ -258,7 +258,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Failed to open database (%s), err: %s", dbName, err)
 	}
 	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
@@ -266,7 +266,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT '1970-01-01 00:00:01', revoked_at timestamp DEFAULT '1970-01-01 00:00:01', pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT '1970-01-01 00:00:01', revoked_at timestamp DEFAULT '1970-01-01 00:00:01', pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		log.Errorf("Error creating certificates table [error: %s] ", err)
 		return err
 	}
