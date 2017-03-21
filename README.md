@@ -2,7 +2,7 @@
 
 The fabric-ca is a Certificate Authority for Hyperledger Fabric v1.0 and later.
 
-It consists of both a serve and a client component.
+It consists of both a server and a client component.
 
 It provides features including:  
 * registration of identities;
