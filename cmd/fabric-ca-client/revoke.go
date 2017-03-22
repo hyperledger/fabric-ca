@@ -51,7 +51,7 @@ var revokeCmd = &cobra.Command{
 			return nil
 		}
 
-		err := runRevoke()
+		err := runRevoke(cmd)
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func init() {
 }
 
 // The client revoke main logic
-func runRevoke() error {
+func runRevoke(cmd *cobra.Command) error {
 	log.Debug("Revoke Entered")
 
 	var err error
@@ -91,10 +91,12 @@ func runRevoke() error {
 
 	if enrollmentID == "" {
 		if serial == "" || aki == "" {
+			cmd.Usage()
 			return errInput
 		}
 	} else {
 		if serial != "" || aki != "" {
+			cmd.Usage()
 			return errInput
 		}
 	}

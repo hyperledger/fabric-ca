@@ -780,7 +780,7 @@ func (s *Server) getUserAffiliation(username string) (string, error) {
 		return "", err
 	}
 	aff := user.Affiliation
-	log.Debugf("getUserAttrValue user=%s, aff=%s, value=%s", username, aff)
+	log.Debugf("getUserAffiliation user=%s, aff=%s", username, aff)
 	return aff, nil
 }
 

@@ -92,8 +92,9 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	if req.Serial != "" && req.AKI != "" {
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
-			log.Error(notFound(w, err))
-			return notFound(w, err)
+			msg := fmt.Sprintf("Failed to retrieve certificate for the provided serial number and AKI: %s", err)
+			log.Errorf(msg)
+			return notFound(w, errors.New(msg))
 		}
 
 		userInfo, err2 := registry.GetUserInfo(certificate.ID)
@@ -108,8 +109,9 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
 		if err != nil {
-			log.Error(notFound(w, err))
-			return notFound(w, err)
+			msg := fmt.Sprintf("Failed to revoke certificate: %s", err)
+			log.Error(msg)
+			return notFound(w, errors.New(msg))
 		}
 	} else if req.Name != "" {
 
