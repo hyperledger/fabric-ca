@@ -37,21 +37,22 @@ import (
 )
 
 const (
-	testYaml          = "../../testdata/test.yaml"
-	mspDir            = "../../testdata/msp"
-	myhost            = "hostname"
-	certfile          = "ec.pem"
-	keyfile           = "ec-key.pem"
-	tlsCertFile       = "tls_server-cert.pem"
-	tlsKeyFile        = "tls_server-key.pem"
-	rootCert          = "root.pem"
-	tlsClientCertFile = "tls_client-cert.pem"
-	tlsClientKeyFile  = "tls_client-key.pem"
-	tdDir             = "../../testdata"
-	db                = "fabric-ca-server.db"
-	rootCertEnvVar    = "FABRIC_CA_CLIENT_TLS_CERTFILES"
-	clientKeyEnvVar   = "FABRIC_CA_CLIENT_TLS_CLIENT_KEYFILE"
-	clientCertEnvVar  = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
+	testYaml             = "../../testdata/test.yaml"
+	mspDir               = "../../testdata/msp"
+	myhost               = "hostname"
+	certfile             = "ec.pem"
+	keyfile              = "ec-key.pem"
+	tlsCertFile          = "tls_server-cert.pem"
+	tlsKeyFile           = "tls_server-key.pem"
+	rootCert             = "root.pem"
+	tlsClientCertFile    = "tls_client-cert.pem"
+	tlsClientCertExpired = "expiredcert.pem"
+	tlsClientKeyFile     = "tls_client-key.pem"
+	tdDir                = "../../testdata"
+	db                   = "fabric-ca-server.db"
+	rootCertEnvVar       = "FABRIC_CA_CLIENT_TLS_CERTFILES"
+	clientKeyEnvVar      = "FABRIC_CA_CLIENT_TLS_CLIENT_KEYFILE"
+	clientCertEnvVar     = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
 )
 
 const jsonConfig = `{
@@ -538,6 +539,11 @@ func TestClientCommandsTLS(t *testing.T) {
 	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "--tls.certfiles", rootCert, "--tls.client.keyfile", tlsClientKeyFile, "--tls.client.certfile", tlsClientCertFile, "-u", "https://admin:adminpw@localhost:7054", "-d"})
 	if err != nil {
 		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "--tls.certfiles", rootCert, "--tls.client.keyfile", tlsClientKeyFile, "--tls.client.certfile", tlsClientCertExpired, "-u", "https://admin:adminpw@localhost:7054", "-d"})
+	if err == nil {
+		t.Errorf("Expired certificate used for TLS connection, should have failed")
 	}
 
 	err = srv.Stop()

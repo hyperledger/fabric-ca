@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
@@ -59,15 +60,25 @@ type KeyCertFiles struct {
 func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	var certs []tls.Certificate
 
-	log.Debugf("CA Files: %s\n", cfg.CertFiles)
+	log.Debugf("CA Files: %s\n", cfg.CertFilesList)
 	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
-	clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
-	if err != nil {
-		log.Debugf("Client Cert or Key not provided, if server requires mutual TLS, the connection will fail: %s", err)
-	}
 
-	certs = append(certs, clientCert)
+	if cfg.Client.CertFile != "" && cfg.Client.KeyFile != "" {
+		err := checkCertDates(cfg.Client.CertFile)
+		if err != nil {
+			return nil, err
+		}
+
+		clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+
+		certs = append(certs, clientCert)
+	} else {
+		log.Debug("Client TLS certificate and/or key file not provided")
+	}
 
 	rootCAPool := x509.NewCertPool()
 
@@ -114,6 +125,33 @@ func AbsTLSClient(cfg *ClientTLSConfig, configDir string) error {
 	cfg.Client.KeyFile, err = util.MakeFileAbs(cfg.Client.KeyFile, configDir)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func checkCertDates(certFile string) error {
+	log.Debug("Check client TLS certificate for valid dates")
+	certPEM, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return err
+	}
+
+	cert, err := util.GetX509CertificateFromPEM(certPEM)
+	if err != nil {
+		return err
+	}
+
+	notAfter := cert.NotAfter
+	currentTime := time.Now().UTC()
+
+	if currentTime.After(notAfter) {
+		return errors.New("Certificate provided has expired")
+	}
+
+	notBefore := cert.NotBefore
+	if currentTime.Before(notBefore) {
+		return errors.New("Certificate provided not valid until later date")
 	}
 
 	return nil

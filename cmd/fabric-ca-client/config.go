@@ -88,12 +88,9 @@ URL: <<<URL>>>
 MSPDir:
 
 #############################################################################
-#    TLS section for the client's listening port
+#    TLS section for secure socket connection
 #############################################################################
 tls:
-  # Enable TLS (default: false)
-  enabled: false
-
   # TLS section for secure socket connection
   certfiles:			# Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
   client:
@@ -108,7 +105,7 @@ csr:
   cn: <<<ENROLLMENT_ID>>>
   names:
     - C: US
-      ST: "North Carolina"
+      ST: North Carolina
       L:
       O: Hyperledger
       OU: Fabric

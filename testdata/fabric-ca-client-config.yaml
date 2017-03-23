@@ -38,10 +38,10 @@
 URL: http://localhost:7054
 
 #############################################################################
-#    TLS section for the client's listenting port
+#    TLS section for secure socket connection
 #############################################################################
 tls:
-  # TLS for the client's listenting port
+  # TLS section for secure socket connection
   certfiles: root.pem   # Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
   client:
     certfile: tls_client-cert.pem
