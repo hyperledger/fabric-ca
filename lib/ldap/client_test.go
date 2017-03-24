@@ -87,3 +87,43 @@ func testLDAPNegative(t *testing.T) {
 		t.Errorf("ldap.NewClient(badport) passed but should have failed")
 	}
 }
+
+func TestLDAPTLS(t *testing.T) {
+	proto := "ldaps"
+	dn := "cn=admin,dc=example,dc=org"
+	pwd := "admin"
+	host := "localhost"
+	base := "dc=example,dc=org"
+	port := 10636
+	url := fmt.Sprintf("%s://%s:%s@%s:%d/%s", proto, dn, pwd, host, port, base)
+	c, err := NewClient(&Config{URL: url})
+	if err != nil {
+		t.Errorf("ldap.NewClient failure: %s", err)
+		return
+	}
+	c.TLS.CertFiles = []string{"../../testdata/root.pem"}
+	c.TLS.Client.CertFile = "../../testdata/tls_client-cert.pem"
+	c.TLS.Client.KeyFile = "../../testdata/tls_client-key.pem"
+	user, err := c.GetUser("jsmith", []string{"mail"})
+	if err != nil {
+		t.Errorf("ldap.Client.GetUser failure: %s", err)
+		return
+	}
+	err = user.Login("jsmithpw")
+	if err != nil {
+		t.Errorf("ldap.User.Login failure: %s", err)
+	}
+	path := user.GetAffiliationPath()
+	if path == nil {
+		t.Error("ldap.User.GetAffiliationPath is nil")
+	}
+	err = user.Login("bogus")
+	if err == nil {
+		t.Errorf("ldap.User.Login passed but should have failed")
+	}
+	email := user.GetAttribute("mail")
+	if email == "" {
+		t.Errorf("ldap.User.GetAttribute failed: no mail found")
+	}
+	t.Logf("email for user 'jsmith' is %s", email)
+}

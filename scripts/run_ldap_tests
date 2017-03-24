@@ -8,10 +8,12 @@
 # IMAGE is the name of docker image
 OLC=openldap-fabric-ca
 IMAGE=hyperledger/openldap
+OLC_tls=openldap-fabric-ca-tls
 CA=$GOPATH/src/github.com/hyperledger/fabric-ca
 
 # Start the LDAP container
 function startContainer {
+  echo "Start LDAP server without TLS enabled"
    CID=`docker ps -q -f name=$OLC`
    if [ "$CID" != "" ]; then
       echo "$OLC is already running at $CID"
@@ -23,7 +25,9 @@ function startContainer {
       docker start $CID
    else
       echo "Downloading and starting $OLC ..."
-      docker run -p 10389:389 -p 10636:636 --name $OLC --detach $IMAGE > /dev/null
+      docker run -p 10389:389 -p 10636:636 --volume $GOPATH/src/github.com/hyperledger/fabric-ca/testdata:/container/service/slapd/assets/certs \
+      --env LDAP_TLS_CRT_FILENAME=tls_server-cert.pem --env LDAP_TLS_KEY_FILENAME=tls_server-key.pem --env LDAP_TLS_CA_CRT_FILENAME=root.pem \
+      --name $OLC --detach $IMAGE > /dev/null
    fi
    CID=`docker ps -q -f name=$OLC`
    if [ "$CID" != "" ]; then
