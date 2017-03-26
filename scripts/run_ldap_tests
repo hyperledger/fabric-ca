@@ -7,7 +7,7 @@
 # OLC is the name of the Open LDAP Container name
 # IMAGE is the name of docker image
 OLC=openldap-fabric-ca
-IMAGE=osixia/openldap
+IMAGE=hyperledger/openldap
 CA=$GOPATH/src/github.com/hyperledger/fabric-ca
 
 # Start the LDAP container
@@ -23,7 +23,7 @@ function startContainer {
       docker start $CID
    else
       echo "Downloading and starting $OLC ..."
-      docker run -p 10389:389 -p 10636:636 --name $OLC --detach $IMAGE:1.1.7 > /dev/null
+      docker run -p 10389:389 -p 10636:636 --name $OLC --detach $IMAGE > /dev/null
    fi
    CID=`docker ps -q -f name=$OLC`
    if [ "$CID" != "" ]; then

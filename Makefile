@@ -52,7 +52,7 @@ BASEIMAGE_RELEASE = 0.3.0
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 DOCKER_ORG = hyperledger
-IMAGES = $(PROJECT_NAME)
+IMAGES = $(PROJECT_NAME) openldap
 
 path-map.fabric-ca-client := ./cmd/fabric-ca-client
 path-map.fabric-ca-server := ./cmd/fabric-ca-server
@@ -85,6 +85,8 @@ vet: .FORCE
 
 fabric-ca-client: bin/fabric-ca-client
 fabric-ca-server: bin/fabric-ca-server
+
+openldap: build/image/openldap/$(DUMMY)
 
 bin/%:
 	@echo "Building ${@F} in bin directory ..."
@@ -126,6 +128,8 @@ build/image/fabric-ca/payload: \
 	build/docker/bin/fabric-ca-client \
 	build/docker/bin/fabric-ca-server \
 	build/fabric-ca.tar.bz2
+build/image/openldap/payload : \
+	images/openldap/openldap.tar
 build/image/%/payload:
 	@echo "Copying $^ to $@"
 	mkdir -p $@
@@ -139,9 +143,9 @@ build/%.tar.bz2:
 unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_tests
 
-container-tests: ldap-tests
+container-tests: docker ldap-tests
 
-ldap-tests:
+ldap-tests: openldap
 	@scripts/run_ldap_tests
 
 %-docker-clean:
