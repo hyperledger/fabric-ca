@@ -83,8 +83,8 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debugf("Revoke request: %+v", req)
 
-	req.AKI = strings.ToLower(req.AKI)
-	req.Serial = strings.ToLower(req.Serial)
+	req.AKI = strings.TrimLeft(strings.ToLower(req.AKI), "0")
+	req.Serial = strings.TrimLeft(strings.ToLower(req.Serial), "0")
 
 	certDBAccessor := h.server.certDBAccessor
 	registry := h.server.registry

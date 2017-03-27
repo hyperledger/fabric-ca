@@ -37,7 +37,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"golang.org/x/crypto/ocsp"
 
@@ -558,11 +557,6 @@ func GetKeyFromBytes(csp bccsp.BCCSP, key []byte) (bccsp.Key, error) {
 // GetSerialAsHex returns the serial number from certificate as hex format
 func GetSerialAsHex(serial *big.Int) string {
 	hex := fmt.Sprintf("%x", serial)
-
-	if utf8.RuneCountInString(hex) < 80 {
-		hex = fmt.Sprintf("0%s", hex)
-	}
-
 	return hex
 }
 

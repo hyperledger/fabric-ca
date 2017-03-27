@@ -444,7 +444,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 		body = new(cfsslapi.Response)
 		err = json.Unmarshal(respBody, body)
 		if err != nil {
-			return fmt.Errorf("Failed to parse response [%s] for request:\n%s", err, reqStr)
+			return fmt.Errorf("Failed to parse response: %s\n%s", err, respBody)
 		}
 		if len(body.Errors) > 0 {
 			msg := body.Errors[0].Message

@@ -18,6 +18,7 @@ package lib
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -110,16 +111,37 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		}
 		id := util.GetEnrollmentIDFromX509Certificate(cert)
 		log.Debugf("Checking for revocation/expiration of certificate owned by '%s'", id)
-		// Check for certificate revocation and expiration
+
+		// VerifyCertificate ensures that the certificate passed in hasn't
+		// expired and checks the CRL for the server.
 		revokedOrExpired, checked := revoke.VerifyCertificate(cert)
 		if revokedOrExpired {
-			log.Debugf("Certificate was either revoked or has expired owned by '%s'", id)
+			log.Debugf("Certificate owned by '%s' has expired", id)
 			return authError
 		}
 		if !checked {
 			log.Debug("A failure occurred while checking for revocation and expiration")
 			return authError
 		}
+
+		aki := hex.EncodeToString(cert.AuthorityKeyId)
+		serial := util.GetSerialAsHex(cert.SerialNumber)
+
+		certs, err := ah.server.CertDBAccessor().GetCertificate(serial, aki)
+		if err != nil {
+			return authError
+		}
+
+		if len(certs) == 0 {
+			return authError
+		}
+
+		for _, certificate := range certs {
+			if certificate.Status == "revoked" {
+				return authError
+			}
+		}
+
 		log.Debugf("Successful authentication of '%s'", id)
 		r.Header.Set(enrollmentIDHdrName, util.GetEnrollmentIDFromX509Certificate(cert))
 		return nil
@@ -127,6 +149,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		log.Errorf("No handler for the authentication type: %d", ah.authType)
 		return authError
 	}
+
 }
 
 func wrappedPath(path string) string {
