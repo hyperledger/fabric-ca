@@ -35,6 +35,9 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		util.CmdRunBegin()
 
+		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
+
 		return nil
 	},
 }
