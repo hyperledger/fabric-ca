@@ -84,6 +84,13 @@ debug: false
 
 #############################################################################
 #  TLS section for the server's listening port
+#
+#  The following types are supported for client authentication: NoClientCert,
+#  RequestClientCert, RequireAnyClientCert, VerfiyClientCertIfGiven,
+#  and RequireAndVerifyClientCert.
+#
+#  Certfiles is a list of root certificate authorities that the server uses
+#  when verifying client certificates.
 #############################################################################
 tls:
   # Enable TLS (default: false)
@@ -91,6 +98,9 @@ tls:
   # TLS for the server's listening port
   certfile: ca-cert.pem
   keyfile: ca-key.pem
+  clientauth:
+    type: noclientcert
+    certfiles: 			# Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
 
 #############################################################################
 #  The CA section contains information related to the Certificate Authority

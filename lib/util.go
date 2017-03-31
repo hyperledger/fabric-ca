@@ -17,13 +17,25 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io/ioutil"
 
+	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
 )
+
+var clientAuthTypes = map[string]tls.ClientAuthType{
+	"noclientcert":               tls.NoClientCert,
+	"requestclientcert":          tls.RequestClientCert,
+	"requireanyclientcert":       tls.RequireAnyClientCert,
+	"verifyclientcertifgiven":    tls.VerifyClientCertIfGiven,
+	"requireandverifyclientcert": tls.RequireAndVerifyClientCert,
+}
 
 // GetCertID returns both the serial number and AKI (Authority Key ID) for the certificate
 func GetCertID(bytes []byte) (string, string, error) {
@@ -47,4 +59,28 @@ func BytesToX509Cert(bytes []byte) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("buffer was neither PEM nor DER encoding: %s", err)
 	}
 	return cert, err
+}
+
+// LoadPEMCertPool loads a pool of PEM certificates from list of files
+func LoadPEMCertPool(certFiles string) (*x509.CertPool, error) {
+	certPool := x509.NewCertPool()
+
+	rootCerts := util.ProcessCertFiles(certFiles)
+
+	if len(rootCerts) > 0 {
+		for _, cert := range rootCerts {
+			log.Debugf("Reading cert file: %s", cert)
+			pemCerts, err := ioutil.ReadFile(cert)
+			if err != nil {
+				return nil, err
+			}
+
+			log.Debugf("Appending cert %s to pool", cert)
+			if !certPool.AppendCertsFromPEM(pemCerts) {
+				return nil, errors.New("Failed to load cert pool")
+			}
+		}
+	}
+
+	return certPool, nil
 }
