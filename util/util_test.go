@@ -258,6 +258,7 @@ func TestGetDefaultConfigFile(t *testing.T) {
 	os.Unsetenv("FABRIC_CA_HOME")
 	os.Unsetenv("FABRIC_CA_CLIENT_HOME")
 	os.Unsetenv("FABRIC_CA_SERVER_HOME")
+	os.Unsetenv("CA_CFG_PATH")
 
 	const clientConfig = "fabric-ca-client-config.yaml"
 	const serverConfig = "fabric-ca-server-config.yaml"
