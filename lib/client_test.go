@@ -24,26 +24,26 @@ import (
 	"path"
 	"testing"
 
-	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 )
 
 var (
-	tdDir        = "../testdata"
-	fcaDB        = path.Join(tdDir, "fabric-ca-server.db")
-	fcaDB2       = path.Join(tdDir, "fabric-ca.db")
-	cfgFile      = path.Join(tdDir, "config.json")
-	testCfgFile  = "testconfig.json"
-	clientConfig = path.Join(tdDir, "client-config.json")
-	csrFile      = path.Join(tdDir, "csr.json")
-	serversDir   = "testservers"
-	adminID      *Identity
+	ctport1     = 7098
+	ctport2     = 7099
+	tdDir       = "../testdata"
+	fcaDB       = path.Join(tdDir, "fabric-ca-server.db")
+	fcaDB2      = path.Join(tdDir, "fabric-ca.db")
+	cfgFile     = path.Join(tdDir, "config.json")
+	testCfgFile = "testconfig.json"
+	csrFile     = path.Join(tdDir, "csr.json")
+	serversDir  = "testservers"
+	adminID     *Identity
 )
 
 func TestClient(t *testing.T) {
 
-	server := getServer(7054, path.Join(serversDir, "c1"), "", 1, t)
+	server := getServer(ctport1, path.Join(serversDir, "c1"), "", 1, t)
 	if server == nil {
 		return
 	}
@@ -52,7 +52,7 @@ func TestClient(t *testing.T) {
 		t.Fatalf("Failed to start server: %s", err)
 	}
 
-	c := getClient()
+	c := getTestClient(ctport1)
 
 	testGetServerInfo(c, t)
 	testRegister(c, t)
@@ -95,12 +95,17 @@ func testRegister(c *Client, t *testing.T) {
 		t.Fatalf("testRegister enroll of admin failed: %s", err)
 	}
 
-	err = eresp.Identity.Store()
+	adminID = eresp.Identity
+
+	err = adminID.Store()
 	if err != nil {
 		t.Fatalf("testRegister failed to store admin identity: %s", err)
 	}
 
-	adminID = eresp.Identity
+	err = c.CheckEnrollment()
+	if err != nil {
+		t.Fatalf("testRegister failed to check enrollment: %s", err)
+	}
 
 	// Register as admin
 	registerReq := &api.RegistrationRequest{
@@ -245,7 +250,7 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 func TestCustomizableMaxEnroll(t *testing.T) {
 	os.Remove("../testdata/fabric-ca-server.db")
 
-	srv := getServer(7055, path.Join(serversDir, "c2"), "", 3, t)
+	srv := getServer(ctport2, path.Join(serversDir, "c2"), "", 3, t)
 	if srv == nil {
 		return
 	}
@@ -269,10 +274,10 @@ func TestCustomizableMaxEnroll(t *testing.T) {
 
 func testTooManyEnrollments(t *testing.T) {
 	clientConfig := &ClientConfig{
-		URL: fmt.Sprintf("http://localhost:%d", rootPort),
+		URL: fmt.Sprintf("http://localhost:%d", ctport2),
 	}
 
-	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
+	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", ctport2)
 
 	_, err := clientConfig.Enroll(rawURL, testdataDir)
 	if err != nil {
@@ -299,7 +304,7 @@ func testTooManyEnrollments(t *testing.T) {
 }
 
 func testIncorrectEnrollment(t *testing.T) {
-	c := getTestClient(rootPort)
+	c := getTestClient(ctport1)
 
 	id, err := c.LoadMyIdentity()
 	if err != nil {
@@ -346,14 +351,6 @@ func TestSendBadPost(t *testing.T) {
 	if err == nil {
 		t.Error("Sending post should have failed")
 	}
-}
-
-func getClient() *Client {
-	c, err := NewClient(clientConfig)
-	if err != nil {
-		log.Errorf("getClient failed: %s", err)
-	}
-	return c
 }
 
 func TestLast(t *testing.T) {

@@ -168,7 +168,8 @@ db:
   datasource: fabric-ca-server.db
   tls:
       enabled: false
-      certfiles: db-server-cert.pem			# Comma Separated (e.g. root.pem, root2.pem)
+      certfiles:
+        - db-server-cert.pem
       client:
         certfile: db-client-cert.pem
         keyfile: db-client-key.pem
@@ -285,9 +286,23 @@ func configInit() (err error) {
 	}
 
 	// Unmarshal the config into 'serverCfg'
-	err = viper.Unmarshal(serverCfg)
-	if err != nil {
-		return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
+	// and vendored, the work around code can be deleted.
+	viperIssue327WorkAround := true
+	if viperIssue327WorkAround {
+		sliceFields := []string{
+			"csr.hosts",
+			"tls.clientauth.certfiles",
+		}
+		err = util.ViperUnmarshal(serverCfg, sliceFields)
+		if err != nil {
+			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+		}
+	} else {
+		err = viper.Unmarshal(serverCfg)
+		if err != nil {
+			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+		}
 	}
 
 	return nil

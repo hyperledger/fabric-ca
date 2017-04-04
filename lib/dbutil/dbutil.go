@@ -106,8 +106,8 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 	connStr := getConnStr(datasource)
 
 	if clientTLSConfig.Enabled {
-		if len(clientTLSConfig.CertFilesList) > 0 {
-			root := clientTLSConfig.CertFilesList[0]
+		if len(clientTLSConfig.CertFiles) > 0 {
+			root := clientTLSConfig.CertFiles[0]
 			connStr = fmt.Sprintf("%s sslrootcert=%s", connStr, root)
 		}
 

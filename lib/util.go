@@ -62,13 +62,11 @@ func BytesToX509Cert(bytes []byte) (*x509.Certificate, error) {
 }
 
 // LoadPEMCertPool loads a pool of PEM certificates from list of files
-func LoadPEMCertPool(certFiles string) (*x509.CertPool, error) {
+func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
 	certPool := x509.NewCertPool()
 
-	rootCerts := util.ProcessCertFiles(certFiles)
-
-	if len(rootCerts) > 0 {
-		for _, cert := range rootCerts {
+	if len(certFiles) > 0 {
+		for _, cert := range certFiles {
 			log.Debugf("Reading cert file: %s", cert)
 			pemCerts, err := ioutil.ReadFile(cert)
 			if err != nil {

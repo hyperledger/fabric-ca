@@ -32,7 +32,7 @@ type testTLSConfig struct {
 func TestGetClientTLSConfig(t *testing.T) {
 
 	cfg := &ClientTLSConfig{
-		CertFilesList: []string{"root.pem"},
+		CertFiles: []string{"root.pem"},
 		Client: KeyCertFiles{
 			KeyFile:  "tls_client-key.pem",
 			CertFile: "tls_client-cert.pem",

@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	rootPort    = 7055
+	whitePort   = 7058
 	rootDir     = "rootDir"
 	testdataDir = "../testdata"
 	user        = "admin"
@@ -38,7 +38,7 @@ const (
 var clientConfig = path.Join(testdataDir, "client-config.json")
 
 func TestClient1(t *testing.T) {
-	server := getServer(rootPort, path.Join(serversDir, "c1"), "", 1, t)
+	server := getServer(whitePort, path.Join(serversDir, "c1"), "", 1, t)
 	if server == nil {
 		t.Fatal("Failed to get server")
 	}
@@ -53,7 +53,7 @@ func TestClient1(t *testing.T) {
 }
 
 func testInvalidAuthEnrollment(t *testing.T) {
-	c := getTestClient(rootPort)
+	c := getTestClient(whitePort)
 	err := c.Init()
 	if err != nil {
 		t.Fatalf("Failed to initialize client: %s", err)

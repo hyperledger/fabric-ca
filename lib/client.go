@@ -27,7 +27,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -42,59 +41,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const (
-	clientConfigFile = "client-config.json"
-)
-
-// NewClient is the constructor for the fabric-ca client API
-func NewClient(configFile string) (*Client, error) {
-	c := new(Client)
-
-	if configFile != "" {
-		if _, err := os.Stat(configFile); err != nil {
-			log.Info("Fabric-ca client configuration file not found. Using Defaults...")
-		} else {
-			var config []byte
-			var err error
-			config, err = ioutil.ReadFile(configFile)
-			if err != nil {
-				return nil, err
-			}
-			// Override any defaults
-			err = util.Unmarshal([]byte(config), c, "NewClient")
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	var cfg = new(ClientConfig)
-	c.Config = cfg
-
-	// Set defaults
-	if c.Config.URL == "" {
-		c.Config.URL = util.GetServerURL()
-	}
-
-	if c.HomeDir == "" {
-		c.HomeDir = filepath.Dir(util.GetDefaultConfigFile("fabric-ca-client"))
-	}
-
-	if _, err := os.Stat(c.HomeDir); err != nil {
-		if os.IsNotExist(err) {
-			_, err := util.CreateClientHome()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return c, nil
-}
-
 // Client is the fabric-ca client object
 type Client struct {
-	// HomeDir is the home directory
+	// The client's home directory
 	HomeDir string `json:"homeDir,omitempty"`
 	// The client's configuration
 	Config                        *ClientConfig
@@ -487,16 +436,6 @@ func (c *Client) CheckEnrollment() error {
 		return errors.New("Enrollment information does not exist. Please execute enroll command first. Example: fabric-ca-client enroll -u http://user:userpw@serverAddr:serverPort")
 	}
 	return nil
-}
-
-func (c *Client) getClientConfig(path string) ([]byte, error) {
-	log.Debug("Retrieving client config")
-	// fcaClient := filepath.Join(path, clientConfigFile)
-	fileBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return fileBytes, nil
 }
 
 // NormalizeURL normalizes a URL (from cfssl)

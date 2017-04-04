@@ -37,16 +37,15 @@ type ServerTLSConfig struct {
 
 // ClientAuth defines the key material needed to verify client certificates
 type ClientAuth struct {
-	Type      string `def:"noclientcert" help:"Policy the server will follow for TLS Client Authentication."`
-	CertFiles string `help:"PEM-encoded comma separated list of trusted certificate files (e.g. root1.pem, root2.pem)"`
+	Type      string   `def:"noclientcert" help:"Policy the server will follow for TLS Client Authentication."`
+	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
 }
 
 // ClientTLSConfig defines the key material for a TLS client
 type ClientTLSConfig struct {
-	Enabled       bool   `skip:"true"`
-	CertFiles     string `help:"PEM-encoded comma separated list of trusted certificate files (e.g. root1.pem, root2.pem)"`
-	CertFilesList []string
-	Client        KeyCertFiles
+	Enabled   bool     `skip:"true"`
+	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
+	Client    KeyCertFiles
 }
 
 // KeyCertFiles defines the files need for client on TLS
@@ -71,11 +70,11 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 
 	rootCAPool := x509.NewCertPool()
 
-	if len(cfg.CertFilesList) == 0 {
+	if len(cfg.CertFiles) == 0 {
 		return nil, errors.New("No CA certificate files provided")
 	}
 
-	for _, cacert := range cfg.CertFilesList {
+	for _, cacert := range cfg.CertFiles {
 		caCert, err := ioutil.ReadFile(cacert)
 		if err != nil {
 			return nil, err
@@ -98,8 +97,8 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 func AbsTLSClient(cfg *ClientTLSConfig, configDir string) error {
 	var err error
 
-	for i := 0; i < len(cfg.CertFilesList); i++ {
-		cfg.CertFilesList[i], err = util.MakeFileAbs(cfg.CertFilesList[i], configDir)
+	for i := 0; i < len(cfg.CertFiles); i++ {
+		cfg.CertFiles[i], err = util.MakeFileAbs(cfg.CertFiles[i], configDir)
 		if err != nil {
 			return err
 		}
