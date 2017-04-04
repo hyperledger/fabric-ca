@@ -48,7 +48,7 @@ type serverInfoResponseNet struct {
 func (ih *infoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	log.Debug("Received request for server info")
 	resp := &serverInfoResponseNet{}
-	err := ih.server.fillServerInfo(resp)
+	err := ih.server.fillCAInfo(resp)
 	if err != nil {
 		return err
 	}

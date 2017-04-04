@@ -112,7 +112,7 @@ func (sh *signHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	// Send the response with the cert and the server info
 	resp := &enrollmentResponseNet{Cert: util.B64Encode(cert)}
-	err = sh.server.fillServerInfo(&resp.ServerInfo)
+	err = sh.server.fillCAInfo(&resp.ServerInfo)
 	if err != nil {
 		return err
 	}
