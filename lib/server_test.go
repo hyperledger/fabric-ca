@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
@@ -36,9 +37,9 @@ import (
 )
 
 const (
-	rootPort         = 7055
+	rootPort         = 7075
 	rootDir          = "rootDir"
-	intermediatePort = 7056
+	intermediatePort = 7076
 	intermediateDir  = "intDir"
 	testdataDir      = "../testdata"
 	pportEnvVar      = "FABRIC_CA_SERVER_PROFILE_PORT"
@@ -384,8 +385,8 @@ func invalidTokenAuthorization(t *testing.T) {
 	client := getRootClient()
 
 	emptyByte := make([]byte, 0)
-
-	req, err := http.NewRequest("POST", "http://localhost:7055/enroll", bytes.NewReader(emptyByte))
+	url := fmt.Sprintf("http://localhost:%d/enroll", rootPort)
+	req, err := http.NewRequest("POST", url, bytes.NewReader(emptyByte))
 	if err != nil {
 		t.Error(err)
 	}
@@ -419,8 +420,8 @@ func invalidBasicAuthorization(t *testing.T) {
 	client := getRootClient()
 
 	emptyByte := make([]byte, 0)
-
-	req, err := http.NewRequest("POST", "http://localhost:7055/register", bytes.NewReader(emptyByte))
+	url := fmt.Sprintf("http://localhost:%d/register", rootPort)
+	req, err := http.NewRequest("POST", url, bytes.NewReader(emptyByte))
 	if err != nil {
 		t.Error(err)
 	}
