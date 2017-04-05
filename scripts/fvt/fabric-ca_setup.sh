@@ -33,12 +33,14 @@ function usage() {
 }
 
 function runPSQL() {
-   cmd="$1"
-   opts="$2"
-   wrk_dir="$(pwd)"
+   local cmd="$1"
+   local opts="$2"
+   local wrk_dir="$(pwd)"
    cd /tmp
    /usr/bin/psql "$opts" -U postgres -h localhost -c "$cmd"
+   local rc=$?
    cd $wrk_dir
+   return $rc
 }
 
 function updateBase {
@@ -131,11 +133,12 @@ function buildFabricCa(){
 
 function resetFabricCa(){
    killAllFabricCas
-   rm -rf $DATADIR
-   rm $TESTDATA/fabric_ca.db
+   rm -rf $DATADIR >/dev/null
+   test -f $(pwd)/$DBNAME && rm $(pwd)/$DBNAME
    cd /tmp
-   /usr/bin/dropdb 'fabric_ca' -U postgres -h localhost -w
-   mysql --host=localhost --user=root --password=mysql -e 'DROP DATABASE IF EXISTS fabric_ca;'
+   mysql --host=localhost --user=root --password=mysql -e 'show tables' $DBNAME 2>/dev/null &&
+      mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE IF EXISTS $DBNAME"
+   /usr/bin/dropdb "$DBNAME" -U postgres -h localhost -w --if-exists 2>/dev/null
 }
 
 function listFabricCa(){
@@ -146,18 +149,34 @@ function listFabricCa(){
    case $DRIVER in
       mysql)
          echo ""
-         mysql --host=localhost --user=root --password=mysql -e 'show tables' fabric_ca
+         mysql --host=localhost --user=root --password=mysql -e 'SELECT * FROM users;' $DBNAME
          echo "Users:"
-         mysql --host=localhost --user=root --password=mysql -e 'SELECT * FROM "users";' fabric_ca
+         mysql --host=localhost --user=root --password=mysql -e 'SELECT * FROM users;' $DBNAME
+         if $($FABRIC_CA_DEBUG); then
+            echo "Certificates:"
+            mysql --host=localhost --user=root --password=mysql -e 'SELECT * FROM certificates;' $DBNAME
+            echo "Affiliations:"
+            mysql --host=localhost --user=root --password=mysql -e 'SELECT * FROM affiliations;' $DBNAME
+         fi
       ;;
       postgres)
          echo ""
-         runPSQL '\l fabric_ca' | sed 's/^/   /;1s/^ *//;1s/$/:/'
+         runPSQL "\l $DBNAME" | sed 's/^/   /;1s/^ *//;1s/$/:/'
 
          echo "Users:"
-         runPSQL 'SELECT * FROM "users";' '--dbname=fabric_ca' | sed 's/^/   /'
+         runPSQL "SELECT * FROM USERS;" "--dbname=$DBNAME" | sed 's/^/   /'
+         if $($FABRIC_CA_DEBUG); then
+            echo "Certificates::"
+            runPSQL "SELECT * FROM CERTIFICATES;" "--dbname=$DBNAME" | sed 's/^/   /'
+            echo "Affiliations:"
+            runPSQL "SELECT * FROM AFFILIATIONS;" "--dbname=$DBNAME" | sed 's/^/   /'
+         fi
       ;;
-      sqlite3) sqlite3 "$dbfile" 'SELECT * FROM "users" ;;' | sed 's/^/   /'
+      sqlite3) sqlite3 "$DATASRC" 'SELECT * FROM USERS ;;' | sed 's/^/   /'
+               if $($FABRIC_CA_DEBUG); then
+                  sqlite3 "$DATASRC" 'SELECT * FROM CERTIFICATES;' | sed 's/^/   /'
+                  sqlite3 "$DATASRC" 'SELECT * FROM AFFILIATIONS;' | sed 's/^/   /'
+               fi
    esac
 }
 
@@ -375,9 +394,9 @@ test -n "$SRC_KEY" && cp "$SRC_KEY" $DST_KEY
 RUNCONFIG="$DATADIR/runFabricCaFvt.yaml"
 
 case $DRIVER in
-   postgres) DATASRC="dbname=fabric_ca host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
-   sqlite3)   DATASRC="fabric_ca.db"; dbfile="$TESTDATA/fabric_ca.db" ;;
-   mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca?parseTime=true" ;;
+   postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
+   sqlite3)  DATASRC="$DATADIR/$DBNAME" ;;
+   mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME?parseTime=true" ;;
 esac
 
 $($LIST)  && listFabricCa
