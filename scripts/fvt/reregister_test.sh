@@ -1,83 +1,58 @@
 #!/bin/bash
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
-KEYSTORE="/tmp/keyStore"
+. $SCRIPTDIR/fabric-ca_utils
+
 REGISTRAR="admin"
 REGIRSTRARPWD="adminpw"
-#REGISTRAR="revoker"
-#REGIRSTRARPWD="revokerpw"
+USERNAME="testuser99"
 HTTP_PORT="3755"
 RC=0
 
-. $SCRIPTDIR/fabric-ca_utils
-
-function enrollUser() {
-   local USERNAME=$1
-   mkdir -p $KEYSTORE/$USERNAME
-   export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
-   OUT=$($SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH)
-   echo "$OUT"
-   PASSWD="$(echo $OUT | tail -n1 | awk '{print $NF}')"
-   export CA_CFG_PATH=$KEYSTORE/$USERNAME
-   $SCRIPTDIR/enroll.sh -u $USERNAME -p $PASSWD -x $CA_CFG_PATH
-}
-
-while getopts "du:t:k:l:" option; do
+while getopts "dx:" option; do
   case "$option" in
      d)   FABRIC_CA_DEBUG="true" ;;
-     u)   USERNAME="$OPTARG" ;;
-     t)   USERTYPE="$OPTARG" ;;
-     g)   USERGRP="$OPTARG" ;;
-     k)   KEYTYPE="$OPTARG" ;;
-     l)   KEYLEN="$OPTARG" ;;
+     x)   CA_CFG_PATH="$OPTARG" ;;
   esac
 done
 
+: ${CA_CFG_PATH:="/tmp/reregister"}
 : ${FABRIC_CA_DEBUG="false"}
-: ${USERNAME="newclient"}
-: ${USERTYPE="client"}
-: ${USERGRP="bank_a"}
-: ${KEYTYPE="ecdsa"}
-: ${KEYLEN="256"}
 : ${HOST="localhost:10888"}
-
+export CA_CFG_PATH
+export FABRIC_CA_CLIENT_HOME="$CA_CFG_PATH/$REGISTRAR"
 
 cd $TESTDATA
 python -m SimpleHTTPServer $HTTP_PORT &
 HTTP_PID=$!
 pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server"
 echo $HTTP_PID
-trap "kill $HTTP_PID; CleanUp" INT
+trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
 
 export FABRIC_CA_DEBUG
-mkdir -p $KEYSTORE/$REGISTRAR
-export CA_CFG_PATH=$KEYSTORE/$REGISTRAR
-
-#for driver in sqlite3 postgres mysql; do
-for driver in sqlite3 ; do
-   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver
+for driver in sqlite3 postgres mysql; do
+   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver
+   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver -x $CA_CFG_PATH
    if test $? -ne 0; then
       ErrorMsg "Failed to setup fabric-ca server"
       continue
    fi
 
-   $SCRIPTDIR/enroll.sh -u $REGISTRAR -p $REGIRSTRARPWD -x $CA_CFG_PATH
+   enroll $REGISTRAR $REGIRSTRARPWD
    if test $? -ne 0; then
       ErrorMsg "Failed to enroll $REGISTRAR"
       continue
    fi
 
-   $SCRIPTDIR/register.sh -u ${USERNAME} -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH
+   register $REGISTRAR ${USERNAME}
    if test $? -ne 0; then
       ErrorMsg "Failed to register $USERNAME"
       continue
    fi
 
    for i in {2..8}; do
-      $SCRIPTDIR/register.sh -u $USERNAME -t $USERTYPE -g $USERGRP -x $CA_CFG_PATH
-      test $? -eq 0 && ErrorMsg "Duplicate registration of " $USERNAME
+      register $REGISTRAR $USERNAME
+      test $? -eq 0 && ErrorMsg "Duplicate registration of $USERNAME"
    done
 
    # all servers should register = number of successful requests
@@ -90,8 +65,9 @@ for driver in sqlite3 ; do
       done
    fi
 
-   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
+   $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver
 done
+$SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver
 kill $HTTP_PID
 wait $HTTP_PID
 CleanUp "$RC"
