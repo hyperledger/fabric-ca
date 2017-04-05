@@ -1,46 +1,47 @@
 #!/bin/bash
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
 RC=0
-HTTP_PORT="3755"
+export CA_CFG_PATH="/tmp/groups"
 
+HTTP_PORT="3755"
 cd $TESTDATA
 python -m SimpleHTTPServer $HTTP_PORT &
 HTTP_PID=$!
 pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server"
 echo $HTTP_PID
-trap "kill $HTTP_PID; CleanUp" INT
-#
-$($FABRIC_TLS) && TLS="-T"
-# group is required if the type is client or peer.
-$SCRIPTDIR/fabric-ca_setup.sh -R
-$SCRIPTDIR/fabric-ca_setup.sh -I -S -X $TLS
-export CA_CFG_PATH=/tmp/keyStore/admin
-$SCRIPTDIR/enroll.sh -u admin -p adminpw
-$SCRIPTDIR/register.sh -u user1 -t client -g bank_a
+trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
+
+# group is required for all identity types
+$SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d mysql
+$SCRIPTDIR/fabric-ca_setup.sh -I -S -X -d mysql
+enroll
+export FABRIC_CA_CLIENT_HOME="$CA_CFG_PATH/admin"
+register admin user1 client bank_a
 test $? -ne 0 && ErrorMsg "Failed to register user1:client:bank_a"
-$SCRIPTDIR/register.sh -u user2 -t peer -g bank_a
+register admin user2 peer bank_a
 test $? -ne 0 && ErrorMsg "Failed to register user2:client:bank_a"
-$SCRIPTDIR/register.sh -u user3 -t client -g bogus
+register admin user3 client bogus
 test "$?" -eq 0 && ErrorMsg "Improperly registered user3:client with 'bogus' group"
-$SCRIPTDIR/register.sh -u user4 -t peer -g bogus
+register admin user4 peer bogus
 test "$?" -eq 0 && ErrorMsg "Improperly registered user4:peer with 'bogus' group"
-
-# group is not required if the type is validator or auditor.
-$SCRIPTDIR/register.sh -u user5 -t validator -g bank_a
+register admin user5 validator bank_a
 test $? -ne 0 && ErrorMsg "Failed to register user5:validator:bank_a"
-$SCRIPTDIR/register.sh -u user6 -t auditor -g bank_a
+register admin user6 auditor bank_a
 test $? -ne 0 && ErrorMsg "Failed to register user6:auditor:bank_a"
-$SCRIPTDIR/register.sh -u user7 -t validator -g bogus
-test $? -ne 0 && ErrorMsg "Failed to register user7:validator:bank_a with 'bogus' group"
-$SCRIPTDIR/register.sh -u user8 -t auditor -g bogus
-test $? -ne 0 && ErrorMsg "Failed to register user8:auditor with 'bogus' group"
+register admin user7 validator bogus
+test $? -eq 0 && ErrorMsg "Failed to register user7:validator:bank_a with 'bogus' group"
+register admin user8 auditor bogus
+test $? -eq 0 && ErrorMsg "Failed to register user8:auditor with 'bogus' group"
 
-# however, one is expected to at least sumbit a group with request
-$SCRIPTDIR/register.sh -u user9 -t auditor -g ''
+# one is always expected to at least sumbit a group with request
+register admin user9 auditor '[]'
 test "$?" -eq 0 && ErrorMsg "Improperly registered user9:auditor with null group"
+
+$SCRIPTDIR/fabric-ca_setup.sh -L -d mysql
+$SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d mysql
+rm -rf $FABRIC_CA_CLIENT_HOME
 kill $HTTP_PID
 wait $HTTP_PID
 CleanUp $RC
