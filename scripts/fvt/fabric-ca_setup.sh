@@ -212,8 +212,8 @@ function startHaproxy() {
    local server_port=${USER_CA_PORT-$CA_DEFAULT_PORT}
    #sudo sed -i 's/ *# *$UDPServerRun \+514/$UDPServerRun 514/' /etc/rsyslog.conf
    #sudo sed -i 's/ *# *$ModLoad \+imudp/$ModLoad imudp/' /etc/rsyslog.conf
-   case $TLS_DISABLE in
-     false)
+   case $TLS_ON in
+     "true")
    haproxy -f  <(echo "global
       log /dev/log	local0 debug
       log /dev/log	local1 debug
@@ -239,7 +239,7 @@ backend fabric-cas
       echo "      server server$i  127.0.0.$i:$server_port"
    done)
    ;;
-   true)
+   *)
    haproxy -f  <(echo "global
       log /dev/log	local0 debug
       log /dev/log	local1 debug
@@ -380,9 +380,9 @@ if test -n "$TLS_ON"; then
    TLS_DISABLE='false'
 else
    case "$FABRIC_TLS" in
-      true) TLS_DISABLE='false' ;;
-     false) TLS_DISABLE='true'  ;;
-         *) TLS_DISABLE='true'  ;;
+      true) TLS_DISABLE='false';TLS_ON='true';LDAP_PORT=636 ;;
+     false) TLS_DISABLE='true' ;TLS_ON='false' ;;
+         *) TLS_DISABLE='true' ;TLS_ON='false' ;;
    esac
 fi
 
