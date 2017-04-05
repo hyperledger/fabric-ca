@@ -34,7 +34,7 @@ const (
 func TestGetAffliation(t *testing.T) {
 	// Start the server at an available port (using port 0 will make OS to
 	// pick an available port)
-	srv := getServer(serverPort, testdataDir, "", 0, t)
+	srv := getServer(serverPort, testdataDir, "", -1, t)
 
 	err := srv.Start()
 	if err != nil {

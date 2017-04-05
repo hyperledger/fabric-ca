@@ -278,7 +278,7 @@ func (u *User) GetName() string {
 }
 
 // Login logs a user in using password
-func (u *User) Login(password string) error {
+func (u *User) Login(password string, caMaxEnrollment int) error {
 
 	// Get a connection to use to bind over as the user to check the password
 	conn, err := u.client.newConnection()

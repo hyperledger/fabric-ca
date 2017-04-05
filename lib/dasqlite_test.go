@@ -157,10 +157,11 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
 	insert := spi.UserInfo{
-		Name:       "testId",
-		Pass:       "123456",
-		Type:       "client",
-		Attributes: []api.Attribute{},
+		Name:           "testId",
+		Pass:           "123456",
+		Type:           "client",
+		Attributes:     []api.Attribute{},
+		MaxEnrollments: 1,
 	}
 
 	err := ta.Accessor.InsertUser(insert)
@@ -180,9 +181,9 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.Name, err)
 	}
 
-	err = user.Login(insert.Pass)
+	err = user.Login(insert.Pass, -1)
 	if err != nil {
-		t.Error("Failed to update user's password")
+		t.Error("Failed to login in user: ", err)
 	}
 
 }
