@@ -10,7 +10,6 @@ function usage() {
    echo "ARGS:"
    echo "  -d)   <DRIVER> - [sqlite3|mysql|postgres]"
    echo "  -n)   <FABRIC_CA_INSTANCES> - number of servers to start"
-   echo "  -i)   <GITID> - ID for cloning git repo"
    echo "  -t)   <KEYTYPE> - rsa|ecdsa"
    echo "  -l)   <KEYLEN> - ecdsa: 256|384|521; rsa 2048|3072|4096"
    echo "  -c)   <SRC_CERT> - pre-existing server cert"
@@ -19,9 +18,6 @@ function usage() {
    echo "FLAGS:"
    echo "  -D)   set FABRIC_CA_DEBUG='true'"
    echo "  -R)   set RESET='true' - delete DB, server certs, client certs"
-   echo "  -P)   set PREP='true'  - install mysql, postgres, pq"
-   echo "  -C)   set CLONE='true' - clone fabric-ca repo"
-   echo "  -B)   set BUILD='true' - build fabric-ca server"
    echo "  -I)   set INIT='true'  - run fabric-ca server init"
    echo "  -S)   set START='true' - start \$FABRIC_CA_INSTANCES number of servers"
    echo "  -X)   set PROXY='true' - start haproxy for \$FABRIC_CA_INSTANCES of fabric-ca servers"
@@ -32,7 +28,7 @@ function usage() {
    echo "Defaults: -d sqlite3 -n 1 -k ecdsa -l 256"
 }
 
-function runPSQL() {
+runPSQL() {
    local cmd="$1"
    local opts="$2"
    local wrk_dir="$(pwd)"
@@ -43,95 +39,7 @@ function runPSQL() {
    return $rc
 }
 
-function updateBase {
-   apt-get update
-   apt-get -y upgrade
-   apt-get -y autoremove
-   return $?
-}
-
-function installGolang {
-   local rc=0
-   curl -G -L https://storage.googleapis.com/golang/go${GO_VER}.linux-${ARCH}.tar.gz \
-           -o /tmp/go${GO_VER}.linux-${ARCH}.tar.gz
-   tar -C /usr/local -xzf /tmp/go${GO_VER}.linux-${ARCH}.tar.gz
-   let rc+=$?
-   apt-get install -y golang-golang-x-tools
-   let rc+=$?
-   return $rc
-}
-
-function installDocker {
-   local rc=0
-   local codename=$(lsb_release -c | awk '{print $2}')
-   local kernel=$(uname -r)
-   apt-get install apt-transport-https ca-certificates \
-                linux-image-extra-$kernel linux-image-extra-virtual
-   echo "deb https://apt.dockerproject.org/repo ubuntu-${codename} main" >/tmp/docker.list
-   cp /tmp/docker.list /etc/apt/sources.list.d/docker.list
-   apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 \
-                    --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-   apt-get update
-   apt-get -y upgrade
-   apt-get -y install docker-engine || let rc+=1
-   curl -L https://github.com/$(curl -s -L https://github.com/docker/compose/releases | awk -v arch=$(uname -s)-$(uname -p) -F'"' '$0~arch {print $2;exit}') -o /usr/local/bin/docker-compose
-   chmod +x /usr/local/bin/docker-compose
-   groupadd docker
-   usermod -aG docker $(who are you | awk '{print $1}')
-   return $rc
-}
-
-function updateSudoers() {
-   local tmpfile=/tmp/sudoers
-   local rc=0
-   sudo cp /etc/sudoers $tmpfile
-   echo 'ibmadmin ALL=(ALL) NOPASSWD:ALL' | tee -a $tmpfile
-   sudo uniq $tmpfile | sudo tee $tmpfile
-   sudo visudo -c -f $tmpfile
-   test "$?" -eq "0" && sudo cp $tmpfile /etc/sudoers || rc=1
-   sudo rm -f $tmpfile
-   return $rc
-}
-
-function installPrereq() {
-   updateBase || ErrorExit "updateBase failed"
-   #updateSudoers || ErrorExit "updateSudoers failed"
-   installGolang || ErrorExit "installGolang failed"
-   installDocker || ErrorExit "installDocker failed"
-   go get github.com/go-sql-driver/mysql || ErrorExit "install go-sql-driver failed"
-   go get github.com/lib/pq || ErrorExit "install pq failed"
-   apt-get -y install haproxy postgresql postgresql-contrib postgresql-client-common \
-                   vim-haproxy haproxy-doc postgresql-doc locales-all \
-                   libdbd-pg-perl isag jq git || ErrorExit "haproxy installed failed"
-   export DEBIAN_FRONTEND=noninteractive
-   apt-get -y purge mysql-server
-   apt-get -y purge mysql-server-core
-   apt-get -y purge mysql-common
-   apt-get -y install debconf-utils zsh htop
-   rm -rf /var/log/mysql
-   rm -rf /var/log/mysql.*
-   rm -rf /var/lib/mysql
-   rm -rf /etc/mysql
-   echo "mysql-server mysql-server/root_password password mysql" | debconf-set-selections
-   echo "mysql-server mysql-server/root_password_again password mysql" | debconf-set-selections
-   apt-get install -y mysql-client mysql-common \
-                           mysql-server --fix-missing --fix-broken || ErrorExit "install mysql failed"
-   apt -y autoremove
-   runPSQL "ALTER USER postgres WITH PASSWORD 'postgres';"
-}
-
-function cloneFabricCa() {
-   test -d ${GOPATH}/src/github.com/hyperledger || mkdir -p ${GOPATH}/src/github.com/hyperledger
-   cd ${GOPATH}/src/github.com/hyperledger
-   git clone http://gerrit.hyperledger.org/r/fabric-ca || ErrorExit "git clone of fabric-ca failed"
-}
-
-function buildFabricCa(){
-   cd $FABRIC_CA
-   make fabric-ca || ErrorExit "buildFabricCa failed"
-}
-
-function resetFabricCa(){
+resetFabricCa(){
    killAllFabricCas
    rm -rf $DATADIR >/dev/null
    test -f $(pwd)/$DBNAME && rm $(pwd)/$DBNAME
@@ -141,7 +49,7 @@ function resetFabricCa(){
    /usr/bin/dropdb "$DBNAME" -U postgres -h localhost -w --if-exists 2>/dev/null
 }
 
-function listFabricCa(){
+listFabricCa(){
    echo "Listening servers;"
    lsof -n -i tcp:${USER_CA_PORT-$CA_DEFAULT_PORT}
 
@@ -181,7 +89,7 @@ function listFabricCa(){
 }
 
 function initFabricCa() {
-   test -f $FABRIC_CA_SERVEREXEC || ErrorExit "fabric-ca executable not found (use -B to build)"
+   test -f $FABRIC_CA_SERVEREXEC || ErrorExit "fabric-ca executable not found in src tree"
 
    $FABRIC_CA_SERVEREXEC init -c $RUNCONFIG
 
@@ -306,7 +214,6 @@ function startFabricCa() {
    fi
 }
 
-
 function killAllFabricCas() {
    local fabric_capids=$(ps ax | awk '$5~/fabric-ca/ {print $1}')
    local proxypids=$(lsof -n -i tcp | awk '$1=="haproxy" && !($2 in a) {a[$2]=$2;print a[$2]}')
@@ -314,13 +221,12 @@ function killAllFabricCas() {
    test -n "$proxypids" && kill $proxypids
 }
 
-while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:r:" option; do
+while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:" option; do
   case "$option" in
      d)   DRIVER="$OPTARG" ;;
      r)   USER_CA_PORT="$OPTARG" ;;
      p)   HTTP_PORT="$OPTARG" ;;
      n)   FABRIC_CA_INSTANCES="$OPTARG" ;;
-     i)   GITID="$OPTARG" ;;
      t)   KEYTYPE=$(tolower $OPTARG);;
      l)   KEYLEN="$OPTARG" ;;
      c)   SRC_CERT="$OPTARG";;
@@ -330,10 +236,7 @@ while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:r:" option; do
      g)   SERVERCONFIG="$OPTARG" ;;
      D)   export FABRIC_CA_DEBUG='true' ;;
      A)   AUTH="false" ;;
-     P)   PREP="true"  ;;
      R)   RESET="true"  ;;
-     C)   CLONE="true" ;;
-     B)   BUILD="true" ;;
      I)   INIT="true" ;;
      S)   START="true" ;;
      X)   PROXY="true" ;;
@@ -353,12 +256,8 @@ done
 : ${DRIVER:="sqlite3"}
 : ${FABRIC_CA_INSTANCES:=1}
 : ${FABRIC_CA_DEBUG:="false"}
-: ${GITID:="rennman"}
 : ${LIST:="false"}
-: ${PREP:="false"}
 : ${RESET:="false"}
-: ${CLONE:="false"}
-: ${BUILD:="false"}
 : ${INIT:="false"}
 : ${START:="false"}
 : ${PROXY:="false"}
@@ -400,10 +299,7 @@ case $DRIVER in
 esac
 
 $($LIST)  && listFabricCa
-$($PREP)  && installPrereq
 $($RESET) && resetFabricCa
-$($CLONE) && cloneFabricCa
-$($BUILD) && buildFabricCa
 $($KILL)  && killAllFabricCas
 $($PROXY) && startHaproxy $FABRIC_CA_INSTANCES
 

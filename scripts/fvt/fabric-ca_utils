@@ -11,6 +11,7 @@ export PGPASSWORD='postgres'
 export MSP_KEY_DIR='msp/keystore'
 export MSP_CERT_DIR='msp/signcerts'
 export ROOTCERT="$TESTDATA/root.pem"
+export CA_DEFAULT_PORT="7054"
 
 
 DATE='date +%Y-%m-%d'
