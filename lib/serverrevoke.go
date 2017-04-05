@@ -46,7 +46,6 @@ type revokeHandler struct {
 
 // Handle an revoke request
 func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-
 	log.Debug("Revoke request received")
 
 	authHdr := r.Header.Get("authorization")
@@ -60,20 +59,6 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	}
 	r.Body.Close()
 
-	cert, err := util.VerifyToken(h.server.csp, authHdr, body)
-	if err != nil {
-		return authErr(w, err)
-	}
-
-	// Make sure that the user has the "hf.Revoker" attribute in order to be authorized
-	// to revoke a certificate.  This attribute comes from the user registry, which
-	// is either in the DB if LDAP is not configured, or comes from LDAP if LDAP is
-	// configured.
-	err = h.server.userHasAttribute(cert.Subject.CommonName, "hf.Revoker")
-	if err != nil {
-		return authErr(w, err)
-	}
-
 	// Parse revoke request body
 	var req api.RevocationRequestNet
 	err = json.Unmarshal(body, &req)
@@ -83,11 +68,28 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 	log.Debugf("Revoke request: %+v", req)
 
+	caname := r.Header.Get(caHdrName)
+
+	cert, err := util.VerifyToken(h.server.caMap[caname].csp, authHdr, body)
+	if err != nil {
+		return authErr(w, err)
+	}
+
+	// Make sure that the user has the "hf.Revoker" attribute in order to be authorized
+	// to revoke a certificate.  This attribute comes from the user registry, which
+	// is either in the DB if LDAP is not configured, or comes from LDAP if LDAP is
+	// configured.
+	err = h.server.caMap[caname].userHasAttribute(cert.Subject.CommonName, "hf.Revoker")
+	if err != nil {
+		return authErr(w, err)
+	}
+
 	req.AKI = strings.TrimLeft(strings.ToLower(req.AKI), "0")
 	req.Serial = strings.TrimLeft(strings.ToLower(req.Serial), "0")
 
-	certDBAccessor := h.server.certDBAccessor
-	registry := h.server.registry
+	certDBAccessor := h.server.caMap[caname].certDBAccessor
+	registry := h.server.caMap[caname].registry
+	reason := util.RevocationReasonCodes[req.Reason]
 
 	if req.Serial != "" && req.AKI != "" {
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
@@ -116,7 +118,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return authErr(w, err2)
 		}
 
-		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
+		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, reason)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to revoke certificate: %s", err)
 			log.Error(msg)
@@ -155,7 +157,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		var recs []CertRecord
-		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, req.Reason)
+		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, reason)
 		if err != nil {
 			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name, err)
 			return dbErr(w, err)

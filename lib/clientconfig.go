@@ -32,6 +32,9 @@ type ClientConfig struct {
 	Enrollment api.EnrollmentRequest
 	CSR        api.CSRInfo
 	ID         api.RegistrationRequest
+	Revoke     api.RevocationRequest
+	CAInfo     api.GetCAInfoRequest
+	CAName     string `def:"ca" help:"Name of CA"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.
@@ -49,6 +52,7 @@ func (c *ClientConfig) Enroll(rawurl, home string) (*EnrollmentResponse, error) 
 		c.Enrollment.Secret = secret
 		purl.User = nil
 	}
+	c.Enrollment.CAName = c.CAName
 	c.URL = purl.String()
 	c.TLS.Enabled = purl.Scheme == "https"
 	c.Enrollment.CSR = &c.CSR

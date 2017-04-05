@@ -41,6 +41,10 @@ var (
 	adminID     *Identity
 )
 
+const (
+	DefaultCA = ""
+)
+
 func TestClient(t *testing.T) {
 
 	server := getServer(ctport1, path.Join(serversDir, "c1"), "", 1, t)
@@ -54,7 +58,7 @@ func TestClient(t *testing.T) {
 
 	c := getTestClient(ctport1)
 
-	testGetServerInfo(c, t)
+	testGetCAInfo(c, t)
 	testRegister(c, t)
 	testEnrollIncorrectPassword(c, t)
 	testDoubleEnroll(c, t)
@@ -71,9 +75,11 @@ func TestClient(t *testing.T) {
 
 }
 
-func testGetServerInfo(c *Client, t *testing.T) {
-
-	si, err := c.GetServerInfo()
+func testGetCAInfo(c *Client, t *testing.T) {
+	req := &api.GetCAInfoRequest{
+		CAName: DefaultCAName,
+	}
+	si, err := c.GetCAInfo(req)
 	if err != nil {
 		t.Fatalf("Failed to get server info: %s", err)
 	}
@@ -274,7 +280,8 @@ func TestCustomizableMaxEnroll(t *testing.T) {
 
 func testTooManyEnrollments(t *testing.T) {
 	clientConfig := &ClientConfig{
-		URL: fmt.Sprintf("http://localhost:%d", ctport2),
+		URL:    fmt.Sprintf("http://localhost:%d", ctport2),
+		CAName: DefaultCAName,
 	}
 
 	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", ctport2)

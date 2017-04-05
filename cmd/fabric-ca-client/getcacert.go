@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
@@ -59,7 +60,11 @@ func runGetCACert() error {
 		Config:  clientCfg,
 	}
 
-	si, err := client.GetServerInfo()
+	req := &api.GetCAInfoRequest{
+		CAName: clientCfg.CAInfo.CAName,
+	}
+
+	si, err := client.GetCAInfo(req)
 	if err != nil {
 		return err
 	}

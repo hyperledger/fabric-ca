@@ -74,7 +74,7 @@ func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, erro
 // Register registers a new identity
 // @param req The registration request
 func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationResponse, err error) {
-	log.Debugf("Register %+v", &req)
+	log.Debugf("Register %+v", req)
 	if req.Name == "" {
 		return nil, errors.New("Register was called without a Name set")
 	}
@@ -101,21 +101,24 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 // Reenroll reenrolls an existing Identity and returns a new Identity
 // @param req The reenrollment request
 func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
-	log.Debugf("Reenrolling %s", &req)
+	log.Debugf("Reenrolling %s", req)
 
 	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the body of the request
-	sreq := signer.SignRequest{
-		Hosts:   signer.SplitHosts(req.Hosts),
-		Request: string(csrPEM),
-		Profile: req.Profile,
-		Label:   req.Label,
+	reqNet := &api.ReenrollmentRequestNet{
+		CAName: req.CAName,
 	}
-	body, err := util.Marshal(sreq, "SignRequest")
+
+	// Get the body of the request
+	reqNet.Hosts = signer.SplitHosts(req.Hosts)
+	reqNet.Request = string(csrPEM)
+	reqNet.Profile = req.Profile
+	reqNet.Label = req.Label
+
+	body, err := util.Marshal(reqNet, "SignRequest")
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +132,7 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, 
 
 // Revoke the identity associated with 'id'
 func (i *Identity) Revoke(req *api.RevocationRequest) error {
-	log.Debugf("Entering identity.Revoke %+v", &req)
+	log.Debugf("Entering identity.Revoke %+v", req)
 	reqBody, err := util.Marshal(req, "RevocationRequest")
 	if err != nil {
 		return err

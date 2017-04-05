@@ -377,26 +377,26 @@ func testRevoke(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Revoker's affiliation: hyperledger.org1
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "nonexistinguser"})
+	// Revoker's affiliation: company1
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "nonexistinguser"})
 	if err == nil {
 		t.Errorf("Non existing user being revoked, should have failed")
 	}
 
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "", "-s", serial})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "", "--revoke.serial", serial})
 	if err == nil {
 		t.Errorf("Only serial specified, should have failed")
 	}
 
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "", "-s", "", "-a", aki})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "", "--revoke.serial", "", "--revoke.aki", aki})
 	if err == nil {
 		t.Errorf("Only aki specified, should have failed")
 	}
 
 	// revoker's affiliation: company1, revoking affiliation: ""
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-s", serial, "-a", aki})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.serial", serial, "--revoke.aki", aki})
 	if err == nil {
-		t.Errorf("Should have failed, admin2 cannot revoke root affiliation")
+		t.Error("Should have failed, admin2 cannot revoke root affiliation")
 	}
 
 	// When serial, aki and enrollment id are specified in a revoke request,
@@ -408,21 +408,21 @@ func testRevoke(t *testing.T) {
 	}
 
 	// Revoked user's affiliation: hyperledger.org3
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister3", "-s", "", "-a", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "testRegister3", "--revoke.serial", "", "--revoke.aki", ""})
 	if err == nil {
-		t.Errorf("Should have failed, admin2 does not have authority revoke")
+		t.Error("Should have failed, admin2 does not have authority revoke")
 	}
 
 	// testRegister2's affiliation: company1, revoker's affiliation: company1
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister2", "-s", "", "-a", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "testRegister2", "--revoke.serial", "", "--revoke.aki", ""})
 	if err != nil {
-		t.Errorf("Failed to revoke proper affiliation hierarchy")
+		t.Errorf("Failed to revoke proper affiliation hierarchy, error: %s", err)
 	}
 
 	// testRegister4's affiliation: company2, revoker's affiliation: company1
 	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister4", "-s", "", "-a", ""})
 	if err == nil {
-		t.Errorf("Should have failed have different affiliation path")
+		t.Error("Should have failed have different affiliation path")
 	}
 
 	// Enroll admin with root affiliation and test revoking with root
@@ -432,9 +432,10 @@ func testRevoke(t *testing.T) {
 	}
 
 	// testRegister4's affiliation: company2, revoker's affiliation: "" (root)
-	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister4", "-s", "", "-a", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "--revoke.name", "testRegister4", "--revoke.serial", "", "--revoke.aki", ""})
 	if err != nil {
-		t.Errorf("User with root affiliation failed to revoke")
+		t.Errorf("User with root affiliation failed to revoke, error: %s", err)
+
 	}
 
 	os.Remove(defYaml) // Delete default config file
@@ -446,6 +447,7 @@ func testRevoke(t *testing.T) {
 	}
 
 	os.RemoveAll(filepath.Dir(defYaml))
+
 }
 
 // TestBogus tests a negative test case
@@ -575,12 +577,55 @@ func TestClientCommandsTLS(t *testing.T) {
 	}
 }
 
+func TestMultiCA(t *testing.T) {
+	srv = getServer()
+	srv.HomeDir = "../../testdata"
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
+	srv.CA.Config.CSR.Hosts = []string{"hostname"}
+	t.Logf("Server configuration: %+v\n", srv.Config)
+
+	srv.BlockingStart = false
+	err := srv.Start()
+	if err != nil {
+		t.Fatal("Failed to start server:", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "http://adminca1:adminca1pw@localhost:7054", "-d", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "http://adminca1:adminca1pw@localhost:7054", "-d", "--caname", "rootca3"})
+	if err == nil {
+		t.Errorf("Should have failed, rootca3 does not exist on server")
+	}
+
+	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
 func TestCleanUp(t *testing.T) {
-	os.Remove("../../testdata/cert.pem")
-	os.Remove("../../testdata/key.pem")
+	os.Remove("../../testdata/ca-cert.pem")
+	os.Remove("../../testdata/ca-key.pem")
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
 	os.RemoveAll(mspDir)
+	cleanMultiCADir()
+}
+
+func cleanMultiCADir() {
+	caFolder := "../../testdata/ca/rootca"
+	nestedFolders := []string{"ca1", "ca2"}
+	removeFiles := []string{"ec.pem", "ec-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
+
+	for _, nestedFolder := range nestedFolders {
+		path := filepath.Join(caFolder, nestedFolder)
+		for _, file := range removeFiles {
+			os.Remove(filepath.Join(path, file))
+		}
+	}
 }
 
 func TestRegisterWithoutEnroll(t *testing.T) {
@@ -595,8 +640,7 @@ func getServer() *lib.Server {
 		HomeDir: ".",
 		Config:  getServerConfig(),
 		CA: lib.CA{
-			HomeDir: ".",
-			Config:  getCAConfig(),
+			Config: getCAConfig(),
 		},
 	}
 }
@@ -624,7 +668,10 @@ func getSerialAKIByID(id string) (serial, aki string, err error) {
 	testdb, _, _ := dbutil.NewUserRegistrySQLLite3(srv.CA.Config.DB.Datasource)
 	acc := lib.NewCertDBAccessor(testdb)
 
-	certs, _ := acc.GetCertificatesByID(id)
+	certs, err := acc.GetCertificatesByID(id)
+	if err != nil {
+		return "", "", err
+	}
 
 	block, _ := pem.Decode([]byte(certs[0].PEM))
 	if block == nil {

@@ -105,7 +105,6 @@ func (s *Server) Start() (err error) {
 		if err != nil {
 			return err
 		}
-
 		for _, caFile := range caFiles {
 			err = s.loadCA(caFile, false)
 			if err != nil {
@@ -262,7 +261,16 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 		}
 	}
 
+	// Need to error if no CA name provided in config file, we cannot revert to using
+	// the name of default CA cause CA names must be unique
+	if caConfig.CA.Name == "" {
+		return errors.New("No CA name provide in CA configuration file. CA name is required")
+	}
+
 	util.CopyMissingValues(s.CA.Config, caConfig)
+
+	caConfig.CA.Certfile = filepath.Base(caConfig.CA.Certfile)
+	caConfig.CA.Keyfile = filepath.Base(caConfig.CA.Keyfile)
 
 	if caConfig.DB.Type == defaultDatabaseType {
 		caConfig.DB.Datasource = filepath.Base(caConfig.DB.Datasource)
@@ -302,7 +310,7 @@ func (s *Server) addCA(ca *CA) error {
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
 	s.mux = http.NewServeMux()
-	s.registerHandler("info", newInfoHandler, noAuth)
+	s.registerHandler("cainfo", newInfoHandler, noAuth)
 	s.registerHandler("register", newRegisterHandler, token)
 	s.registerHandler("enroll", newEnrollHandler, basic)
 	s.registerHandler("reenroll", newReenrollHandler, token)
@@ -323,6 +331,7 @@ func (s *Server) registerHandler(
 		log.Warningf("Endpoint '%s' is disabled: %s", path, err)
 		return
 	}
+
 	handler = &fcaAuthHandler{
 		server:   s,
 		authType: at,

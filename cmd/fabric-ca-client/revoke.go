@@ -23,9 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var errInput = errors.New("Invalid usage; either --eid or both --serial and --aki are required")
@@ -62,11 +60,6 @@ var revokeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(revokeCmd)
-	revokeFlags := revokeCmd.Flags()
-	util.FlagString(revokeFlags, "eid", "e", "", "Enrollment ID (Optional)")
-	util.FlagString(revokeFlags, "serial", "s", "", "Serial Number")
-	util.FlagString(revokeFlags, "aki", "a", "", "AKI")
-	util.FlagString(revokeFlags, "reason", "r", "", "Reason for revoking")
 }
 
 // The client revoke main logic
@@ -74,10 +67,6 @@ func runRevoke(cmd *cobra.Command) error {
 	log.Debug("Revoke Entered")
 
 	var err error
-
-	enrollmentID := viper.GetString("eid")
-	serial := viper.GetString("serial")
-	aki := viper.GetString("aki")
 
 	client := lib.Client{
 		HomeDir: filepath.Dir(cfgFileName),
@@ -94,23 +83,17 @@ func runRevoke(cmd *cobra.Command) error {
 	// specified OR enrollment ID must be specified, else return an error.
 	// Note that all three can be specified, in which case server will revoke
 	// certificate associated with the specified aki, serial number.
-	if (enrollmentID == "") && (aki == "" || serial == "") {
+	if (clientCfg.Revoke.Name == "") && (clientCfg.Revoke.AKI == "" || clientCfg.Revoke.Serial == "") {
 		cmd.Usage()
 		return errInput
 	}
 
-	reasonInput := viper.GetString("reason")
-	var reason int
-	if reasonInput != "" {
-		reason = util.RevocationReasonCodes[reasonInput]
-	}
-
 	err = id.Revoke(
 		&api.RevocationRequest{
-			Name:   enrollmentID,
-			Serial: serial,
-			AKI:    aki,
-			Reason: reason,
+			Name:   clientCfg.Revoke.Name,
+			Serial: clientCfg.Revoke.Serial,
+			AKI:    clientCfg.Revoke.AKI,
+			Reason: clientCfg.Revoke.Reason,
 		})
 
 	if err == nil {

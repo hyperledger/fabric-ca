@@ -188,7 +188,8 @@ ldap:
    # The URL of the LDAP server
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
    tls:
-      certfiles: ldap-server-cert.pem				# Comma Separated (e.g. root.pem, root2.pem)
+      certfiles:
+        - ldap-server-cert.pem
       client:
          certfile: ldap-client-cert.pem
          keyfile: ldap-client-key.pem
@@ -320,6 +321,7 @@ func configInit() (err error) {
 			"tls.clientauth.certfiles",
 			"cafiles",
 			"db.tls.certfiles",
+			"ldap.tls.certfiles",
 		}
 		err = util.ViperUnmarshal(serverCfg, sliceFields, viper.GetViper())
 		if err != nil {
