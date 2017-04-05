@@ -53,6 +53,7 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME) openldap
+FVTIMAGE = $(PROJECT_NAME)-fvt
 
 path-map.fabric-ca-client := ./cmd/fabric-ca-client
 path-map.fabric-ca-server := ./cmd/fabric-ca-server
@@ -65,6 +66,8 @@ rename: .FORCE
 	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
+
+docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
 
 checks: license vet lint format imports
 
@@ -130,6 +133,10 @@ build/image/fabric-ca/payload: \
 	build/fabric-ca.tar.bz2
 build/image/openldap/payload : \
 	images/openldap/openldap.tar
+build/image/fabric-ca-fvt/payload: \
+	build/docker/bin/fabric-ca-client \
+	build/docker/bin/fabric-ca-server \
+	images/fabric-ca-fvt/start.sh
 build/image/%/payload:
 	@echo "Copying $^ to $@"
 	mkdir -p $@
@@ -148,12 +155,15 @@ container-tests: docker ldap-tests
 ldap-tests: openldap
 	@scripts/run_ldap_tests
 
+fvt-tests: fabric-ca-client fabric-ca-server
+	@scripts/run_fvt_tests
+
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
 	-docker images -q $(DOCKER_ORG)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
-docker-clean: $(patsubst %,%-docker-clean, $(IMAGES))
+docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
 
 .PHONY: clean
 
