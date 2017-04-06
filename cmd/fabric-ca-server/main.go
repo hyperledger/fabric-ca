@@ -105,10 +105,9 @@ func RunMain(args []string) error {
 // Get a server for the init and start commands
 func getServer() *lib.Server {
 	return &lib.Server{
-		HomeDir:         filepath.Dir(cfgFileName),
-		Config:          serverCfg,
-		BlockingStart:   blockingStart,
-		ParentServerURL: viper.GetString("url"),
+		HomeDir:       filepath.Dir(cfgFileName),
+		Config:        serverCfg,
+		BlockingStart: blockingStart,
 		CA: lib.CA{
 			Config: &serverCfg.CAcfg,
 		},

@@ -246,6 +246,30 @@ crypto:
      security_level: 256
      ephemeral: false
      key_store_dir: keys
+
+#############################################################################
+# The fabric-ca-server init and start commands support the following two
+# additional mutually exclusive options:
+#
+# 1) --cacount <number-of-CAs>
+# Automatically generate multiple default CA instances
+#
+# 2) --cafiles <CA-config-files>
+# For each CA config file in the list, generate a separate signing CA.  Each CA
+# config file in this list MAY contain all of the same elements as are found in
+# the server config file except port, debug, and tls sections.
+#
+# Examples:
+# fabric-ca-server start -b admin:adminpw --cacount 2
+#
+# fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-server-config.yaml
+# --cafiles ca/ca2/fabric-ca-server-config.yaml
+#
+#############################################################################
+
+cacount:
+
+cafiles:
 `
 )
 
@@ -294,8 +318,10 @@ func configInit() (err error) {
 		sliceFields := []string{
 			"csr.hosts",
 			"tls.clientauth.certfiles",
+			"cafiles",
+			"db.tls.certfiles",
 		}
-		err = util.ViperUnmarshal(serverCfg, sliceFields)
+		err = util.ViperUnmarshal(serverCfg, sliceFields, viper.GetViper())
 		if err != nil {
 			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
 		}

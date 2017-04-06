@@ -139,14 +139,14 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		CA: CA{
 			Config: &CAConfig{
-				Affiliations: affiliations,
+				ParentServerURL: parentURL,
+				Affiliations:    affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
 				},
 			},
 		},
-		HomeDir:         home,
-		ParentServerURL: parentURL,
+		HomeDir: home,
 	}
 	// The bootstrap user's affiliation is the empty string, which
 	// means the user is at the affiliation root

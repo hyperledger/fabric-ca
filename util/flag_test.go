@@ -71,3 +71,39 @@ func TestParseObj(t *testing.T) {
 		t.Error("Should have failed to parse but didn't")
 	}
 }
+
+func TestCheckForMissingValues(t *testing.T) {
+	check := &A{
+		Str2: "string2",
+		Int1: 2,
+	}
+
+	replaceWith := &A{
+		Str1: "string1",
+		Str2: "string3",
+		Int2: []int{1, 2, 3},
+		FB: B{
+			Str: "string",
+			FC: C{
+				Bool: true,
+			},
+		},
+		FBP: &B{},
+	}
+
+	CopyMissingValues(replaceWith, check)
+
+	if check.Str1 != replaceWith.Str1 || check.FB.Str != replaceWith.FB.Str || check.FBP != replaceWith.FBP {
+		t.Error("Failed to correctly fill in missing values")
+	}
+
+	for i := range replaceWith.Int2 {
+		if check.Int2[i] != replaceWith.Int2[i] {
+			t.Error("Failed to correctly fill in missing values")
+		}
+	}
+
+	if check.Str2 != "string2" {
+		t.Error("Replaced a non missing value")
+	}
+}

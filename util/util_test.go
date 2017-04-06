@@ -430,6 +430,32 @@ func TestStructToString(t *testing.T) {
 	}
 }
 
+func TestNormalizeFileList(t *testing.T) {
+	var err error
+	slice := []string{"file1,file2", "file3,file4"}
+
+	slice, err = NormalizeFileList(slice, "../testdata")
+	if err != nil {
+		t.Error("Failed to normalize files list, error: ", err)
+	}
+
+	if !strings.Contains(slice[0], "file1") {
+		t.Error("Failed to correctly normalize files list")
+	}
+
+	if strings.Contains(slice[0], "file2") {
+		t.Error("Should have failed, first element should not contain 'file2'")
+	}
+
+	if !strings.Contains(slice[1], "file2") {
+		t.Error("Failed to correctly normalize files list")
+	}
+
+	if !strings.Contains(slice[3], "file4") {
+		t.Error("Failed to correctly normalize files list")
+	}
+}
+
 func makeFileAbs(t *testing.T, file, dir, expect string) {
 	path, err := MakeFileAbs(file, dir)
 	if err != nil {

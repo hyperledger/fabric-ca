@@ -201,6 +201,23 @@ func TestDBLocation(t *testing.T) {
 	checkConfigAndDBLoc(t, args, cfgFile, dsFile)
 	os.RemoveAll(os.TempDir() + "/config")
 	os.Remove(dsFile)
+	os.Unsetenv("FABRIC_CA_SERVER_DB_DATASOURCE")
+}
+
+func TestMultiCA(t *testing.T) {
+	blockingStart = false
+
+	err := RunMain([]string{cmdName, "start", "-d", "-p", "7055", "-c", "../../testdata/test.yaml", "-b", "user:pass", "--cafiles", "ca/ca1/fabric-ca-server-config.yaml", "--cafiles", "ca/ca2/fabric-ca-server-config.yaml"})
+	if err != nil {
+		t.Error("Failed to start server with multiple CAs using the --cafiles flag from command line: ", err)
+	}
+
+	if !util.FileExists("../../testdata/ca/ca2/fabric-ca2-server.db") {
+		t.Error("Failed to create 2 CA instances")
+	}
+
+	cleanUpMultiCAFiles()
+
 }
 
 // Run server with specified args and check if the configuration and datasource
@@ -228,4 +245,14 @@ func TestClean(t *testing.T) {
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
 	os.Remove("fabric-ca-server.db")
+}
+
+func cleanUpMultiCAFiles() {
+	os.Remove("../../testdata/test.yaml")
+	os.Remove("../../testdata/ca/ca1/ca-cert.pem")
+	os.Remove("../../testdata/ca/ca1/ca-key.pem")
+	os.Remove("../../testdata/ca/ca1/fabric-ca-server.db")
+	os.Remove("../../testdata/ca/ca2/ca-cert.pem")
+	os.Remove("../../testdata/ca/ca2/ca-key.pem")
+	os.Remove("../../testdata/ca/ca2/fabric-ca2-server.db")
 }

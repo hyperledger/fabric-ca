@@ -33,15 +33,16 @@ import (
 // "help" - the help message to display on the command line;
 // "skip" - to skip the field.
 type CAConfig struct {
-	CSP          *factory.FactoryOpts
-	CA           CAInfo
-	Signing      *config.Signing
-	CSR          csr.CertificateRequest
-	Registry     CAConfigRegistry
-	Affiliations map[string]interface{}
-	LDAP         ldap.Config
-	DB           CAConfigDB
-	Client       *ClientConfig
+	CSP             *factory.FactoryOpts
+	CA              CAInfo
+	ParentServerURL string `skip:"true"`
+	Signing         *config.Signing
+	CSR             csr.CertificateRequest
+	Registry        CAConfigRegistry
+	Affiliations    map[string]interface{}
+	LDAP            ldap.Config
+	DB              CAConfigDB
+	Client          *ClientConfig
 }
 
 // CAInfo is the CA information on a fabric-ca-server

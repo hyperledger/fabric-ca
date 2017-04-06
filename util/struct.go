@@ -94,3 +94,33 @@ func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
 	}
 	return nil
 }
+
+// CopyMissingValues checks the dst interface for missing values and
+// replaces them with value from src config struct
+func CopyMissingValues(src, dst interface{}) {
+	s := reflect.ValueOf(src).Elem()
+	d := reflect.ValueOf(dst).Elem()
+
+	for i := 0; i < s.NumField(); i++ {
+		sf := s.Field(i)
+		kind := sf.Kind()
+		df := d.Field(i)
+
+		switch kind {
+		case reflect.String:
+			if df.String() == "" {
+				df.SetString(sf.String())
+			}
+		case reflect.Slice:
+			if df.Len() == 0 {
+				df.Set(sf)
+			}
+		case reflect.Ptr:
+			if df.IsNil() {
+				df.Set(sf)
+			}
+		case reflect.Struct:
+			CopyMissingValues(sf.Addr().Interface(), df.Addr().Interface())
+		}
+	}
+}

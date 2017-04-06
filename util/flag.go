@@ -175,7 +175,7 @@ func bindFlag(flags *pflag.FlagSet, name string) {
 // ViperUnmarshal is a work around for a bug in viper.Unmarshal
 // This can be removed once https://github.com/spf13/viper/issues/327 is fixed
 // and vendored.
-func ViperUnmarshal(cfg interface{}, stringSliceFields []string) error {
+func ViperUnmarshal(cfg interface{}, stringSliceFields []string, vp *viper.Viper) error {
 	decoderConfig := &mapstructure.DecoderConfig{
 		Metadata:         nil,
 		Result:           cfg,
@@ -186,18 +186,30 @@ func ViperUnmarshal(cfg interface{}, stringSliceFields []string) error {
 	if err != nil {
 		return fmt.Errorf("Failed to create decoder: %s", err)
 	}
-	settings := viper.AllSettings()
+	settings := vp.AllSettings()
 	for _, field := range stringSliceFields {
+		var ok bool
 		path := strings.Split(field, ".")
 		m := settings
 		name := path[0]
+		// If it is a top level option check to see if nil before continuing
+		if _, ok = m[name]; !ok {
+			continue
+		}
+
 		if len(path) > 1 {
 			for _, field2 := range path[1:] {
+				// Inspect nested options to see if nil before proceeding with assertion
+				if _, ok = m[name]; !ok {
+					break
+				}
 				m = m[name].(map[string]interface{})
 				name = field2
 			}
 		}
+		// Only do casting if path was valid
 		m[name] = cast.ToStringSlice(m[name])
 	}
+
 	return decoder.Decode(settings)
 }

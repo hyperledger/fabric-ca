@@ -194,7 +194,7 @@ func configInit(command string) error {
 		sliceFields := []string{
 			"tls.certfiles",
 		}
-		err = util.ViperUnmarshal(clientCfg, sliceFields)
+		err = util.ViperUnmarshal(clientCfg, sliceFields, viper.GetViper())
 		if err != nil {
 			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
 		}

@@ -584,3 +584,36 @@ func StructToString(si interface{}) string {
 	buffer.WriteString(" }")
 	return buffer.String()
 }
+
+// NormalizeStringSlice checks for seperators
+func NormalizeStringSlice(slice []string) []string {
+	var normalizedSlice []string
+
+	if len(slice) > 0 {
+		for _, item := range slice {
+			if strings.Contains(item, ",") {
+				normalizedSlice = append(normalizedSlice, strings.Split(item, ",")...)
+			} else {
+				normalizedSlice = append(normalizedSlice, item)
+			}
+		}
+	}
+
+	return normalizedSlice
+}
+
+// NormalizeFileList provides absolute pathing for the list of files
+func NormalizeFileList(files []string, homeDir string) ([]string, error) {
+	var err error
+
+	files = NormalizeStringSlice(files)
+
+	for i, file := range files {
+		files[i], err = MakeFileAbs(file, homeDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return files, nil
+}

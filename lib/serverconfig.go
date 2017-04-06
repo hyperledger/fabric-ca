@@ -40,8 +40,8 @@ type ServerConfig struct {
 	Address string `def:"0.0.0.0" help:"Listening address of fabric-ca-server"`
 	Debug   bool   `def:"false" opt:"d" help:"Enable debug level logging"`
 	TLS     tls.ServerTLSConfig
-	Remote  string `skip:"true"`
 	Client  *ClientConfig
 	// caCfg is the default CA's config
-	CAcfg CAConfig `skip:"true"`
+	CAcfg   CAConfig `skip:"true"`
+	CAfiles []string `help:"CA configuration files"`
 }
