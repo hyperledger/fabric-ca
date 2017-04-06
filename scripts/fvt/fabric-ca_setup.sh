@@ -190,7 +190,7 @@ backend fabric-cas
 function startFabricCa() {
    local inst=$1
    local start=$SECONDS
-   local timeout=8
+   local timeout="$((TIMEOUT*2))"
    local now=0
    local server_addr=127.0.0.$inst
    # if not explcitly set, use default
@@ -221,8 +221,9 @@ function killAllFabricCas() {
    test -n "$proxypids" && kill $proxypids
 }
 
-while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:" option; do
+while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:o:" option; do
   case "$option" in
+     o)   TIMEOUT="$OPTARG" ;;
      d)   DRIVER="$OPTARG" ;;
      r)   USER_CA_PORT="$OPTARG" ;;
      p)   HTTP_PORT="$OPTARG" ;;
@@ -249,6 +250,7 @@ while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:" option; do
   esac
 done
 
+: ${TIMEOUT:="10"}
 : ${HTTP_PORT:="3755"}
 : ${DBNAME:="fabric_ca"}
 : ${MAXENROLL:="1"}
