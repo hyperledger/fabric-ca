@@ -35,7 +35,7 @@ $ export CSR_CONFIG=<CSR configuration file>
 If you are using certificates or config files outside of the default values,
 be sure to save the desired files to the developer's local directories. The
 certificates should be saved to the `/var/hyperledger/fabric/.fabric-ca` directory
-and the config files should be saved to the `var/hyperledger/fabric_ca_config`
+and the config files should be saved to the `/var/hyperledger/fabric_ca_config`
 directory.
 
 You can also generate the certificates by running the following script that
