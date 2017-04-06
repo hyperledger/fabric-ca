@@ -97,6 +97,12 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return notFound(w, errors.New(msg))
 		}
 
+		if req.Name != "" && req.Name != certificate.ID {
+			err = fmt.Errorf("The serial number %s and the AKI %s do not belong to the Enrollment ID %s",
+				req.Serial, req.AKI, req.Name)
+			return badRequest(w, err)
+		}
+
 		userInfo, err2 := registry.GetUserInfo(certificate.ID)
 		if err2 != nil {
 			return err2

@@ -89,16 +89,14 @@ func runRevoke(cmd *cobra.Command) error {
 		return err
 	}
 
-	if enrollmentID == "" {
-		if serial == "" || aki == "" {
-			cmd.Usage()
-			return errInput
-		}
-	} else {
-		if serial != "" || aki != "" {
-			cmd.Usage()
-			return errInput
-		}
+	// aki and serial # are required to revoke a certificate. The enrollment ID
+	// is required to revoke an identity. So, either aki and serial must be
+	// specified OR enrollment ID must be specified, else return an error.
+	// Note that all three can be specified, in which case server will revoke
+	// certificate associated with the specified aki, serial number.
+	if (enrollmentID == "") && (aki == "" || serial == "") {
+		cmd.Usage()
+		return errInput
 	}
 
 	reasonInput := viper.GetString("reason")

@@ -399,6 +399,14 @@ func testRevoke(t *testing.T) {
 		t.Errorf("Should have failed, admin2 cannot revoke root affiliation")
 	}
 
+	// When serial, aki and enrollment id are specified in a revoke request,
+	// fabric ca server returns an error if the serial and aki do not belong
+	// to the enrollment ID.
+	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "blah", "-s", serial, "-a", aki})
+	if err == nil {
+		t.Errorf("The Serial and AKI are not associated with the enrollment ID: %s", err)
+	}
+
 	// Revoked user's affiliation: hyperledger.org3
 	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7054", "-e", "testRegister3", "-s", "", "-a", ""})
 	if err == nil {
