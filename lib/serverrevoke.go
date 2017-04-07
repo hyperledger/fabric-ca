@@ -112,7 +112,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return dbErr(w, errors.New(msg))
 		}
 
-		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo)
+		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo, caname)
 		if err2 != nil {
 			log.Error(err2)
 			return authErr(w, err2)
@@ -141,7 +141,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 				return notFound(w, err)
 			}
 
-			err = h.checkAffiliations(cert.Subject.CommonName, userInfo)
+			err = h.checkAffiliations(cert.Subject.CommonName, userInfo, caname)
 			if err != nil {
 				log.Error(err)
 				return authErr(w, err)
@@ -179,9 +179,9 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	return cfsslapi.SendResponse(w, result)
 }
 
-func (h *revokeHandler) checkAffiliations(revoker string, revoking spi.UserInfo) error {
+func (h *revokeHandler) checkAffiliations(revoker string, revoking spi.UserInfo, caname string) error {
 	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, revoking.Name)
-	userAffiliation, err := h.server.getUserAffiliation(revoker)
+	userAffiliation, err := h.server.caMap[caname].getUserAffiliation(revoker)
 	if err != nil {
 		return err
 	}

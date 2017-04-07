@@ -119,6 +119,10 @@ func CopyMissingValues(src, dst interface{}) {
 			if df.IsNil() {
 				df.Set(sf)
 			}
+		case reflect.Map:
+			if df.IsNil() {
+				df.Set(sf)
+			}
 		case reflect.Struct:
 			CopyMissingValues(sf.Addr().Interface(), df.Addr().Interface())
 		}

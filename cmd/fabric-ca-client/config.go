@@ -134,6 +134,9 @@ enrollment:
   hosts:
   profile:
   label:
+
+# Name of the CA to connect to within the fabric-ca server
+caname:
 `
 )
 

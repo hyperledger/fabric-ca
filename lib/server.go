@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -95,10 +96,18 @@ func (s *Server) Start() (err error) {
 		return err
 	}
 
+	if s.Config.CAcount != 0 && len(s.Config.CAfiles) > 0 {
+		return fmt.Errorf("Can't set values for both cacount and cafiles")
+	}
+
 	s.Config.TLS.ClientAuth.CertFiles = util.NormalizeStringSlice(s.Config.TLS.ClientAuth.CertFiles)
 
+	if s.Config.CAcount >= 1 {
+		s.createDefaultCAConfigs(s.Config.CAcount)
+	}
+
 	if len(s.Config.CAfiles) != 0 {
-		log.Infof("CAs to be started: %s", s.Config.CAfiles)
+		log.Debugf("CAs to be started: %s", s.Config.CAfiles)
 		var caFiles []string
 
 		caFiles, err = util.NormalizeFileList(s.Config.CAfiles, s.HomeDir)
@@ -115,6 +124,8 @@ func (s *Server) Start() (err error) {
 
 	// Register http handlers
 	s.registerHandlers()
+
+	log.Debugf("%d CA instance(s) running on server", len(s.caMap))
 
 	// Start listening and serving
 	return s.listenAndServe()
@@ -204,10 +215,6 @@ func (s *Server) initDefaultCA(ca *CA, renew bool) error {
 		return err
 	}
 
-	if ca.Config.CA.Name == "" {
-		ca.Config.CA.Name = DefaultCAName
-	}
-
 	err = s.addCA(ca)
 	if err != nil {
 		return err
@@ -216,6 +223,7 @@ func (s *Server) initDefaultCA(ca *CA, renew bool) error {
 	return nil
 }
 
+// loadCA loads up a CA's configuration from the specified
 func (s *Server) loadCA(caFile string, renew bool) error {
 	log.Infof("Loading CA from %s", caFile)
 	var err error
@@ -232,39 +240,15 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 	// CA config file
 	caViper := viper.New()
 
-	caViper.SetConfigFile(caFile)
-	err = caViper.ReadInConfig()
+	err = UnmarshalConfig(caConfig, caViper, caFile, false, true)
 	if err != nil {
-		return fmt.Errorf("Failed to read config file: %s", err)
-	}
-
-	// Unmarshal the config into 'caConfig'
-	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
-	// and vendored, the work around code can be deleted.
-	viperIssue327WorkAround := true
-	if viperIssue327WorkAround {
-		sliceFields := []string{
-			"csr.hosts",
-			"tls.clientauth.certfiles",
-			"ldap.tls.certfiles",
-			"db.tls.certfiles",
-			"cafiles",
-		}
-		err = util.ViperUnmarshal(caConfig, sliceFields, caViper)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", caFile, err)
-		}
-	} else {
-		err = caViper.Unmarshal(caConfig)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", caFile, err)
-		}
+		return err
 	}
 
 	// Need to error if no CA name provided in config file, we cannot revert to using
 	// the name of default CA cause CA names must be unique
 	if caConfig.CA.Name == "" {
-		return errors.New("No CA name provide in CA configuration file. CA name is required")
+		return fmt.Errorf("No CA name provided in CA configuration file. CA name is required in %s", caFile)
 	}
 
 	util.CopyMissingValues(s.CA.Config, caConfig)
@@ -284,6 +268,16 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 		caConfig.DB.TLS.Enabled = s.CA.Config.DB.TLS.Enabled
 	}
 
+	if _, ok := s.caMap[caConfig.CA.Name]; ok {
+		return fmt.Errorf("CA by name '%s' in %s already exists", caConfig.CA.Name, caFile)
+	}
+
+	for caName := range s.caMap {
+		if s.caMap[caName].Config.CSR.CN == caConfig.CSR.CN {
+			return fmt.Errorf("Common Name (CN) is already in use by another CA, please specify a unique CN in %s", caFile)
+		}
+	}
+
 	ca, err := NewCA(filepath.Dir(caFile), caConfig, s, renew)
 	if err != nil {
 		return err
@@ -293,17 +287,52 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 
 }
 
+// addCA adds the CA to the server and registers its handlers
 func (s *Server) addCA(ca *CA) error {
-	log.Infof("Adding CA %s to server", ca.Config.CA.Name)
-
-	if _, ok := s.caMap[ca.Config.CA.Name]; ok {
-		return fmt.Errorf("CA by name '%s' already exists", ca.Config.CA.Name)
-	}
+	log.Debugf("Adding CA %s to server", ca.Config.CA.Name)
 
 	s.caMap[ca.Config.CA.Name] = ca
 
-	log.Infof("CA '%s' has been added to server ", ca.Config.CA.Name)
+	log.Infof("Home directory for CA '%s': %s", ca.Config.CA.Name, ca.HomeDir)
 
+	return nil
+}
+
+// createDefaultCAConfigs creates specified number of default CA configuration files
+func (s *Server) createDefaultCAConfigs(cacount int) error {
+	log.Debugf("Creating %d default CA configuration files", cacount)
+
+	cashome, err := util.MakeFileAbs("ca", s.HomeDir)
+	if err != nil {
+		return err
+	}
+
+	os.Mkdir(cashome, 0755)
+
+	for i := 1; i <= cacount; i++ {
+		cahome := fmt.Sprintf(cashome+"/ca%d", i)
+		cfgFileName := filepath.Join(cahome, "fabric-ca-config.yaml")
+
+		caName := fmt.Sprintf("ca%d", i)
+		cfg := strings.Replace(defaultCACfgTemplate, "<<<CANAME>>>", caName, 1)
+
+		cn := fmt.Sprintf("fabric-ca-server-ca%d", i)
+		cfg = strings.Replace(cfg, "<<<COMMONNAME>>>", cn, 1)
+
+		s.Config.CAfiles = append(s.Config.CAfiles, cfgFileName)
+
+		// Now write the file
+		err := os.MkdirAll(filepath.Dir(cfgFileName), 0755)
+		if err != nil {
+			return err
+		}
+
+		err = ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
+		if err != nil {
+			return err
+		}
+
+	}
 	return nil
 }
 

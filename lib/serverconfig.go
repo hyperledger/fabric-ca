@@ -44,4 +44,5 @@ type ServerConfig struct {
 	// caCfg is the default CA's config
 	CAcfg   CAConfig `skip:"true"`
 	CAfiles []string `help:"CA configuration files"`
+	CAcount int      `def:"0" help:"Number of non-default CA instances"`
 }

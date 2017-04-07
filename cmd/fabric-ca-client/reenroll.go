@@ -79,6 +79,7 @@ func runReenroll() error {
 		Label:   clientCfg.Enrollment.Label,
 		Profile: clientCfg.Enrollment.Profile,
 		CSR:     &clientCfg.CSR,
+		CAName:  clientCfg.CAName,
 	}
 
 	resp, err := id.Reenroll(req)

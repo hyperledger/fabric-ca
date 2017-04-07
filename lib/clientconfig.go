@@ -34,7 +34,7 @@ type ClientConfig struct {
 	ID         api.RegistrationRequest
 	Revoke     api.RevocationRequest
 	CAInfo     api.GetCAInfoRequest
-	CAName     string `def:"ca" help:"Name of CA"`
+	CAName     string `help:"Name of CA"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.

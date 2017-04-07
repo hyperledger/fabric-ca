@@ -115,7 +115,7 @@ tls:
 #############################################################################
 ca:
   # Name of this CA
-  name: <<<CANAME>>>
+  name:
   # Key file (default: ca-key.pem)
   keyfile: ca-key.pem
   # Certificate file (default: ca-cert.pem)
@@ -304,46 +304,11 @@ func configInit() (err error) {
 	}
 
 	// Read the config
-	viper.SetConfigFile(cfgFileName)
+	// viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
-	err = viper.ReadInConfig()
+	err = lib.UnmarshalConfig(serverCfg, viper.GetViper(), cfgFileName, true, true)
 	if err != nil {
-		return fmt.Errorf("Failed to read config file: %s", err)
-	}
-
-	// Unmarshal the config into 'serverCfg'
-	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
-	// and vendored, the work around code can be deleted.
-	viperIssue327WorkAround := true
-	if viperIssue327WorkAround {
-		sliceFields := []string{
-			"csr.hosts",
-			"tls.clientauth.certfiles",
-			"cafiles",
-			"db.tls.certfiles",
-			"ldap.tls.certfiles",
-		}
-		err = util.ViperUnmarshal(serverCfg, sliceFields, viper.GetViper())
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-		err = viper.Unmarshal(&serverCfg.CAcfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-	} else {
-		err = viper.Unmarshal(serverCfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-		err = viper.Unmarshal(&serverCfg.CAcfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-	}
-
-	if serverCfg.CAcfg.CA.Name == "" {
-		return fmt.Errorf(caNameReqMsg)
+		return err
 	}
 
 	return nil
@@ -372,21 +337,17 @@ func createDefaultConfigFile() error {
 		return errors.New("An empty password in the '-b user:pass' option is not permitted")
 	}
 
-	var myhost, caName string
+	var myhost string
 	var err error
 	myhost, err = os.Hostname()
 	if err != nil {
 		return err
 	}
 
-	// Get hostname
-	caName = getCAName(myhost)
-
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
-	cfg = strings.Replace(cfg, "<<<CANAME>>>", caName, 1)
 	// Now write the file
 	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {

@@ -25,6 +25,41 @@ import (
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
+const (
+	// defaultCACfgTemplate is the a CA's default configuration file template
+	defaultCACfgTemplate = `
+#############################################################################
+# This file contains information specific to a single Certificate Authority (CA).
+# A single fabric-ca-server can service multiple CAs.  The server's configuration
+# file contains configuration information for the default CA, and each of these
+# CA-specific files define configuration settings for a non-default CA.
+#
+# The only required configuration item in each CA-specific file is a unique
+# CA name (see "ca.name" below).  Each CA name in the same fabric-ca-server
+# must be unique. All other configuration settings needed for this CA are
+# taken from the default CA settings, or you may override those settings by
+# adding the setting to this file.
+#
+# For example, you should provide a different username and password for the
+# bootstrap identity as found in the "identities" subsection of the "registry"
+# section.
+#
+# See the server's configuration file for comments on all settings.
+# All settings pertaining to the server's listening endpoint are by definition
+# server-specific and so will be ignored in a CA configuration file.
+#############################################################################
+ca:
+  # Name of this CA
+  name: <<<CANAME>>>
+
+###########################################################################
+#  Certificate Signing Request section for generating the CA certificate
+###########################################################################
+csr:
+  cn: <<<COMMONNAME>>>
+`
+)
+
 // CAConfig is the CA instance's config
 // The tags are recognized by the RegisterFlags function in fabric-ca/lib/util.go
 // and are as follows:

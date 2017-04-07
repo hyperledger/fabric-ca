@@ -1,16 +1,24 @@
 #############################################################################
-#  The CA section contains information related to the Certificate Authority
-#  including the name of the CA, which should be unique for all members
-#  of a blockchain network.  It also includes the key and certificate files
-#  used when issuing enrollment certificates (ECerts) and transaction
-#  certificates (TCerts).
-#  The chainfile (if it exists) contains the certificate chain which
-#  should be trusted for this CA, where the 1st in the chain is always the
-#  root CA certificate.
+# The CA section contains information specific to this Certificate Authority.
+# Minimally, the name must be unique for all CAs serviced by the same server.
+# Additionally, you may specify any of the settings that are defined in the
+# server's configuration file to override them with a value specific for this CA.
+# For example, you should provide a different username and password for the
+# bootstrap identity as found in the "identities" subsection of the "registry" section.
+
+# See the server's configuration file for comments on all settings.
+# All settings pertaining to the server's listening endpoint are by definition
+# server-specific and so will be ignored in a CA configuration file.
 #############################################################################
 ca:
   # Name of this CA
   name: rootca1
+
+###########################################################################
+#  Certificate Signing Request section for generating the CA certificate
+###########################################################################
+csr:
+  cn: fabric-ca-server-rootca1
 
 #############################################################################
 #  The registry section controls how the fabric-ca-server does two things:

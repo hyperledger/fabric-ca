@@ -12,14 +12,10 @@
 # #############################################################################
 ca:
   # Name of this CA
-  name: ca1
+  name: rootca3
 
 ###########################################################################
 #  Certificate Signing Request section for generating the CA certificate
 ###########################################################################
 csr:
-  cn: fabric-ca-server-ca1
-
-parentserver:
-  url: http://admin:adminpw@localhost:7055
-  caname: rootca2
+  cn: fabric-ca-server-rootca2
