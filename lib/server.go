@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 
 	_ "github.com/go-sql-driver/mysql" // import to support MySQL
 	_ "github.com/lib/pq"              // import to support Postgres
@@ -67,7 +68,7 @@ func (s *Server) Init(renew bool) (err error) {
 		return err
 	}
 
-	err = s.initCA(&s.CA, renew)
+	err = s.initDefaultCA(&s.CA, renew)
 	if err != nil {
 		return err
 	}
@@ -121,12 +122,13 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	if user == "" || pass == "" {
 		return errors.New("Empty identity name and/or pass not allowed")
 	}
-	id := ServerConfigIdentity{
+
+	id := CAConfigIdentity{
 		Name:           user,
 		Pass:           pass,
 		Type:           "user",
 		Affiliation:    affiliation,
-		MaxEnrollments: s.Config.Registry.MaxEnrollments,
+		MaxEnrollments: s.CA.Config.Registry.MaxEnrollments,
 		Attrs: map[string]string{
 			"hf.Registrar.Roles":         "client,user,peer,validator,auditor",
 			"hf.Registrar.DelegateRoles": "client,user,validator,auditor",
@@ -134,8 +136,10 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 			"hf.IntermediateCA":          "true",
 		},
 	}
-	registry := &s.Config.Registry
+
+	registry := &s.CA.Config.Registry
 	registry.Identities = append(registry.Identities, id)
+
 	log.Debugf("Registered bootstrap identity: %+v", &id)
 	return nil
 }
@@ -166,17 +170,19 @@ func (s *Server) initConfig() (err error) {
 		log.Level = log.LevelDebug
 	}
 
+	s.makeFileNamesAbsolute()
+
 	return nil
 }
 
-func (s *Server) initCA(ca *CA, renew bool) error {
-	err := initCA(ca, s.HomeDir, s.ParentServerURL, s.Config, renew)
+func (s *Server) initDefaultCA(ca *CA, renew bool) error {
+	err := initCA(ca, s.HomeDir, s.CA.Config, s, renew)
 	if err != nil {
 		return err
 	}
 
-	if s.CA.Config.CA.Name == "" {
-		s.CA.Config.CA.Name = DefaultCAName
+	if ca.Config.CA.Name == "" {
+		ca.Config.CA.Name = DefaultCAName
 	}
 
 	return nil
@@ -296,4 +302,20 @@ func (s *Server) serve() error {
 		s.listener = nil
 	}
 	return s.serveError
+}
+
+// Make all file names in the config absolute
+func (s *Server) makeFileNamesAbsolute() error {
+	fields := []*string{
+		&s.Config.TLS.CertFile,
+		&s.Config.TLS.KeyFile,
+	}
+	for _, namePtr := range fields {
+		abs, err := util.MakeFileAbs(*namePtr, s.HomeDir)
+		if err != nil {
+			return err
+		}
+		*namePtr = abs
+	}
+	return nil
 }

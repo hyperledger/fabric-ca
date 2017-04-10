@@ -255,7 +255,7 @@ func TestCustomizableMaxEnroll(t *testing.T) {
 		return
 	}
 
-	srv.Config.Registry.MaxEnrollments = 3
+	srv.CA.Config.Registry.MaxEnrollments = 3
 	srv.Config.Debug = true
 
 	err := srv.Start()

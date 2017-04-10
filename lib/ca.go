@@ -55,9 +55,7 @@ type CA struct {
 	// The home directory for the CA
 	HomeDir string
 	// The CA's configuration
-	Config *ServerConfig
-	// The parent server URL, which is non-null if this is an intermediate server
-	ParentServerURL string
+	Config *CAConfig
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
@@ -70,18 +68,15 @@ type CA struct {
 	registry spi.UserRegistry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
+
+	server *Server
 }
 
 // NewCA creates a new CA with the specified
 // home directory, parent server URL, and config
-func NewCA(homeDir, parentServerURL string, config *ServerConfig, renew bool) (*CA, error) {
-	ca := &CA{
-		HomeDir:         homeDir,
-		ParentServerURL: parentServerURL,
-		Config:          config,
-	}
-
-	err := ca.init(renew)
+func NewCA(homeDir string, config *CAConfig, server *Server, renew bool) (*CA, error) {
+	ca := new(CA)
+	err := initCA(ca, homeDir, config, server, renew)
 	if err != nil {
 		return nil, err
 	}
@@ -90,10 +85,10 @@ func NewCA(homeDir, parentServerURL string, config *ServerConfig, renew bool) (*
 }
 
 // initCA will initialize the passed in pointer to a CA struct
-func initCA(ca *CA, homeDir, parentServerURL string, config *ServerConfig, renew bool) error {
+func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool) error {
 	ca.HomeDir = homeDir
-	ca.ParentServerURL = parentServerURL
 	ca.Config = config
+	ca.server = server
 
 	err := ca.init(renew)
 	if err != nil {
@@ -179,8 +174,8 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 
 // Get the CA certificate and key for this CA
 func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
-	log.Debugf("Getting CA cert and key; parent server URL is '%s'", ca.ParentServerURL)
-	if ca.ParentServerURL != "" {
+	log.Debugf("Getting CA cert and key; parent server URL is '%s'", ca.server.ParentServerURL)
+	if ca.server.ParentServerURL != "" {
 		// This is an intermediate CA, so call the parent fabric-ca-server
 		// to get the key and cert
 		clientCfg := ca.Config.Client
@@ -198,7 +193,7 @@ func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
 		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
 		var resp *EnrollmentResponse
-		resp, err = clientCfg.Enroll(ca.ParentServerURL, ca.HomeDir)
+		resp, err = clientCfg.Enroll(ca.server.ParentServerURL, ca.HomeDir)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -266,7 +261,7 @@ func (ca *CA) getCAChain() (chain []byte, err error) {
 		return util.ReadFile(certAuth.Chainfile)
 	}
 	// Otherwise, if this is a root CA, we always return the contents of the CACertfile
-	if ca.ParentServerURL == "" {
+	if ca.server.ParentServerURL == "" {
 		return util.ReadFile(certAuth.Certfile)
 	}
 	// If this is an intermediate CA but the ca.Chainfile doesn't exist,
@@ -283,9 +278,10 @@ func (ca *CA) initConfig() (err error) {
 			return fmt.Errorf("Failed to initialize CA's home directory: %s", err)
 		}
 	}
+	log.Info("CA Home Directory: ", ca.HomeDir)
 	// Init config if not set
 	if ca.Config == nil {
-		ca.Config = new(ServerConfig)
+		ca.Config = new(CAConfig)
 	}
 	// Set config defaults
 	cfg := ca.Config
@@ -299,7 +295,7 @@ func (ca *CA) initConfig() (err error) {
 		cfg.CSR.CN = "fabric-ca-server"
 	}
 	// Set log level if debug is true
-	if cfg.Debug {
+	if ca.server.Config.Debug {
 		log.Level = log.LevelDebug
 	}
 	// Init the BCCSP
@@ -419,8 +415,8 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 	}
 
 	// Make sure the policy reflects the new remote
-	if c.Remote != "" {
-		err = policy.OverrideRemotes(c.Remote)
+	if ca.server.Config.Remote != "" {
+		err = policy.OverrideRemotes(ca.server.Config.Remote)
 		if err != nil {
 			return fmt.Errorf("Failed initializing enrollment signer: %s", err)
 		}
@@ -432,7 +428,7 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 			"cert-file": c.CA.Certfile,
 			"key-file":  c.CA.Keyfile,
 		},
-		ForceRemote: c.Remote != "",
+		ForceRemote: ca.server.Config.Remote != "",
 	}
 	ca.enrollSigner, err = universal.NewSigner(root, policy)
 	if err != nil {
@@ -514,7 +510,7 @@ func (ca *CA) loadAffiliationsTableR(val interface{}, parentPath string) (err er
 }
 
 // Add an identity to the registry
-func (ca *CA) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
+func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 	var err error
 	user, _ := ca.registry.GetUser(id.Name, nil)
 	if user != nil {
@@ -598,8 +594,6 @@ func (ca *CA) makeFileNamesAbsolute() error {
 		&ca.Config.CA.Certfile,
 		&ca.Config.CA.Keyfile,
 		&ca.Config.CA.Chainfile,
-		&ca.Config.TLS.CertFile,
-		&ca.Config.TLS.KeyFile,
 	}
 	for _, namePtr := range fields {
 		abs, err := util.MakeFileAbs(*namePtr, ca.HomeDir)

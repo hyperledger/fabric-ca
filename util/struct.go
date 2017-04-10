@@ -81,6 +81,11 @@ func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
 			return err
 		}
 		if kind == reflect.Struct {
+			// Skip parsing the entire struct if "skip" tag is present on a struct field
+			if tf.Tag.Get(TagSkip) == "true" {
+				continue
+			}
+
 			err := parse(field.Addr, cb, field)
 			if err != nil {
 				return err

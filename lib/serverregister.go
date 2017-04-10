@@ -132,7 +132,7 @@ func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet) (strin
 		req.Secret = util.RandomString(12)
 	}
 
-	maxEnrollments := h.server.Config.Registry.MaxEnrollments
+	maxEnrollments := h.server.CA.Config.Registry.MaxEnrollments
 
 	if (req.MaxEnrollments > maxEnrollments && maxEnrollments != 0) || (req.MaxEnrollments < 0) {
 		return "", fmt.Errorf("Invalid max enrollment value specified, value must be equal to or less then %d", maxEnrollments)

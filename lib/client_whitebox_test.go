@@ -134,11 +134,15 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 	}
 	srv := &Server{
 		Config: &ServerConfig{
-			Port:         port,
-			Debug:        true,
-			Affiliations: affiliations,
-			Registry: ServerConfigRegistry{
-				MaxEnrollments: maxEnroll,
+			Port:  port,
+			Debug: true,
+		},
+		CA: CA{
+			Config: &CAConfig{
+				Affiliations: affiliations,
+				Registry: CAConfigRegistry{
+					MaxEnrollments: maxEnroll,
+				},
 			},
 		},
 		HomeDir:         home,

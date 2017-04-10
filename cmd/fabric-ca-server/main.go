@@ -68,7 +68,12 @@ func init() {
 		"help.csr.serialnumber": "The serial number in a certificate signing request to a parent fabric-ca-server",
 		"help.csr.hosts":        "A list of space-separated host names in a certificate signing request to a parent fabric-ca-server",
 	}
-	err := util.RegisterFlags(pflags, serverCfg, tags)
+	err := util.RegisterFlags(pflags, serverCfg, nil)
+	if err != nil {
+		panic(err)
+	}
+	caCfg := &lib.CAConfig{}
+	err = util.RegisterFlags(pflags, caCfg, tags)
 	if err != nil {
 		panic(err)
 	}
@@ -104,5 +109,8 @@ func getServer() *lib.Server {
 		Config:          serverCfg,
 		BlockingStart:   blockingStart,
 		ParentServerURL: viper.GetString("url"),
+		CA: lib.CA{
+			Config: &serverCfg.CAcfg,
+		},
 	}
 }
