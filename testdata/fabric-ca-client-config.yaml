@@ -72,7 +72,7 @@ csr:
 id:
   name: testRegister
   type: user
-  affiliation: banks.bank_c
+  affiliation: hyperledger.org3
   attributes:
     - name: hf.Revoker
       value: true

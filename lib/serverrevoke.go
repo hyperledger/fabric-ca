@@ -102,7 +102,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			return err2
 		}
 
-		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo)
 		if err2 != nil {
 			return err2
 		}
@@ -130,7 +130,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 				return notFound(w, err)
 			}
 
-			err = h.checkAffiliations(cert.Subject.CommonName, userInfo.Affiliation)
+			err = h.checkAffiliations(cert.Subject.CommonName, userInfo)
 			if err != nil {
 				return err
 			}
@@ -152,7 +152,7 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		if len(recs) == 0 {
-			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name)
+			log.Warningf("No certificates were revoked for '%s' but the ID was disabled", req.Name)
 		}
 
 		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
@@ -167,17 +167,27 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 	return cfsslapi.SendResponse(w, result)
 }
 
-func (h *revokeHandler) checkAffiliations(revoker string, affiliation string) error {
-	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, affiliation)
-	revokerAffiliation, err := h.server.getUserAffiliation(revoker)
+func (h *revokeHandler) checkAffiliations(revoker string, revoking spi.UserInfo) error {
+	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, revoking.Name)
+	userAffiliation, err := h.server.getUserAffiliation(revoker)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("Affiliation of revoker: %s, affiliation of user being revoked: %s", revokerAffiliation, affiliation)
+	log.Debugf("Affiliation of revoker: %s, affiliation of user being revoked: %s", userAffiliation, revoking.Affiliation)
 
-	if !strings.HasPrefix(affiliation, revokerAffiliation) {
-		return fmt.Errorf("Revoker %s does not have proper affiliation to revoke user", revoker)
+	// Revoking user has root affiliation thus has ability to revoke
+	if userAffiliation == "" {
+		log.Debug("User with root affiliation revoking")
+		return nil
+	}
+
+	revokingAffiliation := strings.Split(revoking.Affiliation, ".")
+	revokerAffiliation := strings.Split(userAffiliation, ".")
+	for i := range revokerAffiliation {
+		if revokerAffiliation[i] != revokingAffiliation[i] {
+			return fmt.Errorf("Revoker %s does not have proper affiliation to revoke user %s", revoker, revoking.Name)
+		}
 	}
 
 	return nil
