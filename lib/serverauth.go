@@ -83,7 +83,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 			}
 			u, err := ah.server.registry.GetUser(user, nil)
 			if err != nil {
-				log.Debugf("Failed to get user '%s': %s", user, err)
+				log.Debugf("Failed to get identity '%s': %s", user, err)
 				return authError
 			}
 			err = u.Login(pwd)
@@ -91,7 +91,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 				log.Debugf("Failed to login '%s': %s", user, err)
 				return authError
 			}
-			log.Debug("User/Pass was correct")
+			log.Debug("Identity/Pass was correct")
 			r.Header.Set(enrollmentIDHdrName, user)
 			return nil
 		}

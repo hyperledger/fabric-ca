@@ -33,8 +33,8 @@ var errInput = errors.New("Invalid usage; either --eid or both --serial and --ak
 // initCmd represents the init command
 var revokeCmd = &cobra.Command{
 	Use:   "revoke",
-	Short: "Revoke user",
-	Long:  "Revoke user with fabric-ca server",
+	Short: "Revoke an identity",
+	Long:  "Revoke an identity with fabric-ca server",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		err := configInit(cmd.Name())
 		if err != nil {

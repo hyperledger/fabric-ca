@@ -294,14 +294,14 @@ func (s *Server) getCAChain() (chain []byte, err error) {
 // RegisterBootstrapUser registers the bootstrap user with appropriate privileges
 func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	// Initialize the config, setting defaults, etc
-	log.Debugf("RegisterBootstrapUser - User: %s, Pass: %s, affiliation: %s", user, pass, affiliation)
+	log.Debugf("RegisterBootstrapUser - identity: %s, Pass: %s, affiliation: %s", user, pass, affiliation)
 
 	if user == "" || pass == "" {
-		return errors.New("empty user and/or pass not allowed")
+		return errors.New("Empty identity name and/or pass not allowed")
 	}
 	err := s.initConfig()
 	if err != nil {
-		return fmt.Errorf("Failed to register bootstrap user '%s': %s", user, err)
+		return fmt.Errorf("Failed to register bootstrap identity '%s': %s", user, err)
 	}
 
 	id := ServerConfigIdentity{
@@ -360,7 +360,7 @@ func (s *Server) initConfig() (err error) {
 	// Init the BCCSP
 	err = factory.InitFactories(s.Config.CSP)
 	if err != nil {
-		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+		panic(fmt.Errorf("Could not initialize BCCSP Factories: %s", err))
 	}
 
 	return nil
@@ -387,7 +387,7 @@ func (s *Server) initDB() error {
 		}
 	}
 
-	log.Debugf("Initializing '%s' data base at '%s'", db.Type, db.Datasource)
+	log.Debugf("Initializing '%s' database at '%s'", db.Type, db.Datasource)
 
 	switch db.Type {
 	case defaultDatabaseType:
@@ -431,13 +431,13 @@ func (s *Server) initDB() error {
 			return err
 		}
 	}
-	log.Infof("Initialized %s data base at %s", db.Type, db.Datasource)
+	log.Infof("Initialized %s database at %s", db.Type, db.Datasource)
 	return nil
 }
 
 // Initialize the user registry interface
 func (s *Server) initUserRegistry() error {
-	log.Debug("Initializing user registry")
+	log.Debug("Initializing identity registry")
 	var err error
 	ldapCfg := &s.Config.LDAP
 
@@ -452,7 +452,7 @@ func (s *Server) initUserRegistry() error {
 	dbAccessor := new(Accessor)
 	dbAccessor.SetDB(s.db)
 	s.registry = dbAccessor
-	log.Debug("Initialized DB user registry")
+	log.Debug("Initialized DB identity registry")
 	return nil
 }
 
@@ -619,7 +619,7 @@ func (s *Server) serve() error {
 
 // loadUsersTable adds the configured users to the table if not already found
 func (s *Server) loadUsersTable() error {
-	log.Debug("Loading users table")
+	log.Debug("Loading identity table")
 	registry := &s.Config.Registry
 	for _, id := range registry.Identities {
 		log.Debugf("Loading identity '%s'", id.Name)
@@ -628,7 +628,7 @@ func (s *Server) loadUsersTable() error {
 			return err
 		}
 	}
-	log.Debug("Successfully loaded users table")
+	log.Debug("Successfully loaded identity table")
 	return nil
 }
 
@@ -710,7 +710,7 @@ func (s *Server) addIdentity(id *ServerConfigIdentity, errIfFound bool) error {
 	}
 	err = s.registry.InsertUser(rec)
 	if err != nil {
-		return fmt.Errorf("Failed to insert user '%s': %s", id.Name, err)
+		return fmt.Errorf("Failed to insert identity '%s': %s", id.Name, err)
 	}
 	log.Debugf("Registered identity: %+v", id)
 	return nil
@@ -785,32 +785,32 @@ func (s *Server) userHasAttribute(username, attrname string) error {
 		return err
 	}
 	if val == "" {
-		return fmt.Errorf("user '%s' does not have attribute '%s'", username, attrname)
+		return fmt.Errorf("Identity '%s' does not have attribute '%s'", username, attrname)
 	}
 	return nil
 }
 
 // getUserAttrValue returns a user's value for an attribute
 func (s *Server) getUserAttrValue(username, attrname string) (string, error) {
-	log.Debugf("getUserAttrValue user=%s, attr=%s", username, attrname)
+	log.Debugf("getUserAttrValue identity=%s, attr=%s", username, attrname)
 	user, err := s.registry.GetUser(username, []string{attrname})
 	if err != nil {
 		return "", err
 	}
 	attrval := user.GetAttribute(attrname)
-	log.Debugf("getUserAttrValue user=%s, name=%s, value=%s", username, attrname, attrval)
+	log.Debugf("getUserAttrValue identity=%s, name=%s, value=%s", username, attrname, attrval)
 	return attrval, nil
 }
 
 // getUserAffiliation returns a user's affiliation
 func (s *Server) getUserAffiliation(username string) (string, error) {
-	log.Debugf("getUserAffilliation user=%s", username)
+	log.Debugf("getUserAffilliation identity=%s", username)
 	user, err := s.registry.GetUserInfo(username)
 	if err != nil {
 		return "", err
 	}
 	aff := user.Affiliation
-	log.Debugf("getUserAffiliation user=%s, aff=%s", username, aff)
+	log.Debugf("getUserAffiliation identity=%s, aff=%s", username, aff)
 	return aff, nil
 }
 

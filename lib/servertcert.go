@@ -106,7 +106,7 @@ func (h *tcertHandler) handle(w http.ResponseWriter, r *http.Request) error {
 	// Get the prekey associated with the affiliation path
 	prekey, err := h.keyTree.GetKey(affiliationPath)
 	if err != nil {
-		return fmt.Errorf("Failed to get prekey for user %s: %s", id, err)
+		return fmt.Errorf("Failed to get prekey for identity %s: %s", id, err)
 	}
 	// TODO: When the TCert library is based on BCCSP, we will pass the prekey
 	//       directly.  Converting the SKI to a string is a temporary kludge
