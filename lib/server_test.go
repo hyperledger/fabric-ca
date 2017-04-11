@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -456,6 +457,60 @@ func testIntermediateServer(idx int, t *testing.T) {
 	time.Sleep(time.Second)
 	// Stop it
 	intermediateServer.Stop()
+}
+
+// TestSqliteLocking tests to ensure that "database is locked"
+// error does not occur when multiple requests are sent at the
+// same time.
+// This test assumes that sqlite is the database used in the tests
+func TestSqliteLocking(t *testing.T) {
+	// Start the server
+	server := getServer(rootPort, rootDir, "", 0, t)
+	if server == nil {
+		return
+	}
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+	time.Sleep(time.Second)
+	defer server.Stop()
+
+	// Enroll bootstrap user
+	client := getRootClient()
+	eresp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	if err != nil {
+		t.Fatalf("Failed to enroll bootstrap user: %s", err)
+	}
+	admin := eresp.Identity
+	errs := make(chan error)
+	users := 30
+	// Register users
+	for i := 0; i < users; i++ {
+		n := "user" + strconv.Itoa(i)
+		go func(admin *Identity, name string) {
+			_, err := admin.Register(&api.RegistrationRequest{
+				Name:        name,
+				Type:        "user",
+				Affiliation: "hyperledger.fabric.security",
+			})
+			errs <- err
+		}(admin, n)
+	}
+	for i := 0; ; {
+		err = <-errs
+		// Should not see "database is locked" error
+		if err != nil && strings.Contains(err.Error(), "database is locked") {
+			t.Fatalf("Failed to register: %s", err)
+		}
+		// If we have heard from all the go routines, break to exit the test
+		if i++; i == users {
+			break
+		}
+	}
 }
 
 func TestEnd(t *testing.T) {
