@@ -50,7 +50,7 @@ function addUser {
 # Run the LDAP test cases
 function runTests {
    echo "Running LDAP test cases ..."
-   cd $CA/cli/server/ldap
+   cd $CA/lib/ldap
    go test . -cover | tee /tmp/ldap-test.results
    echo "LDAP test cases are complete"
 }
