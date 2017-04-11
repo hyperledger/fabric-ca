@@ -22,6 +22,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/cloudflare/cfssl/api"
 	cerr "github.com/cloudflare/cfssl/errors"
@@ -126,6 +127,9 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 
 		aki := hex.EncodeToString(cert.AuthorityKeyId)
 		serial := util.GetSerialAsHex(cert.SerialNumber)
+
+		aki = strings.ToLower(strings.TrimLeft(aki, "0"))
+		serial = strings.ToLower(strings.TrimLeft(serial, "0"))
 
 		certs, err := ah.server.CertDBAccessor().GetCertificate(serial, aki)
 		if err != nil {
