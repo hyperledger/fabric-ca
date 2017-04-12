@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -326,6 +327,32 @@ func DecodeToken(token string) (*x509.Certificate, string, string, error) {
 		return nil, "", "", fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
 	}
 	return x509Cert, b64cert, parts[1], nil
+}
+
+//GetECPrivateKey get *ecdsa.PrivateKey from key pem
+func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
+	decoded, _ := pem.Decode(raw)
+	if decoded == nil {
+		return nil, errors.New("Failed to decode the given PEM-encoded ECDSA key")
+	}
+	ECprivKey, err := x509.ParseECPrivateKey(decoded.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("x509.ParseECPrivateKey failed: %s", err)
+	}
+	return ECprivKey, nil
+}
+
+//GetRSAPrivateKey get *rsa.PrivateKey from key pem
+func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
+	decoded, _ := pem.Decode(raw)
+	if decoded == nil {
+		return nil, errors.New("Failed to decode the given PEM-encoded RSA key")
+	}
+	RSAprivKey, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failure in x509.ParsePKCS1PrivateKey: %s", err)
+	}
+	return RSAprivKey, nil
 }
 
 // B64Encode base64 encodes bytes
