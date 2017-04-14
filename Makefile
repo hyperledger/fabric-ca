@@ -36,11 +36,6 @@ else
 PROJECT_VERSION=$(BASE_VERSION)
 endif
 
-# Check that all dependencies are installed
-EXECUTABLES = go docker git curl
-K := $(foreach exec,$(EXECUTABLES),\
-	$(if $(shell which $(exec)),some string,$(error "No $(exec) in PATH: Check dependencies")))
-
 ARCH=$(shell uname -m)
 ifeq ($(ARCH),s390x)
 PGVER=9.4
