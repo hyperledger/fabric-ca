@@ -40,8 +40,6 @@ var initCmd = &cobra.Command{
 func init() {
 	initCmd.RunE = runInit
 	rootCmd.AddCommand(initCmd)
-	flags := initCmd.Flags()
-	registerCommonFlags(flags)
 }
 
 // The server init main logic

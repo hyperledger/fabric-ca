@@ -19,8 +19,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
 
@@ -33,10 +31,6 @@ var startCmd = &cobra.Command{
 func init() {
 	startCmd.RunE = runStart
 	rootCmd.AddCommand(startCmd)
-	flags := startCmd.Flags()
-	util.FlagString(flags, "addr", "a", lib.DefaultServerAddr, "Listening address")
-	util.FlagInt(flags, "port", "p", lib.DefaultServerPort, "Listening port")
-	registerCommonFlags(flags)
 }
 
 // The server start main logic
