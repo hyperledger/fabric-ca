@@ -25,12 +25,13 @@ import (
 
 // A test struct
 type A struct {
-	Str1 string `def:"defval" help:"Str1 description"`
-	Int1 int    `def:"10" help:"Int1 description"`
-	FB   B      `help:"FB description"`
-	Str2 string `skip:"true"`
-	Int2 []int  `help:"Int2 description"`
-	FBP  *B     `help:"FBP description"`
+	Slice []string `help:"Slice description"`
+	Str1  string   `def:"defval" help:"Str1 description"`
+	Int1  int      `def:"10" help:"Int1 description"`
+	FB    B        `help:"FB description"`
+	Str2  string   `skip:"true"`
+	Int2  []int    `help:"Int2 description"`
+	FBP   *B       `help:"FBP description"`
 }
 
 // B test struct

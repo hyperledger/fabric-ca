@@ -20,8 +20,11 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/mitchellh/mapstructure"
+	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -104,6 +107,15 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 			}
 		}
 		fr.flags.BoolVarP(f.Addr.(*bool), f.Path, opt, boolDef, help)
+	case reflect.Slice:
+		if f.Type.Elem().Kind() == reflect.String {
+			if help == "" {
+				return fmt.Errorf("Field is missing a help tag: %s", f.Path)
+			}
+			fr.flags.StringSliceVarP(f.Addr.(*[]string), f.Path, opt, nil, help)
+		} else {
+			return nil
+		}
 	default:
 		log.Debugf("Not registering flag for '%s' because it is a currently unsupported type: %s\n",
 			f.Path, f.Kind)
@@ -158,4 +170,34 @@ func bindFlag(flags *pflag.FlagSet, name string) {
 		panic(fmt.Errorf("failed to lookup '%s'", name))
 	}
 	viper.BindPFlag(name, flag)
+}
+
+// ViperUnmarshal is a work around for a bug in viper.Unmarshal
+// This can be removed once https://github.com/spf13/viper/issues/327 is fixed
+// and vendored.
+func ViperUnmarshal(cfg interface{}, stringSliceFields []string) error {
+	decoderConfig := &mapstructure.DecoderConfig{
+		Metadata:         nil,
+		Result:           cfg,
+		WeaklyTypedInput: true,
+		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+	}
+	decoder, err := mapstructure.NewDecoder(decoderConfig)
+	if err != nil {
+		return fmt.Errorf("Failed to create decoder: %s", err)
+	}
+	settings := viper.AllSettings()
+	for _, field := range stringSliceFields {
+		path := strings.Split(field, ".")
+		m := settings
+		name := path[0]
+		if len(path) > 1 {
+			for _, field2 := range path[1:] {
+				m = m[name].(map[string]interface{})
+				name = field2
+			}
+		}
+		m[name] = cast.ToStringSlice(m[name])
+	}
+	return decoder.Decode(settings)
 }

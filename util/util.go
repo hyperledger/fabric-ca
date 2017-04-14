@@ -584,18 +584,3 @@ func StructToString(si interface{}) string {
 	buffer.WriteString(" }")
 	return buffer.String()
 }
-
-// ProcessCertFiles parses comma seperated string to generate a string array
-func ProcessCertFiles(certfiles string) []string {
-	log.Debugf("Process comma separated cert files: %s", certfiles)
-	var CertFiles []string
-	if certfiles != "" {
-		CertFiles = strings.Split(certfiles, ",")
-
-		for i := range CertFiles {
-			CertFiles[i] = strings.TrimSpace(CertFiles[i])
-		}
-	}
-
-	return CertFiles
-}

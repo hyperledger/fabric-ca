@@ -92,7 +92,7 @@ MSPDir:
 #############################################################################
 tls:
   # TLS section for secure socket connection
-  certfiles:			# Comma Separated list of root certificate files (e.g. root.pem, root2.pem)
+  certfiles:
   client:
     certfile:
     keyfile:
@@ -188,9 +188,22 @@ func configInit(command string) error {
 	}
 
 	// Unmarshal the config into 'clientCfg'
-	err = viper.Unmarshal(clientCfg)
-	if err != nil {
-		util.Fatal("Could not parse '%s': %s", cfgFileName, err)
+	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
+	// and vendored, the work around code can be deleted.
+	viperIssue327WorkAround := true
+	if viperIssue327WorkAround {
+		sliceFields := []string{
+			"tls.certfiles",
+		}
+		err = util.ViperUnmarshal(clientCfg, sliceFields)
+		if err != nil {
+			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+		}
+	} else {
+		err = viper.Unmarshal(clientCfg)
+		if err != nil {
+			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+		}
 	}
 
 	purl, err := url.Parse(clientCfg.URL)
@@ -199,8 +212,6 @@ func configInit(command string) error {
 	}
 
 	clientCfg.TLS.Enabled = purl.Scheme == "https"
-
-	clientCfg.TLS.CertFilesList = util.ProcessCertFiles(clientCfg.TLS.CertFiles)
 
 	if clientCfg.ID.Attr != "" {
 		processAttributes()

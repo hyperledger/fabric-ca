@@ -195,7 +195,7 @@ func TestRunningTLSServer(t *testing.T) {
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
-			CertFilesList: []string{"../testdata/root.pem"},
+			CertFiles: []string{"../testdata/root.pem"},
 			Client: tls.KeyCertFiles{
 				KeyFile:  "../testdata/tls_client-key.pem",
 				CertFile: "../testdata/tls_client-cert.pem",
@@ -328,7 +328,7 @@ func TestTLSAuthClient(t *testing.T) {
 // Configure server to start server with no client authentication required
 func testNoClientCert(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
-	srv = getTLSConfig(srv, "NoClientCert", "")
+	srv = getTLSConfig(srv, "NoClientCert", []string{})
 
 	err := srv.Start()
 	if err != nil {
@@ -340,7 +340,7 @@ func testNoClientCert(t *testing.T) {
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
-			CertFilesList: []string{"../testdata/root.pem"},
+			CertFiles: []string{"../testdata/root.pem"},
 		},
 	}
 
@@ -361,7 +361,7 @@ func testNoClientCert(t *testing.T) {
 // Root2.pem does not exists, server should still start because no client auth is requred
 func testInvalidRootCertWithNoClientAuth(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
-	srv = getTLSConfig(srv, "NoClientCert", "../testdata/root.pem, ../testdata/root2.pem")
+	srv = getTLSConfig(srv, "NoClientCert", []string{"../testdata/root.pem", "../testdata/root2.pem"})
 
 	err := srv.Start()
 	if err != nil {
@@ -380,7 +380,7 @@ func testInvalidRootCertWithNoClientAuth(t *testing.T) {
 // Root2.pem does not exists, server should fail to start
 func testInvalidRootCertWithClientAuth(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
-	srv = getTLSConfig(srv, "RequireAndVerifyClientCert", "../testdata/root.pem, ../testdata/root2.pem")
+	srv = getTLSConfig(srv, "RequireAndVerifyClientCert", []string{"../testdata/root.pem", "../testdata/root2.pem"})
 
 	err := srv.Start()
 	if err == nil {
@@ -391,7 +391,7 @@ func testInvalidRootCertWithClientAuth(t *testing.T) {
 // Configure server to start with client authentication required
 func testClientAuth(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
-	srv = getTLSConfig(srv, "RequireAndVerifyClientCert", "../testdata/root.pem")
+	srv = getTLSConfig(srv, "RequireAndVerifyClientCert", []string{"../testdata/root.pem"})
 
 	err := srv.Start()
 	if err != nil {
@@ -403,7 +403,7 @@ func testClientAuth(t *testing.T) {
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
-			CertFilesList: []string{"../testdata/root.pem"},
+			CertFiles: []string{"../testdata/root.pem"},
 		},
 	}
 
@@ -419,7 +419,7 @@ func testClientAuth(t *testing.T) {
 	clientConfig = &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
-			CertFilesList: []string{"../testdata/root.pem"},
+			CertFiles: []string{"../testdata/root.pem"},
 			Client: tls.KeyCertFiles{
 				KeyFile:  "../testdata/tls_client-key.pem",
 				CertFile: "../testdata/tls_client-cert.pem",
@@ -532,7 +532,7 @@ func getTestClient(port int) *Client {
 	}
 }
 
-func getTLSConfig(srv *Server, clientAuthType string, clientRootCerts string) *Server {
+func getTLSConfig(srv *Server, clientAuthType string, clientRootCerts []string) *Server {
 	srv.Config.TLS.Enabled = true
 	srv.Config.TLS.CertFile = "../testdata/tls_server-cert.pem"
 	srv.Config.TLS.KeyFile = "../testdata/tls_server-key.pem"
