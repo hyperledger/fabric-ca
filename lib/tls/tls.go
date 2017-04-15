@@ -59,7 +59,7 @@ type KeyCertFiles struct {
 func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	var certs []tls.Certificate
 
-	log.Debugf("CA Files: %s\n", cfg.CertFilesList)
+	log.Debugf("CA Files: %+v\n", cfg.CertFiles)
 	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
 
