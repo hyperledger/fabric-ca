@@ -17,6 +17,10 @@ limitations under the License.
 package lib
 
 import (
+	_ "net/http/pprof" // enables profiling
+)
+
+import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -38,7 +42,8 @@ import (
 )
 
 const (
-	defaultClientAuth = "noclientcert"
+	defaultClientAuth         = "noclientcert"
+	fabricCAServerProfilePort = "FABRIC_CA_SERVER_PROFILE_PORT"
 )
 
 // Server is the fabric-ca server
@@ -406,6 +411,13 @@ func (s *Server) listenAndServe() (err error) {
 	}
 	s.listener = listener
 
+	err = s.checkAndEnableProfiling()
+	if err != nil {
+		s.listener.Close()
+		s.listener = nil
+		return fmt.Errorf("TCP listen for profiling failed: %s", err)
+	}
+
 	// Start serving requests, either blocking or non-blocking
 	if s.BlockingStart {
 		return s.serve()
@@ -422,6 +434,34 @@ func (s *Server) serve() error {
 		s.listener = nil
 	}
 	return s.serveError
+}
+
+// checkAndEnableProfiling checks for FABRIC_CA_SERVER_PROFILE_PORT env variable
+// if it is set, starts listening for profiling requests at the port specified
+// by the environment variable
+func (s *Server) checkAndEnableProfiling() error {
+	// Start listening for profile requests
+	pport := os.Getenv(fabricCAServerProfilePort)
+	if pport != "" {
+		iport, err := strconv.Atoi(pport)
+		if err != nil || iport < 0 {
+			log.Warningf("Profile port specified by the %s environment variable is not a valid port, not enabling profiling",
+				fabricCAServerProfilePort)
+		} else {
+			addr := net.JoinHostPort(s.Config.Address, pport)
+			listener, err1 := net.Listen("tcp", addr)
+			log.Infof("Profiling enabled; listening for profile requests on port %s", pport)
+			if err1 != nil {
+				return err1
+			}
+			go func() {
+				log.Debugf("Profiling enabled; waiting for profile requests on port %s", pport)
+				err := http.Serve(listener, nil)
+				log.Errorf("Stopped serving for profiling requests on port %s: %s", pport, err)
+			}()
+		}
+	}
+	return nil
 }
 
 // Make all file names in the config absolute

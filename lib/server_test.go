@@ -42,6 +42,7 @@ const (
 	intermediatePort = 7056
 	intermediateDir  = "intDir"
 	testdataDir      = "../testdata"
+	pportEnvVar      = "FABRIC_CA_SERVER_PROFILE_PORT"
 )
 
 func TestServerInit(t *testing.T) {
@@ -158,6 +159,84 @@ func TestRootServer(t *testing.T) {
 	}
 }
 
+// TestProfiling tests if profiling endpoint can be accessed when profiling is
+// enabled and not accessible when disabled (default)
+func TestProfiling(t *testing.T) {
+	t.Log("start TestProfiling")
+	pport := rootPort + 1000
+	url := fmt.Sprintf("http://localhost:%d/debug/pprof/heap", pport)
+
+	// Start the server with profiling disabled
+	os.Setenv(pportEnvVar, strconv.Itoa(-1))
+	server := getServer(rootPort, rootDir, "", 0, t)
+	if server == nil {
+		return
+	}
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+	time.Sleep(1 * time.Second)
+	resp1, err2 := sendGetReq(url, t)
+	// send heap profiling request to the server and expect a bad response
+	// as profiling is disabled
+	if err2 == nil && resp1.StatusCode == 200 {
+		responseData, _ := ioutil.ReadAll(resp1.Body)
+		t.Errorf("Expected error response for profile request %s but got good response: %s",
+			url, responseData)
+	}
+	server.Stop()
+	time.Sleep(1 * time.Second)
+
+	// Start the server with profiling enabled but port set to server port
+	os.Setenv(pportEnvVar, strconv.Itoa(rootPort))
+	server = getServer(rootPort, rootDir, "", 0, t)
+	if server == nil {
+		return
+	}
+	err = server.Start()
+	if err == nil {
+		t.Fatalf("Server should not have started because of port conflict")
+	}
+
+	// Start the server with profiling enabled
+	os.Setenv(pportEnvVar, strconv.Itoa(pport))
+	defer os.Unsetenv(pportEnvVar)
+	server = getServer(rootPort, rootDir, "", 0, t)
+	if server == nil {
+		return
+	}
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+	defer server.Stop()
+	time.Sleep(1 * time.Second)
+
+	// send heap profiling request to the server and expect a 200 response
+	// as profiling is enabled
+	resp, err1 := sendGetReq(url, t)
+	if err1 != nil || resp.StatusCode != 200 {
+		if err1 == nil {
+			responseData, _ := ioutil.ReadAll(resp.Body)
+			err1 = fmt.Errorf("Invalid response %s with code %d returned for the request %s",
+				string(responseData), resp.StatusCode, url)
+		}
+		t.Errorf("Failed to send request to %s: %s", url, err1)
+	}
+}
+
+// sendGetReq sends GET request to the specified URL
+func sendGetReq(url string, t *testing.T) (resp *http.Response, err error) {
+	req, err := http.NewRequest("GET", url, bytes.NewReader([]byte{}))
+	if err != nil {
+		t.Fatalf("Failed to create request for url %s: %s", url, err)
+	}
+	var tr = new(http.Transport)
+	httpClient := &http.Client{Transport: tr}
+	return httpClient.Do(req)
+}
+
 func TestIntermediateServer(t *testing.T) {
 	var err error
 
@@ -182,6 +261,7 @@ func TestIntermediateServer(t *testing.T) {
 		t.Errorf("Root server stop failed: %s", err)
 	}
 }
+
 func TestRunningTLSServer(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
 

@@ -598,6 +598,12 @@
 			"revisionTime": "2016-10-02T05:25:12Z"
 		},
 		{
+			"checksumSHA1": "3c4yRg91RtG0yTo4C/F/22wxO5o=",
+			"path": "github.com/pkg/profile",
+			"revision": "3a8809bd8a80f8ecfe4ee1b34b3f37194968617c",
+			"revisionTime": "2016-12-23T20:39:01Z"
+		},
+		{
 			"checksumSHA1": "k9SlQdp/DTB72G/u4aNecX/fFIg=",
 			"path": "github.com/pkg/sftp",
 			"revision": "4d0e916071f68db74f8a73926335f809396d6b42",
