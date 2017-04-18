@@ -155,7 +155,3 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 	}
 
 }
-
-func wrappedPath(path string) string {
-	return "/api/v1/cfssl/" + path
-}
