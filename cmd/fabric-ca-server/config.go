@@ -36,6 +36,7 @@ const (
 	cmdName      = "fabric-ca-server"
 	envVarPrefix = "FABRIC_CA_SERVER"
 	homeEnvVar   = "FABRIC_CA_SERVER_HOME"
+	caNameReqMsg = "ca.name property is required but is missing from the configuration file"
 )
 
 const (
@@ -305,6 +306,10 @@ func configInit() (err error) {
 		}
 	}
 
+	if serverCfg.CA.Name == "" {
+		return fmt.Errorf(caNameReqMsg)
+	}
+
 	return nil
 }
 
@@ -336,12 +341,15 @@ func createDefaultConfigFile() error {
 		return err
 	}
 	// Get domain name
-	mydomain := strings.Join(strings.Split(myhost, ".")[1:], ".")
+	caName := strings.Join(strings.Split(myhost, ".")[1:], ".")
+	if caName == "" {
+		caName = myhost
+	}
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
-	cfg = strings.Replace(cfg, "<<<CANAME>>>", mydomain, 1)
+	cfg = strings.Replace(cfg, "<<<CANAME>>>", caName, 1)
 	// Now write the file
 	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
 	if err != nil {
