@@ -86,7 +86,7 @@ func TestErrors(t *testing.T) {
 		{[]string{cmdName, "init", "-b", "user::"}, "Failed to read"},
 		{[]string{cmdName, "init", "-c", badSyntaxYaml, "-b", "user:pass"}, "Incorrect format"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", fmt.Sprintf("%s:foo", longUserName)}, "than 1024 characters"},
-		{[]string{cmdName, "init", "-c", fmt.Sprintf("%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
+		{[]string{cmdName, "init", "-c", fmt.Sprintf("/tmp/%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
 		{[]string{cmdName, "init", "-c", unsupportedFileType}, "Unsupported Config Type"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user"}, "missing a colon"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
@@ -201,6 +201,7 @@ func TestClean(t *testing.T) {
 	os.Remove(startYaml)
 	os.Remove(badSyntaxYaml)
 	os.Remove(ymlWithoutCAName)
+	os.Remove(fmt.Sprintf("/tmp/%s.yaml", longFileName))
 	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
