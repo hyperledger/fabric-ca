@@ -335,16 +335,17 @@ func createDefaultConfigFile() error {
 	if len(pass) == 0 {
 		return errors.New("An empty password in the '-b user:pass' option is not permitted")
 	}
-	// Get hostname
-	myhost, err := os.Hostname()
+
+	var myhost, caName string
+	var err error
+	myhost, err = os.Hostname()
 	if err != nil {
 		return err
 	}
-	// Get domain name
-	caName := strings.Join(strings.Split(myhost, ".")[1:], ".")
-	if caName == "" {
-		caName = myhost
-	}
+
+	// Get hostname
+	caName = getCAName(myhost)
+
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
@@ -357,4 +358,24 @@ func createDefaultConfigFile() error {
 	}
 	// Now write the file
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
+}
+
+// getCAName returns CA Name
+// If ca.name property is specified (via the environment variable
+// 'FABRIC_CA_SERVER_CA_NAME' or the command line option '--ca.name' or
+// in the configuration file), then its value is returned
+// If ca.name property is not specified, domain is extracted from the hostname and is
+// returned
+// If domain is empty, then hostname is returned
+func getCAName(hostname string) (caName string) {
+	caName = viper.GetString("ca.name")
+	if caName != "" {
+		return caName
+	}
+
+	caName = strings.Join(strings.Split(hostname, ".")[1:], ".")
+	if caName == "" {
+		caName = hostname
+	}
+	return caName
 }

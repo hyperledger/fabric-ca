@@ -73,6 +73,28 @@ func errorTest(in *TestData, t *testing.T) {
 	}
 }
 
+// Tests for the getCAName function
+func TestGetCAName(t *testing.T) {
+	var testCases = []struct {
+		input    string // input
+		expected string // expected result
+	}{
+		{"server1.acme.com", "acme.com"},
+		{"server1.net1.acme.com", "net1.acme.com"},
+		{".com", "com"},
+		{"server2", "server2"},
+		{"foo.", "foo."},
+		{".", "."},
+	}
+	for _, tc := range testCases {
+		n := getCAName(tc.input)
+		if n != tc.expected {
+			t.Errorf("getCAName returned unexpected value '%s' for '%s', expected value is '%s'",
+				n, tc.input, tc.expected)
+		}
+	}
+}
+
 func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
 	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
@@ -82,8 +104,9 @@ func TestErrors(t *testing.T) {
 
 	errorCases := []TestData{
 		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
-		{[]string{cmdName, "init", "-b", "user:pass", "ca.key"}, "too many arguments"},
-		{[]string{cmdName, "init", "-b", "user::"}, "Failed to read"},
+		{[]string{cmdName, "init", "-n", "acme.com", "-b", "user::"}, "Failed to read"},
+		{[]string{cmdName, "init", "-c", ymlWithoutCAName, "-n", "", "-b", "user:pass"}, caNameReqMsg},
+		{[]string{cmdName, "init", "-b", "user:pass", "-n", "acme.com", "ca.key"}, "too many arguments"},
 		{[]string{cmdName, "init", "-c", badSyntaxYaml, "-b", "user:pass"}, "Incorrect format"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", fmt.Sprintf("%s:foo", longUserName)}, "than 1024 characters"},
 		{[]string{cmdName, "init", "-c", fmt.Sprintf("%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
@@ -92,8 +115,7 @@ func TestErrors(t *testing.T) {
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
 		{[]string{cmdName, "bogus", "-c", initYaml, "-b", "user:pass"}, "unknown command"},
 		{[]string{cmdName, "start", "-c"}, "needs an argument:"},
-		{[]string{cmdName, "start", "-c", startYaml, "-d", "-b", "user:pass", "ca.key"}, "too many arguments"},
-		{[]string{cmdName, "start", "-c", ymlWithoutCAName, "-b", "user:pass"}, caNameReqMsg},
+		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "too many arguments"},
 	}
 
 	// Explicitly set the default for ca.name to "", this is to test if server
