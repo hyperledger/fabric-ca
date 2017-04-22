@@ -529,9 +529,7 @@ func (s *Server) registerHandler(
 		next:     handler,
 	}
 	s.mux.Handle("/"+path, handler)
-	// TODO: Remove the following line once all SDKs stop using the prefixed paths
-	// See https://jira.hyperledger.org/browse/FAB-2597
-	s.mux.Handle("/api/v1/cfssl/"+path, handler)
+	s.mux.Handle("/api/v1/"+path, handler)
 }
 
 // Starting listening and serving
