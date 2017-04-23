@@ -24,6 +24,19 @@ tolower() {
   echo "$1" | tr [:upper:] [:lower:]
 }
 
+setTLS() {
+   PROTO="http://"
+   TLSOPT=""
+   # if not set, default to OFF
+   if test -n "$FABRIC_TLS"; then
+     # otherwise, set TLS-related stuff
+     if $($FABRIC_TLS); then
+        PROTO="https://"
+        TLSOPT="--tls.certfiles $ROOTCERT"
+     fi
+   fi
+}
+
 ErrorMsg() {
    local msg="$1"
    local rc="$2"
