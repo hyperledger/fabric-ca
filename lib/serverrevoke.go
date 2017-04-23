@@ -105,12 +105,15 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 		userInfo, err2 := registry.GetUserInfo(certificate.ID)
 		if err2 != nil {
-			return err2
+			msg := fmt.Sprintf("Failed to find user: %s", err2)
+			log.Errorf(msg)
+			return dbErr(w, errors.New(msg))
 		}
 
 		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo)
 		if err2 != nil {
-			return err2
+			log.Error(err2)
+			return authErr(w, err2)
 		}
 
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, req.Reason)
@@ -138,7 +141,8 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 
 			err = h.checkAffiliations(cert.Subject.CommonName, userInfo)
 			if err != nil {
-				return err
+				log.Error(err)
+				return authErr(w, err)
 			}
 
 			userInfo.State = -1
