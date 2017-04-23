@@ -327,14 +327,14 @@ while getopts "\?hPRCBISKXLDTAd:t:l:n:i:c:k:x:g:m:p:r:" option; do
   esac
 done
 
-: ${HTTP_PORT="3755"}
+: ${HTTP_PORT:="3755"}
 : ${DBNAME:="fabric_ca"}
-: ${MAXENROLL="1"}
-: ${AUTH="true"}
-: ${DRIVER="sqlite3"}
-: ${FABRIC_CA_INSTANCES=1}
-: ${FABRIC_CA_DEBUG="false"}
-: ${GITID="rennman"}
+: ${MAXENROLL:="1"}
+: ${AUTH:="true"}
+: ${DRIVER:="sqlite3"}
+: ${FABRIC_CA_INSTANCES:=1}
+: ${FABRIC_CA_DEBUG:="false"}
+: ${GITID:="rennman"}
 : ${LIST:="false"}
 : ${PREP:="false"}
 : ${RESET:="false"}
@@ -385,12 +385,14 @@ $($PREP)  && installPrereq
 $($RESET) && resetFabricCa
 $($CLONE) && cloneFabricCa
 $($BUILD) && buildFabricCa
-$($INIT) && initFabricCa
 $($KILL)  && killAllFabricCas
 $($PROXY) && startHaproxy $FABRIC_CA_INSTANCES
 
+$( $INIT -o $START ) && genRunconfig "$RUNCONFIG" "$DRIVER" "$DATASRC" "$DST_CERT" "$DST_KEY" "$MAXENROLL"
+test -n "$SERVERCONFIG" && cp "$SERVERCONFIG" "$RUNCONFIG"
+
+$($INIT) && initFabricCa
 if $($START); then
-   test -z "$SERVERCONFIG" && genRunconfig || cp "$SERVERCONFIG" "$RUNCONFIG"
    inst=0
    while test $((inst++)) -lt $FABRIC_CA_INSTANCES; do
       startFabricCa $inst
