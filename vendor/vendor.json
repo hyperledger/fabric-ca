@@ -465,10 +465,10 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
-			"checksumSHA1": "/RlYLEXYPFPm5giiXMQ0G48dO38=",
+			"checksumSHA1": "n+rDZNHLQEleZZY9JCr1y60LJkM=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "25dbdeeab8f3d4e431a5434bcee149ee30cf556e",
-			"revisionTime": "2017-03-01T22:45:42Z",
+			"revision": "935f608608903bfc171c7d631aedbb70156d62c0",
+			"revisionTime": "2017-04-24T13:40:27Z",
 			"tree": true
 		},
 		{
@@ -494,6 +494,12 @@
 			"path": "github.com/hyperledger/fabric/bccsp/utils",
 			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
 			"revisionTime": "2017-02-27T00:00:38Z"
+		},
+		{
+			"checksumSHA1": "JcHPNgBRH9H+EP+GoeV18GZGd5g=",
+			"path": "github.com/hyperledger/fabric/common/flogging",
+			"revision": "935f608608903bfc171c7d631aedbb70156d62c0",
+			"revisionTime": "2017-04-24T13:40:27Z"
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
