@@ -15,7 +15,7 @@ echo "Running fvt tests ..."
 for TLS in $SCRIPTDIR/tls.env $SCRIPTDIR/notls.env; do
 . $TLS
 export PATH=$PATH:$GOPATH/bin
-tests="$(find $SCRIPTDIR -name "*test**sh")"
+tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test**sh")"
 for cmd in $tests; do
   echo ""
   echo "*******************"

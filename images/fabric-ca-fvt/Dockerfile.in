@@ -23,7 +23,7 @@ RUN echo "mysql-server mysql-server/root_password password mysql" | debconf-set-
 RUN echo "mysql-server mysql-server/root_password_again password mysql" | debconf-set-selections
 RUN apt-get -y install --no-install-recommends bc vim lsof sqlite3 haproxy postgresql-$PGVER postgresql-client-common \
                        isag jq git html2text debconf-utils zsh htop python2.7-minimal \
-                       mysql-client  mysql-common mysql-server
+                       libpython2.7-stdlib mysql-client  mysql-common mysql-server
 RUN apt-get -y autoremove
 
 # Configure and start postgres
