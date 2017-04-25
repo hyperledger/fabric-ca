@@ -4,8 +4,6 @@ SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 export CA_CFG_PATH="/tmp/revoke_test"
 RC=0
-# FIXME should not require user:pass
-URI="http://user:pass@localhost:8888"
 DB="fabric_ca"
 USERS=("admin" "admin2" "notadmin" "testUser" "testUser2" "testUser3" )
 PSWDS=("adminpw" "adminpw2" "pass" "user1" "user2" "user3" )
@@ -14,6 +12,9 @@ PSWDS=("adminpw" "adminpw2" "pass" "user1" "user2" "user3" )
 HTTP_PORT="3755"
 
 . $SCRIPTDIR/fabric-ca_utils
+setTLS
+# FIXME should not require user:pass
+URI="${PROTO}user:pass@localhost:8888"
 
 genAffYaml() {
    local Planet=(0 1)
@@ -126,7 +127,7 @@ for driver in mysql postgres sqlite3; do
 
    # notadmin cannot revoke
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[2]}"
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]}
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]} $TLSOPT
    test "$?" -eq 0 && ErrorMsg "Non-revoker successfully revoked cert"
 
    # Check the DB contents
@@ -151,31 +152,31 @@ for driver in mysql postgres sqlite3; do
    echo "=========================> REVOKING by --eid"
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[0]}"
    #### Blanket revoke all of admin2 certs
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]}
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]} $TLSOPT
 
    #### Revoke notadmin's cert by serial number and authority keyid
    #### using upper-case hexidecimal
    echo "=========================> REVOKING by -s -a (UPPERCASE)"
-   $FABRIC_CA_CLIENTEXEC revoke -s $SN_UC -a $AKI_UC -u $URI
+   $FABRIC_CA_CLIENTEXEC revoke -s $SN_UC -a $AKI_UC -u $URI $TLSOPT
 
    #### Ensure that revoking an already revoked cert doesn't blow up
    echo "=========================> Issuing duplicate revoke by -s -a"
-   $FABRIC_CA_CLIENTEXEC revoke -s $SN_UC -a $AKI_UC -u $URI
+   $FABRIC_CA_CLIENTEXEC revoke -s $SN_UC -a $AKI_UC -u $URI $TLSOPT
 
    #### Revoke using lower-case hexadeciaml
    # FIXME - should allow combination of SN + AKI + EID
    #$FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI --eid ${USERS[3]}
    echo "=========================> REVOKING by -s -a (LOWERCASE)"
-   $FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI
+   $FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI $TLSOPT
 
    echo "=========================> REVOKING by --eid"
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[0]}"
    #### Revoke across affiliations not allowed
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[5]}
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[5]} $TLSOPT
 
    #### Revoke my own cert
    echo "=========================> REVOKING self"
-   $FABRIC_CA_CLIENTEXEC revoke --eid ${USERS[0]}
+   $FABRIC_CA_CLIENTEXEC revoke --eid ${USERS[0]} -u $URI $TLSOPT
 
    # Verify the DB update
    for ((i=${#USERS[@]}; i<=0; i--)); do

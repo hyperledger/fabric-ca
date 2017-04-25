@@ -19,18 +19,22 @@ export CA_CFG_PATH
 function genServerConfig {
 case "$1" in
    implicit) cat > $SERVERCONFIG <<EOF
-database:
+db:
   type: $DRIVER
   datasource: $DATASRC
   tls:
-    enabled: $FABRIC_TLS
-    certfile: $TESTDATA/tls_server-cert.pem
-    keyfile: $TESTDATA/tls_server-key.pem
+     enabled: $FABRIC_TLS
+     certfiles:
+       - $TESTDATA/tls_server-cert.pem
+     client:
+       certfile: $TESTDATA/tls_server-cert.pem
+       keyfile: $TESTDATA/tls_server-key.pem
 tls:
   enabled: $FABRIC_TLS
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
+  name: fabric-ca-server
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
 registry:
@@ -84,18 +88,22 @@ EOF
 ;;
    # Max enroll for identities cannot surpass global setting
    invalid) cat > $SERVERCONFIG <<EOF
-database:
+db:
   type: $DRIVER
   datasource: $DATASRC
   tls:
-    enabled: $FABRIC_TLS
-    certfile: $TESTDATA/tls_server-cert.pem
-    keyfile: $TESTDATA/tls_server-key.pem
+     enabled: $FABRIC_TLS
+     certfiles:
+       - $TESTDATA/tls_server-cert.pem
+     client:
+       certfile: $TESTDATA/tls_server-cert.pem
+       keyfile: $TESTDATA/tls_server-key.pem
 tls:
   enabled: $FABRIC_TLS
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
+  name: fabric-ca-server
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
 registry:

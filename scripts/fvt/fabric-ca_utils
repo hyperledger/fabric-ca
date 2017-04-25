@@ -235,7 +235,6 @@ enroll() {
    $FABRIC_CA_CLIENTEXEC enroll -u "${PROTO}${username}:${userpswd}@${HOST}:${PORT}" $TLSOPT \
                          -c $ENROLLCONFIG \
                          --csr.cn $username \
-                         --tls.certfiles $ROOTCERT \
                          --enrollment.hosts "$username@fab-client.raleigh.ibm.com,$username.fabric.raleigh.ibm.com,127.0.0.2"
    RC=$?
    if test -n "$FABRIC_CA_DEBUG"; then
@@ -267,8 +266,7 @@ reenroll() {
    ENROLLCONFIG="$FABRIC_CA_CLIENT_HOME/enroll.yaml"
    export FABRIC_CA_CLIENT_HOME
    setTLS
-   $FABRIC_CA_CLIENTEXEC reenroll -u $PROTO$HOST:$PORT $TLSOPT -c $ENROLLCONFIG \
-                          --tls.certfiles $ROOTCERT
+   $FABRIC_CA_CLIENTEXEC reenroll -u $PROTO$HOST:$PORT $TLSOPT -c $ENROLLCONFIG 
    RC=$?
    $($FABRIC_CA_DEBUG) && printAuth $FABRIC_CA_CERT_FILE $FABRIC_CA_KEY_FILE
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver
@@ -302,9 +300,9 @@ register() {
                            --id.maxenrollments 1 \
                            $USERGRP_OPT \
                            --id.attr "$USERATTR" \
-                           --tls.certfiles $ROOTCERT \
                            -c $FABRIC_CA_CLIENT_HOME/fabric-ca-client-config.yaml
-   return $?
+   local rc=$?
+   return $rc
 }
 
 function genRunconfig() {
@@ -536,11 +534,19 @@ debug: $FABRIC_CA_DEBUG
 db:
   type: $driver
   datasource: $datasrc
+  tls:
+     enabled: false
+     certfiles:
+       - $TESTDATA/tls_server-cert.pem
+     client:
+       certfile: $TESTDATA/tls_server-cert.pem
+       keyfile: $TESTDATA/tls_server-key.pem
 tls:
   enabled: $TLS_ON
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
+  name: fabric-ca-server
   certfile: $serverCert
   keyfile: $serverKey
 registry:
@@ -624,10 +630,10 @@ ldap:
   url: ldap://CN=admin:adminPassword@localhost:$LDAP_PORT/<base>
   tls:
     certfiles:
-      - ldap-server-cert.pem
+      - $TESTDATA/tls_server-key.pem
     client:
-      certfile: ldap-client-cert.pem
-      keyfile: ldap-client-key.pem
+      certfile: $TESTDATA/tls_server-key.pem
+      keyfile: $TESTDATA/tls_server-key.pem
 affiliations:
   bank_a:
     - department1
