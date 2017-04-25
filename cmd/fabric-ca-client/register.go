@@ -28,8 +28,8 @@ import (
 // initCmd represents the init command
 var registerCmd = &cobra.Command{
 	Use:   "register",
-	Short: "Register user",
-	Long:  "Register user with fabric-ca server",
+	Short: "Register an identity",
+	Long:  "Register an identity with fabric-ca server",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		err := configInit(cmd.Name())
 		if err != nil {

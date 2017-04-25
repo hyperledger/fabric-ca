@@ -29,8 +29,8 @@ import (
 // initCmd represents the init command
 var reenrollCmd = &cobra.Command{
 	Use:   "reenroll",
-	Short: "Reenroll user",
-	Long:  "Reenroll user with fabric-ca server",
+	Short: "Reenroll an identity",
+	Long:  "Reenroll an identity with fabric-ca server",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		err := configInit(cmd.Name())
 		if err != nil {

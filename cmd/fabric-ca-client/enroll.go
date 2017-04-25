@@ -34,8 +34,8 @@ var (
 // initCmd represents the init command
 var enrollCmd = &cobra.Command{
 	Use:   "enroll -u http://user:userpw@serverAddr:serverPort",
-	Short: "Enroll user",
-	Long:  "Enroll user with fabric-ca server",
+	Short: "Enroll an identity",
+	Long:  "Enroll identity with fabric-ca server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			cmd.Help()
@@ -57,8 +57,7 @@ func init() {
 
 // The client enroll main logic
 func runEnroll(cmd *cobra.Command) error {
-	log.Debug("Entered Enroll")
-
+	log.Debug("Entered runEnroll")
 	_, _, err := util.GetUser()
 	if err != nil {
 		return err

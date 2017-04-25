@@ -126,7 +126,7 @@ func (h *registerHandler) validateID(req *api.RegistrationRequestNet) error {
 
 // registerUserID registers a new user and its enrollmentID, role and state
 func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet) (string, error) {
-	log.Debugf("Registering user id: %s\n", req.Name)
+	log.Debugf("Registering identity: %s\n", req.Name)
 
 	if req.Secret == "" {
 		req.Secret = util.RandomString(12)
@@ -155,7 +155,7 @@ func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet) (strin
 
 	_, err := registry.GetUser(req.Name, nil)
 	if err == nil {
-		return "", fmt.Errorf("User '%s' is already registered", req.Name)
+		return "", fmt.Errorf("Identity '%s' is already registered", req.Name)
 	}
 
 	err = registry.InsertUser(insert)
@@ -184,7 +184,7 @@ func (h *registerHandler) requireAffiliation(idType string) bool {
 }
 
 func (h *registerHandler) canRegister(registrar string, userType string) error {
-	log.Debugf("canRegister - Check to see if user %s can register", registrar)
+	log.Debugf("canRegister - Check to see if identity %s can register", registrar)
 
 	user, err := h.server.registry.GetUser(registrar, nil)
 	if err != nil {
@@ -200,10 +200,10 @@ func (h *registerHandler) canRegister(registrar string, userType string) error {
 	}
 	if userType != "" {
 		if !util.StrContained(userType, roles) {
-			return fmt.Errorf("User '%s' may not register type '%s'", registrar, userType)
+			return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, userType)
 		}
 	} else {
-		return errors.New("No user type provied. Please provide user type")
+		return errors.New("No identity type provided. Please provide identity type")
 	}
 
 	return nil

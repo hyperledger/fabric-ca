@@ -83,8 +83,8 @@ const (
 URL: <<<URL>>>
 
 # Membership Service Provider (MSP) directory
-# This is useful when the client is used to enroll a peer or orderer, so
-# that the enrollment artifacts are stored in the format expected by MSP.
+# When the client is used to enroll a peer or an orderer, this field must be
+# set to the MSP directory of the peer/orderer
 MSPDir:
 
 #############################################################################
@@ -117,18 +117,18 @@ csr:
     expiry:
 
 #############################################################################
-#  Registration section used to register a new user with fabric-ca server
+#  Registration section used to register a new identity with fabric-ca server
 #############################################################################
 id:
   name:
   type:
   affiliation:
-  attributes:
+  attrs:
     - name:
       value:
 
 #############################################################################
-#  Enrollment section used to enroll a user with fabric-ca server
+#  Enrollment section used to enroll an identity with fabric-ca server
 #############################################################################
 enrollment:
   hosts:
@@ -146,7 +146,6 @@ var (
 )
 
 func configInit(command string) error {
-
 	var err error
 
 	if cfgFileName != "" {

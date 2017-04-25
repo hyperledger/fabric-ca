@@ -142,7 +142,7 @@ registry:
   # (default: 0, which means there is no limit)
   maxEnrollments: 0
 
-  # Contains user information which is used when LDAP is disabled
+  # Contains identity information which is used when LDAP is disabled
   identities:
      - name: <<<ADMIN>>>
        pass: <<<ADMINPW>>>
@@ -330,7 +330,7 @@ func createDefaultConfigFile() error {
 	user := ups[0]
 	pass := ups[1]
 	if len(user) >= 1024 {
-		return fmt.Errorf("The user name must be less than 1024 characters: '%s'", user)
+		return fmt.Errorf("The identity name must be less than 1024 characters: '%s'", user)
 	}
 	if len(pass) == 0 {
 		return errors.New("An empty password in the '-b user:pass' option is not permitted")
