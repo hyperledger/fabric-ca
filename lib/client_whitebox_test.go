@@ -139,8 +139,10 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		CA: CA{
 			Config: &CAConfig{
-				ParentServerURL: parentURL,
-				Affiliations:    affiliations,
+				ParentServer: ParentServer{
+					URL: parentURL,
+				},
+				Affiliations: affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
 				},

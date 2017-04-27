@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -207,12 +208,12 @@ func TestDBLocation(t *testing.T) {
 func TestMultiCA(t *testing.T) {
 	blockingStart = false
 
-	err := RunMain([]string{cmdName, "start", "-d", "-p", "7055", "-c", "../../testdata/test.yaml", "-b", "user:pass", "--cafiles", "ca/ca1/fabric-ca-server-config.yaml", "--cafiles", "ca/ca2/fabric-ca-server-config.yaml"})
+	err := RunMain([]string{cmdName, "start", "-d", "-p", "7055", "-c", "../../testdata/test.yaml", "-b", "user:pass", "--cafiles", "ca/rootca/ca1/fabric-ca-server-config.yaml", "--cafiles", "ca/rootca/ca2/fabric-ca-server-config.yaml"})
 	if err != nil {
 		t.Error("Failed to start server with multiple CAs using the --cafiles flag from command line: ", err)
 	}
 
-	if !util.FileExists("../../testdata/ca/ca2/fabric-ca2-server.db") {
+	if !util.FileExists("../../testdata/ca/rootca/ca2/fabric-ca2-server.db") {
 		t.Error("Failed to create 2 CA instances")
 	}
 
@@ -248,11 +249,16 @@ func TestClean(t *testing.T) {
 }
 
 func cleanUpMultiCAFiles() {
+	caFolder := "../../testdata/ca/rootca"
+	nestedFolders := []string{"ca1", "ca2"}
+	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db"}
+
+	for _, nestedFolder := range nestedFolders {
+		path := filepath.Join(caFolder, nestedFolder)
+		for _, file := range removeFiles {
+			os.Remove(filepath.Join(path, file))
+		}
+	}
+
 	os.Remove("../../testdata/test.yaml")
-	os.Remove("../../testdata/ca/ca1/ca-cert.pem")
-	os.Remove("../../testdata/ca/ca1/ca-key.pem")
-	os.Remove("../../testdata/ca/ca1/fabric-ca-server.db")
-	os.Remove("../../testdata/ca/ca2/ca-cert.pem")
-	os.Remove("../../testdata/ca/ca2/ca-key.pem")
-	os.Remove("../../testdata/ca/ca2/fabric-ca2-server.db")
 }

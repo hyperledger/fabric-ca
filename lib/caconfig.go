@@ -33,16 +33,16 @@ import (
 // "help" - the help message to display on the command line;
 // "skip" - to skip the field.
 type CAConfig struct {
-	CSP             *factory.FactoryOpts
-	CA              CAInfo
-	ParentServerURL string `skip:"true"`
-	Signing         *config.Signing
-	CSR             csr.CertificateRequest
-	Registry        CAConfigRegistry
-	Affiliations    map[string]interface{}
-	LDAP            ldap.Config
-	DB              CAConfigDB
-	Client          *ClientConfig
+	CSP          *factory.FactoryOpts
+	CA           CAInfo
+	ParentServer ParentServer
+	Signing      *config.Signing
+	CSR          csr.CertificateRequest
+	Registry     CAConfigRegistry
+	Affiliations map[string]interface{}
+	LDAP         ldap.Config
+	DB           CAConfigDB
+	Client       *ClientConfig
 }
 
 // CAInfo is the CA information on a fabric-ca-server
@@ -74,6 +74,13 @@ type CAConfigIdentity struct {
 	Affiliation    string
 	MaxEnrollments int
 	Attrs          map[string]string
+}
+
+// ParentServer contains URL for the parent server and the name of CA inside
+// the server to connect to
+type ParentServer struct {
+	URL    string `opt:"u" help:"URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)"`
+	CAName string `help:"Name of the CA to connect to on fabric-ca-serve"`
 }
 
 func (cc *CAConfigIdentity) String() string {

@@ -38,7 +38,6 @@ var (
 				return err
 			}
 			cmd.SilenceUsage = true
-			cmd.SilenceErrors = true
 			util.CmdRunBegin()
 			return nil
 		},
@@ -57,7 +56,6 @@ func init() {
 	// Set specific global flags used by all commands
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
-	util.FlagString(pflags, "url", "u", "", "URL of the parent fabric-ca-server")
 	util.FlagString(pflags, "boot", "b", "",
 		"The user:pass for bootstrap admin which is required to build default config file")
 

@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -107,7 +108,7 @@ func TestRootServer(t *testing.T) {
 	}
 	user1 = eresp.Identity
 	// The admin ID should have 1 cert in the DB now
-	recs, err = server.CertDBAccessor().GetCertificatesByID("admin")
+	recs, err = server.CA.CertDBAccessor().GetCertificatesByID("admin")
 	if err != nil {
 		t.Errorf("Could not get admin's certs from DB: %s", err)
 	}
@@ -295,7 +296,6 @@ func invalidTokenAuthorization(t *testing.T) {
 	req.Header.Set("authorization", token)
 
 	err = client.SendReq(req, nil)
-
 	if err.Error() != "Error response from server was: Authorization failure" {
 		t.Error("Incorrect auth type set, request should have failed with authorization error")
 	}
@@ -340,13 +340,13 @@ func TestMultiCA(t *testing.T) {
 	}
 
 	// Starting server with a missing ca config file
-	srv.Config.CAfiles = []string{"ca/ca1/fabric-ca-server-config.yaml", "ca/ca2/fabric-ca-server-config.yaml", "ca/ca3/fabric-ca-server-config.yaml"}
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml", "ca/rootca/ca3/fabric-ca-server-config.yaml"}
 	err = srv.Start()
 	if err == nil {
 		t.Error("Should have failed to start server, missing ca config file")
 	}
 
-	srv.Config.CAfiles = []string{"ca/ca1/fabric-ca-server-config.yaml", "ca/ca2/fabric-ca-server-config.yaml"}
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
 	t.Logf("Server configuration: %+v\n\n", srv.Config)
 
 	err = srv.Start()
@@ -354,23 +354,106 @@ func TestMultiCA(t *testing.T) {
 		t.Error("Failed to start server:", err)
 	}
 
-	if !util.FileExists("../testdata/ca/ca1/fabric-ca-server.db") {
+	if !util.FileExists("../testdata/ca/rootca/ca1/fabric-ca-server.db") {
 		t.Error("Failed to correctly add ca1")
 	}
 
-	if !util.FileExists("../testdata/ca/ca2/fabric-ca2-server.db") {
+	if !util.FileExists("../testdata/ca/rootca/ca2/fabric-ca2-server.db") {
 		t.Error("Failed to correctly add ca2")
 	}
 
 	time.Sleep(1 * time.Second)
 
+	// Non-existent CA specified by client
+	clientCA := getRootClient()
+	_, err = clientCA.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		CAName: "rootca3",
+	})
+	if err == nil {
+		t.Error("Should have failed, client using ca name of 'ca3' but no CA exist by that name on server")
+	}
+
+	//Send enroll request to specific CA
+	clientCA1 := getRootClient()
+	_, err = clientCA1.Enroll(&api.EnrollmentRequest{
+		Name:   "adminca1",
+		Secret: "adminca1pw",
+		CAName: "rootca1",
+	})
+	if err != nil {
+		t.Error("Failed to enroll, error: ", err)
+	}
+
+	clientCA2 := getRootClient()
+	resp, err := clientCA2.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		CAName: "rootca2",
+	})
+	if err != nil {
+		t.Error("Failed to enroll, error: ", err)
+	}
+
+	_, err = resp.Identity.Reenroll(&api.ReenrollmentRequest{
+		CAName: "rootca2",
+	})
+	if err != nil {
+		t.Error("Failed to reenroll, error: ", err)
+	}
+
+	// No ca name specified should sent to default CA 'ca'
+	clientCA3 := getRootClient()
+	_, err = clientCA3.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	if err != nil {
+		t.Error("Failed to enroll, error: ", err)
+	}
+
 	err = srv.Stop()
 	if err != nil {
 		t.Error("Failed to stop server:", err)
 	}
-
 	cleanMultiCADir()
 
+}
+
+func TestMultiCAWithIntermediate(t *testing.T) {
+	srv := getServer(rootPort, testdataDir, "", 0, t)
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
+	srv.CA.Config.CSR.Hosts = []string{"hostname"}
+	t.Logf("Server configuration: %+v\n", srv.Config)
+
+	// Starting server with two cas with same name
+	err := srv.Start()
+	if err != nil {
+		t.Error("Failed to stop server: ", err)
+	}
+
+	intermediatesrv := getServer(intermediatePort, testdataDir, "", 0, t)
+	intermediatesrv.Config.CAfiles = []string{"ca/intermediateca/ca1/fabric-ca-server-config.yaml", "ca/intermediateca/ca2/fabric-ca-server-config.yaml"}
+	intermediatesrv.CA.Config.CSR.Hosts = []string{"hostname"}
+
+	// Start it
+	err = intermediatesrv.Start()
+	if err != nil {
+		t.Fatalf("Intermediate server start failed: %s", err)
+	}
+	time.Sleep(time.Second)
+	// Stop it
+	intermediatesrv.Stop()
+
+	if !util.FileExists("../testdata/ca/intermediateca/ca1/ca-chain.pem") {
+		t.Error("Failed to enroll intermediate ca")
+	}
+
+	err = srv.Stop()
+	if err != nil {
+		t.Error("Failed to stop server:", err)
+	}
 }
 
 // Configure server to start server with no client authentication required
@@ -570,12 +653,21 @@ func TestEnd(t *testing.T) {
 }
 
 func cleanMultiCADir() {
-	os.Remove("../testdata/ca/ca1/ca-cert.pem")
-	os.Remove("../testdata/ca/ca1/ca-key.pem")
-	os.Remove("../testdata/ca/ca1/fabric-ca-server.db")
-	os.Remove("../testdata/ca/ca2/ca-cert.pem")
-	os.Remove("../testdata/ca/ca2/ca-key.pem")
-	os.Remove("../testdata/ca/ca2/fabric-ca2-server.db")
+	caFolder := "../testdata/ca"
+	toplevelFolders := []string{"intermediateca", "rootca"}
+	nestedFolders := []string{"ca1", "ca2"}
+	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
+
+	for _, topFolder := range toplevelFolders {
+		for _, nestedFolder := range nestedFolders {
+			path := filepath.Join(caFolder, topFolder, nestedFolder)
+			for _, file := range removeFiles {
+				os.Remove(filepath.Join(path, file))
+			}
+		}
+	}
+
+	os.RemoveAll("../testdata/ca/intermediateca/ca1/msp")
 }
 
 func getRootServerURL() string {
@@ -614,8 +706,10 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		CA: CA{
 			Config: &CAConfig{
-				ParentServerURL: parentURL,
-				Affiliations:    affiliations,
+				ParentServer: ParentServer{
+					URL: parentURL,
+				},
+				Affiliations: affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
 				},

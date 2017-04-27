@@ -36,7 +36,6 @@ var rootCmd = &cobra.Command{
 		util.CmdRunBegin()
 
 		cmd.SilenceUsage = true
-		cmd.SilenceErrors = true
 
 		return nil
 	},
@@ -81,7 +80,7 @@ func init() {
 // The fabric-ca client main
 func main() {
 	if err := RunMain(os.Args); err != nil {
-		util.Fatal("%s", err)
+		os.Exit(1)
 	}
 }
 

@@ -48,6 +48,7 @@ registry:
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
           hf.IntermediateCA: true
+
 #############################################################################
 #  Database section
 #  Supported types are: "sqlite3", "postgres", and "mysql".
@@ -70,25 +71,6 @@ db:
         keyfile: db-client-key.pem
 
 #############################################################################
-#  LDAP section
-#  If LDAP is enabled, the fabric-ca-server calls LDAP to:
-#  1) authenticate enrollment ID and secret (i.e. username and password)
-#     for enrollment requests;
-#  2) To retrieve identity attributes
-#############################################################################
-ldap:
-   # Enables or disables the LDAP client (default: false)
-   enabled: false
-   # The URL of the LDAP server
-   url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
-   tls:
-      certfiles:
-         - ldap-server-cert.pem
-      client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
-
-#############################################################################
 #  Affiliation section
 #############################################################################
 affiliations:
@@ -97,47 +79,3 @@ affiliations:
       - department2
    org2:
       - department1
-
-#############################################################################
-#  Signing section
-#############################################################################
-signing:
-    profiles:
-      ca:
-         usage:
-           - cert sign
-         expiry: 8000h
-         caconstraint:
-           isca: true
-    default:
-      usage:
-        - cert sign
-      expiry: 8000h
-
-###########################################################################
-#  Certificate Signing Request section for generating the CA certificate
-###########################################################################
-csr:
-   cn: fabric-ca-server
-   names:
-      - C: US
-        ST: "North Carolina"
-        L:
-        O: Hyperledger
-        OU: Fabric
-   hosts:
-     - saads-mbp.raleigh.ibm.com
-   ca:
-      pathlen:
-      pathlenzero:
-      expiry:
-
-#############################################################################
-#  Crypto section configures the crypto primitives used for all
-#############################################################################
-crypto:
-  software:
-     hash_family: SHA2
-     security_level: 256
-     ephemeral: false
-     key_store_dir: keys

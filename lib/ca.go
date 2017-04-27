@@ -177,8 +177,8 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 
 // Get the CA certificate and key for this CA
 func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
-	log.Debugf("Getting CA cert and key; parent server URL is '%s'", ca.Config.ParentServerURL)
-	if ca.Config.ParentServerURL != "" {
+	log.Debugf("Getting CA cert and key; parent server URL is '%s'", ca.Config.ParentServer.URL)
+	if ca.Config.ParentServer.URL != "" {
 		// This is an intermediate CA, so call the parent fabric-ca-server
 		// to get the key and cert
 		clientCfg := ca.Config.Client
@@ -196,7 +196,10 @@ func (ca *CA) getCACertAndKey() (cert, key []byte, err error) {
 		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
 		var resp *EnrollmentResponse
-		resp, err = clientCfg.Enroll(ca.Config.ParentServerURL, ca.HomeDir)
+		if ca.Config.ParentServer.CAName == "" {
+			ca.Config.ParentServer.CAName = ca.server.CA.Config.CA.Name
+		}
+		resp, err = clientCfg.Enroll(ca.Config.ParentServer.URL, ca.HomeDir)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -264,7 +267,7 @@ func (ca *CA) getCAChain() (chain []byte, err error) {
 		return util.ReadFile(certAuth.Chainfile)
 	}
 	// Otherwise, if this is a root CA, we always return the contents of the CACertfile
-	if ca.Config.ParentServerURL == "" {
+	if ca.Config.ParentServer.URL == "" {
 		return util.ReadFile(certAuth.Certfile)
 	}
 	// If this is an intermediate CA but the ca.Chainfile doesn't exist,
@@ -418,7 +421,7 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 	}
 
 	// Make sure the policy reflects the new remote
-	ParentServerURL := ca.Config.ParentServerURL
+	ParentServerURL := ca.Config.ParentServer.URL
 	if ParentServerURL != "" {
 		err = policy.OverrideRemotes(ParentServerURL)
 		if err != nil {
