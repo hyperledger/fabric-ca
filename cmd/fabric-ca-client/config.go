@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
@@ -123,7 +124,7 @@ id:
   name:
   type:
   affiliation:
-  attrs:
+  attributes:
     - name:
       value:
 
@@ -255,6 +256,9 @@ func createDefaultConfigFile() error {
 // processAttributes parses attributes from command line
 func processAttributes() {
 	splitAttr := strings.Split(clientCfg.ID.Attr, "=")
+	if len(clientCfg.ID.Attributes) == 0 {
+		clientCfg.ID.Attributes = make([]api.Attribute, 1)
+	}
 	clientCfg.ID.Attributes[0].Name = splitAttr[0]
 	clientCfg.ID.Attributes[0].Value = strings.Join(splitAttr[1:], "")
 }
