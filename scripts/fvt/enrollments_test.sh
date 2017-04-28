@@ -34,7 +34,6 @@ tls:
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
-  name: fabric-ca-server
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
 registry:
@@ -103,7 +102,6 @@ tls:
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
-  name: fabric-ca-server
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
 registry:
