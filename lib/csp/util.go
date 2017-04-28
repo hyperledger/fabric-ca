@@ -24,6 +24,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path"
+	"path/filepath"
 	"strings"
 	_ "time" // for ocspSignerFromConfig
 
@@ -47,9 +49,10 @@ func GetDefaultBCCSP() bccsp.BCCSP {
 }
 
 // InitBCCSP initializes BCCSP
-func InitBCCSP(optsPtr **factory.FactoryOpts, keyStoreDir string) (bccsp.BCCSP, error) {
+func InitBCCSP(optsPtr **factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
 	// Initialize the config, setting defaults as needed
 	var opts *factory.FactoryOpts
+	var err error
 	if optsPtr != nil {
 		opts = *optsPtr
 	}
@@ -64,11 +67,16 @@ func InitBCCSP(optsPtr **factory.FactoryOpts, keyStoreDir string) (bccsp.BCCSP, 
 		if opts.SwOpts.FileKeystore == nil ||
 			opts.SwOpts.FileKeystore.KeyStorePath == "" {
 			opts.SwOpts.Ephemeral = false
-			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: keyStoreDir}
+			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: path.Join("msp", "keystore")}
 		}
+		opts.SwOpts.FileKeystore.KeyStorePath, err = makeFileAbs(opts.SwOpts.FileKeystore.KeyStorePath, homeDir)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to initialize BCCSP: %s", err)
+		}
+		log.Debugf("Software key file store directory: %s", opts.SwOpts.FileKeystore.KeyStorePath)
 	}
 	// Init the BCCSP factories
-	err := factory.InitFactories(opts)
+	err = factory.InitFactories(opts)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to initialize BCCSP Factories: %s", err)
 	}
@@ -235,4 +243,19 @@ func ImportBCCSPKeyFromPEM(keyFile string, myCSP bccsp.BCCSP, temporary bool) (b
 	default:
 		return nil, fmt.Errorf("Failed to import key from %s: invalid secret key type", keyFile)
 	}
+}
+
+// makeFileAbs makes 'file' absolute relative to 'dir' if not already absolute
+func makeFileAbs(file, dir string) (string, error) {
+	if file == "" {
+		return "", nil
+	}
+	if filepath.IsAbs(file) {
+		return file, nil
+	}
+	path, err := filepath.Abs(filepath.Join(dir, file))
+	if err != nil {
+		return "", fmt.Errorf("Failed making '%s' absolute based on '%s'", file, dir)
+	}
+	return path, nil
 }

@@ -263,9 +263,9 @@ func TestClean(t *testing.T) {
 	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
-	os.Remove("ca-cert.pem")
 	os.Remove("fabric-ca-server.db")
-	os.RemoveAll("msp")
+	os.RemoveAll("keystore")
+	os.RemoveAll("../../testdata/keystore")
 	os.Remove("../../testdata/fabric-ca-server.db")
 	os.Remove("../../testdata/ca-cert.pem")
 }

@@ -112,8 +112,7 @@ func (ca *CA) init(renew bool) (err error) {
 		return err
 	}
 	// Initialize the crypto layer (BCCSP) for this CA
-	defaultKeyStoreDir := path.Join(ca.HomeDir, "msp", "keystore")
-	ca.csp, err = csp.InitBCCSP(&ca.Config.CSP, defaultKeyStoreDir)
+	ca.csp, err = csp.InitBCCSP(&ca.Config.CSP, ca.HomeDir)
 	if err != nil {
 		return err
 	}
