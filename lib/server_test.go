@@ -700,6 +700,7 @@ func TestEnd(t *testing.T) {
 	os.RemoveAll(rootDir)
 	os.RemoveAll(intermediateDir)
 	os.RemoveAll("multica")
+	os.RemoveAll(serversDir)
 	cleanMultiCADir()
 }
 

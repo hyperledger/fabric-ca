@@ -150,7 +150,7 @@ bccsp:
         security: 256
         filekeystore:
             # The directory used for the software file-based keystore
-            keystore: keystore
+            keystore: msp/keystore
 `
 )
 

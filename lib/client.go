@@ -89,8 +89,7 @@ func (c *Client) Init() error {
 			return fmt.Errorf("Failed to create cacerts directory: %s", err)
 		}
 		// Initialize BCCSP (the crypto layer)
-		keyStoreDir := path.Join(mspDir, "keystore")
-		c.csp, err = csp.InitBCCSP(&cfg.CSP, keyStoreDir)
+		c.csp, err = csp.InitBCCSP(&cfg.CSP, c.HomeDir)
 		if err != nil {
 			return err
 		}
