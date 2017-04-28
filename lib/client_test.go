@@ -76,9 +76,7 @@ func TestClient(t *testing.T) {
 }
 
 func testGetCAInfo(c *Client, t *testing.T) {
-	req := &api.GetCAInfoRequest{
-		CAName: DefaultCAName,
-	}
+	req := &api.GetCAInfoRequest{}
 	si, err := c.GetCAInfo(req)
 	if err != nil {
 		t.Fatalf("Failed to get server info: %s", err)
@@ -280,8 +278,7 @@ func TestCustomizableMaxEnroll(t *testing.T) {
 
 func testTooManyEnrollments(t *testing.T) {
 	clientConfig := &ClientConfig{
-		URL:    fmt.Sprintf("http://localhost:%d", ctport2),
-		CAName: DefaultCAName,
+		URL: fmt.Sprintf("http://localhost:%d", ctport2),
 	}
 
 	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", ctport2)

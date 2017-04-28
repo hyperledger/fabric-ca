@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -61,7 +62,7 @@ func runGetCACert() error {
 	}
 
 	req := &api.GetCAInfoRequest{
-		CAName: clientCfg.CAInfo.CAName,
+		CAName: clientCfg.CAName,
 	}
 
 	si, err := client.GetCAInfo(req)
@@ -83,7 +84,16 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 	if err != nil {
 		return fmt.Errorf("Failed creating CA certificates directory: %s", err)
 	}
-	fname := strings.Replace(si.CAName, ".", "-", -1) + ".pem"
+	serverURL, err := url.Parse(config.URL)
+	if err != nil {
+		return err
+	}
+	fname := serverURL.Host
+	if config.CAName != "" {
+		fname = fmt.Sprintf("%s-%s", fname, config.CAName)
+	}
+	fname = strings.Replace(fname, ":", "-", -1)
+	fname = strings.Replace(fname, ".", "-", -1) + ".pem"
 	path := path.Join(caCertsDir, fname)
 	err = util.WriteFile(path, si.CAChain, 0644)
 	if err != nil {

@@ -115,7 +115,7 @@ tls:
 #############################################################################
 ca:
   # Name of this CA
-  name: <<<CANAME>>>
+  name:
   # Key file (default: ca-key.pem)
   keyfile: ca-key.pem
   # Certificate file (default: ca-cert.pem)
@@ -239,32 +239,42 @@ csr:
       expiry:
 
 #############################################################################
-#  Crypto section configures the crypto primitives used for all
+# BCCSP (BlockChain Crypto Service Provider) section is used to select which
+# crypto library implementation to use
 #############################################################################
-crypto:
-  software:
-     hash_family: SHA2
-     security_level: 256
-     ephemeral: false
-     key_store_dir: keys
+
+bccsp:
+    default: SW
+    sw:
+        hash: SHA2
+        security: 256
+        filekeystore:
+            # The directory used for the software file-based keystore
+            keystore: keystore
 
 #############################################################################
 # The fabric-ca-server init and start commands support the following two
 # additional mutually exclusive options:
 #
 # 1) --cacount <number-of-CAs>
-# Automatically generate multiple default CA instances
+# Automatically generate multiple default CA instances.
+# This is particularly useful in a development environment to quickly set up
+# multiple CAs.
+# For example,
+#     fabric-ca-server start -b admin:adminpw --cacount 2
+# starts a server with a default CA and two non-default CA's with names
+# 'ca1' and 'ca2'.
 #
 # 2) --cafiles <CA-config-files>
 # For each CA config file in the list, generate a separate signing CA.  Each CA
 # config file in this list MAY contain all of the same elements as are found in
 # the server config file except port, debug, and tls sections.
-#
-# Examples:
-# fabric-ca-server start -b admin:adminpw --cacount 2
-#
-# fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-server-config.yaml
-# --cafiles ca/ca2/fabric-ca-server-config.yaml
+# For example,
+#    fabric-ca-server start -b admin:adminpw                \
+#          --cafiles ca/ca1/fabric-ca-server-config.yaml    \
+#          --cafiles ca/ca2/fabric-ca-server-config.yaml
+# is equivalent to the previous example, except the files CA config files
+# must already exist and can be customized.
 #
 #############################################################################
 
@@ -304,46 +314,11 @@ func configInit() (err error) {
 	}
 
 	// Read the config
-	viper.SetConfigFile(cfgFileName)
+	// viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
-	err = viper.ReadInConfig()
+	err = lib.UnmarshalConfig(serverCfg, viper.GetViper(), cfgFileName, true, true)
 	if err != nil {
-		return fmt.Errorf("Failed to read config file: %s", err)
-	}
-
-	// Unmarshal the config into 'serverCfg'
-	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
-	// and vendored, the work around code can be deleted.
-	viperIssue327WorkAround := true
-	if viperIssue327WorkAround {
-		sliceFields := []string{
-			"csr.hosts",
-			"tls.clientauth.certfiles",
-			"cafiles",
-			"db.tls.certfiles",
-			"ldap.tls.certfiles",
-		}
-		err = util.ViperUnmarshal(serverCfg, sliceFields, viper.GetViper())
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-		err = viper.Unmarshal(&serverCfg.CAcfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-	} else {
-		err = viper.Unmarshal(serverCfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-		err = viper.Unmarshal(&serverCfg.CAcfg)
-		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
-		}
-	}
-
-	if serverCfg.CAcfg.CA.Name == "" {
-		return fmt.Errorf(caNameReqMsg)
+		return err
 	}
 
 	return nil
@@ -372,26 +347,25 @@ func createDefaultConfigFile() error {
 		return errors.New("An empty password in the '-b user:pass' option is not permitted")
 	}
 
-	var myhost, caName string
+	var myhost string
 	var err error
 	myhost, err = os.Hostname()
 	if err != nil {
 		return err
 	}
 
-	// Get hostname
-	caName = getCAName(myhost)
-
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
-	cfg = strings.Replace(cfg, "<<<CANAME>>>", caName, 1)
+
 	// Now write the file
-	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
+	cfgDir := filepath.Dir(cfgFileName)
+	err = os.MkdirAll(cfgDir, 0755)
 	if err != nil {
 		return err
 	}
+
 	// Now write the file
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
 }

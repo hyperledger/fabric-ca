@@ -14,6 +14,12 @@ ca:
   # Name of this CA
   name: rootca2
 
+###########################################################################
+#  Certificate Signing Request section for generating the CA certificate
+###########################################################################
+csr:
+  cn: fabric-ca-server-rootca2
+
 #############################################################################
 #  Database section
 #  Supported types are: "sqlite3", "postgres", and "mysql".

@@ -94,6 +94,7 @@ func runRevoke(cmd *cobra.Command) error {
 			Serial: clientCfg.Revoke.Serial,
 			AKI:    clientCfg.Revoke.AKI,
 			Reason: clientCfg.Revoke.Reason,
+			CAName: clientCfg.CAName,
 		})
 
 	if err == nil {

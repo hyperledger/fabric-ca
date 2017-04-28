@@ -73,6 +73,7 @@ func runRegister() error {
 		return err
 	}
 
+	clientCfg.ID.CAName = clientCfg.CAName
 	resp, err := id.Register(&clientCfg.ID)
 	if err != nil {
 		return err

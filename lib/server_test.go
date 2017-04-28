@@ -31,6 +31,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -283,9 +284,9 @@ func invalidTokenAuthorization(t *testing.T) {
 		t.Error(err)
 	}
 
-	key, err := ioutil.ReadFile("../testdata/ec-key.pem")
+	key, err := csp.ImportBCCSPKeyFromPEM("../testdata/ec-key.pem", CSP, true)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Failed importing key %s", err)
 	}
 
 	token, err := util.CreateToken(CSP, cert, key, emptyByte)
@@ -340,10 +341,16 @@ func TestMultiCA(t *testing.T) {
 	}
 
 	// Starting server with a missing ca config file
-	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml", "ca/rootca/ca3/fabric-ca-server-config.yaml"}
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml", "ca/rootca/ca4/fabric-ca-server-config.yaml"}
 	err = srv.Start()
 	if err == nil {
 		t.Error("Should have failed to start server, missing ca config file")
+	}
+
+	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml", "ca/rootca/ca3/fabric-ca-server-config.yaml"}
+	err = srv.Start()
+	if err == nil {
+		t.Error("Should have failed to start server, CN name is the same across rootca2 and rootca3")
 	}
 
 	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
@@ -351,7 +358,7 @@ func TestMultiCA(t *testing.T) {
 
 	err = srv.Start()
 	if err != nil {
-		t.Error("Failed to start server:", err)
+		t.Fatal("Failed to start server:", err)
 	}
 
 	if !util.FileExists("../testdata/ca/rootca/ca1/fabric-ca-server.db") {
@@ -403,6 +410,14 @@ func TestMultiCA(t *testing.T) {
 		t.Error("Failed to reenroll, error: ", err)
 	}
 
+	// User enrolled with rootca2, should not be able to reenroll with rootca1
+	_, err = resp.Identity.Reenroll(&api.ReenrollmentRequest{
+		CAName: "rootca1",
+	})
+	if err == nil {
+		t.Error("Should have failed to reenroll a user with a different CA")
+	}
+
 	// No ca name specified should sent to default CA 'ca'
 	clientCA3 := getRootClient()
 	_, err = clientCA3.Enroll(&api.EnrollmentRequest{
@@ -452,7 +467,42 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 
 	err = srv.Stop()
 	if err != nil {
-		t.Error("Failed to stop server:", err)
+		t.Error("Failed to stop server: ", err)
+	}
+}
+
+func TestDefaultMultiCA(t *testing.T) {
+	t.Log("TestDefaultMultiCA...")
+	srv := getServer(rootPort, "multica", "", -1, t)
+	srv.Config.CAcount = 4 // Starting 4 default CA instances
+	srv.Config.CAfiles = []string{"fabric-ca1-config.yaml"}
+
+	err := srv.Start()
+	if err == nil {
+		t.Error("Both cacount and cafiles set, should have failed to start server")
+	}
+
+	srv.Config.CAfiles = []string{}
+
+	err = srv.Start()
+	if err != nil {
+		t.Error("Failed to start server: ", err)
+	}
+
+	//Send enroll request to specific CA
+	clientCA1 := getRootClient()
+	_, err = clientCA1.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		CAName: "ca4",
+	})
+	if err != nil {
+		t.Error("Failed to enroll, error: ", err)
+	}
+
+	err = srv.Stop()
+	if err != nil {
+		t.Error("Failed to stop server: ", err)
 	}
 }
 
@@ -649,6 +699,7 @@ func TestEnd(t *testing.T) {
 	os.Remove("../testdata/fabric-ca-server.db")
 	os.RemoveAll(rootDir)
 	os.RemoveAll(intermediateDir)
+	os.RemoveAll("multica")
 	cleanMultiCADir()
 }
 

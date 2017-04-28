@@ -81,12 +81,12 @@ const (
 #############################################################################
 
 # URL of the Fabric-ca-server (default: http://localhost:7054)
-URL: <<<URL>>>
+url: <<<URL>>>
 
 # Membership Service Provider (MSP) directory
-# When the client is used to enroll a peer or an orderer, this field must be
-# set to the MSP directory of the peer/orderer
-MSPDir:
+# This is useful when the client is used to enroll a peer or orderer, so
+# that the enrollment artifacts are stored in the format expected by MSP.
+mspdir:
 
 #############################################################################
 #    TLS section for secure socket connection
@@ -135,6 +135,22 @@ enrollment:
   hosts:
   profile:
   label:
+
+# Name of the CA to connect to within the fabric-ca server
+caname:
+
+#############################################################################
+# BCCSP (BlockChain Crypto Service Provider) section allows to select which
+# crypto implementation library to use
+#############################################################################
+bccsp:
+    default: SW
+    sw:
+        hash: SHA2
+        security: 256
+        filekeystore:
+            # The directory used for the software file-based keystore
+            keystore: keystore
 `
 )
 
@@ -244,8 +260,9 @@ func createDefaultConfigFile() error {
 	}
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
-	// Now write the file
-	err = os.MkdirAll(filepath.Dir(cfgFileName), 0755)
+	// Create the directory if necessary
+	cfgDir := filepath.Dir(cfgFileName)
+	err = os.MkdirAll(cfgDir, 0755)
 	if err != nil {
 		return err
 	}

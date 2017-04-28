@@ -176,7 +176,7 @@ func DERCertToPEM(der []byte) []byte {
 // @param cert The pem-encoded certificate
 // @param key The pem-encoded key
 // @param body The body of an HTTP request
-func CreateToken(csp bccsp.BCCSP, cert []byte, key []byte, body []byte) (string, error) {
+func CreateToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, body []byte) (string, error) {
 
 	block, _ := pem.Decode(cert)
 	if block == nil {
@@ -234,13 +234,7 @@ func GenRSAToken(csp bccsp.BCCSP, cert []byte, key []byte, body []byte) (string,
 */
 
 //GenECDSAToken signs the http body and cert with ECDSA using EC private key
-func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key []byte, body []byte) (string, error) {
-
-	sk, err := GetKeyFromBytes(csp, key)
-	if err != nil {
-		return "", err
-	}
-
+func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, body []byte) (string, error) {
 	b64body := B64Encode(body)
 	b64cert := B64Encode(cert)
 	bodyAndcert := b64body + "." + b64cert
@@ -250,8 +244,8 @@ func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key []byte, body []byte) (strin
 		return "", fmt.Errorf("Hash operation on %s\t failed with error : %s", bodyAndcert, digestError)
 	}
 
-	ecSignature, signatureError := csp.Sign(sk, digest, nil)
-	if signatureError != nil {
+	ecSignature, err := csp.Sign(key, digest, nil)
+	if err != nil {
 		return "", fmt.Errorf("BCCSP signature generation failed with error :%s", err)
 	}
 	if len(ecSignature) == 0 {
@@ -333,36 +327,6 @@ func DecodeToken(token string) (*x509.Certificate, string, string, error) {
 	}
 	return x509Cert, b64cert, parts[1], nil
 }
-
-//GetECPrivateKey get *ecdsa.PrivateKey from key pem
-func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
-	decoded, _ := pem.Decode(raw)
-	if decoded == nil {
-		return nil, errors.New("Failed to decode the given PEM-encoded ECDSA key")
-	}
-	ECprivKey, err := x509.ParseECPrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("x509.ParseECPrivateKey failed: %s", err)
-	}
-	return ECprivKey, nil
-}
-
-//GetRSAPrivateKey get *rsa.PrivateKey from key pem
-// This function is commented out as there is no
-// adequate support for RSA
-/*
-func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
-	decoded, _ := pem.Decode(raw)
-	if decoded == nil {
-		return nil, errors.New("Failed to decode the given PEM-encoded RSA key")
-	}
-	RSAprivKey, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("Failure in x509.ParsePKCS1PrivateKey: %s", err)
-	}
-	return RSAprivKey, nil
-}
-*/
 
 // B64Encode base64 encodes bytes
 func B64Encode(buf []byte) string {
@@ -526,32 +490,6 @@ func GetUser() (string, string, error) {
 	}
 
 	return eid, pass, nil
-}
-
-// GetKeyFromBytes returns a BCCSP key given a byte buffer.  The byte buffer
-// should always contain the SKI and not the real private key;  however,
-// until we have complete BCCSP integration, we tolerate it being the real
-// private key.
-func GetKeyFromBytes(csp bccsp.BCCSP, key []byte) (bccsp.Key, error) {
-
-	// This should succeed if key is an SKI
-	sk, err := csp.GetKey(key)
-	if err == nil {
-		return sk, nil
-	}
-
-	// Nope, try handling as a private key itself
-	pk, err := GetECPrivateKey(key)
-	if err != nil {
-		return nil, err
-	}
-
-	pkb, err := x509.MarshalECPrivateKey(pk)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to marshal EC private key: %s", err)
-	}
-
-	return csp.KeyImport(pkb, &bccsp.ECDSAPrivateKeyImportOpts{Temporary: true})
 }
 
 // GetSerialAsHex returns the serial number from certificate as hex format

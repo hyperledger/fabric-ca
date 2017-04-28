@@ -578,19 +578,57 @@ func TestClientCommandsTLS(t *testing.T) {
 }
 
 func TestMultiCA(t *testing.T) {
+	cleanMultiCADir()
+
 	srv = getServer()
 	srv.HomeDir = "../../testdata"
 	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
 	srv.CA.Config.CSR.Hosts = []string{"hostname"}
 	t.Logf("Server configuration: %+v\n", srv.Config)
 
+	err := srv.RegisterBootstrapUser("admin", "adminpw", "")
+	if err != nil {
+		t.Errorf("Failed to register bootstrap user: %s", err)
+	}
+
 	srv.BlockingStart = false
-	err := srv.Start()
+	err = srv.Start()
 	if err != nil {
 		t.Fatal("Failed to start server:", err)
 	}
 
+	// Test going to default CA if no caname provided in client request
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "http://admin:adminpw@localhost:7054", "-d"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
 	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "http://adminca1:adminca1pw@localhost:7054", "-d", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "reenroll", "-c", testYaml, "-d", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "register", "-c", testYaml, "-d", "--id.name", "testuser", "--id.type", "user", "--id.affiliation", "org1", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "revoke", "-c", testYaml, "-d", "--revoke.name", "adminca1", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "getcacert", "-c", testYaml, "-d", "--caname", "rootca1"})
+	if err != nil {
+		t.Errorf("client enroll -c -u failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-c", testYaml, "-u", "http://admin:adminpw@localhost:7054", "-d", "--caname", "rootca2"})
 	if err != nil {
 		t.Errorf("client enroll -c -u failed: %s", err)
 	}
@@ -653,11 +691,16 @@ func getServerConfig() *lib.ServerConfig {
 }
 
 func getCAConfig() *lib.CAConfig {
+	affiliations := map[string]interface{}{
+		"org1": nil,
+	}
+
 	return &lib.CAConfig{
 		CA: lib.CAInfo{
 			Keyfile:  keyfile,
 			Certfile: certfile,
 		},
+		Affiliations: affiliations,
 		CSR: csr.CertificateRequest{
 			CN: "TestCN",
 		},
