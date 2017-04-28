@@ -26,6 +26,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -317,6 +318,16 @@ func configInit() (err error) {
 	// viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
 	err = lib.UnmarshalConfig(serverCfg, viper.GetViper(), cfgFileName, true, true)
+	if err != nil {
+		return err
+	}
+
+	err = tls.AbsTLSClient(&serverCfg.DB.TLS, filepath.Dir(cfgFileName))
+	if err != nil {
+		return err
+	}
+
+	err = tls.AbsTLSClient(&serverCfg.LDAP.TLS, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
