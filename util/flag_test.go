@@ -19,8 +19,10 @@ package util_test
 import (
 	"testing"
 
+	"github.com/hyperledger/fabric-ca/lib"
 	. "github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // A test struct
@@ -106,4 +108,33 @@ func TestCheckForMissingValues(t *testing.T) {
 	if check.Str2 != "string2" {
 		t.Error("Replaced a non missing value")
 	}
+}
+
+func TestViperUnmarshal(t *testing.T) {
+	var err error
+
+	cfg := &lib.CAConfig{}
+	vp := viper.New()
+	vp.SetConfigFile("../testdata/testviperunmarshal.yaml")
+	err = vp.ReadInConfig()
+	if err != nil {
+		t.Errorf("Failed to read config file: %s", err)
+	}
+
+	sliceFields := []string{
+		"db.tls",
+	}
+	err = ViperUnmarshal(cfg, sliceFields, vp)
+	if err == nil {
+		t.Error("Should have resulted in an error, as tls can't be casted to type string array")
+	}
+
+	sliceFields = []string{
+		"db.tls.certfiles",
+	}
+	err = ViperUnmarshal(cfg, sliceFields, vp)
+	if err != nil {
+		t.Error("Failed to correctly process valid path to be type string array: ", err)
+	}
+
 }

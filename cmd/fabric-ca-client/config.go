@@ -209,6 +209,7 @@ func configInit(command string) error {
 	viperIssue327WorkAround := true
 	if viperIssue327WorkAround {
 		sliceFields := []string{
+			"csr.hosts",
 			"tls.certfiles",
 		}
 		err = util.ViperUnmarshal(clientCfg, sliceFields, viper.GetViper())
