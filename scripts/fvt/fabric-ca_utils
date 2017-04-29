@@ -546,7 +546,6 @@ tls:
   certfile: $TESTDATA/tls_server-cert.pem
   keyfile: $TESTDATA/tls_server-key.pem
 ca:
-  name: fabric-ca-server
   certfile: $serverCert
   keyfile: $serverKey
 registry:
@@ -664,7 +663,6 @@ signing:
       ocsp_no_check: true
       not_before: 2016-12-30T00:00:00Z
 csr:
-  cn: fabric-ca-server
   names:
     - C: US
       ST: "North Carolina"
