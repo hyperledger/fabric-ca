@@ -322,12 +322,12 @@ func configInit() (err error) {
 		return err
 	}
 
-	err = tls.AbsTLSClient(&serverCfg.DB.TLS, filepath.Dir(cfgFileName))
+	err = tls.AbsTLSClient(&serverCfg.CAcfg.DB.TLS, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
 
-	err = tls.AbsTLSClient(&serverCfg.LDAP.TLS, filepath.Dir(cfgFileName))
+	err = tls.AbsTLSClient(&serverCfg.CAcfg.LDAP.TLS, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
