@@ -1,7 +1,9 @@
 #!/bin/bash
 export FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-export FABRIC_CA_CLIENTEXEC="$FABRIC_CA/bin/fabric-ca-client"
-export FABRIC_CA_SERVEREXEC="$FABRIC_CA/bin/fabric-ca-server"
+#export FABRIC_CA_CLIENTEXEC="$FABRIC_CA/bin/fabric-ca-client"
+#export FABRIC_CA_SERVEREXEC="$FABRIC_CA/bin/fabric-ca-server"
+export FABRIC_CA_CLIENTEXEC="/usr/local/bin/fabric-ca-client"
+export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"
 export SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 export MYSQL_PORT="3306"
@@ -12,7 +14,7 @@ export MSP_KEY_DIR='msp/keystore'
 export MSP_CERT_DIR='msp/signcerts'
 export ROOTCERT="$TESTDATA/root.pem"
 export CA_DEFAULT_PORT="7054"
-
+#export FABRIC_CA_CLIENT_BCCSP_SW_FILEKEYSTORE_KEYSTORE="" 
 
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
