@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var errInput = errors.New("Invalid usage; either --eid or both --serial and --aki are required")
+var errInput = errors.New("Invalid usage; either --revoke.name and/or both --revoke.serial and --revoke.aki are required")
 
 // initCmd represents the init command
 var revokeCmd = &cobra.Command{

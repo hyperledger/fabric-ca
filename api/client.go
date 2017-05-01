@@ -96,15 +96,15 @@ type ReenrollmentRequest struct {
 type RevocationRequest struct {
 	// Name of the identity whose certificates should be revoked
 	// If this field is omitted, then Serial and AKI must be specified.
-	Name string `json:"id,omitempty" help:"Identity whose certificates should be revoked"`
+	Name string `json:"id,omitempty" opt:"e" help:"Identity whose certificates should be revoked"`
 	// Serial number of the certificate to be revoked
 	// If this is omitted, then Name must be specified
-	Serial string `json:"serial,omitempty" help:"Serial number of the certificate to be revoked"`
+	Serial string `json:"serial,omitempty" opt:"s" help:"Serial number of the certificate to be revoked"`
 	// AKI (Authority Key Identifier) of the certificate to be revoked
-	AKI string `json:"aki,omitempty" help:"AKI (Authority Key Identifier) of the certificate to be revoked"`
+	AKI string `json:"aki,omitempty" opt:"a" help:"AKI (Authority Key Identifier) of the certificate to be revoked"`
 	// Reason is the reason for revocation.  See https://godoc.org/golang.org/x/crypto/ocsp for
 	// valid values.  The default value is 0 (ocsp.Unspecified).
-	Reason string `json:"reason,omitempty" help:"Reason for revocation"`
+	Reason string `json:"reason,omitempty" opt:"r" help:"Reason for revocation"`
 	// CAName is the name of the CA to connect to
 	CAName string `skip:"true"`
 }
