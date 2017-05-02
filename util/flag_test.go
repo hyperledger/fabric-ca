@@ -17,6 +17,7 @@ limitations under the License.
 package util_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib"
@@ -27,25 +28,28 @@ import (
 
 // A test struct
 type A struct {
-	Slice []string `help:"Slice description"`
-	Str1  string   `def:"defval" help:"Str1 description"`
-	Int1  int      `def:"10" help:"Int1 description"`
-	FB    B        `help:"FB description"`
-	Str2  string   `skip:"true"`
-	Int2  []int    `help:"Int2 description"`
-	FBP   *B       `help:"FBP description"`
+	ASlice     []string          `help:"Slice description"`
+	AStr       string            `def:"defval" help:"Str1 description"`
+	AInt       int               `def:"10" help:"Int1 description"`
+	AB         B                 `help:"FB description"`
+	AStr2      string            `skip:"true"`
+	AIntArray  []int             `help:"IntArray description"`
+	AMap       map[string]string `skip:"true"`
+	ABPtr      *B                `help:"FBP description"`
+	AInterface interface{}       `skip:"true"`
 }
 
 // B test struct
 type B struct {
-	Str string `help:"Str description"`
-	Int int
-	FC  C
+	BStr  string `help:"Str description"`
+	BInt  int    `skip:"true"`
+	BCPtr *C
 }
 
 // C test struct
 type C struct {
-	Bool bool `def:"true" help:"Bool description"`
+	CBool bool   `def:"true" help:"Bool description"`
+	CStr  string `help:"Str description"`
 }
 
 func printit(f *Field) error {
@@ -75,38 +79,72 @@ func TestParseObj(t *testing.T) {
 }
 
 func TestCheckForMissingValues(t *testing.T) {
-	check := &A{
-		Str2: "string2",
-		Int1: 2,
-	}
 
-	replaceWith := &A{
-		Str1: "string1",
-		Str2: "string3",
-		Int2: []int{1, 2, 3},
-		FB: B{
-			Str: "string",
-			FC: C{
-				Bool: true,
+	src := &A{
+		AStr:      "AStr",
+		AStr2:     "AStr2",
+		AIntArray: []int{1, 2, 3},
+		AMap:      map[string]string{"Key1": "Val1", "Key2": "Val2"},
+		AB: B{
+			BStr: "BStr",
+			BCPtr: &C{
+				CBool: true,
+				CStr:  "CStr",
 			},
 		},
-		FBP: &B{},
+		ABPtr: &B{
+			BStr: "BStr",
+			BCPtr: &C{
+				CBool: false,
+				CStr:  "CStr",
+			},
+		},
+		AInterface: &C{
+			CStr: "CStr",
+		},
 	}
 
-	CopyMissingValues(replaceWith, check)
-
-	if check.Str1 != replaceWith.Str1 || check.FB.Str != replaceWith.FB.Str || check.FBP != replaceWith.FBP {
-		t.Error("Failed to correctly fill in missing values")
+	dst := &A{
+		AStr2: "dstAStr2",
+		AInt:  2,
 	}
 
-	for i := range replaceWith.Int2 {
-		if check.Int2[i] != replaceWith.Int2[i] {
-			t.Error("Failed to correctly fill in missing values")
+	CopyMissingValues(src, dst)
+
+	if src.AStr != dst.AStr {
+		t.Error("Failed to copy field AStr")
+	}
+
+	if src.AB.BStr != dst.AB.BStr {
+		t.Error("Failed to copy field AB.BStr")
+	}
+
+	if src.ABPtr.BStr != dst.ABPtr.BStr {
+		t.Error("Failed to copy field ABPtr.BStr")
+	}
+
+	if src.ABPtr.BCPtr.CStr != dst.ABPtr.BCPtr.CStr {
+		t.Error("Failed to copy field ABPtr.BCPtr.CStr")
+	}
+
+	if !reflect.DeepEqual(src.AMap, dst.AMap) {
+		t.Errorf("Failed to copy AMap: src=%+v, dst=%+v", src.AMap, dst.AMap)
+	}
+
+	for i := range src.AIntArray {
+		sv := src.AIntArray[i]
+		dv := dst.AIntArray[i]
+		if sv != dv {
+			t.Errorf("Failed to copy element %d of Int2 array (%d != %d)", i, sv, dv)
 		}
 	}
 
-	if check.Str2 != "string2" {
-		t.Error("Replaced a non missing value")
+	if dst.AStr2 != "dstAStr2" {
+		t.Errorf("Incorrectly replaced AStr2 with %s", dst.AStr2)
+	}
+
+	if dst.AInt != 2 {
+		t.Errorf("Incorrectly replaced AInt with %d", dst.AInt)
 	}
 }
 
