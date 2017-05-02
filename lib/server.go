@@ -66,10 +66,18 @@ type Server struct {
 	CA
 	// A map of CAs stored by CA name as key
 	caMap map[string]*CA
+
+	// A map of CA configs stored by CA file as key
+	caConfigMap map[string]*CAConfig
 }
 
 // Init initializes a fabric-ca server
 func (s *Server) Init(renew bool) (err error) {
+
+	if s.Config.CAcount != 0 && len(s.Config.CAfiles) > 0 {
+		return fmt.Errorf("Can't set values for both cacount and cafiles")
+	}
+
 	// Initialize the config, setting defaults, etc
 	err = s.initConfig()
 	if err != nil {
@@ -80,6 +88,14 @@ func (s *Server) Init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
+	// Initialize any additional CAs beside the default CA
+	if len(s.Config.CAfiles) > 0 {
+		err = s.initCAs()
+		if err != nil {
+			return err
+		}
+	}
+
 	// Successful initialization
 	return nil
 }
@@ -98,32 +114,6 @@ func (s *Server) Start() (err error) {
 	err = s.Init(false)
 	if err != nil {
 		return err
-	}
-
-	if s.Config.CAcount != 0 && len(s.Config.CAfiles) > 0 {
-		return fmt.Errorf("Can't set values for both cacount and cafiles")
-	}
-
-	s.Config.TLS.ClientAuth.CertFiles = util.NormalizeStringSlice(s.Config.TLS.ClientAuth.CertFiles)
-
-	if s.Config.CAcount >= 1 {
-		s.createDefaultCAConfigs(s.Config.CAcount)
-	}
-
-	if len(s.Config.CAfiles) != 0 {
-		log.Debugf("CAs to be started: %s", s.Config.CAfiles)
-		var caFiles []string
-
-		caFiles, err = util.NormalizeFileList(s.Config.CAfiles, s.HomeDir)
-		if err != nil {
-			return err
-		}
-		for _, caFile := range caFiles {
-			err = s.loadCA(caFile, false)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	// Register http handlers
@@ -188,6 +178,9 @@ func (s *Server) initConfig() (err error) {
 			return fmt.Errorf("Failed to get server's home directory: %s", err)
 		}
 	}
+	s.caMap = make(map[string]*CA)
+	s.caConfigMap = make(map[string]*CAConfig)
+
 	// Init config if not set
 	if s.Config == nil {
 		s.Config = new(ServerConfig)
@@ -204,10 +197,34 @@ func (s *Server) initConfig() (err error) {
 	if cfg.Debug {
 		log.Level = log.LevelDebug
 	}
+
+	cfg.CAfiles, err = util.NormalizeFileList(cfg.CAfiles, s.HomeDir)
+	if err != nil {
+		return err
+	}
+
+	if cfg.CAcount >= 1 {
+		s.createDefaultCAConfigs(cfg.CAcount)
+	}
+
+	if len(s.Config.CAfiles) != 0 {
+		log.Debugf("Default CA configuration, if necessary, will be used to replace missing values for additional CAs: %+v", s.Config.CAcfg)
+		log.Debugf("Additional CAs to be started: %s", cfg.CAfiles)
+		var caFiles []string
+
+		caFiles = util.NormalizeStringSlice(cfg.CAfiles)
+
+		for _, caFile := range caFiles {
+			err = s.loadCAConfig(caFile, false)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	// Make file names absolute
 	s.makeFileNamesAbsolute()
 	// Create empty CA map
-	s.caMap = make(map[string]*CA)
 	return nil
 }
 
@@ -219,16 +236,16 @@ func (s *Server) initDefaultCA(ca *CA, renew bool) error {
 		return err
 	}
 
-	err = s.addCA(ca)
-	if err != nil {
-		return err
-	}
+	s.caMap[ca.Config.CA.Name] = ca
+
+	log.Infof("Home directory for default CA: %s", ca.HomeDir)
 
 	return nil
 }
 
-// loadCA loads up a CA's configuration from the specified
-func (s *Server) loadCA(caFile string, renew bool) error {
+// loadCAConfig loads up a CA's configuration from the specified
+// CA configuration file
+func (s *Server) loadCAConfig(caFile string, renew bool) error {
 	log.Infof("Loading CA from %s", caFile)
 	var err error
 
@@ -255,49 +272,61 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 		return fmt.Errorf("No CA name provided in CA configuration file. CA name is required in %s", caFile)
 	}
 
+	// Replace missing values in CA configuration values with values from the
+	// default CA configuration
 	util.CopyMissingValues(s.CA.Config, caConfig)
 
-	caConfig.CA.Certfile = filepath.Base(caConfig.CA.Certfile)
-	caConfig.CA.Keyfile = filepath.Base(caConfig.CA.Keyfile)
-
-	if caConfig.DB.Type == defaultDatabaseType {
-		caConfig.DB.Datasource = filepath.Base(caConfig.DB.Datasource)
+	// SWOpts is a pointer, we don't want CA config to point to
+	// default ca config. SWOpts will be initialized when CA
+	// is created and initialized (see NewCA)
+	if caConfig.CSP != nil {
+		caConfig.CSP = nil
 	}
 
-	if !viper.IsSet("registry.maxenrollments") {
+	// Integers and boolean values are handled outside the util.CopyMissingValues
+	// because there is no way through reflect to detect if a value was explicitly
+	// set to 0 or false, or it is using the default value for its type. Viper is
+	// employed here to help detect.
+	if !caViper.IsSet("registry.maxenrollments") {
 		caConfig.Registry.MaxEnrollments = s.CA.Config.Registry.MaxEnrollments
 	}
 
-	if !viper.IsSet("db.tls.enabled") {
+	if !caViper.IsSet("db.tls.enabled") {
 		caConfig.DB.TLS.Enabled = s.CA.Config.DB.TLS.Enabled
 	}
 
-	if _, ok := s.caMap[caConfig.CA.Name]; ok {
-		return fmt.Errorf("CA by name '%s' in %s already exists", caConfig.CA.Name, caFile)
-	}
+	log.Debugf("CA configuration after checking for missing value: %+v", caConfig)
 
-	for caName := range s.caMap {
-		if s.caMap[caName].Config.CSR.CN == caConfig.CSR.CN {
+	for _, config := range s.caConfigMap {
+		if config.CSR.CN == caConfig.CSR.CN {
 			return fmt.Errorf("Common Name (CN) is already in use by another CA, please specify a unique CN in %s", caFile)
+		}
+		if config.CA.Name == caConfig.CA.Name {
+			return fmt.Errorf("CA by name '%s' in %s already exists", caConfig.CA.Name, caFile)
 		}
 	}
 
-	ca, err := NewCA(filepath.Dir(caFile), caConfig, s, renew)
-	if err != nil {
-		return err
-	}
+	s.caConfigMap[caFile] = caConfig
 
-	return s.addCA(ca)
-
+	return nil
 }
 
-// addCA adds the CA to the server and registers its handlers
-func (s *Server) addCA(ca *CA) error {
-	log.Debugf("Adding CA %s to server", ca.Config.CA.Name)
+// startCA initializes the CA
+func (s *Server) initCAs() error {
+	var ca *CA
+	var err error
 
-	s.caMap[ca.Config.CA.Name] = ca
+	for configFile, caConfig := range s.caConfigMap {
+		log.Debugf("Initalizing CA %s", caConfig.CA.Name)
 
-	log.Infof("Home directory for CA '%s': %s", ca.Config.CA.Name, ca.HomeDir)
+		ca, err = NewCA(filepath.Dir(configFile), caConfig, s, true)
+		if err != nil {
+			return err
+		}
+
+		s.caMap[ca.Config.CA.Name] = ca
+		log.Infof("Home directory for CA '%s': %s", ca.Config.CA.Name, ca.HomeDir)
+	}
 
 	return nil
 }
@@ -494,6 +523,8 @@ func (s *Server) checkAndEnableProfiling() error {
 
 // Make all file names in the config absolute
 func (s *Server) makeFileNamesAbsolute() error {
+	log.Debug("Making server filenames absolute")
+
 	fields := []*string{
 		&s.Config.TLS.CertFile,
 		&s.Config.TLS.KeyFile,

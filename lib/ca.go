@@ -35,6 +35,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
+	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/jmoiron/sqlx"
@@ -92,9 +93,6 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 	ca.Config = config
 	ca.server = server
 
-	ca.Config.CSR.Hosts = util.NormalizeStringSlice(ca.Config.CSR.Hosts)
-	ca.Config.DB.TLS.CertFiles = util.NormalizeStringSlice(ca.Config.DB.TLS.CertFiles)
-
 	err := ca.init(renew)
 	if err != nil {
 		return err
@@ -105,7 +103,7 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 
 // Init initializes an instance of a CA
 func (ca *CA) init(renew bool) (err error) {
-	log.Debug("CA initialization started")
+	log.Debugf("Init CA with home %s and config %+v", ca.HomeDir, *ca.Config)
 	// Initialize the config, setting defaults, etc
 	err = ca.initConfig()
 	if err != nil {
@@ -151,11 +149,7 @@ func (ca *CA) init(renew bool) (err error) {
 
 // Initialize the CA's key material
 func (ca *CA) initKeyMaterial(renew bool) error {
-	log.Debugf("Init CA with home %s and config %+v", ca.HomeDir, *ca.Config)
-
-	// Make the path names absolute in the config
-	ca.makeFileNamesAbsolute()
-
+	log.Debug("Initialize key material")
 	keyFile := ca.Config.CA.Keyfile
 	certFile := ca.Config.CA.Certfile
 
@@ -311,7 +305,8 @@ func (ca *CA) initConfig() (err error) {
 			return fmt.Errorf("Failed to initialize CA's home directory: %s", err)
 		}
 	}
-	log.Info("CA Home Directory: ", ca.HomeDir)
+	log.Debugf("CA Home Directory: %s", ca.HomeDir)
+
 	// Init config if not set
 	if ca.Config == nil {
 		ca.Config = new(CAConfig)
@@ -331,6 +326,15 @@ func (ca *CA) initConfig() (err error) {
 	if ca.server.Config.Debug {
 		log.Level = log.LevelDebug
 	}
+
+	ca.normalizeStringSlices()
+
+	// Make the path names absolute in the config
+	err = ca.makeFileNamesAbsolute()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -610,6 +614,7 @@ func (ca *CA) getMaxEnrollments(requestedMax int) (int, error) {
 
 // Make all file names in the config absolute
 func (ca *CA) makeFileNamesAbsolute() error {
+	log.Debug("Making CA filenames absolute")
 	fields := []*string{
 		&ca.Config.CA.Certfile,
 		&ca.Config.CA.Keyfile,
@@ -622,7 +627,39 @@ func (ca *CA) makeFileNamesAbsolute() error {
 		}
 		*namePtr = abs
 	}
+
+	err := ca.makeRegistryTLSConfigAbsolute()
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (ca *CA) makeRegistryTLSConfigAbsolute() error {
+	err := tls.AbsTLSClient(&ca.Config.DB.TLS, ca.HomeDir)
+	if err != nil {
+		return err
+	}
+
+	err = tls.AbsTLSClient(&ca.Config.LDAP.TLS, ca.HomeDir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert all comma separated strings to string arrays
+func (ca *CA) normalizeStringSlices() {
+	fields := []*[]string{
+		&ca.Config.CSR.Hosts,
+		&ca.Config.DB.TLS.CertFiles,
+		&ca.Config.LDAP.TLS.CertFiles,
+	}
+	for _, namePtr := range fields {
+		norm := util.NormalizeStringSlice(*namePtr)
+		*namePtr = norm
+	}
 }
 
 // userHasAttribute returns nil if the user has the attribute, or an

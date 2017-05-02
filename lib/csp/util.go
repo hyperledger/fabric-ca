@@ -58,6 +58,13 @@ func InitBCCSP(optsPtr **factory.FactoryOpts, homeDir string) (bccsp.BCCSP, erro
 	}
 	if opts == nil {
 		opts = &factory.DefaultOpts
+		// factory.DefaultOpts does not correctly return a new FileKeyStore, the
+		// KeyStorePath should be an empty string, but it is not currently.
+		// TODO: Fix the initializing logic to correctly a set a default value
+		// for KeyStorePath.
+		if opts.SwOpts.FileKeystore != nil {
+			opts.SwOpts.FileKeystore = nil
+		}
 	}
 	if strings.ToUpper(opts.ProviderName) == "SW" {
 		if opts.SwOpts == nil {

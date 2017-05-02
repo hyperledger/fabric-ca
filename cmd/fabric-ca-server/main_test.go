@@ -265,7 +265,8 @@ func TestClean(t *testing.T) {
 	os.Remove("ca-cert.pem")
 	os.Remove("fabric-ca-server.db")
 	os.RemoveAll("keystore")
-	os.RemoveAll("../../testdata/keystore")
+	os.RemoveAll("msp")
+	os.RemoveAll("../../testdata/msp")
 	os.Remove("../../testdata/fabric-ca-server.db")
 	os.Remove("../../testdata/ca-cert.pem")
 }
@@ -280,6 +281,7 @@ func cleanUpMultiCAFiles() {
 		for _, file := range removeFiles {
 			os.Remove(filepath.Join(path, file))
 		}
+		os.RemoveAll(filepath.Join(path, "msp"))
 	}
 
 	os.Remove("../../testdata/test.yaml")

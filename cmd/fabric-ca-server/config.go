@@ -26,7 +26,6 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -253,7 +252,7 @@ bccsp:
         security: 256
         filekeystore:
             # The directory used for the software file-based keystore
-            keystore: keystore
+            keystore: msp/keystore
 
 #############################################################################
 # The fabric-ca-server init and start commands support the following two
@@ -320,16 +319,6 @@ func configInit() (err error) {
 	// viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
 	err = lib.UnmarshalConfig(serverCfg, viper.GetViper(), cfgFileName, true, true)
-	if err != nil {
-		return err
-	}
-
-	err = tls.AbsTLSClient(&serverCfg.CAcfg.DB.TLS, filepath.Dir(cfgFileName))
-	if err != nil {
-		return err
-	}
-
-	err = tls.AbsTLSClient(&serverCfg.CAcfg.LDAP.TLS, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
