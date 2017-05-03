@@ -1,0 +1,14 @@
+dn: dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: domain
+dc: hyperledeger
+
+dn: ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: fabric
+
+dn: ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: users
