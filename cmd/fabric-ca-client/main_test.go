@@ -172,6 +172,7 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	testConfigFileTypes(t)
 	testGetCACert(t)
 	testEnroll(t)
+	testProfiling(t)
 	testRegisterConfigFile(t)
 	testRegisterEnvVar(t)
 	testRegisterCommandLine(t)
@@ -448,6 +449,54 @@ func testRevoke(t *testing.T) {
 
 	os.RemoveAll(filepath.Dir(defYaml))
 
+}
+
+// testProfiling tests enablement of fabric CA client heap/cpu profiling
+func testProfiling(t *testing.T) {
+	t.Log("Testing profiling")
+	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
+	var testCases = []struct {
+		pEnvVal       string
+		input         []string
+		mProfExpected bool
+		cProfExpected bool
+	}{
+		{"heap", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, true, false},
+		{"cpu", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, true},
+		{"", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, false},
+		{"xxx", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, false},
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		wd = os.Getenv("HOME")
+	}
+	mfile := wd + "/mem.pprof"
+	cfile := wd + "/cpu.pprof"
+	for _, testCase := range testCases {
+		os.Setenv(fabricCAClientProfileMode, testCase.pEnvVal)
+		_ = RunMain(testCase.input)
+		_, err := os.Stat(mfile)
+		_, err1 := os.Stat(cfile)
+		if testCase.cProfExpected && err1 != nil {
+			t.Errorf("%s is found. It should not be created when cpu profiling is NOT enabled: %s", cfile, err1)
+		}
+		if !testCase.cProfExpected && err1 == nil {
+			t.Errorf("%s is not found. It should be created when cpu profiling is enabled", cfile)
+		}
+		if testCase.mProfExpected && err != nil {
+			t.Errorf("%s is found. It should not be created when memory profiling is NOT enabled: %s", mfile, err)
+		}
+		if !testCase.mProfExpected && err == nil {
+			t.Errorf("%s is not found. It should be created when memory profiling is enabled", mfile)
+		}
+		if profileInst != nil {
+			profileInst.Stop()
+		}
+		os.Remove(mfile)
+		os.Remove(cfile)
+		os.Remove(defYaml)
+	}
+	os.Unsetenv(fabricCAClientProfileMode)
 }
 
 // TestBogus tests a negative test case
