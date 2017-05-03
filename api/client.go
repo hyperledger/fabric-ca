@@ -45,7 +45,7 @@ type RegistrationRequest struct {
 	// Attributes associated with this identity
 	Attributes []Attribute `json:"attrs,omitempty"`
 	// CAName is the name of the CA to connect to
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // RegistrationResponse is a registration response
@@ -69,7 +69,7 @@ type EnrollmentRequest struct {
 	// CSR is Certificate Signing Request info
 	CSR *CSRInfo `json:"csr,omitempty" help:"Certificate Signing Request info"`
 	// CAName is the name of the CA to connect to
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // ReenrollmentRequest is a request to reenroll an identity.
@@ -84,7 +84,7 @@ type ReenrollmentRequest struct {
 	// CSR is Certificate Signing Request info
 	CSR *CSRInfo `json:"csr,omitempty"`
 	// CAName is the name of the CA to connect to
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // RevocationRequest is a revocation request for a single certificate or all certificates
@@ -106,7 +106,7 @@ type RevocationRequest struct {
 	// valid values.  The default value is 0 (ocsp.Unspecified).
 	Reason string `json:"reason,omitempty" help:"Reason for revocation"`
 	// CAName is the name of the CA to connect to
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // GetTCertBatchRequest is input provided to identity.GetTCertBatch
@@ -129,7 +129,7 @@ type GetTCertBatchRequest struct {
 	// HSM which does not support the TCert's key derivation function.
 	DisableKeyDerivation bool `json:"disable_kdf,omitempty"`
 	// CAName is the name of the CA to connect to
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // GetTCertBatchResponse is the return value of identity.GetTCertBatch
@@ -139,7 +139,7 @@ type GetTCertBatchResponse struct {
 
 // GetCAInfoRequest is request to get generic CA information
 type GetCAInfoRequest struct {
-	CAName string `skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // CSRInfo is Certificate Signing Request information
