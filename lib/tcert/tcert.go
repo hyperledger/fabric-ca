@@ -32,7 +32,7 @@ import (
 	"strconv"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib/csp"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 )
@@ -58,14 +58,14 @@ var (
 // @parameter caKeyFile is the file name for the CA's key
 // @parameter caCertFile is the file name for the CA's cert
 func LoadMgr(caKeyFile, caCertFile string, myCSP bccsp.BCCSP) (*Mgr, error) {
-	_, caKey, caCert, err := csp.GetSignerFromCertFile(caCertFile, myCSP)
+	_, caKey, caCert, err := util.GetSignerFromCertFile(caCertFile, myCSP)
 	if err != nil && caCert == nil {
 		return nil, fmt.Errorf("Failed to load cert [%s]", err)
 	}
 	if err != nil {
 		// Fallback: attempt to read out of keyFile and import
 		log.Debugf("No key found in BCCSP keystore, attempting fallback")
-		key, err := csp.ImportBCCSPKeyFromPEM(caKeyFile, myCSP, true)
+		key, err := util.ImportBCCSPKeyFromPEM(caKeyFile, myCSP, true)
 		if err != nil {
 			return nil, err
 		}

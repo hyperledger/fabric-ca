@@ -35,7 +35,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -89,7 +88,7 @@ func (c *Client) Init() error {
 			return fmt.Errorf("Failed to create cacerts directory: %s", err)
 		}
 		// Initialize BCCSP (the crypto layer)
-		c.csp, err = csp.InitBCCSP(&cfg.CSP, c.HomeDir)
+		c.csp, err = util.InitBCCSP(&cfg.CSP, c.HomeDir)
 		if err != nil {
 			return err
 		}
@@ -235,7 +234,7 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 		cr.KeyRequest = csr.NewBasicKeyRequest()
 	}
 
-	key, cspSigner, err := csp.BCCSPKeyRequestGenerate(cr, c.csp)
+	key, cspSigner, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
 	if err != nil {
 		log.Debugf("failed generating BCCSP key: %s", err)
 		return nil, nil, err
@@ -307,11 +306,11 @@ func (c *Client) LoadIdentity(keyFile, certFile string) (*Identity, error) {
 		log.Debugf("No cert found at %s", certFile)
 		return nil, err
 	}
-	key, _, _, err := csp.GetSignerFromCertFile(certFile, c.csp)
+	key, _, _, err := util.GetSignerFromCertFile(certFile, c.csp)
 	if err != nil {
 		// Fallback: attempt to read out of keyFile and import
 		log.Debugf("No key found in BCCSP keystore, attempting fallback")
-		key, err = csp.ImportBCCSPKeyFromPEM(keyFile, c.csp, true)
+		key, err = util.ImportBCCSPKeyFromPEM(keyFile, c.csp, true)
 		if err != nil {
 			return nil, fmt.Errorf("Could not find the private key in BCCSP keystore nor in keyfile %s: %s", keyFile, err)
 		}
@@ -464,7 +463,7 @@ func (c *Client) CheckEnrollment() error {
 	// If key file does not exist, but certFile does, key file is probably
 	// stored by bccsp, so check to see if this is the case
 	if certFileExists {
-		_, _, _, err := csp.GetSignerFromCertFile(c.certFile, c.csp)
+		_, _, _, err := util.GetSignerFromCertFile(c.certFile, c.csp)
 		if err == nil {
 			// Yes, the key is stored by BCCSP
 			return nil

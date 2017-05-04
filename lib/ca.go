@@ -30,7 +30,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/spi"
@@ -55,6 +54,8 @@ type CA struct {
 	HomeDir string
 	// The CA's configuration
 	Config *CAConfig
+	// The file path of the config file
+	configFilePath string
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
@@ -83,7 +84,6 @@ func NewCA(homeDir string, config *CAConfig, server *Server, renew bool) (*CA, e
 	if err != nil {
 		return nil, err
 	}
-
 	return ca, nil
 }
 
@@ -110,7 +110,7 @@ func (ca *CA) init(renew bool) (err error) {
 		return err
 	}
 	// Initialize the crypto layer (BCCSP) for this CA
-	ca.csp, err = csp.InitBCCSP(&ca.Config.CSP, ca.HomeDir)
+	ca.csp, err = util.InitBCCSP(&ca.Config.CSP, ca.HomeDir)
 	if err != nil {
 		return err
 	}
@@ -150,6 +150,13 @@ func (ca *CA) init(renew bool) (err error) {
 // Initialize the CA's key material
 func (ca *CA) initKeyMaterial(renew bool) error {
 	log.Debug("Initialize key material")
+
+	// Make the path names absolute in the config
+	err := ca.makeFileNamesAbsolute()
+	if err != nil {
+		return err
+	}
+
 	keyFile := ca.Config.CA.Keyfile
 	certFile := ca.Config.CA.Certfile
 
@@ -168,7 +175,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 		// If key file does not exist but certFile does, key file is probably
 		// stored by BCCSP, so check for that now.
 		if certFileExists {
-			_, _, _, err := csp.GetSignerFromCertFile(certFile, ca.csp)
+			_, _, _, err = util.GetSignerFromCertFile(certFile, ca.csp)
 			if err == nil {
 				// Yes, it is stored by BCCSP
 				log.Info("The CA key and certificate already exist")
@@ -256,7 +263,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 			SerialNumber: csr.SerialNumber,
 		}
 		// Generate the key/signer
-		_, cspSigner, err := csp.BCCSPKeyRequestGenerate(&req, ca.csp)
+		_, cspSigner, err := util.BCCSPKeyRequestGenerate(&req, ca.csp)
 		if err != nil {
 			return nil, err
 		}
@@ -306,7 +313,6 @@ func (ca *CA) initConfig() (err error) {
 		}
 	}
 	log.Debugf("CA Home Directory: %s", ca.HomeDir)
-
 	// Init config if not set
 	if ca.Config == nil {
 		ca.Config = new(CAConfig)
@@ -326,15 +332,7 @@ func (ca *CA) initConfig() (err error) {
 	if ca.server.Config.Debug {
 		log.Level = log.LevelDebug
 	}
-
 	ca.normalizeStringSlices()
-
-	// Make the path names absolute in the config
-	err = ca.makeFileNamesAbsolute()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -454,7 +452,7 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 		}
 	}
 
-	ca.enrollSigner, err = csp.BccspBackedSigner(c.CA.Certfile, c.CA.Keyfile, policy, ca.csp)
+	ca.enrollSigner, err = util.BccspBackedSigner(c.CA.Certfile, c.CA.Keyfile, policy, ca.csp)
 	if err != nil {
 		return err
 	}
@@ -612,7 +610,7 @@ func (ca *CA) getMaxEnrollments(requestedMax int) (int, error) {
 	return requestedMax, nil
 }
 
-// Make all file names in the config absolute
+// Make all file names in the CA config absolute
 func (ca *CA) makeFileNamesAbsolute() error {
 	log.Debug("Making CA filenames absolute")
 	fields := []*string{
@@ -620,28 +618,14 @@ func (ca *CA) makeFileNamesAbsolute() error {
 		&ca.Config.CA.Keyfile,
 		&ca.Config.CA.Chainfile,
 	}
-	for _, namePtr := range fields {
-		abs, err := util.MakeFileAbs(*namePtr, ca.HomeDir)
-		if err != nil {
-			return err
-		}
-		*namePtr = abs
-	}
-
-	err := ca.makeRegistryTLSConfigAbsolute()
+	err := util.MakeFileNamesAbsolute(fields, ca.HomeDir)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (ca *CA) makeRegistryTLSConfigAbsolute() error {
-	err := tls.AbsTLSClient(&ca.Config.DB.TLS, ca.HomeDir)
+	err = tls.AbsTLSClient(&ca.Config.DB.TLS, ca.HomeDir)
 	if err != nil {
 		return err
 	}
-
 	err = tls.AbsTLSClient(&ca.Config.LDAP.TLS, ca.HomeDir)
 	if err != nil {
 		return err

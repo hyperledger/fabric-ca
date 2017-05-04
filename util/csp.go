@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package csp
+package util
 
 import (
 	"crypto"
@@ -50,52 +50,85 @@ func GetDefaultBCCSP() bccsp.BCCSP {
 
 // InitBCCSP initializes BCCSP
 func InitBCCSP(optsPtr **factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
-	// Initialize the config, setting defaults as needed
-	var opts *factory.FactoryOpts
-	var err error
-	if optsPtr != nil {
-		opts = *optsPtr
+	err := ConfigureBCCSP(optsPtr)
+	if err != nil {
+		return nil, err
 	}
+	csp, err := GetBCCSP(*optsPtr, homeDir)
+	if err != nil {
+		return nil, err
+	}
+	return csp, nil
+}
+
+// ConfigureBCCSP configures BCCSP, using
+func ConfigureBCCSP(optsPtr **factory.FactoryOpts) error {
+	var err error
+	if optsPtr == nil {
+		return errors.New("nil argument not allowed")
+	}
+	opts := *optsPtr
 	if opts == nil {
-		opts = &factory.DefaultOpts
-		// factory.DefaultOpts does not correctly return a new FileKeyStore, the
-		// KeyStorePath should be an empty string, but it is not currently.
-		// TODO: Fix the initializing logic to correctly a set a default value
-		// for KeyStorePath.
-		if opts.SwOpts.FileKeystore != nil {
-			opts.SwOpts.FileKeystore = nil
-		}
+		opts = &factory.FactoryOpts{}
+	}
+	if opts.ProviderName == "" {
+		opts.ProviderName = "SW"
 	}
 	if strings.ToUpper(opts.ProviderName) == "SW" {
 		if opts.SwOpts == nil {
-			opts.SwOpts = factory.DefaultOpts.SwOpts
+			opts.SwOpts = &factory.SwOpts{}
+		}
+		if opts.SwOpts.HashFamily == "" {
+			opts.SwOpts.HashFamily = "SHA2"
+		}
+		if opts.SwOpts.SecLevel == 0 {
+			opts.SwOpts.SecLevel = 256
 		}
 		// Only override the KeyStorePath if it was left empty
 		if opts.SwOpts.FileKeystore == nil ||
 			opts.SwOpts.FileKeystore.KeyStorePath == "" {
-			opts.SwOpts.Ephemeral = false
 			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: path.Join("msp", "keystore")}
 		}
-		opts.SwOpts.FileKeystore.KeyStorePath, err = makeFileAbs(opts.SwOpts.FileKeystore.KeyStorePath, homeDir)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize BCCSP: %s", err)
-		}
-		log.Debugf("Software key file store directory: %s", opts.SwOpts.FileKeystore.KeyStorePath)
+	}
+	log.Debugf("Initializing BCCSP: %+v", opts)
+	if opts.SwOpts != nil {
+		log.Debugf("Initializing BCCSP with software options %+v", opts.SwOpts)
+	}
+	if opts.Pkcs11Opts != nil {
+		log.Debugf("Initializing BCCSP with PKCS11 options %+v", opts.Pkcs11Opts)
 	}
 	// Init the BCCSP factories
 	err = factory.InitFactories(opts)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize BCCSP Factories: %s", err)
+		return fmt.Errorf("Failed to initialize BCCSP Factories: %s", err)
+	}
+	*optsPtr = opts
+	return nil
+}
+
+// GetBCCSP returns BCCSP
+func GetBCCSP(opts *factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
+	err := makeFileNamesAbsolute(opts, homeDir)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to make BCCSP files absolute: %s", err)
 	}
 	// Get BCCSP from the opts
 	csp, err := factory.GetBCCSPFromOpts(opts)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get BCCSP: %s [opts: %+v]", err, opts)
 	}
-	if optsPtr != nil {
-		*optsPtr = opts
-	}
 	return csp, nil
+}
+
+// makeFileNamesAbsolute makes all relative file names associated with CSP absolute,
+// relative to 'homeDir'.
+func makeFileNamesAbsolute(opts *factory.FactoryOpts, homeDir string) error {
+	var err error
+	if opts != nil && opts.SwOpts != nil && opts.SwOpts.FileKeystore != nil {
+		fks := opts.SwOpts.FileKeystore
+		fks.KeyStorePath, err = MakeFileAbs(fks.KeyStorePath, homeDir)
+	}
+	return err
 }
 
 // BccspBackedSigner attempts to create a signer using csp bccsp.BCCSP. This csp could be SW (golang crypto)

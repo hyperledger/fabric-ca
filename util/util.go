@@ -459,6 +459,18 @@ func MakeFileAbs(file, dir string) (string, error) {
 	return path, nil
 }
 
+// MakeFileNamesAbsolute makes all file names in the list absolute, relative to home
+func MakeFileNamesAbsolute(files []*string, home string) error {
+	for _, filePtr := range files {
+		abs, err := MakeFileAbs(*filePtr, home)
+		if err != nil {
+			return err
+		}
+		*filePtr = abs
+	}
+	return nil
+}
+
 // Fatal logs a fatal message and exits
 func Fatal(format string, v ...interface{}) {
 	log.Fatalf(format, v...)
