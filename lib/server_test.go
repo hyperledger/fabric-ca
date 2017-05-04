@@ -27,7 +27,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
@@ -176,7 +175,6 @@ func TestProfiling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Server start failed: %s", err)
 	}
-	time.Sleep(1 * time.Second)
 	resp1, err2 := sendGetReq(url, t)
 	// send heap profiling request to the server and expect a bad response
 	// as profiling is disabled
@@ -186,7 +184,6 @@ func TestProfiling(t *testing.T) {
 			url, responseData)
 	}
 	server.Stop()
-	time.Sleep(1 * time.Second)
 
 	// Start the server with profiling enabled but port set to server port
 	os.Setenv(pportEnvVar, strconv.Itoa(rootPort))
@@ -211,7 +208,6 @@ func TestProfiling(t *testing.T) {
 		t.Fatalf("Server start failed: %s", err)
 	}
 	defer server.Stop()
-	time.Sleep(1 * time.Second)
 
 	// send heap profiling request to the server and expect a 200 response
 	// as profiling is enabled
@@ -292,8 +288,6 @@ func TestRunningTLSServer(t *testing.T) {
 		t.Errorf("Failed to enroll over TLS: %s", err)
 	}
 
-	time.Sleep(1 * time.Second)
-
 	err = srv.Stop()
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
@@ -309,8 +303,6 @@ func TestDefaultDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Root server start failed: %s", err)
 	}
-
-	time.Sleep(1 * time.Second)
 
 	err = srv.Stop()
 	if err != nil {
@@ -333,8 +325,6 @@ func TestBadAuthHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Server start failed: %s", err)
 	}
-
-	time.Sleep(time.Second)
 
 	invalidTokenAuthorization(t)
 	invalidBasicAuthorization(t)
@@ -449,8 +439,6 @@ func TestMultiCAConfigs(t *testing.T) {
 		t.Error("Failed to correctly add ca2")
 	}
 
-	time.Sleep(1 * time.Second)
-
 	// Non-existent CA specified by client
 	clientCA := getRootClient()
 	_, err = clientCA.Enroll(&api.EnrollmentRequest{
@@ -537,7 +525,6 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 	if err != nil {
 		t.Errorf("Intermediate server start failed: %s", err)
 	}
-	time.Sleep(time.Second)
 	// Stop it
 	intermediatesrv.Stop()
 
@@ -596,8 +583,6 @@ func testNoClientCert(t *testing.T) {
 		t.Fatalf("Root server start failed: %s", err)
 	}
 
-	time.Sleep(time.Second)
-
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
 		TLS: tls.ClientTLSConfig{
@@ -629,8 +614,6 @@ func testInvalidRootCertWithNoClientAuth(t *testing.T) {
 		t.Fatalf("Root server start failed: %s", err)
 	}
 
-	time.Sleep(time.Second)
-
 	err = srv.Stop()
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
@@ -658,8 +641,6 @@ func testClientAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Root server start failed: %s", err)
 	}
-
-	time.Sleep(time.Second)
 
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
@@ -714,7 +695,6 @@ func testIntermediateServer(idx int, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Intermediate server start failed: %s", err)
 	}
-	time.Sleep(time.Second)
 	// Stop it
 	intermediateServer.Stop()
 }
@@ -733,7 +713,6 @@ func TestSqliteLocking(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Server start failed: %s", err)
 	}
-	time.Sleep(time.Second)
 	defer server.Stop()
 
 	// Enroll bootstrap user
