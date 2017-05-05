@@ -150,8 +150,11 @@ container-tests: docker ldap-tests
 ldap-tests: openldap
 	@scripts/run_ldap_tests
 
-fvt-tests: fabric-ca-client fabric-ca-server
+fvt-tests: 
 	@scripts/run_fvt_tests
+
+ci-tests: docker-clean docker-fvt unit-tests
+	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
@@ -159,6 +162,7 @@ fvt-tests: fabric-ca-client fabric-ca-server
 	-@rm -rf build/image/$(TARGET) ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
+	@rm -rf build/docker/bin/* ||:
 
 .PHONY: clean
 

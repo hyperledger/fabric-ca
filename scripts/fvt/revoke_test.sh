@@ -127,7 +127,7 @@ for driver in mysql postgres sqlite3; do
 
    # notadmin cannot revoke
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[2]}"
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]} $TLSOPT
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI -e${USERS[1]} $TLSOPT
    test "$?" -eq 0 && ErrorMsg "Non-revoker successfully revoked cert"
 
    # Check the DB contents
@@ -152,7 +152,7 @@ for driver in mysql postgres sqlite3; do
    echo "=========================> REVOKING by --eid"
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[0]}"
    #### Blanket revoke all of admin2 certs
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[1]} $TLSOPT
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI -e${USERS[1]} $TLSOPT
 
    #### Revoke notadmin's cert by serial number and authority keyid
    #### using upper-case hexidecimal
@@ -165,18 +165,18 @@ for driver in mysql postgres sqlite3; do
 
    #### Revoke using lower-case hexadeciaml
    # FIXME - should allow combination of SN + AKI + EID
-   #$FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI --eid ${USERS[3]}
+   #$FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI -e${USERS[3]}
    echo "=========================> REVOKING by -s -a (LOWERCASE)"
    $FABRIC_CA_CLIENTEXEC revoke -s $SN_LC -a $AKI_LC -u $URI $TLSOPT
 
    echo "=========================> REVOKING by --eid"
    export FABRIC_CA_CLIENT_HOME="/tmp/revoke_test/${USERS[0]}"
    #### Revoke across affiliations not allowed
-   $FABRIC_CA_CLIENTEXEC revoke -u $URI --eid ${USERS[5]} $TLSOPT
+   $FABRIC_CA_CLIENTEXEC revoke -u $URI -e${USERS[5]} $TLSOPT
 
    #### Revoke my own cert
    echo "=========================> REVOKING self"
-   $FABRIC_CA_CLIENTEXEC revoke --eid ${USERS[0]} -u $URI $TLSOPT
+   $FABRIC_CA_CLIENTEXEC revoke -e${USERS[0]} -u $URI $TLSOPT
 
    # Verify the DB update
    for ((i=${#USERS[@]}; i<=0; i--)); do
