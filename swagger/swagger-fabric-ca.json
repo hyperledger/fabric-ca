@@ -22,12 +22,32 @@
     }
   ],
   "paths": {
-    "/info": {
+    "/cainfo": {
       "get": {
         "tags": [
           "fabric-ca-server"
         ],
-        "description": "Get server information.",
+        "description": "Get CA information.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
+                },
+              },
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successfully retrieved server information",
@@ -151,6 +171,13 @@
                     "null"
                   ],
                   "description": "The label used in HSM operations"
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
                 }
               },
               "required": [
@@ -273,6 +300,13 @@
                     "null"
                   ],
                   "description": "The label used in HSM operations"
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
                 }
               },
               "required": [
@@ -417,6 +451,13 @@
                       "value"
                     ]
                   }
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
                 }
               },
               "required": [
@@ -553,8 +594,15 @@
                     "null"
                   ],
                   "description": "The reason for revocation.   \nSee https://godoc.org/golang.org/x/crypto/ocsp for valid values.   \nThe default value is 0 (ocsp.Unspecified)."
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
                 }
-              }
+              },
             }
           }
         ],
@@ -667,6 +715,13 @@
                 "validity_period": {
                   "type": "integer",
                   "description": "The number of nanoseconds each transaction certificate will be valid before expiration."
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to direct traffic to within server."
                 }
               },
               "required": [
