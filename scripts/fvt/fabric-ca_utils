@@ -1,7 +1,5 @@
 #!/bin/bash
 export FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-#export FABRIC_CA_CLIENTEXEC="$FABRIC_CA/bin/fabric-ca-client"
-#export FABRIC_CA_SERVEREXEC="$FABRIC_CA/bin/fabric-ca-server"
 export FABRIC_CA_CLIENTEXEC="/usr/local/bin/fabric-ca-client"
 export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"
@@ -13,8 +11,8 @@ export PGPASSWORD='postgres'
 export MSP_KEY_DIR='msp/keystore'
 export MSP_CERT_DIR='msp/signcerts'
 export ROOTCERT="$TESTDATA/root.pem"
+export CA_HOST_ADDRESS="127.0.0.1"
 export CA_DEFAULT_PORT="7054"
-#export FABRIC_CA_CLIENT_BCCSP_SW_FILEKEYSTORE_KEYSTORE="" 
 
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
@@ -51,8 +49,12 @@ ErrorMsg() {
 ErrorExit() {
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver
    local msg="$1"
+   local rc="$2"
+   : ${rc:="RC"}
+   let $rc+=1
    echo -e "\033[31m ****** ERROR ****** $msg \033[0m"
-   exit 1
+   CleanUp $(eval echo \$$rc)
+   exit $(eval echo \$$rc)
 }
 
 isReachable() {
@@ -317,19 +319,136 @@ function genRunconfig() {
    local version="$7"
    : ${FABRIC_TLS:='false'}
    : ${FABRIC_CA_DEBUG:='false'}
+   local registry=""
 
    case ${version:-"yaml"} in
-      json) cat > $runconfig <<EOF
+      json) if ! $($LDAP_ENABLE); then registry="
+   \"registry\": {
+      \"maxEnrollments\": \"$maxEnroll\",
+      \"identities\": [
+         {
+            \"name\": \"admin\",
+            \"pass\": \"adminpw\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": {
+               \"hf.Registrar.Roles\": \"client,user,peer,validator,auditor,ca\",
+               \"hf.Registrar.DelegateRoles\": \"client,user,validator,auditor\",
+               \"hf.Revoker\": true
+            }
+         },
+         {
+            \"name\": \"admin2\",
+            \"pass\": \"adminpw2\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": {
+               \"hf.Registrar.Roles\": \"client,user,peer,validator,auditor,ca\",
+               \"hf.Registrar.DelegateRoles\": \"client,user,validator,auditor\",
+               \"hf.Revoker\": true
+            }
+         },
+         {
+            \"name\": \"revoker\",
+            \"pass\": \"revokerpw\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": {
+               \"hf.Revoker\": true
+            }
+         },
+         {
+            \"name\": \"revoker2\",
+            \"pass\": \"revokerpw2\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": {
+               \"hf.Revoker\": true
+            }
+         },
+         {
+            \"name\": \"nonrevoker\",
+            \"pass\": \"nonrevokerpw\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\"
+         },
+         {
+            \"name\": \"nonrevoker2\",
+            \"pass\": \"nonrevokerpw2\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\"
+         },
+         {
+            \"name\": \"notadmin\",
+            \"pass\": \"pass\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": {
+               \"hf.Registrar.Roles\": \"client,user,peer,validator,auditor,ca\",
+               \"hf.Registrar.DelegateRoles\": \"client\"
+            }
+         },
+         {
+            \"name\": \"expiryUser\",
+            \"pass\": \"expirypw\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\"
+         },
+         {
+            \"name\": \"testUser\",
+            \"pass\": \"user1\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_b\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": []
+         },
+         {
+            \"name\": \"testUser2\",
+            \"pass\": \"user2\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_c\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": []
+         },
+         {
+            \"name\": \"testUser3\",
+            \"pass\": \"user3\",
+            \"type\": \"client\",
+            \"affiliation\": \"bank_a\",
+            \"maxEnrollments\": \"$maxEnroll\",
+            \"attrs\": []
+         }
+      ]
+   },
+"
+fi
+cat > $runconfig <<EOF
 {
-   "address": "127.0.0.1",
-   "port": 7054,
+   "address": "$CA_HOST_ADDRESS",
+   "port": $CA_DEFAULT_PORT,
    "debug": "$FABRIC_CA_DEBUG",
    "db": {
       "type": "$driver",
-      "datasource": "$datasrc"
+      "datasource": "$datasrc",
+       "tls": {
+          "enabled": "$TLS_ON",
+          "certfiles": [ "$ROOTCERT" ],
+          "client": {
+             "certfile": "$TESTDATA/tls_server-cert.pem",
+             "keyfile": "$TESTDATA/tls_server-key.pem"
+          }
+       }
    },
    "tls": {
-      "enabled": "$FABRIC_TLS",
+      "enabled": "$TLS_ON",
       "certfile": "$TESTDATA/tls_server-cert.pem",
       "keyfile": "$TESTDATA/tls_server-key.pem"
    },
@@ -337,121 +456,15 @@ function genRunconfig() {
       "certfile": "$serverCert",
       "keyfile": "$serverKey"
    },
-   "registry": {
-      "maxEnrollments": "$maxEnroll",
-      "identities": [
-         {
-            "name": "admin",
-            "pass": "adminpw",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": {
-               "hf.Registrar.Roles": "client,user,peer,validator,auditor,ca",
-               "hf.Registrar.DelegateRoles": "client,user,validator,auditor",
-               "hf.Revoker": true
-            }
-         },
-         {
-            "name": "admin2",
-            "pass": "adminpw2",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": {
-               "hf.Registrar.Roles": "client,user,peer,validator,auditor,ca",
-               "hf.Registrar.DelegateRoles": "client,user,validator,auditor",
-               "hf.Revoker": true
-            }
-         },
-         {
-            "name": "revoker",
-            "pass": "revokerpw",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": {
-               "hf.Revoker": true
-            }
-         },
-         {
-            "name": "revoker2",
-            "pass": "revokerpw2",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": {
-               "hf.Revoker": true
-            }
-         },
-         {
-            "name": "nonrevoker",
-            "pass": "nonrevokerpw",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll"
-         },
-         {
-            "name": "nonrevoker2",
-            "pass": "nonrevokerpw2",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll"
-         },
-         {
-            "name": "notadmin",
-            "pass": "pass",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": {
-               "hf.Registrar.Roles": "client,user,peer,validator,auditor,ca",
-               "hf.Registrar.DelegateRoles": "client"
-            }
-         },
-         {
-            "name": "expiryUser",
-            "pass": "expirypw",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll"
-         },
-         {
-            "name": "testUser",
-            "pass": "user1",
-            "type": "client",
-            "affiliation": "bank_b",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": []
-         },
-         {
-            "name": "testUser2",
-            "pass": "user2",
-            "type": "client",
-            "affiliation": "bank_c",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": []
-         },
-         {
-            "name": "testUser3",
-            "pass": "user3",
-            "type": "client",
-            "affiliation": "bank_a",
-            "maxEnrollments": "$maxEnroll",
-            "attrs": []
-         }
-      ]
-   },
+   $registry
    "ldap": {
-      "enabled": false,
-      "url": "ldap://CN=admin:adminPassword@localhost:$LDAP_PORT/<base>",
+      "enabled": $LDAP_ENABLE,
+      "url": "ldap://CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com",
       "tls": {
-         "certfiles": [
-            "ldap-server-cert.pem"
-         ],
+         "certfiles": [ "$ROOTCERT" ],
          "client": {
-            "certfile": "ldap-client-cert.pem",
-            "keyfile": "ldap-client-key.pem"
+            "certfile": "$TESTDATA/tls_server-cert.pem",
+            "keyfile": "$TESTDATA/tls_server-key.pem"
          }
       }
    },
@@ -529,27 +542,7 @@ function genRunconfig() {
 }
 EOF
    ;;
-      yaml) cat > $runconfig <<EOF
-address: 127.0.0.1
-port: 7054
-debug: $FABRIC_CA_DEBUG
-db:
-  type: $driver
-  datasource: $datasrc
-  tls:
-     enabled: false
-     certfiles:
-       - $TESTDATA/tls_server-cert.pem
-     client:
-       certfile: $TESTDATA/tls_server-cert.pem
-       keyfile: $TESTDATA/tls_server-key.pem
-tls:
-  enabled: $TLS_ON
-  certfile: $TESTDATA/tls_server-cert.pem
-  keyfile: $TESTDATA/tls_server-key.pem
-ca:
-  certfile: $serverCert
-  keyfile: $serverKey
+      yaml) if ! $($LDAP_ENABLE); then registry="
 registry:
   maxEnrollments: $maxEnroll
   identities:
@@ -559,8 +552,8 @@ registry:
       affiliation: bank_a
       maxEnrollments: $maxEnroll
       attrs:
-        hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
-        hf.Registrar.DelegateRoles: "client,user,validator,auditor"
+        hf.Registrar.Roles: \"client,user,peer,validator,auditor,ca\"
+        hf.Registrar.DelegateRoles: \"client,user,validator,auditor\"
         hf.Revoker: true
     - name: admin2
       pass: adminpw2
@@ -568,8 +561,8 @@ registry:
       affiliation: bank_a
       maxEnrollments: $maxEnroll
       attrs:
-        hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
-        hf.Registrar.DelegateRoles: "client,user,validator,auditor"
+        hf.Registrar.Roles: \"client,user,peer,validator,auditor,ca\"
+        hf.Registrar.DelegateRoles: \"client,user,validator,auditor\"
         hf.Revoker: true
     - name: revoker
       pass: revokerpw
@@ -601,8 +594,8 @@ registry:
       affiliation: bank_a
       maxEnrollments: $maxEnroll
       attrs:
-        hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
-        hf.Registrar.DelegateRoles: "client"
+        hf.Registrar.Roles: \"client,user,peer,validator,auditor,ca\"
+        hf.Registrar.DelegateRoles: \"client\"
     - name: expiryUser
       pass: expirypw
       type: client
@@ -625,13 +618,36 @@ registry:
       type: client
       affiliation: bank_a
       maxEnrollments: $maxEnroll
-      attrs: []
+      attrs: []"
+fi
+cat > $runconfig <<EOF
+address: $CA_HOST_ADDRESS
+port: $CA_DEFAULT_PORT
+debug: $FABRIC_CA_DEBUG
+db:
+  type: $driver
+  datasource: $datasrc
+  tls:
+     enabled: $TLS_ON
+     certfiles:
+       - $ROOTCERT
+     client:
+       certfile: $TESTDATA/tls_server-cert.pem
+       keyfile: $TESTDATA/tls_server-key.pem
+tls:
+  enabled: $TLS_ON
+  certfile: $TESTDATA/tls_server-cert.pem
+  keyfile: $TESTDATA/tls_server-key.pem
+ca:
+  certfile: $serverCert
+  keyfile: $serverKey
+$registry
 ldap:
-  enabled: false
-  url: ldap://CN=admin:adminPassword@localhost:$LDAP_PORT/<base>
+  enabled: $LDAP_ENABLE
+  url: ldap://CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
   tls:
     certfiles:
-      - $TESTDATA/tls_server-key.pem
+      - $ROOTCERT
     client:
       certfile: $TESTDATA/tls_server-key.pem
       keyfile: $TESTDATA/tls_server-key.pem

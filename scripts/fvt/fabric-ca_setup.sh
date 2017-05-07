@@ -221,8 +221,9 @@ function killAllFabricCas() {
    test -n "$proxypids" && kill $proxypids
 }
 
-while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:o:" option; do
+while getopts "\?hRCISKXLDTAad:t:l:n:c:k:x:g:m:p:r:o:" option; do
   case "$option" in
+     a)   LDAP_ENABLE="true" ;;
      o)   TIMEOUT="$OPTARG" ;;
      d)   DRIVER="$OPTARG" ;;
      r)   USER_CA_PORT="$OPTARG" ;;
@@ -250,6 +251,7 @@ while getopts "\?hRCISKXLDTAd:t:l:n:c:k:x:g:m:p:r:o:" option; do
   esac
 done
 
+: ${LDAP_ENABLE:="false"}
 : ${TIMEOUT:="10"}
 : ${HTTP_PORT:="3755"}
 : ${DBNAME:="fabric_ca"}
@@ -281,7 +283,7 @@ if test -n "$TLS_ON"; then
    TLS_DISABLE='false'
 else
    case "$FABRIC_TLS" in
-      true) TLS_DISABLE='false';TLS_ON='true';LDAP_PORT=636 ;;
+      true) TLS_DISABLE='false';TLS_ON='true'; ;;
      false) TLS_DISABLE='true' ;TLS_ON='false' ;;
          *) TLS_DISABLE='true' ;TLS_ON='false' ;;
    esac

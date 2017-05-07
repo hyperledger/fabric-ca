@@ -1,0 +1,275 @@
+# User group
+dn: cn=admin,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: admin
+objectClass: posixGroup
+gidNumber: 10002
+
+# User account
+dn: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: admin
+cn: admin
+sn: Hyperledeger
+givenName: admin
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10002
+gidNumber: 10002
+mail: admin@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/admin
+userPassword: adminpw
+
+# User group
+dn: cn=admin2,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: admin2
+objectClass: posixGroup
+gidNumber: 10002
+
+# User account
+dn: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: admin2
+cn: admin2
+sn: Hyperledeger
+givenName: admin2
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10002
+gidNumber: 10002
+mail: admin2@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/admin2
+userPassword: admin2pw
+
+# User group
+dn: cn=revoker,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: revoker
+objectClass: posixGroup
+gidNumber: 10003
+
+# User account
+dn: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: revoker
+cn: revoker
+sn: Hyperledeger
+givenName: revoker
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10003
+gidNumber: 10003
+mail: revoker@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/revoker
+userPassword: revokerpw
+
+# User group
+dn: cn=revoker2,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: revoker2
+objectClass: posixGroup
+gidNumber: 10004
+
+# User account
+dn: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: revoker2
+cn: revoker2
+sn: Hyperledeger
+givenName: revoker2
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10004
+gidNumber: 10004
+mail: revoker2@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/revoker2
+userPassword: revoker2pw
+
+# User group
+dn: cn=nonrevoker,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: nonrevoker
+objectClass: posixGroup
+gidNumber: 10005
+
+# User account
+dn: uid=nonrevoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: nonrevoker
+cn: nonrevoker
+sn: Hyperledeger
+givenName: nonrevoker
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10005
+gidNumber: 10005
+mail: nonrevoker@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/nonrevoker
+userPassword: nonrevokerpw
+
+# User group
+dn: cn=nonrevoker2,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: nonrevoker2
+objectClass: posixGroup
+gidNumber: 10006
+
+# User account
+dn: uid=nonrevoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: nonrevoker2
+cn: nonrevoker2
+sn: Hyperledeger
+givenName: nonrevoker2
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10006
+gidNumber: 10006
+mail: nonrevoker2@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/nonrevoker2
+userPassword: nonrevoker2pw
+
+# User group
+dn: cn=notadmin,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: notadmin
+objectClass: posixGroup
+gidNumber: 10007
+
+# User account
+dn: uid=notadmin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: notadmin
+cn: notadmin
+sn: Hyperledeger
+givenName: notadmin
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10007
+gidNumber: 10007
+mail: notadmin@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/notadmin
+userPassword: notadminpw
+
+# User group
+dn: cn=expiryUser,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: expiryUser
+objectClass: posixGroup
+gidNumber: 10008
+
+# User account
+dn: uid=expiryUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: expiryUser
+cn: expiryUser
+sn: Hyperledeger
+givenName: expiryUser
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10008
+gidNumber: 10008
+mail: expiryUser@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/expiryUser
+userPassword: expiryUserpw
+
+# User group
+dn: cn=testUser,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser
+objectClass: posixGroup
+gidNumber: 10009
+
+# User account
+dn: uid=testUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser
+cn: testUser
+sn: Hyperledeger
+givenName: testUser
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10009
+gidNumber: 10009
+mail: testUser@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser
+userPassword: testUserpw
+
+# User group
+dn: cn=testUser2,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser2
+objectClass: posixGroup
+gidNumber: 100010
+
+# User account
+dn: uid=testUser2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser2
+cn: testUser2
+sn: Hyperledeger
+givenName: testUser2
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100010
+gidNumber: 100010
+mail: testUser2@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser2
+userPassword: testUser2pw
+
+# User group
+dn: cn=testUser3,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser3
+objectClass: posixGroup
+gidNumber: 100011
+
+# User account
+dn: uid=testUser3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser3
+cn: testUser3
+sn: Hyperledeger
+givenName: testUser3
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100011
+gidNumber: 100011
+mail: testUser3@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser3
+userPassword: testUser3pw
+

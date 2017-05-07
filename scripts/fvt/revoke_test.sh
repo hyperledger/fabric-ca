@@ -95,7 +95,7 @@ TEST_RESULTS=("$revokedRevoked" "$revokedRevoked" "$enrolledRevoked" "$enrolledR
 cd $TESTDATA
 python -m SimpleHTTPServer $HTTP_PORT &
 HTTP_PID=$!
-pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server"
+pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server" RC
 echo $HTTP_PID
 trap "kill $HTTP_PID; CleanUp; exit 1" INT
 
