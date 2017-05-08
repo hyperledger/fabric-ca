@@ -67,9 +67,10 @@ const (
 #
 #   FILE NAME ELEMENTS
 #   ------------------
-#   All filename elements below end with the word "file".
-#   For example, see "certfile" and "keyfile" in the "ca" section.
-#   The value of each filename element can be a simple filename, a
+#   The value of all fields whose name ends with "file" or "files" are
+#   name or names of other files.
+#   For example, see "tls.certfiles" and "tls.client.certfile".
+#   The value of each of these fields can be a simple filename, a
 #   relative path, or an absolute path.  If the value is not an
 #   absolute path, it is interpretted as being relative to the location
 #   of this configuration file.
@@ -101,9 +102,20 @@ tls:
 #############################################################################
 #  Certificate Signing Request section for generating the CSR for
 #  an enrollment certificate (ECert)
+#
+#  NOTE: The serialnumber field below, if specified, becomes part of the issued
+#  certificate's DN (Distinquished Name).  For example, one use case for this is
+#  a company with its own CA (Certificate Authority) which issues certificates
+#  to its employees and wants to include the employee's serial number in the DN
+#  of its issued certificates.
+#
+#  WARNING: This serialnumber field should not be confused with the certificate's
+#  serial number which is set by the CA but is not a component of the
+#  certificate's DN.
 #############################################################################
 csr:
   cn: <<<ENROLLMENT_ID>>>
+  serialnumber:
   names:
     - C: US
       ST: North Carolina
