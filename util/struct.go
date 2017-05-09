@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Field is a field of an arbitrary struct
@@ -85,7 +86,6 @@ func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
 			if tf.Tag.Get(TagSkip) == "true" {
 				continue
 			}
-
 			err := parse(field.Addr, cb, field)
 			if err != nil {
 				return err
@@ -96,35 +96,83 @@ func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
 }
 
 // CopyMissingValues checks the dst interface for missing values and
-// replaces them with value from src config struct
+// replaces them with value from src config struct.
+// This does a deep copy of pointers.
 func CopyMissingValues(src, dst interface{}) {
 	s := reflect.ValueOf(src).Elem()
 	d := reflect.ValueOf(dst).Elem()
+	copyMissingValues(s, d)
+}
 
-	for i := 0; i < s.NumField(); i++ {
-		sf := s.Field(i)
-		kind := sf.Kind()
-		df := d.Field(i)
-
-		switch kind {
-		case reflect.String:
-			if df.String() == "" {
-				df.SetString(sf.String())
+func copyMissingValues(src, dst reflect.Value) {
+	if !src.IsValid() {
+		return
+	}
+	switch src.Kind() {
+	case reflect.Ptr:
+		src = src.Elem()
+		if !src.IsValid() {
+			return
+		}
+		if dst.IsNil() {
+			dst.Set(reflect.New(src.Type()))
+		}
+		copyMissingValues(src, dst.Elem())
+	case reflect.Interface:
+		if src.IsNil() {
+			return
+		}
+		src = src.Elem()
+		if dst.IsNil() {
+			newVal := reflect.New(src.Type()).Elem()
+			copyMissingValues(src, newVal)
+			dst.Set(newVal)
+		} else {
+			copyMissingValues(src, dst.Elem())
+		}
+	case reflect.Struct:
+		if !src.IsValid() {
+			return
+		}
+		t, ok := src.Interface().(time.Time)
+		if ok {
+			dst.Set(reflect.ValueOf(t))
+		}
+		for i := 0; i < src.NumField(); i++ {
+			copyMissingValues(src.Field(i), dst.Field(i))
+		}
+	case reflect.Slice:
+		if !dst.IsNil() {
+			return
+		}
+		dst.Set(reflect.MakeSlice(src.Type(), src.Len(), src.Cap()))
+		for i := 0; i < src.Len(); i++ {
+			copyMissingValues(src.Index(i), dst.Index(i))
+		}
+	case reflect.Map:
+		if dst.IsNil() {
+			dst.Set(reflect.MakeMap(src.Type()))
+		}
+		for _, key := range src.MapKeys() {
+			sval := src.MapIndex(key)
+			dval := dst.MapIndex(key)
+			copy := !dval.IsValid()
+			if copy {
+				dval = reflect.New(sval.Type()).Elem()
 			}
-		case reflect.Slice:
-			if df.Len() == 0 {
-				df.Set(sf)
+			copyMissingValues(sval, dval)
+			if copy {
+				dst.SetMapIndex(key, dval)
 			}
-		case reflect.Ptr:
-			if df.IsNil() {
-				df.Set(sf)
-			}
-		case reflect.Map:
-			if df.IsNil() {
-				df.Set(sf)
-			}
-		case reflect.Struct:
-			CopyMissingValues(sf.Addr().Interface(), df.Addr().Interface())
+		}
+	default:
+		if !dst.CanInterface() {
+			return
+		}
+		dval := dst.Interface()
+		zval := reflect.Zero(dst.Type()).Interface()
+		if reflect.DeepEqual(dval, zval) {
+			dst.Set(src)
 		}
 	}
 }
