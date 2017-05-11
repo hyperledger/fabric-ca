@@ -172,10 +172,10 @@ func (c *Client) Enroll(req *api.EnrollmentRequest) (*EnrollmentResponse, error)
 		CAName: req.CAName,
 	}
 
-	reqNet.Hosts = signer.SplitHosts(req.Hosts)
-	reqNet.Request = string(csrPEM)
-	reqNet.Profile = req.Profile
-	reqNet.Label = req.Label
+	reqNet.SignRequest.Hosts = signer.SplitHosts(req.Hosts)
+	reqNet.SignRequest.Request = string(csrPEM)
+	reqNet.SignRequest.Profile = req.Profile
+	reqNet.SignRequest.Label = req.Label
 
 	body, err := util.Marshal(reqNet, "SignRequest")
 	if err != nil {

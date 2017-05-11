@@ -102,6 +102,7 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, caFile string, server,
 			"ldap.tls.certfiles",
 			"db.tls.certfiles",
 			"cafiles",
+			"intermediate.tls.certfiles",
 		}
 		err = util.ViperUnmarshal(config, sliceFields, vp)
 		if err != nil {
@@ -109,7 +110,7 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, caFile string, server,
 		}
 		if server {
 			serverCfg := config.(*ServerConfig)
-			err = vp.Unmarshal(&serverCfg.CAcfg)
+			err = util.ViperUnmarshal(&serverCfg.CAcfg, sliceFields, vp)
 			if err != nil {
 				return fmt.Errorf("Incorrect format in file '%s': %s", caFile, err)
 			}

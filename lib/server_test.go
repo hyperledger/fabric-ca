@@ -262,6 +262,50 @@ func TestIntermediateServer(t *testing.T) {
 	}
 }
 
+func TestIntermediateServerWithTLS(t *testing.T) {
+	var err error
+
+	rootServer := getRootServer(t)
+	if rootServer == nil {
+		return
+	}
+	rootServer.Config.TLS.Enabled = true
+	rootServer.Config.TLS.CertFile = "../../testdata/tls_server-cert.pem"
+	rootServer.Config.TLS.KeyFile = "../../testdata/tls_server-key.pem"
+	rootServer.Config.TLS.ClientAuth.Type = "RequireAndVerifyClientCert"
+	rootServer.Config.TLS.ClientAuth.CertFiles = []string{"../../testdata/root.pem"}
+	err = rootServer.Start()
+	if err != nil {
+		t.Fatalf("Root server start failed: %s", err)
+	}
+
+	parentURL := fmt.Sprintf("https://admin:adminpw@localhost:%d", rootPort)
+	intermediateServer := getServer(intermediatePort, intermediateDir, parentURL, 0, t)
+	if intermediateServer == nil {
+		return
+	}
+	intermediateServer.CA.Config.Intermediate.TLS.CertFiles = []string{"../../testdata/root.pem"}
+	intermediateServer.CA.Config.Intermediate.TLS.Client.CertFile = "../../testdata/tls_client-cert.pem"
+	intermediateServer.CA.Config.Intermediate.TLS.Client.KeyFile = "../../testdata/tls_client-key.pem"
+
+	err = intermediateServer.Start()
+	if err != nil {
+		t.Errorf("Intermediate server start failed: %s", err)
+	}
+
+	time.Sleep(time.Second)
+
+	err = intermediateServer.Stop()
+	if err != nil {
+		t.Errorf("Intermediate server stop failed: %s", err)
+	}
+
+	err = rootServer.Stop()
+	if err != nil {
+		t.Errorf("Root server stop failed: %s", err)
+	}
+}
+
 func TestRunningTLSServer(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
 
@@ -535,11 +579,14 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 	// Start it
 	err = intermediatesrv.Start()
 	if err != nil {
-		t.Errorf("Intermediate server start failed: %s", err)
+		t.Errorf("Failed to start intermediate server: %s", err)
 	}
 	time.Sleep(time.Second)
 	// Stop it
-	intermediatesrv.Stop()
+	err = intermediatesrv.Stop()
+	if err != nil {
+		t.Error("Failed to stop intermediate server: ", err)
+	}
 
 	if !util.FileExists("../testdata/ca/intermediateca/ca1/ca-chain.pem") {
 		t.Error("Failed to enroll intermediate ca")
@@ -839,8 +886,10 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		CA: CA{
 			Config: &CAConfig{
-				ParentServer: ParentServer{
-					URL: parentURL,
+				Intermediate: IntermediateCA{
+					ParentServer: ParentServer{
+						URL: parentURL,
+					},
 				},
 				Affiliations: affiliations,
 				Registry: CAConfigRegistry{

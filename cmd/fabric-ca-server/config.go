@@ -283,6 +283,43 @@ bccsp:
 cacount:
 
 cafiles:
+
+#############################################################################
+# Intermediate CA which acts as a client of the root (or parent) CA.
+#
+# Parentserver section
+#    url - The URL of the parent server
+#    caname - Name of the CA to enroll with on the server
+#
+# Enrollment section used to enroll an identity with fabric-ca server
+#    hosts - A comma-separated list of host names which the certificate should
+#    be valid for
+#    profile - Name of the signing profile to use in issuing the certificate
+#    label - Label to use in HSM operations
+#
+# TLS section for secure socket connection
+#   certfiles - PEM-encoded list of trusted root certificate files
+#   client:
+#     certfile - PEM-encoded certificate file for when client authentication
+#     is enabled on server
+#     keyfile - PEM-encoded key file for when client authentication
+#     is enabled on server
+#############################################################################
+intermediate:
+  parentserver:
+    url:
+    caname:
+
+  enrollment:
+    hosts:
+    profile:
+    label:
+
+  tls:
+    certfiles:
+    client:
+      certfile:
+      keyfile:
 `
 )
 

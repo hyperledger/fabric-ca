@@ -20,6 +20,7 @@ ca:
 csr:
   cn: fabric-ca-server-ca1
 
-parentserver:
-  url: http://admin:adminpw@localhost:7055
-  caname: rootca2
+intermediate:
+  parentserver:
+    url: http://admin:adminpw@localhost:7055
+    caname: rootca2

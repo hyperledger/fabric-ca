@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
+	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 
@@ -509,13 +510,9 @@ func (s *Server) checkAndEnableProfiling() error {
 // Make all file names in the config absolute
 func (s *Server) makeFileNamesAbsolute() error {
 	log.Debug("Making server filenames absolute")
-	err := s.CA.makeFileNamesAbsolute()
+	err := stls.AbsTLSServer(&s.Config.TLS, s.HomeDir)
 	if err != nil {
 		return err
 	}
-	fields := []*string{
-		&s.Config.TLS.CertFile,
-		&s.Config.TLS.KeyFile,
-	}
-	return util.MakeFileNamesAbsolute(fields, s.HomeDir)
+	return nil
 }
