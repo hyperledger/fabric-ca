@@ -142,6 +142,20 @@ func testGetSignerFromCertFile(t *testing.T, keyFile, certFile string, mustFail 
 			t.Fatalf("GetSignerFromCertFile cert cannot be nil")
 		}
 	}
+
+	cer, err := LoadX509KeyPair(certFile, keyFile, csp)
+	if mustFail == 2 {
+		if err == nil {
+			t.Fatalf("LoadX509KeyPair should had failed")
+		}
+	} else {
+		if err != nil {
+			t.Fatalf("LoadX509KeyPair failed: %s", err)
+		}
+		if cer.Certificate[0] == nil {
+			t.Fatalf("LoadX509KeyPair cert cannot be nil")
+		}
+	}
 }
 
 func TestGetSignerFromCertFile(t *testing.T) {
