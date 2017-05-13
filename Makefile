@@ -26,8 +26,8 @@
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION   = 1.0.0
-IS_RELEASE     = false
+BASE_VERSION   = 1.0.0-alpha2
+IS_RELEASE     = true
 
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
@@ -153,7 +153,7 @@ container-tests: docker ldap-tests
 ldap-tests: openldap
 	@scripts/run_ldap_tests
 
-fvt-tests: 
+fvt-tests:
 	@scripts/run_fvt_tests
 
 ci-tests: docker-clean docker-fvt unit-tests
