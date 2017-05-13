@@ -24,7 +24,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
@@ -48,8 +47,8 @@ func TestGetEnrollmentIDFromPEM(t *testing.T) {
 
 func TestECCreateToken(t *testing.T) {
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
-	bccsp := csp.GetDefaultBCCSP()
-	privKey, err := csp.ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
+	bccsp := GetDefaultBCCSP()
+	privKey, err := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
 	if err != nil {
 		t.Logf("Failed importing key %s", err)
 	}
@@ -149,8 +148,8 @@ func TestRSACreateToken(t *testing.T) {
 
 func TestCreateTokenDiffKey(t *testing.T) {
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
-	bccsp := csp.GetDefaultBCCSP()
-	privKey, _ := csp.ImportBCCSPKeyFromPEM(getPath("rsa-key.pem"), bccsp, true)
+	bccsp := GetDefaultBCCSP()
+	privKey, _ := ImportBCCSPKeyFromPEM(getPath("rsa-key.pem"), bccsp, true)
 	body := []byte("request byte array")
 	_, err := CreateToken(bccsp, cert, privKey, body)
 	if err == nil {
@@ -197,8 +196,8 @@ func TestEmptyCert(t *testing.T) {
 }
 
 func TestEmptyKey(t *testing.T) {
-	bccsp := csp.GetDefaultBCCSP()
-	privKey, _ := csp.ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
+	bccsp := GetDefaultBCCSP()
+	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
 	body := []byte("request byte array")
 	_, err := CreateToken(bccsp, []byte(""), privKey, body)
 	if err == nil {
@@ -207,8 +206,8 @@ func TestEmptyKey(t *testing.T) {
 }
 
 func TestEmptyBody(t *testing.T) {
-	bccsp := csp.GetDefaultBCCSP()
-	privKey, _ := csp.ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
+	bccsp := GetDefaultBCCSP()
+	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
 	_, err := CreateToken(bccsp, cert, privKey, []byte(""))
 	if err != nil {
@@ -373,10 +372,30 @@ func TestFileExists(t *testing.T) {
 }
 
 func TestMakeFileAbs(t *testing.T) {
-	makeFileAbs(t, "", "", "")
-	makeFileAbs(t, "/a/b/c", "", "/a/b/c")
-	makeFileAbs(t, "c", "/a/b", "/a/b/c")
-	makeFileAbs(t, "../c", "/a/b", "/a/c")
+	testMakeFileAbs(t, "", "", "")
+	testMakeFileAbs(t, "/a/b/c", "", "/a/b/c")
+	testMakeFileAbs(t, "c", "/a/b", "/a/b/c")
+	testMakeFileAbs(t, "../c", "/a/b", "/a/c")
+}
+
+func TestMakeFilesAbs(t *testing.T) {
+	file1 := "a"
+	file2 := "a/b"
+	file3 := "/a/b"
+	files := []*string{&file1, &file2, &file3}
+	err := MakeFileNamesAbsolute(files, "/tmp")
+	if err != nil {
+		t.Fatalf("MakeFilesAbsolute failed: %s", err)
+	}
+	if file1 != "/tmp/a" {
+		t.Errorf("TestMakeFilesAbs failure: expecting /tmp/a but found %s", file1)
+	}
+	if file2 != "/tmp/a/b" {
+		t.Errorf("TestMakeFilesAbs failure: expecting /tmp/a/b but found %s", file2)
+	}
+	if file3 != "/a/b" {
+		t.Errorf("TestMakeFilesAbs failure: expecting /a/b but found %s", file3)
+	}
 }
 
 func TestB64(t *testing.T) {
@@ -462,7 +481,7 @@ func TestNormalizeFileList(t *testing.T) {
 	}
 }
 
-func makeFileAbs(t *testing.T, file, dir, expect string) {
+func testMakeFileAbs(t *testing.T, file, dir, expect string) {
 	path, err := MakeFileAbs(file, dir)
 	if err != nil {
 		t.Errorf("Failed to make %s absolute: %s", file, err)

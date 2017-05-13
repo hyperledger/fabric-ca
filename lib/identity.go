@@ -24,7 +24,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 )
@@ -37,7 +36,7 @@ func newIdentity(client *Client, name string, key bccsp.Key, cert []byte) *Ident
 	if client != nil {
 		id.CSP = client.csp
 	} else {
-		id.CSP = csp.GetDefaultBCCSP()
+		id.CSP = util.GetDefaultBCCSP()
 	}
 	return id
 }

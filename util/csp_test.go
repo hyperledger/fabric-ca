@@ -14,37 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package csp_test
+package util_test
 
 import (
-	"flag"
-	"fmt"
 	"os"
 	"testing"
 
 	"github.com/cloudflare/cfssl/csr"
 
-	. "github.com/hyperledger/fabric-ca/lib/csp"
+	. "github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 var csp bccsp.BCCSP
 
-func TestMain(m *testing.M) {
-	flag.Parse()
-
+func TestGetBCCSPFromOpts(t *testing.T) {
 	opts := &factory.DefaultOpts
 	opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: os.TempDir()}
 	opts.SwOpts.Ephemeral = false
-
 	var err error
 	csp, err = factory.GetBCCSPFromOpts(opts)
 	if err != nil {
-		panic(fmt.Errorf("Could not initialize BCCSP Factories [%s]", err))
+		t.Errorf("Could not initialize BCCSP Factories [%s]", err)
 	}
-
-	os.Exit(m.Run())
 }
 
 func testKeyGenerate(t *testing.T, kr csr.KeyRequest, mustFail bool) {
@@ -70,7 +63,7 @@ func testKeyGenerate(t *testing.T, kr csr.KeyRequest, mustFail bool) {
 	}
 }
 
-func TestGetDefault(t *testing.T) {
+func TestGetDefaultBCCSP(t *testing.T) {
 	csp := GetDefaultBCCSP()
 	if csp == nil {
 		t.Fatal("Failed to get default BCCSP")
@@ -78,20 +71,20 @@ func TestGetDefault(t *testing.T) {
 }
 
 func TestInitBCCSP(t *testing.T) {
-	_, err := InitBCCSP(nil, "")
-	if err != nil {
-		t.Fatalf("Failed initialization 1 of BCCSP: %s", err)
-	}
 	mspDir := "msp"
 	var opts *factory.FactoryOpts
-	_, err = InitBCCSP(&opts, mspDir)
+	_, err := InitBCCSP(&opts, mspDir)
 	if err != nil {
-		t.Fatalf("Failed initialization 2 of BCCSP: %s", err)
+		t.Fatalf("Failed initialization 1 of BCCSP: %s", err)
 	}
 	cfg := &factory.FactoryOpts{ProviderName: "SW"}
 	_, err = InitBCCSP(&cfg, mspDir)
 	if err != nil {
-		t.Fatalf("Failed initialization 3 of BCCSP: %s", err)
+		t.Fatalf("Failed initialization 2 of BCCSP: %s", err)
+	}
+	_, err = InitBCCSP(nil, mspDir)
+	if err == nil {
+		t.Fatalf("Initialization 3 of BCCSP should have failed but did not")
 	}
 }
 
@@ -150,22 +143,22 @@ func testGetSignerFromCertFile(t *testing.T, keyFile, certFile string, mustFail 
 
 func TestGetSignerFromCertFile(t *testing.T) {
 	t.Run("ec", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../../testdata/ec-key.pem", "../../testdata/ec.pem", 0)
+		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "../testdata/ec.pem", 0)
 	})
 	t.Run("nokey", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "doesnotexist.pem", "../../testdata/ec.pem", 1)
+		testGetSignerFromCertFile(t, "doesnotexist.pem", "../testdata/ec.pem", 1)
 	})
 	t.Run("nocert", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../../testdata/ec-key.pem", "doesnotexist.pem", 2)
+		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "doesnotexist.pem", 2)
 	})
 	t.Run("cert4key", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../../testdata/ec.pem", "../../testdata/ec.pem", 1)
+		testGetSignerFromCertFile(t, "../testdata/ec.pem", "../testdata/ec.pem", 1)
 	})
 	t.Run("rsa", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../../testdata/rsa-key.pem", "../../testdata/rsa.pem", 1)
+		testGetSignerFromCertFile(t, "../testdata/rsa-key.pem", "../testdata/rsa.pem", 1)
 	})
 	t.Run("wrongcert", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../../testdata/ec-key.pem", "../../testdata/test.pem", 2)
+		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "../testdata/test.pem", 2)
 	})
 }
 
@@ -183,8 +176,12 @@ func TestBccspBackedSigner(t *testing.T) {
 		t.Fatal("BccspBackedSigner should not be valid for non-existent cert")
 	}
 
-	signer, err = BccspBackedSigner("../../testdata/ec.pem", "../../testdata/ec-key.pem", nil, csp)
+	signer, err = BccspBackedSigner("../testdata/ec.pem", "../testdata/ec-key.pem", nil, csp)
 	if signer == nil {
 		t.Fatalf("BccspBackedSigner should had found cert: %s", err)
 	}
+}
+
+func TestClean(t *testing.T) {
+	os.RemoveAll("csp")
 }

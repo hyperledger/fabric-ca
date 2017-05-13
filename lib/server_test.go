@@ -31,7 +31,6 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/lib/csp"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -364,7 +363,7 @@ func invalidTokenAuthorization(t *testing.T) {
 		t.Error(err)
 	}
 
-	key, err := csp.ImportBCCSPKeyFromPEM("../testdata/ec-key.pem", CSP, true)
+	key, err := util.ImportBCCSPKeyFromPEM("../testdata/ec-key.pem", CSP, true)
 	if err != nil {
 		t.Errorf("Failed importing key %s", err)
 	}
@@ -789,7 +788,7 @@ func TestEnd(t *testing.T) {
 func cleanMultiCADir() {
 	caFolder := "../testdata/ca"
 	toplevelFolders := []string{"intermediateca", "rootca"}
-	nestedFolders := []string{"ca1", "ca2"}
+	nestedFolders := []string{"ca1", "ca2", "ca3"}
 	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
 
 	for _, topFolder := range toplevelFolders {
