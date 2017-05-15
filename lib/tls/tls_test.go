@@ -16,7 +16,11 @@ limitations under the License.
 
 package tls
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 const (
 	configDir = "../../testdata"
@@ -45,5 +49,71 @@ func TestGetClientTLSConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to get TLS Config: %s", err)
 	}
+
+}
+
+func TestGetClientTLSConfigInvalidArgs(t *testing.T) {
+	// 1.
+	cfg := &ClientTLSConfig{
+		CertFiles: []string{"root.pem"},
+		Client: KeyCertFiles{
+			KeyFile:  "no_tls_client-key.pem",
+			CertFile: "no_tls_client-cert.pem",
+		},
+	}
+	_, err := GetClientTLSConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "open no_tls_client-cert.pem: no such file or directory")
+
+	// 2.
+	cfg = &ClientTLSConfig{
+		CertFiles: nil,
+		Client: KeyCertFiles{
+			KeyFile:  "tls_client-key.pem",
+			CertFile: "tls_client-cert.pem",
+		},
+	}
+	AbsTLSClient(cfg, configDir)
+	_, err = GetClientTLSConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No CA certificate files provided")
+
+	// 3.
+	cfg = &ClientTLSConfig{
+		CertFiles: nil,
+		Client: KeyCertFiles{
+			KeyFile:  "no-tls_client-key.pem",
+			CertFile: "tls_client-cert.pem",
+		},
+	}
+	AbsTLSClient(cfg, configDir)
+	_, err = GetClientTLSConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no-tls_client-key.pem: no such file or directory")
+
+	// 4.
+	cfg = &ClientTLSConfig{
+		CertFiles: nil,
+		Client: KeyCertFiles{
+			KeyFile:  "",
+			CertFile: "",
+		},
+	}
+	_, err = GetClientTLSConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No CA certificate files provided")
+
+	// 5.
+	cfg = &ClientTLSConfig{
+		CertFiles: []string{"no-root.pem"},
+		Client: KeyCertFiles{
+			KeyFile:  "tls_client-key.pem",
+			CertFile: "tls_client-cert.pem",
+		},
+	}
+	AbsTLSClient(cfg, configDir)
+	_, err = GetClientTLSConfig(cfg)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no-root.pem: no such file or directory")
 
 }
