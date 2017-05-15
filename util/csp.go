@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"path/filepath"
 	"strings"
 	_ "time" // for ocspSignerFromConfig
 
@@ -283,19 +282,4 @@ func ImportBCCSPKeyFromPEM(keyFile string, myCSP bccsp.BCCSP, temporary bool) (b
 	default:
 		return nil, fmt.Errorf("Failed to import key from %s: invalid secret key type", keyFile)
 	}
-}
-
-// makeFileAbs makes 'file' absolute relative to 'dir' if not already absolute
-func makeFileAbs(file, dir string) (string, error) {
-	if file == "" {
-		return "", nil
-	}
-	if filepath.IsAbs(file) {
-		return file, nil
-	}
-	path, err := filepath.Abs(filepath.Join(dir, file))
-	if err != nil {
-		return "", fmt.Errorf("Failed making '%s' absolute based on '%s'", file, dir)
-	}
-	return path, nil
 }

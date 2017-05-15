@@ -38,12 +38,10 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/crypto/ocsp"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric/bccsp"
-	"github.com/jmoiron/sqlx"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/ocsp"
 )
 
 var (
@@ -151,16 +149,6 @@ func Unmarshal(from []byte, to interface{}, what string) error {
 		return fmt.Errorf("Failed to unmarshal %s: %s", what, err)
 	}
 	return nil
-}
-
-// DERCertToPEM converts DER to PEM format
-func DERCertToPEM(der []byte) []byte {
-	return pem.EncodeToMemory(
-		&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: der,
-		},
-	)
 }
 
 // CreateToken creates a JWT-like token.
@@ -336,11 +324,6 @@ func B64Encode(buf []byte) string {
 // B64Decode base64 decodes a string
 func B64Decode(str string) (buf []byte, err error) {
 	return base64.StdEncoding.DecodeString(str)
-}
-
-// GetDB returns a handle to an established driver-specific database connection
-func GetDB(driver string, dbPath string) (*sqlx.DB, error) {
-	return sqlx.Open(driver, dbPath)
 }
 
 // StrContained returns true if 'str' is in 'strs'; otherwise return false

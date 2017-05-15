@@ -24,6 +24,7 @@ import (
 	. "github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 // A test struct
@@ -52,6 +53,9 @@ type C struct {
 	CStr  string `help:"Str description"`
 }
 
+type ABad struct {
+}
+
 func printit(f *Field) error {
 	//fmt.Printf("%+v\n", f)
 	return nil
@@ -62,6 +66,10 @@ func TestRegisterFlags(t *testing.T) {
 		"help.fb.int": "This is an int field",
 	}
 	err := RegisterFlags(&pflag.FlagSet{}, &A{}, tags)
+	if err != nil {
+		t.Errorf("Failed to register flags: %s", err)
+	}
+	err = RegisterFlags(&pflag.FlagSet{}, &C{}, tags)
 	if err != nil {
 		t.Errorf("Failed to register flags: %s", err)
 	}
@@ -175,4 +183,30 @@ func TestViperUnmarshal(t *testing.T) {
 		t.Error("Failed to correctly process valid path to be type string array: ", err)
 	}
 
+}
+
+func TestRegisterFlagsInvalidArgs(t *testing.T) {
+	data := struct{ Field string }{}
+	err := RegisterFlags(&pflag.FlagSet{}, &data, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Field is missing a help tag")
+
+	data2 := struct{ Field bool }{}
+	err = RegisterFlags(&pflag.FlagSet{}, &data2, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Field is missing a help tag")
+
+	data3 := struct{ Field int }{}
+	err = RegisterFlags(&pflag.FlagSet{}, &data3, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Field is missing a help tag")
+
+	data4 := struct{ Field []string }{}
+	err = RegisterFlags(&pflag.FlagSet{}, &data4, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Field is missing a help tag")
+
+	data5 := struct{ Field float32 }{}
+	err = RegisterFlags(&pflag.FlagSet{}, &data5, nil)
+	assert.NoError(t, err)
 }

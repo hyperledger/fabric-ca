@@ -156,18 +156,6 @@ func FlagString(flags *pflag.FlagSet, name, short string, def string, desc strin
 	bindFlag(flags, name)
 }
 
-// FlagInt sets up a flag for an int, binding it to its name
-func FlagInt(flags *pflag.FlagSet, name, short string, def int, desc string) {
-	flags.IntP(name, short, def, desc)
-	bindFlag(flags, name)
-}
-
-// FlagBool sets up a flag for a bool, binding it to its name
-func FlagBool(flags *pflag.FlagSet, name, short string, def bool, desc string) {
-	flags.BoolP(name, short, def, desc)
-	bindFlag(flags, name)
-}
-
 // common binding function
 func bindFlag(flags *pflag.FlagSet, name string) {
 	flag := flags.Lookup(name)

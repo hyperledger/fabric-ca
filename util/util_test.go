@@ -24,9 +24,12 @@ import (
 	"strings"
 	"testing"
 
+	"math/big"
+
 	"github.com/hyperledger/fabric/bccsp/factory"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -493,4 +496,25 @@ func testMakeFileAbs(t *testing.T, file, dir, expect string) {
 	if path != expect {
 		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
 	}
+}
+
+func TestRemoveQuotesInvalidArgs(t *testing.T) {
+	res := RemoveQuotes("")
+	assert.Equal(t, "", res)
+}
+
+func TestUnmarshalInvalidArgs(t *testing.T) {
+	err := Unmarshal(nil, nil, "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal ")
+}
+
+func TestStrContainedInvalidArgs(t *testing.T) {
+	res := StrContained("Hello World", nil)
+	assert.False(t, res)
+}
+
+func TestGetSerialAsHex(t *testing.T) {
+	res := GetSerialAsHex(big.NewInt(101))
+	assert.Equal(t, "65", res)
 }
