@@ -43,7 +43,7 @@ else
 PGVER=9.5
 endif
 
-BASEIMAGE_RELEASE = 0.3.0
+BASEIMAGE_RELEASE = 0.3.1
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 DOCKER_ORG = hyperledger
