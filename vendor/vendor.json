@@ -471,35 +471,17 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
-			"checksumSHA1": "n+rDZNHLQEleZZY9JCr1y60LJkM=",
+			"checksumSHA1": "UxC9YQDmdIYCYl/EVRr/8gziL5w=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "935f608608903bfc171c7d631aedbb70156d62c0",
-			"revisionTime": "2017-04-24T13:40:27Z",
+			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
+			"revisionTime": "2017-05-12T16:44:56Z",
 			"tree": true
 		},
 		{
-			"checksumSHA1": "mZiTBAdC8vYgoiTqx/jF5U80288=",
-			"path": "github.com/hyperledger/fabric/bccsp/factory",
-			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
-			"revisionTime": "2017-02-27T00:00:38Z"
-		},
-		{
-			"checksumSHA1": "jUreC9C2NfOxQFY6B/X/qgA4ZnI=",
-			"path": "github.com/hyperledger/fabric/bccsp/pkcs11",
-			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
-			"revisionTime": "2017-02-27T00:00:38Z"
-		},
-		{
-			"checksumSHA1": "tWml2yr912DQkoZNFobewwyoUXE=",
-			"path": "github.com/hyperledger/fabric/bccsp/sw",
-			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
-			"revisionTime": "2017-02-27T00:00:38Z"
-		},
-		{
-			"checksumSHA1": "c/VlngqOYcd+b8pGVD2izQZnuHE=",
-			"path": "github.com/hyperledger/fabric/bccsp/utils",
-			"revision": "9a09ac07644b9f9076abd1d704cbc19f473f6e11",
-			"revisionTime": "2017-02-27T00:00:38Z"
+			"checksumSHA1": "nh/mRF/Q8HaftQ7l6CD/HZ4AdxQ=",
+			"path": "github.com/hyperledger/fabric/common/errors",
+			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
+			"revisionTime": "2017-05-12T16:44:56Z"
 		},
 		{
 			"checksumSHA1": "JcHPNgBRH9H+EP+GoeV18GZGd5g=",

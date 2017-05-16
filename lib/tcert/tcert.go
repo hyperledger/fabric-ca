@@ -69,8 +69,7 @@ func LoadMgr(caKeyFile, caCertFile string, myCSP bccsp.BCCSP) (*Mgr, error) {
 		if err != nil {
 			return nil, err
 		}
-		signer := &cspsigner.CryptoSigner{}
-		err = signer.Init(myCSP, key)
+		signer, err := cspsigner.New(myCSP, key)
 		if err != nil {
 			return nil, fmt.Errorf("Failed initializing CryptoSigner [%s]", err)
 		}

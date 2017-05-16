@@ -143,8 +143,7 @@ func BccspBackedSigner(caFile, keyFile string, policy *config.Signing, csp bccsp
 			return nil, fmt.Errorf("Could not find the private key in BCCSP keystore nor in keyfile %s: %s", keyFile, err)
 		}
 
-		signer := &cspsigner.CryptoSigner{}
-		err = signer.Init(csp, key)
+		signer, err := cspsigner.New(csp, key)
 		if err != nil {
 			return nil, fmt.Errorf("Failed initializing CryptoSigner: %s", err)
 		}
@@ -212,8 +211,8 @@ func GetSignerFromCert(cert *x509.Certificate, csp bccsp.BCCSP) (bccsp.Key, cryp
 		return nil, nil, fmt.Errorf("Could not find matching private key for SKI: %s", err.Error())
 	}
 	// Construct and initialize the signer
-	signer := &cspsigner.CryptoSigner{}
-	if err = signer.Init(csp, privateKey); err != nil {
+	signer, err := cspsigner.New(csp, privateKey)
+	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to load ski from bccsp: %s", err.Error())
 	}
 	return privateKey, signer, nil
@@ -248,8 +247,8 @@ func BCCSPKeyRequestGenerate(req *csr.CertificateRequest, myCSP bccsp.BCCSP) (bc
 	if err != nil {
 		return nil, nil, err
 	}
-	cspSigner := &cspsigner.CryptoSigner{}
-	err = cspSigner.Init(myCSP, key)
+
+	cspSigner, err := cspsigner.New(myCSP, key)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed initializing CryptoSigner: %s", err.Error())
 	}
