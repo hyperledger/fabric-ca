@@ -20,12 +20,6 @@ ca:
   # Chain file (default: chain-cert.pem)
   chainfile: ca-chain.pem
 
-###########################################################################
-#  Certificate Signing Request section for generating the CA certificate
-###########################################################################
-csr:
-  cn: fabric-ca-server-ca2
-
 #############################################################################
 #  The registry section controls how the fabric-ca-server does two things:
 #  1) authenticates enrollment requests which contain a username and password
@@ -87,3 +81,8 @@ affiliations:
       - department2
    org2:
       - department1
+
+intermediate:
+  parentserver:
+    url: http://admin:adminpw@localhost:7075
+    caname: rootca2

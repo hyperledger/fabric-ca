@@ -18,6 +18,7 @@ package lib_test
 
 import (
 	"bytes"
+	"encoding/asn1"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -29,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/config"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/tls"
@@ -284,6 +286,15 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 	intermediateServer.CA.Config.Intermediate.TLS.CertFiles = []string{"../../testdata/root.pem"}
 	intermediateServer.CA.Config.Intermediate.TLS.Client.CertFile = "../../testdata/tls_client-cert.pem"
 	intermediateServer.CA.Config.Intermediate.TLS.Client.KeyFile = "../../testdata/tls_client-key.pem"
+	intermediateServer.CA.Config.CSR.CN = "intermediateServer"
+
+	err = intermediateServer.Start()
+	if err == nil {
+		t.Errorf("CN specified for intermediate server, the server should have failed to start")
+	}
+
+	intermediateServer.CA.Config.CSR.CN = ""
+	intermediateServer.CA.Config.CSR.Hosts = []string{"testhost"}
 
 	err = intermediateServer.Start()
 	if err != nil {
@@ -300,6 +311,12 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 	err = rootServer.Stop()
 	if err != nil {
 		t.Errorf("Root server stop failed: %s", err)
+	}
+
+	// Check that CSR fields are correctly getting inserted into certificate
+	err = checkHostsInCert(filepath.Join(intermediateDir, "ca-cert.pem"), "testhost")
+	if err != nil {
+		t.Error(err)
 	}
 }
 
@@ -584,6 +601,12 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to stop server: ", err)
 	}
+
+	// Check that CSR fields are correctly getting inserted into certificate
+	err = checkHostsInCert(filepath.Join("../testdata/ca/intermediateca/ca1", "ca-cert.pem"), "testhost1")
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestDefaultMultiCA(t *testing.T) {
@@ -859,6 +882,17 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		"org2": nil,
 	}
+
+	defaultSigningProfile := &config.SigningProfile{
+		Usage:        []string{"cert sign"},
+		ExpiryString: "8000h",
+		Expiry:       time.Hour * 8000,
+	}
+
+	profiles := map[string]*config.SigningProfile{
+		"ca": defaultSigningProfile,
+	}
+
 	srv := &Server{
 		Config: &ServerConfig{
 			Port:  port,
@@ -874,6 +908,10 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 				Affiliations: affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
+				},
+				Signing: &config.Signing{
+					Default:  defaultSigningProfile,
+					Profiles: profiles,
 				},
 			},
 		},
@@ -912,4 +950,27 @@ func getTLSConfig(srv *Server, clientAuthType string, clientRootCerts []string) 
 	srv.Config.TLS.ClientAuth.CertFiles = clientRootCerts
 
 	return srv
+}
+
+func checkHostsInCert(certFile string, host string) error {
+	certBytes, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return fmt.Errorf("Failed to read file: %s", err)
+	}
+
+	cert, err := util.GetX509CertificateFromPEM(certBytes)
+	if err != nil {
+		return fmt.Errorf("Failed to get certificate: %s", err)
+	}
+	// Run through the extensions for the certificates
+	for _, ext := range cert.Extensions {
+		// asn1 identifier for 'Subject Alternative Name'
+		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
+			if !strings.Contains(string(ext.Value), host) {
+				return fmt.Errorf("Failed to correctly insert host '%s' into certificate", host)
+			}
+		}
+	}
+
+	return nil
 }
