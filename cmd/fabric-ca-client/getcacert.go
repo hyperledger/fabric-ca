@@ -37,8 +37,7 @@ var getCACertCmd = &cobra.Command{
 	Short: "Get CA certificate chain",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			cmd.Help()
-			return nil
+			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
 		}
 		err := runGetCACert()
 		if err != nil {
