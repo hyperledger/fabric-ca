@@ -382,4 +382,6 @@ func TestLast(t *testing.T) {
 	// Cleanup
 	os.RemoveAll("../testdata/msp")
 	os.RemoveAll(serversDir)
+	os.RemoveAll("multica")
+	os.RemoveAll("rootDir")
 }

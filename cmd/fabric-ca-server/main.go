@@ -57,7 +57,7 @@ func init() {
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
 	util.FlagString(pflags, "boot", "b", "",
-		"The user:pass for bootstrap admin which is required to build default config file")
+		"The user:pass for bootstrap admin; it is required to build default config file when ldap.enabled is false")
 
 	// Register flags for all tagged and exported fields in the config
 	serverCfg = &lib.ServerConfig{}

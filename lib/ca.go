@@ -465,9 +465,13 @@ func (ca *CA) initDB() error {
 
 	// If the DB doesn't exist, bootstrap it
 	if !exists {
-		err = ca.loadUsersTable()
-		if err != nil {
-			return err
+		// Since users come from LDAP when enabled,
+		// load them from the config file only when LDAP is disabled
+		if !ca.Config.LDAP.Enabled {
+			err = ca.loadUsersTable()
+			if err != nil {
+				return err
+			}
 		}
 		err = ca.loadAffiliationsTable()
 		if err != nil {
@@ -488,6 +492,11 @@ func (ca *CA) initUserRegistry() error {
 		// Use LDAP for the user registry
 		ca.registry, err = ldap.NewClient(ldapCfg, ca.server.csp)
 		log.Debugf("Initialized LDAP identity registry; err=%s", err)
+		if err == nil {
+			log.Info("Successfully initialized LDAP client")
+		} else {
+			log.Warningf("Failed to initialize LDAP client; err=%s", err)
+		}
 		return err
 	}
 

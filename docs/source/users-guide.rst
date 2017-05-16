@@ -127,7 +127,10 @@ The following starts the `fabric-ca-server` with default settings.
     # fabric-ca-server start -b admin:adminpw
 
 The `-b` option provides the enrollment ID and secret for a bootstrap
-administrator.  A default configuration file named `fabric-ca-server-config.yaml`
+administrator; this is required if LDAP is not enabled with the "ldap.enabled"
+setting.
+
+A default configuration file named `fabric-ca-server-config.yaml`
 is created in the local directory which can be customized.
 
 Start Server via Docker
@@ -745,9 +748,11 @@ Initialize the Fabric CA server as follows:
 
     # fabric-ca-server init -b admin:adminpw
 
-The ``-b`` (bootstrap identity) option is required for initialization. At
-least one bootstrap identity is required to start the Fabric CA server. The
-server configuration file contains a Certificate Signing Request (CSR)
+The ``-b`` (bootstrap identity) option is required for initialization when
+LDAP is disabled. At least one bootstrap identity is required to start the
+Fabric CA server; this identity is the server administrator.
+
+The server configuration file contains a Certificate Signing Request (CSR)
 section that can be configured. The following is a sample CSR.
 
 If you are going to connect to the Fabric CA server remotely over TLS,

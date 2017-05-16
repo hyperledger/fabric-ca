@@ -134,9 +134,12 @@ ca:
 #     These attributes are useful for making access control decisions in
 #     chaincode.
 #  There are two main configuration options:
-#  1) The fabric-ca-server is the registry
+#  1) The fabric-ca-server is the registry.
+#     This is true if "ldap.enabled" in the ldap section below is false.
 #  2) An LDAP server is the registry, in which case the fabric-ca-server
 #     calls the LDAP server to perform these tasks.
+#     This is true if "ldap.enabled" in the ldap section below is true,
+#     which means this "registry" section is ignored.
 #############################################################################
 registry:
   # Maximum number of times a password/secret can be reused for enrollment
@@ -186,6 +189,7 @@ db:
 #############################################################################
 ldap:
    # Enables or disables the LDAP client (default: false)
+   # If this is set to true, the "registry" section is ignored.
    enabled: false
    # The URL of the LDAP server
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
@@ -411,26 +415,37 @@ func configInit() (err error) {
 }
 
 func createDefaultConfigFile() error {
-	// Create a default config, but only if they provided an administrative
-	// user ID and password
-	up := viper.GetString("boot")
-	if up == "" {
-		return errors.New("The '-b user:pass' option is required")
-	}
-	ups := strings.Split(up, ":")
-	if len(ups) < 2 {
-		return fmt.Errorf("The value '%s' on the command line is missing a colon separator", up)
-	}
-	if len(ups) > 2 {
-		ups = []string{ups[0], strings.Join(ups[1:], ":")}
-	}
-	user := ups[0]
-	pass := ups[1]
-	if len(user) >= 1024 {
-		return fmt.Errorf("The identity name must be less than 1024 characters: '%s'", user)
-	}
-	if len(pass) == 0 {
-		return errors.New("An empty password in the '-b user:pass' option is not permitted")
+	var user, pass string
+	// If LDAP is enabled, authentication of enrollment requests are performed
+	// by using LDAP authentication; therefore, no bootstrap username and password
+	// are required.
+	ldapEnabled := viper.GetBool("ldap.enabled")
+	if !ldapEnabled {
+		// When LDAP is disabled, the fabric-ca-server functions as its own
+		// identity registry; therefore, we require that the default configuration
+		// file have a bootstrap username and password that is used to enroll a
+		// bootstrap administrator.  Other identities can be dynamically registered.
+		// Create the default config, but only if they provided this bootstrap
+		// username and password.
+		up := viper.GetString("boot")
+		if up == "" {
+			return errors.New("The '-b user:pass' option is required")
+		}
+		ups := strings.Split(up, ":")
+		if len(ups) < 2 {
+			return fmt.Errorf("The value '%s' on the command line is missing a colon separator", up)
+		}
+		if len(ups) > 2 {
+			ups = []string{ups[0], strings.Join(ups[1:], ":")}
+		}
+		user = ups[0]
+		pass = ups[1]
+		if len(user) >= 1024 {
+			return fmt.Errorf("The identity name must be less than 1024 characters: '%s'", user)
+		}
+		if len(pass) == 0 {
+			return errors.New("An empty password in the '-b user:pass' option is not permitted")
+		}
 	}
 
 	var myhost string

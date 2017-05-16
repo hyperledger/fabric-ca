@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -29,8 +30,9 @@ import (
 )
 
 const (
-	initYaml  = "i.yaml"
-	startYaml = "s.yaml"
+	initYaml    = "i.yaml"
+	startYaml   = "s.yaml"
+	ldapTestDir = "ldapTestDir"
 )
 
 var (
@@ -128,6 +130,24 @@ func TestErrors(t *testing.T) {
 	// We are done with all error cases. Now, set the ca.name default value to
 	// "acme.com", as ca.name is a required property for server to start
 	viper.SetDefault("ca.name", "acme.com")
+}
+
+func TestLDAP(t *testing.T) {
+	os.RemoveAll(ldapTestDir)
+	defer os.RemoveAll(ldapTestDir)
+	// Test with "-b" option
+	err := RunMain([]string{cmdName, "init", "-c", path.Join(ldapTestDir, "config.yaml"),
+		"-b", "a:b", "--ldap.enabled", "--ldap.url", "ldap://CN=admin@localhost:389/dc=example,dc=com"})
+	if err != nil {
+		t.Errorf("Failed to init server with LDAP enabled and -b: %s", err)
+	}
+	// Try without "-b" option
+	os.RemoveAll(ldapTestDir)
+	err = RunMain([]string{cmdName, "init", "-c", path.Join(ldapTestDir, "config.yaml"),
+		"--ldap.enabled", "--ldap.url", "ldap://CN=admin@localhost:389/dc=example,dc=com"})
+	if err != nil {
+		t.Errorf("Failed to init server with LDAP enabled and no -b: %s", err)
+	}
 }
 
 func TestValid(t *testing.T) {
@@ -269,6 +289,7 @@ func TestClean(t *testing.T) {
 	os.RemoveAll("../../testdata/msp")
 	os.Remove("../../testdata/fabric-ca-server.db")
 	os.Remove("../../testdata/ca-cert.pem")
+	os.RemoveAll(ldapTestDir)
 }
 
 func cleanUpMultiCAFiles() {
