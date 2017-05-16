@@ -17,12 +17,17 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/dsa"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
@@ -75,6 +80,10 @@ type CA struct {
 	// The server hosting this CA
 	server *Server
 }
+
+const (
+	certificateError = "Invalid certificate in file"
+)
 
 // NewCA creates a new CA with the specified
 // home directory, parent server URL, and config
@@ -169,6 +178,10 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			log.Info("The CA key and certificate files already exist")
 			log.Infof("Key file location: %s", keyFile)
 			log.Infof("Certificate file location: %s", certFile)
+			err := ca.validateCert(certFile, keyFile)
+			if err != nil {
+				return fmt.Errorf("Validation of certificate and key failed: %s", err)
+			}
 			return nil
 		}
 
@@ -691,6 +704,141 @@ func (ca *CA) fillCAInfo(info *serverInfoResponseNet) error {
 	}
 	info.CAName = ca.Config.CA.Name
 	info.CAChain = util.B64Encode(caChain)
+	return nil
+}
+
+// Perfroms checks on the provided CA cert to make sure it's valid
+func (ca *CA) validateCert(certFile string, keyFile string) error {
+	log.Debug("Validating the CA certificate and key")
+	var err error
+	var certPEM []byte
+
+	certPEM, err = ioutil.ReadFile(certFile)
+	if err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+
+	cert, err := util.GetX509CertificateFromPEM(certPEM)
+	if err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+
+	if err = validateDates(cert); err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+	if err = validateUsage(cert); err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+	if err = validateIsCA(cert); err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+	if err = validateKeyType(cert); err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+	if err = validateKeySize(cert); err != nil {
+		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+	}
+	if err = validateMatchingKeys(cert, keyFile); err != nil {
+		return fmt.Errorf("Invalid certificate and/or key in files '%s' and '%s': %s", certFile, keyFile, err)
+	}
+	log.Debug("Validation of CA certificate and key successfull")
+
+	return nil
+}
+
+func validateDates(cert *x509.Certificate) error {
+	log.Debug("Check CA certificate for valid dates")
+
+	notAfter := cert.NotAfter
+	currentTime := time.Now().UTC()
+
+	if currentTime.After(notAfter) {
+		return errors.New("Certificate provided has expired")
+	}
+
+	notBefore := cert.NotBefore
+	if currentTime.Before(notBefore) {
+		return errors.New("Certificate provided not valid until later date")
+	}
+
+	return nil
+}
+
+func validateUsage(cert *x509.Certificate) error {
+	log.Debug("Check CA certificate for valid usages")
+
+	if cert.KeyUsage == 0 {
+		return errors.New("No usage specified for certificate")
+	}
+
+	return nil
+}
+
+func validateIsCA(cert *x509.Certificate) error {
+	log.Debug("Check CA certificate for valid IsCA value")
+
+	if !cert.IsCA {
+		return errors.New("Certificate not configured to be used for CA")
+	}
+
+	return nil
+}
+
+func validateKeyType(cert *x509.Certificate) error {
+	log.Debug("Check that key type is supported")
+
+	switch cert.PublicKey.(type) {
+	case *dsa.PublicKey:
+		return errors.New("Unsupported key type: DSA")
+	}
+
+	return nil
+}
+
+func validateKeySize(cert *x509.Certificate) error {
+	log.Debug("Check that key size is of appropriate length")
+
+	switch cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		size := cert.PublicKey.(*rsa.PublicKey).N.BitLen()
+		if size < 2048 {
+			return errors.New("Key size is less than 2048 bits")
+		}
+	}
+
+	return nil
+}
+
+func validateMatchingKeys(cert *x509.Certificate, keyFile string) error {
+	log.Debug("Check that public key and private key match")
+
+	keyPEM, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		return err
+	}
+
+	pubKey := cert.PublicKey
+	switch pubKey.(type) {
+	case *rsa.PublicKey:
+		privKey, err := util.GetRSAPrivateKey(keyPEM)
+		if err != nil {
+			return err
+		}
+
+		if privKey.PublicKey.N.Cmp(pubKey.(*rsa.PublicKey).N) != 0 {
+			return errors.New("Public key and private key do not match")
+		}
+	case *ecdsa.PublicKey:
+		privKey, err := util.GetECPrivateKey(keyPEM)
+		if err != nil {
+			return err
+		}
+
+		if privKey.PublicKey.X.Cmp(pubKey.(*ecdsa.PublicKey).X) != 0 {
+			return errors.New("Public key and private key do not match")
+		}
+	}
+
 	return nil
 }
 
