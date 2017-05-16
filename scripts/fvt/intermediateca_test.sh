@@ -18,6 +18,11 @@ NUMINTCAS=8
 MAXENROLL=$((2*NUMINTCAS))
 TIMEOUT=10
 RC=0
+TDIR=/tmp/intermediateca-tests
+PROTO="http://"
+ROOT_CA_ADDR=localhost
+CA_PORT=7054
+TLSDIR="$TDIR/tls"
 
 function setupTLScerts() {
    oldhome=$HOME

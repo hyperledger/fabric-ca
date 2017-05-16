@@ -409,7 +409,7 @@ func (ca *CA) initConfig() (err error) {
 		defaultIssuedCertificateExpiration,
 		false)
 	// Set log level if debug is true
-	if ca.server.Config.Debug {
+	if ca.server != nil && ca.server.Config != nil && ca.server.Config.Debug {
 		log.Level = log.LevelDebug
 	}
 	ca.normalizeStringSlices()
@@ -725,27 +725,6 @@ func (ca *CA) convertAttrs(inAttrs map[string]string) []api.Attribute {
 		})
 	}
 	return outAttrs
-}
-
-// Get max enrollments relative to the configured max
-func (ca *CA) getMaxEnrollments(requestedMax int) (int, error) {
-	configuredMax := ca.Config.Registry.MaxEnrollments
-	if requestedMax < 0 {
-		return configuredMax, nil
-	}
-	if configuredMax == 0 {
-		// no limit, so grant any request
-		return requestedMax, nil
-	}
-	if requestedMax == 0 && configuredMax != 0 {
-		return 0, fmt.Errorf("Infinite enrollments is not permitted; max is %d",
-			configuredMax)
-	}
-	if requestedMax > configuredMax {
-		return 0, fmt.Errorf("Max enrollments of %d is not permitted; max is %d",
-			requestedMax, configuredMax)
-	}
-	return requestedMax, nil
 }
 
 // Make all file names in the CA config absolute

@@ -6,9 +6,9 @@
 #
 echo "Checking file format ..."
 found=`gofmt -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
-if [ $? -ne 0 ]; then
+if [[ -n "$found" ]]; then
    echo "The following files need reformatting with 'gofmt -w <file>':"
-   echo "$badformat"
+   echo "$found"
    exit 1
 fi
 echo "All files are properly formatted"

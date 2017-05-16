@@ -4,13 +4,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-if [ ! -f $GOPATH/bin/goimports ]; then
+
+GOIMPORTS="$GOPATH/bin/goimports"
+
+if [ ! -f $GOIMPORTS ]; then
    echo "Installing goimports ..."
    go get golang.org/x/tools/cmd/goimports
+   if [ $? -ne 0 ]; then
+      echo "Failed to install goimports"
+      exit 1
+   fi
 fi
 
 echo "Checking imports ..."
-found=`goimports -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
+found=`$GOIMPORTS -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
 if [ "$found" != "" ]; then
    echo "The following files have import problems:"
    echo "$found"

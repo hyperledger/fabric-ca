@@ -18,13 +18,19 @@ package lib
 import (
 	"crypto/x509"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/hyperledger/fabric/bccsp/pkcs11"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
+	testdir              = "../testdata"
+	dbname               = "fabric-ca-server.db"
 	badcert              = "../testdata/expiredcert.pem"
 	dsacert              = "../testdata/dsa-cert.pem"
 	lowbitcert           = "../testdata/lowbitcert.pem"
@@ -47,11 +53,11 @@ func TestBadCACertificates(t *testing.T) {
 	}
 
 	testValidDates(cert, t)
-	testValidUsages(cert, t)
 	testValidCA(cert, t)
 	testValidKeyType(cert, t)
 	testValidKeySize(cert, t)
 	testValidMatchingKeys(cert, t)
+	testValidUsages(cert, t)
 }
 
 func testValidDates(cert *x509.Certificate, t *testing.T) {
@@ -178,4 +184,166 @@ func testValidMatchingKeys(cert *x509.Certificate, t *testing.T) {
 	if err == nil {
 		t.Error("Should have failed, public key and private key do not match")
 	}
+}
+
+func TestCAInit(t *testing.T) {
+	var cfg CAConfig
+	var srv Server
+	var caCert = "ca-cert.pem"
+	var caKey = "ca-key.pem"
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd")
+	}
+	t.Logf("====== wd %v", wd)
+	confDir, err := cdTmpTestDir("TestCAInit")
+	if err != nil {
+		t.Fatalf("failed to cd to tmp dir")
+	}
+	t.Logf("confDir: %v", confDir)
+
+	ca, err := NewCA(confDir, &cfg, &srv, false)
+	if err != nil {
+		t.Fatal("NewCA FAILED")
+	}
+
+	// BCCSP error
+	swo := &factory.SwOpts{}
+	pko := &pkcs11.PKCS11Opts{}
+	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "PKCS11", SwOpts: swo, Pkcs11Opts: pko}
+	ca.HomeDir = ""
+	err = ca.init(false)
+	t.Logf("ca.init error: %v", err)
+	if err == nil {
+		t.Fatalf("Server init should have failed: BCCSP err")
+	}
+
+	// delete everything and start over
+	// initKeyMaterial error
+	os.Chdir("..")
+	confDir1 := confDir
+	confDir, err = cdTmpTestDir("TestCAInit")
+	if err != nil {
+		t.Fatalf("failed to cd to tmp dir")
+	}
+	t.Logf("confDir: %v", confDir)
+
+	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
+	ca, err = NewCA(confDir, &cfg, &srv, true)
+	if err != nil {
+		t.Fatal("NewCA FAILED", err)
+	}
+	ca.Config.CA.Keyfile = caKey
+	ca.Config.CA.Certfile = caCert
+	err = os.Link("../ec256-1-key.pem", caKey)
+	if err != nil {
+		t.Fatal("symlink error: ", err)
+	}
+	err = os.Link("../ec256-2-cert.pem", caCert)
+	if err != nil {
+		t.Fatal("symlink error: ", err)
+	}
+	err = ca.init(false)
+	t.Logf("init err: %v", err)
+	if err == nil {
+		t.Fatal("Should have failed: ")
+	}
+
+	err = os.Remove(caKey)
+	err = os.Remove(caCert)
+	ca.Config.CA.Keyfile = ""
+	ca.Config.CA.Certfile = ""
+	ca.Config.DB.Datasource = ""
+	ca, err = NewCA(confDir, &cfg, &srv, true)
+	if err != nil {
+		t.Fatal("NewCA FAILED")
+	}
+	err = ca.init(false)
+	t.Logf("init err: %v", err)
+	if err != nil {
+		t.Fatal("ca init failed", err)
+	}
+
+	// initDB error
+	ca.Config.LDAP.Enabled = true
+	err = ca.init(false)
+	t.Logf("init err: %v", err)
+	if err == nil {
+		t.Fatal("Should have failed: ")
+	}
+
+	// initEnrollmentSigner error
+	ca.Config.LDAP.Enabled = false
+	ca, err = NewCA(confDir, &cfg, &srv, false)
+	if err != nil {
+		t.Fatal("NewCA FAILED")
+	}
+	err = os.RemoveAll("./msp")
+	if err != nil {
+		t.Fatalf("os.Remove msp failed: %v", err)
+	}
+	err = os.Remove(caCert)
+	if err != nil {
+		t.Fatalf("os.Remove failed: %v", err)
+	}
+	err = os.Link("../rsa2048-1-key.pem", caKey)
+	if err != nil {
+		t.Fatal("symlink error: ", err)
+	}
+	err = os.Link("../rsa2048-1-cert.pem", caCert)
+	if err != nil {
+		t.Fatal("symlink error: ", err)
+	}
+	ca.Config.CA.Keyfile = caKey
+	ca.Config.CA.Certfile = caCert
+	err = ca.init(false)
+	t.Logf("init err: %v", err)
+	if err == nil {
+		t.Fatal("Should have failed")
+	}
+
+	os.Chdir("..")
+	wd, err = os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd")
+	}
+	t.Logf("changed to ====== wd %v", wd)
+	t.Logf("Removing %s", confDir)
+	err = os.RemoveAll(confDir)
+	if err != nil {
+		t.Fatalf("os.RemoveAll failed: %v", err)
+	}
+	t.Logf("Removing %s", confDir1)
+	err = os.RemoveAll(confDir1)
+	if err != nil {
+		t.Fatalf("os.RemoveAll failed: %v", err)
+	}
+
+	t.Logf(" changing to ====== wd %v", wd)
+	os.Chdir(wd)
+	wd, err = os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd")
+	}
+	t.Logf("changed to ====== wd %v", wd)
+}
+
+func getTestDir(d string) (string, error) {
+	td, err := ioutil.TempDir(".", d)
+	if err != nil {
+		return string(""), err
+	}
+	_, d2 := filepath.Split(td)
+	return d2, nil
+}
+
+func cdTmpTestDir(name string) (string, error) {
+	os.Chdir(testdir)
+	tmpDir, err := getTestDir(name)
+	if err != nil {
+		return "", err
+	}
+	os.Chdir(tmpDir)
+	return tmpDir, nil
 }

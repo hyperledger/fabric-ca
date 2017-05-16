@@ -87,6 +87,15 @@ func Truncate(db *sqlx.DB) {
 	}
 }
 
+func TestEmptyAccessor(t *testing.T) {
+	a := &Accessor{}
+	ui := spi.UserInfo{}
+	err := a.InsertUser(ui)
+	if err == nil {
+		t.Error("Empty Accessor InsertUser should have failed")
+	}
+}
+
 func removeDatabase() {
 	os.RemoveAll(dbPath)
 }

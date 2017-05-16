@@ -207,13 +207,6 @@ func (s *Server) initConfig() (err error) {
 	if cfg.Debug {
 		log.Level = log.LevelDebug
 	}
-	// Set config defaults if not set
-	if cfg.Address == "" {
-		cfg.Address = DefaultServerAddr
-	}
-	if cfg.Port == 0 {
-		cfg.Port = DefaultServerPort
-	}
 	s.CA.server = s
 	s.CA.HomeDir = s.HomeDir
 	err = s.CA.initConfig()

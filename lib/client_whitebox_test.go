@@ -20,10 +20,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
@@ -32,6 +34,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/hyperledger/fabric/bccsp/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -44,7 +47,7 @@ const (
 
 var clientConfig = path.Join(testdataDir, "client-config.json")
 
-func TestClient1(t *testing.T) {
+func TestCWBClient1(t *testing.T) {
 	server := getServer(whitePort, path.Join(serversDir, "c1"), "", 1, t)
 	if server == nil {
 		t.Fatal("Failed to get server")
@@ -62,17 +65,18 @@ func TestClient1(t *testing.T) {
 }
 
 // TestTLS performs 3 main steps:
-// 1) Test over HTTP to get an standard ecert
+// 1) Test over HTTP to get an standard ECert
 // 2) Test over HTTPS with client auth disabled
-// 3) Test over HTTPS with client auth enabled, using standard ecert from #1
-func TestTLSClientAuth(t *testing.T) {
+// 3) Test over HTTPS with client auth enabled, using standard ECert from #1
+func TestCWBTLSClientAuth(t *testing.T) {
 	os.RemoveAll(testTLSClientAuthDir)
 	defer os.RemoveAll(testTLSClientAuthDir)
+	defer os.RemoveAll("msp")
 	//
-	// 1) Test over HTTP to get a standard ecert
+	// 1) Test over HTTP to get a standard ECert
 	//
 	// Start server
-	server := getServer(whitePort, path.Join(testTLSClientAuthDir, "server"), "", 1, t)
+	server := getServer(whitePort, path.Join(testTLSClientAuthDir, "server"), "", 2, t)
 	if server == nil {
 		return
 	}
@@ -81,11 +85,13 @@ func TestTLSClientAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
+
 	// Enroll over HTTP
 	client := &Client{
 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", whitePort)},
 		HomeDir: path.Join(testTLSClientAuthDir, "client"),
 	}
+
 	eresp, err := client.Enroll(&api.EnrollmentRequest{Name: user, Secret: pass})
 	if err != nil {
 		server.Stop()
@@ -94,6 +100,27 @@ func TestTLSClientAuth(t *testing.T) {
 	id := eresp.Identity
 	testImpersonation(id, t)
 	testMasqueradeEnroll(t, client, id)
+
+	// Register and enroll user to test reenrolling while masquerading
+	name := "masqueradeUser2"
+	rr, err := id.Register(&api.RegistrationRequest{
+		Name:           name,
+		Type:           "user",
+		Affiliation:    "hyperledger.fabric.security",
+		MaxEnrollments: 2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to register maqueradeUser: %s", err)
+	}
+
+	eresp2, err := client.Enroll(&api.EnrollmentRequest{Name: name, Secret: rr.Secret})
+	if err != nil {
+		t.Errorf("Failed to enroll")
+	}
+
+	id2 := eresp2.Identity
+	testMasqueradeReenroll(t, client, id2)
+
 	// Stop server
 	err = server.Stop()
 	if err != nil {
@@ -112,6 +139,7 @@ func TestTLSClientAuth(t *testing.T) {
 	}
 	// Try to reenroll over HTTP and it should fail because server is listening on HTTPS
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
+	t.Logf("id.Reenroll: %v", err)
 	if err == nil {
 		t.Error("Client HTTP should have failed to reenroll with server HTTPS")
 	}
@@ -148,6 +176,7 @@ func TestTLSClientAuth(t *testing.T) {
 	}
 	// Try to reenroll and it should fail because client has no client cert
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
+	t.Logf("id.Reenroll: %v", err)
 	if err == nil {
 		t.Error("Client reenroll without client cert should have failed")
 	}
@@ -200,13 +229,12 @@ func enrollAndCheck(t *testing.T, c *Client, body []byte, authHeader string) {
 	}
 	var result enrollmentResponseNet
 	err = c.SendReq(post, &result)
-	if err != nil {
-		t.Logf("err : %v\n", err.Error())
-	}
+	t.Logf("c.SendReq: %v", err)
 	if err == nil {
 		t.Errorf("Enrollment with bad basic auth header '%s' should have failed",
 			authHeader)
 	}
+	defer os.RemoveAll("../testdata/msp")
 }
 
 // Try to impersonate 'id' identity by creating a self-signed certificate
@@ -222,6 +250,9 @@ func testImpersonation(id *Identity, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize BCCSP: %s", err)
 	}
+	var fm os.FileMode = 0777
+	os.MkdirAll("msp/keystore", os.FileMode(fm))
+	defer os.RemoveAll("msp")
 	privateKey, err := csp.KeyGen(&bccsp.ECDSAKeyGenOpts{Temporary: false})
 	if err != nil {
 		t.Fatalf("Failed generating ECDSA key [%s]", err)
@@ -250,8 +281,9 @@ func testImpersonation(id *Identity, t *testing.T) {
 	fakeCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: fakeCertBytes})
 	fakeID := newIdentity(id.GetClient(), "admin", privateKey, fakeCert)
 	err = fakeID.RevokeSelf()
+	t.Logf("fakeID.RevokeSelf: %v", err)
 	if err == nil {
-		t.Fatalf("Fake ID should not have failed revocation")
+		t.Fatalf("Fake ID should have failed revocation")
 	}
 }
 
@@ -260,14 +292,15 @@ func testMasqueradeEnroll(t *testing.T, c *Client, id *Identity) {
 	log.Debug("Entering testMasqueradeEnroll")
 	name := "masqueradeUser"
 	rr, err := id.Register(&api.RegistrationRequest{
-		Name:        name,
-		Type:        "user",
-		Affiliation: "hyperledger.fabric.security",
+		Name:           name,
+		Type:           "user",
+		Affiliation:    "hyperledger.fabric.security",
+		MaxEnrollments: 2,
 	})
 	if err != nil {
 		t.Fatalf("Failed to register maqueradeUser: %s", err)
 	}
-	// Try to enroll user1 but masquerading as 'admin'
+	// Try to enroll masqueradeUser but masquerading as 'admin'
 	_, err = masqueradeEnroll(c, "admin", false, &api.EnrollmentRequest{
 		Name:   name,
 		Secret: rr.Secret,
@@ -282,6 +315,22 @@ func testMasqueradeEnroll(t *testing.T, c *Client, id *Identity) {
 	})
 	if err == nil {
 		t.Fatalf("%s masquerading as admin (true) should have failed", name)
+	}
+	log.Debugf("testMasqueradeEnroll (true) error: %s", err)
+}
+
+func testMasqueradeReenroll(t *testing.T, c *Client, id *Identity) {
+	log.Debug("Entering testMasqueradeReenroll")
+	// Try to reenroll but masquerading as 'admin'
+	_, err := masqueradeReenroll(c, "admin", id, false, &api.ReenrollmentRequest{})
+	if assert.Error(t, err, fmt.Sprintf("%s masquerading as admin (false) should have failed", id.GetName())) {
+		assert.Contains(t, err.Error(), "The CSR subject common name must equal the enrollment ID", "Failed for other reason besides masquerading")
+	}
+
+	log.Debugf("testMasqueradeEnroll (false) error: %s", err)
+	_, err = masqueradeReenroll(c, "admin", id, true, &api.ReenrollmentRequest{})
+	if assert.Error(t, err, fmt.Sprintf("%s masquerading as admin (false) should have failed", id.GetName())) {
+		assert.Contains(t, err.Error(), "The CSR subject common name must equal the enrollment ID", "Failed for other reason besides masquerading")
 	}
 	log.Debugf("testMasqueradeEnroll (true) error: %s", err)
 }
@@ -362,8 +411,148 @@ func getTestClient(port int) *Client {
 	}
 }
 
-// Enroll enrolls a new identity
-// @param req The enrollment request
+func TestCWBCAConfig(t *testing.T) {
+	ca := &CA{}
+
+	//Error cases
+	err := ca.fillCAInfo(nil)
+	t.Logf("fillCAInfo err: %v", err)
+	if err == nil {
+		t.Error("ca.fileCAInfo should have failed but passed")
+	}
+	_, err = ca.getCAChain()
+	t.Logf("getCAChain err: %v", err)
+	if err == nil {
+		t.Error("getCAChain:1 should have failed but passed")
+	}
+	ca.Config = &CAConfig{}
+	ca.Config.Intermediate.ParentServer.URL = "foo"
+	_, err = ca.getCAChain()
+	t.Logf("getCAChain err: %v", err)
+	if err == nil {
+		t.Error("getCAChain:2 should have failed but passed")
+	}
+	ca.Config.DB.Type = "postgres"
+	err = ca.initDB()
+	t.Logf("initDB err: %v", err)
+	if err == nil {
+		t.Error("initDB postgres should have failed but passed")
+	}
+	ca.Config.DB.Type = "mysql"
+	err = ca.initDB()
+	t.Logf("initDB err: %v", err)
+	if err == nil {
+		t.Error("initDB mysql should have failed but passed")
+	}
+
+	ca.Config.DB.Type = "unknown"
+	err = ca.initDB()
+	t.Logf("initDB err: %v", err)
+	if err == nil {
+		t.Error("initDB unknown should have failed but passed")
+	}
+
+	ca.Config.LDAP.Enabled = true
+	ca.server = &Server{}
+	err = ca.initUserRegistry()
+	t.Logf("initUserRegistry err: %v", err)
+	if err == nil {
+		t.Error("initConfig LDAP passed but should have failed")
+	}
+
+	//Non error cases
+	ca.Config.CA.Chainfile = "../testdata/ec.pem"
+	_, err = ca.getCAChain()
+	t.Logf("getCAChain err: %v", err)
+	if err != nil {
+		t.Errorf("Failed to getCAChain: %s", err)
+	}
+	err = ca.initConfig()
+	if err != nil {
+		t.Errorf("initConfig failed: %s", err)
+	}
+	ca = &CA{}
+	err = ca.initConfig()
+	if err != nil {
+		t.Errorf("ca.initConfig default failed: %s", err)
+	}
+	ca.HomeDir = ""
+	err = ca.initConfig()
+	if err != nil {
+		t.Errorf("initConfig failed: %s", err)
+	}
+	ca.Config = new(CAConfig)
+	ca.Config.CA.Certfile = "../testdata/ec_cert.pem"
+	ca.Config.CA.Keyfile = "../testdata/ec_key.pem"
+	err = ca.initConfig()
+	if err != nil {
+		t.Errorf("initConfig failed: %s", err)
+	}
+	s := &Server{}
+	err = s.initConfig()
+	if err != nil {
+		t.Errorf("server.initConfig default failed: %s", err)
+	}
+}
+
+func TestCWBNewCertificateRequest(t *testing.T) {
+	c := &Client{}
+	req := &api.CSRInfo{
+		Names:      []csr.Name{},
+		Hosts:      []string{},
+		KeyRequest: csr.NewBasicKeyRequest(),
+	}
+	if c.newCertificateRequest(req) == nil {
+		t.Error("newCertificateRequest failed")
+	}
+}
+
+func TestCWBCAConfigStat(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd")
+	}
+	td, err := ioutil.TempDir(testdataDir, "CAConfigStat")
+	if err != nil {
+		t.Fatalf("failed to get tmp dir")
+	}
+	os.Chdir(td)
+
+	ca := &CA{}
+	ca.Config = &CAConfig{}
+	ca.HomeDir = "."
+	fileInfo, err := os.Stat(".")
+	if err != nil {
+		t.Fatalf("os.Stat failed on current dir")
+	}
+	oldmode := fileInfo.Mode()
+	err = os.Chmod(".", 0000)
+	if err != nil {
+		t.Fatalf("Chmod on %s failed", testdataDir)
+	}
+
+	ca.Config.DB.Type = ""
+	err = ca.initDB()
+	t.Logf("initDB err: %v", err)
+	if err == nil {
+		t.Errorf("initDB should have failed (getcwd failure)")
+	}
+	_ = os.Chmod(".", oldmode)
+	ca.Config.DB.Datasource = ""
+	ca.HomeDir = ""
+
+	defer os.RemoveAll(td)
+	os.Chdir(wd)
+}
+
+func TestCLIClientClean(t *testing.T) {
+	os.RemoveAll("msp")
+	os.RemoveAll("../testdata/msp")
+	os.RemoveAll(serversDir)
+	os.RemoveAll(testTLSClientAuthDir)
+}
+
+// masqueradeEnroll enrolls a new identity as a masquerader
 func masqueradeEnroll(c *Client, id string, passInSubject bool, req *api.EnrollmentRequest) (*EnrollmentResponse, error) {
 	err := c.Init()
 	if err != nil {
@@ -403,4 +592,42 @@ func masqueradeEnroll(c *Client, id string, passInSubject bool, req *api.Enrollm
 	}
 	// Create the enrollment response
 	return c.newEnrollmentResponse(&result, req.Name, key)
+}
+
+// masqueradeReenroll reenrolls a new identity as a masquerader
+func masqueradeReenroll(c *Client, id string, identity *Identity, passInSubject bool, req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
+	err := c.Init()
+	if err != nil {
+		return nil, err
+	}
+	csrPEM, key, err := c.GenCSR(req.CSR, id)
+	if err != nil {
+		log.Debugf("Enroll failure generating CSR: %s", err)
+		return nil, err
+	}
+	reqNet := &api.EnrollmentRequestNet{
+		CAName: req.CAName,
+	}
+	if req.CSR != nil {
+		reqNet.SignRequest.Hosts = req.CSR.Hosts
+	}
+	reqNet.SignRequest.Request = string(csrPEM)
+	reqNet.SignRequest.Profile = req.Profile
+	reqNet.SignRequest.Label = req.Label
+	if passInSubject {
+		reqNet.SignRequest.Subject = &signer.Subject{CN: id}
+	}
+	body, err := util.Marshal(reqNet, "SignRequest")
+	if err != nil {
+		return nil, err
+	}
+	// Send the CSR to the fabric-ca server with basic auth header
+	var result enrollmentResponseNet
+	err = identity.Post("reenroll", body, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the enrollment response
+	return c.newEnrollmentResponse(&result, identity.GetName(), key)
 }

@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
@@ -35,6 +36,28 @@ func TestIdentity(t *testing.T) {
 	id := getIdentity()
 	testGetName(id, t)
 	testGetECert(id, t)
+}
+
+func TestBadStoreIdentity(t *testing.T) {
+	id := &Identity{}
+	err := id.Store()
+	if err == nil {
+		t.Error("TestBadStoreIdentity passed but should have failed")
+	}
+}
+
+func TestBadRegistration(t *testing.T) {
+	id := &Identity{}
+	req := &api.RegistrationRequest{}
+	_, err := id.Register(req)
+	if err == nil {
+		t.Error("Empty registration request should have failed")
+	}
+	req.Name = "foo"
+	_, err = id.Register(req)
+	if err == nil {
+		t.Error("Registration request without affiliation should have failed")
+	}
 }
 
 func testGetName(id *Identity, t *testing.T) {

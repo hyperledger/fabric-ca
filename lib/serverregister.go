@@ -99,15 +99,13 @@ func (h *registerHandler) RegisterUser(req *api.RegistrationRequestNet, registra
 
 	err = h.validateID(req, caname)
 	if err != nil {
-		log.Debugf("Registration of '%s' failed: %s", req.Name, err)
-		return "", err
+		return "", fmt.Errorf("Registration of '%s' failed in validation: %s", req.Name, err)
 	}
 
 	secret, err = h.registerUserID(req, caname)
 
 	if err != nil {
-		log.Debugf("Registration of '%s' failed: %s", req.Name, err)
-		return "", err
+		return "", fmt.Errorf("Registration of '%s' failed: %s", req.Name, err)
 	}
 
 	return secret, nil

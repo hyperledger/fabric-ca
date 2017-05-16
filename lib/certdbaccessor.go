@@ -81,7 +81,6 @@ func (d *CertDBAccessor) checkDB() error {
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
 func (d *CertDBAccessor) SetDB(db *sqlx.DB) {
 	d.db = db
-	return
 }
 
 // InsertCertificate puts a CertificateRecord into db.
@@ -243,31 +242,26 @@ func (d *CertDBAccessor) RevokeCertificate(serial, aki string, reasonCode int) e
 
 // InsertOCSP puts a new certdb.OCSPRecord into the db.
 func (d *CertDBAccessor) InsertOCSP(rr certdb.OCSPRecord) error {
-	err := d.accessor.InsertOCSP(rr)
-	return err
+	return d.accessor.InsertOCSP(rr)
 }
 
 // GetOCSP retrieves a certdb.OCSPRecord from db by serial.
 func (d *CertDBAccessor) GetOCSP(serial, aki string) (ors []certdb.OCSPRecord, err error) {
-	ors, err = d.accessor.GetOCSP(serial, aki)
-	return ors, err
+	return d.accessor.GetOCSP(serial, aki)
 }
 
 // GetUnexpiredOCSPs retrieves all unexpired certdb.OCSPRecord from db.
 func (d *CertDBAccessor) GetUnexpiredOCSPs() (ors []certdb.OCSPRecord, err error) {
-	ors, err = d.accessor.GetUnexpiredOCSPs()
-	return ors, err
+	return d.accessor.GetUnexpiredOCSPs()
 }
 
 // UpdateOCSP updates a ocsp response record with a given serial number.
 func (d *CertDBAccessor) UpdateOCSP(serial, aki, body string, expiry time.Time) error {
-	err := d.accessor.UpdateOCSP(serial, aki, body, expiry)
-	return err
+	return d.accessor.UpdateOCSP(serial, aki, body, expiry)
 }
 
 // UpsertOCSP update a ocsp response record with a given serial number,
 // or insert the record if it doesn't yet exist in the db
 func (d *CertDBAccessor) UpsertOCSP(serial, aki, body string, expiry time.Time) error {
-	err := d.accessor.UpsertOCSP(serial, aki, body, expiry)
-	return err
+	return d.accessor.UpsertOCSP(serial, aki, body, expiry)
 }
