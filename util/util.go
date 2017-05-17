@@ -321,26 +321,48 @@ func DecodeToken(token string) (*x509.Certificate, string, string, error) {
 func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
 	decoded, _ := pem.Decode(raw)
 	if decoded == nil {
-		return nil, errors.New("Failed to decode the given PEM-encoded ECDSA key")
+		return nil, errors.New("Failed to decode the PEM-encoded ECDSA key")
 	}
 	ECprivKey, err := x509.ParseECPrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("x509.ParseECPrivateKey failed: %s", err)
+	if err == nil {
+		return ECprivKey, nil
 	}
-	return ECprivKey, nil
+	key, err2 := x509.ParsePKCS8PrivateKey(decoded.Bytes)
+	if err2 == nil {
+		switch key.(type) {
+		case *ecdsa.PrivateKey:
+			return key.(*ecdsa.PrivateKey), nil
+		case *rsa.PrivateKey:
+			return nil, errors.New("Expecting EC private key but found RSA private key")
+		default:
+			return nil, errors.New("Invalid private key type in PKCS#8 wrapping")
+		}
+	}
+	return nil, fmt.Errorf("Failed parsing EC private key: %s", err)
 }
 
 //GetRSAPrivateKey get *rsa.PrivateKey from key pem
 func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	decoded, _ := pem.Decode(raw)
 	if decoded == nil {
-		return nil, errors.New("Failed to decode the given PEM-encoded RSA key")
+		return nil, errors.New("Failed to decode the PEM-encoded RSA key")
 	}
 	RSAprivKey, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("Failure in x509.ParsePKCS1PrivateKey: %s", err)
+	if err == nil {
+		return RSAprivKey, nil
 	}
-	return RSAprivKey, nil
+	key, err2 := x509.ParsePKCS8PrivateKey(raw)
+	if err2 == nil {
+		switch key.(type) {
+		case *ecdsa.PrivateKey:
+			return nil, errors.New("Expecting RSA private key but found EC private key")
+		case *rsa.PrivateKey:
+			return key.(*rsa.PrivateKey), nil
+		default:
+			return nil, errors.New("Invalid private key type in PKCS#8 wrapping")
+		}
+	}
+	return nil, fmt.Errorf("Failed parsing RSA private key: %s", err)
 }
 
 // B64Encode base64 encodes bytes

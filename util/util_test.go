@@ -518,3 +518,24 @@ func TestGetSerialAsHex(t *testing.T) {
 	res := GetSerialAsHex(big.NewInt(101))
 	assert.Equal(t, "65", res)
 }
+
+func TestECPrivateKey(t *testing.T) {
+	_, err := GetECPrivateKey(getPEM("../testdata/ec-key.pem", t))
+	assert.NoError(t, err)
+}
+
+func TestPKCS8WrappedECPrivateKey(t *testing.T) {
+	_, err := GetECPrivateKey(getPEM("../testdata/pkcs8eckey.pem", t))
+	assert.NoError(t, err)
+}
+
+func TestRSAPrivateKey(t *testing.T) {
+	_, err := GetRSAPrivateKey(getPEM("../testdata/rsa-key.pem", t))
+	assert.NoError(t, err)
+}
+
+func getPEM(file string, t *testing.T) []byte {
+	buf, err := ioutil.ReadFile(file)
+	assert.NoError(t, err)
+	return buf
+}
