@@ -341,7 +341,7 @@ func testRegisterCommandLine(t *testing.T) {
 	t.Log("Testing Register CMD")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	err := RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister3", "--id.affiliation", "hyperledger.org1", "--id.type", "client", "--id.attr", "hf.test=a=b"})
+	err := RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister3", "--id.affiliation", "hyperledger.org1", "--id.type", "client", "--id.attrs", "foo=a=b bar=c"})
 	if err != nil {
 		t.Errorf("client register failed: %s", err)
 	}

@@ -217,7 +217,7 @@ The following shows the Fabric CA client usage message:
           --enrollment.label string      Label to use in HSM operations
           --enrollment.profile string    Name of the signing profile to use in issuing the certificate
           --id.affiliation string        The identity's affiliation
-          --id.attr string               Attributes associated with this identity (e.g. hf.Revoker=true)
+          --id.attrs stringSlice         A space-separated list of attributes of the form <name>=<value> (e.g. foo=foo1 bar=bar1)
           --id.maxenrollments int        The maximum number of times the secret can be reused to enroll
           --id.name string               Unique name of the identity
           --id.secret string             The enrollment secret for the identity being registered
@@ -1114,12 +1114,13 @@ during registration as follows:
 
 The following command uses the **admin** identity's credentials to register a new
 identity with an enrollment id of "admin2", a type of "user", an affiliation of
-"org1.department1", and an attribute named "hf.Revoker" with a value of "true".
+"org1.department1", an attribute named "hf.Revoker" with a value of "true", and
+an attribute named "foo" with a value of "bar".
 
 ::
 
     # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attr hf.Revoker=true
+    # fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs "hf.Revoker=true foo=bar"
 
 The password, also known as the enrollment secret, is printed.
 This password is required to enroll the identity.
