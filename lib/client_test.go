@@ -206,7 +206,7 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 	}
 	resp, err := adminID.Register(rr)
 	if err != nil {
-		t.Fatalf("Failed to register %s", user)
+		t.Fatalf("Failed to register %s: %s", user, err)
 	}
 	req := &api.EnrollmentRequest{
 		Name:   user,
@@ -225,8 +225,23 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 	}
 	if withPriv && err != nil {
 		t.Errorf("testRevocation failed for user %s: %s", user, err)
+		return
 	} else if !withPriv && err == nil {
 		t.Errorf("testRevocation for user %s passed but should have failed", user)
+		return
+	}
+
+	if withPriv {
+		eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
+		if err == nil {
+			t.Errorf("user ecert %s enrolled but ecert should have been revoked", user)
+		}
+		if !ecertOnly {
+			eresp, err = c.Enroll(req)
+			if err == nil {
+				t.Errorf("user %s enrolled but should have been revoked", user)
+			}
+		}
 	}
 }
 

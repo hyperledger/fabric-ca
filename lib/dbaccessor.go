@@ -349,6 +349,10 @@ func (u *DBUser) Login(pass string) error {
 		return errors.New("Incorrect password")
 	}
 
+	if u.State == -1 {
+		return fmt.Errorf("User %s is revoked; access denied", u.Name)
+	}
+
 	// If the maxEnrollments is set (i.e. >= 0), make sure we haven't exceeded
 	// this number of logins. The state variable keeps track of the number of
 	// previously successful logins.
