@@ -18,6 +18,7 @@ package util
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -416,12 +417,22 @@ func TestB64(t *testing.T) {
 func TestGetUser(t *testing.T) {
 	os.Unsetenv("FABRIC_CA_CLIENT_URL")
 	viper.BindEnv("url", "FABRIC_CA_CLIENT_URL")
+	os.Setenv("FABRIC_CA_CLIENT_URL", "http://localhost:7054")
+	_, _, err := GetUser()
+	assert.Error(t, err, "Should have failed no username and password provided")
+
+	os.Setenv("FABRIC_CA_CLIENT_URL", "http://:pass@localhost:7054")
+	_, _, err = GetUser()
+	assert.Error(t, err, "Should have failed no username provided")
+
+	os.Setenv("FABRIC_CA_CLIENT_URL", "http://user:@localhost:7054")
+	_, _, err = GetUser()
+	assert.Error(t, err, "Should have failed no password provided")
+
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://foo:bar@localhost:7054")
 
 	user, pass, err := GetUser()
-	if err != nil {
-		t.Error(err)
-	}
+	assert.NoError(t, err)
 
 	if user != "foo" {
 		t.Error("Failed to retrieve correct username")
@@ -532,6 +543,20 @@ func TestPKCS8WrappedECPrivateKey(t *testing.T) {
 func TestRSAPrivateKey(t *testing.T) {
 	_, err := GetRSAPrivateKey(getPEM("../testdata/rsa-key.pem", t))
 	assert.NoError(t, err)
+}
+
+func TestCheckHostsInCert(t *testing.T) {
+	err := CheckHostsInCert("../testdata/doesnotexist.pem", "")
+	assert.Error(t, err)
+
+	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "localhost")
+	assert.NoError(t, err, fmt.Sprintf("Failed to find 'localhost' for host in certificate: %s", err))
+
+	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "fakehost")
+	assert.Error(t, err, "Certificate does not contain 'fakehost', should have failed")
+
+	err = CheckHostsInCert("../testdata/root.pem", "x")
+	assert.Error(t, err, "Certificate contained no host, should have failed")
 }
 
 func getPEM(file string, t *testing.T) []byte {

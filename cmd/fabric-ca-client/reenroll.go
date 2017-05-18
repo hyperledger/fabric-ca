@@ -76,7 +76,6 @@ func runReenroll() error {
 	}
 
 	req := &api.ReenrollmentRequest{
-		Hosts:   clientCfg.Enrollment.Hosts,
 		Label:   clientCfg.Enrollment.Label,
 		Profile: clientCfg.Enrollment.Profile,
 		CSR:     &clientCfg.CSR,

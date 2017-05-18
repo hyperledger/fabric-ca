@@ -18,7 +18,6 @@ package lib_test
 
 import (
 	"bytes"
-	"encoding/asn1"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -314,7 +313,7 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 	}
 
 	// Check that CSR fields are correctly getting inserted into certificate
-	err = checkHostsInCert(filepath.Join(intermediateDir, "ca-cert.pem"), "testhost")
+	err = util.CheckHostsInCert(filepath.Join(intermediateDir, "ca-cert.pem"), "testhost")
 	if err != nil {
 		t.Error(err)
 	}
@@ -603,7 +602,7 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 	}
 
 	// Check that CSR fields are correctly getting inserted into certificate
-	err = checkHostsInCert(filepath.Join("../testdata/ca/intermediateca/ca1", "ca-cert.pem"), "testhost1")
+	err = util.CheckHostsInCert(filepath.Join("../testdata/ca/intermediateca/ca1", "ca-cert.pem"), "testhost1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -950,27 +949,4 @@ func getTLSConfig(srv *Server, clientAuthType string, clientRootCerts []string) 
 	srv.Config.TLS.ClientAuth.CertFiles = clientRootCerts
 
 	return srv
-}
-
-func checkHostsInCert(certFile string, host string) error {
-	certBytes, err := ioutil.ReadFile(certFile)
-	if err != nil {
-		return fmt.Errorf("Failed to read file: %s", err)
-	}
-
-	cert, err := util.GetX509CertificateFromPEM(certBytes)
-	if err != nil {
-		return fmt.Errorf("Failed to get certificate: %s", err)
-	}
-	// Run through the extensions for the certificates
-	for _, ext := range cert.Extensions {
-		// asn1 identifier for 'Subject Alternative Name'
-		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
-			if !strings.Contains(string(ext.Value), host) {
-				return fmt.Errorf("Failed to correctly insert host '%s' into certificate", host)
-			}
-		}
-	}
-
-	return nil
 }

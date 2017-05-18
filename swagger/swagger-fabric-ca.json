@@ -147,13 +147,6 @@
             "schema": {
               "type": "object",
               "properties": {
-                "hosts": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "A comma-separated list of host names to associate with the certificate."
-                },
                 "request": {
                   "type": "string",
                   "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
@@ -276,13 +269,6 @@
             "schema": {
               "type": "object",
               "properties": {
-                "hosts": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "description": "A comma-separated list of host names to associate with the certificate."
-                },
                 "request": {
                   "type": "string",
                   "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."

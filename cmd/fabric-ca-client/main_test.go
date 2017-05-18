@@ -29,7 +29,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/cloudflare/cfssl/config"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
@@ -289,7 +291,7 @@ func testEnroll(t *testing.T) {
 		t.Errorf("No username/password provided, should have errored")
 	}
 
-	err = RunMain([]string{cmdName, "enroll", "-u", "http://admin:adminpw@localhost:7054"})
+	err = RunMain([]string{cmdName, "enroll", "-u", "http://admin:adminpw@localhost:7054", "-M", filepath.Join(filepath.Dir(defYaml), "msp")})
 	if err != nil {
 		t.Errorf("client enroll -u failed: %s", err)
 	}
@@ -337,11 +339,15 @@ func testReenroll(t *testing.T) {
 	t.Log("Testing Reenroll CMD")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	err := RunMain([]string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"})
+	err := RunMain([]string{cmdName, "reenroll", "-u", "http://localhost:7054", "--csr.hosts", "host1"})
 	if err != nil {
 		t.Errorf("client reenroll --url -f failed: %s", err)
 	}
 
+	err = util.CheckHostsInCert(filepath.Join(filepath.Dir(defYaml), "msp", "signcerts", "cert.pem"), "host1")
+	if err != nil {
+		t.Error(err)
+	}
 	os.Remove(defYaml)
 }
 
@@ -509,10 +515,10 @@ func testProfiling(t *testing.T) {
 		mProfExpected bool
 		cProfExpected bool
 	}{
-		{"heap", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, true, false},
-		{"cpu", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, true},
-		{"", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, false},
-		{"xxx", []string{cmdName, "reenroll", "-u", "http://localhost:7054", "--enrollment.hosts", "host1,host2"}, false, false},
+		{"heap", []string{cmdName, "reenroll", "-u", "http://localhost:7054"}, true, false},
+		{"cpu", []string{cmdName, "reenroll", "-u", "http://localhost:7054"}, false, true},
+		{"", []string{cmdName, "reenroll", "-u", "http://localhost:7054"}, false, false},
+		{"xxx", []string{cmdName, "reenroll", "-u", "http://localhost:7054"}, false, false},
 	}
 	wd, err := os.Getwd()
 	if err != nil {
@@ -794,6 +800,16 @@ func getCAConfig() *lib.CAConfig {
 		"org1": nil,
 	}
 
+	defaultSigningProfile := &config.SigningProfile{
+		Usage:        []string{"cert sign"},
+		ExpiryString: "8000h",
+		Expiry:       time.Hour * 8000,
+	}
+
+	profiles := map[string]*config.SigningProfile{
+		"ca": defaultSigningProfile,
+	}
+
 	return &lib.CAConfig{
 		CA: lib.CAInfo{
 			Keyfile:  keyfile,
@@ -802,6 +818,10 @@ func getCAConfig() *lib.CAConfig {
 		Affiliations: affiliations,
 		CSR: api.CSRInfo{
 			CN: "TestCN",
+		},
+		Signing: &config.Signing{
+			Default:  defaultSigningProfile,
+			Profiles: profiles,
 		},
 	}
 }
