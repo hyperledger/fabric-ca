@@ -38,8 +38,7 @@ var enrollCmd = &cobra.Command{
 	Long:  "Enroll identity with fabric-ca server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			cmd.Help()
-			return nil
+			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
 		}
 
 		err := runEnroll(cmd)

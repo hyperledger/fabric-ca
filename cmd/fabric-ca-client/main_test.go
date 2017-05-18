@@ -34,6 +34,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -109,6 +110,24 @@ var (
 	srv        *lib.Server
 )
 
+type TestData struct {
+	input []string // input
+}
+
+func TestExtraArguments(t *testing.T) {
+	errCases := []TestData{
+		{[]string{cmdName, "enroll", "extraArg", "extraArg2"}},
+		{[]string{cmdName, "reenroll", "extraArg", "extraArg2"}},
+		{[]string{cmdName, "register", "extraArg", "extraArg2"}},
+		{[]string{cmdName, "revoke", "extraArg", "extraArg2"}},
+		{[]string{cmdName, "getcacert", "extraArg", "extraArg2"}},
+	}
+
+	for _, e := range errCases {
+		extraArgErrorTest(&e, t)
+	}
+}
+
 // TestCreateDefaultConfigFile test to make sure default config file gets generated correctly
 func TestCreateDefaultConfigFile(t *testing.T) {
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
@@ -118,7 +137,7 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 
 	err := RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-m", myhost})
 	if err == nil {
-		t.Errorf("No username/password provided, should have errored")
+		t.Errorf("No server running, should have failed")
 	}
 
 	fileBytes, err := ioutil.ReadFile(defYaml)
@@ -779,4 +798,16 @@ func getSerialAKIByID(id string) (serial, aki string, err error) {
 	aki = hex.EncodeToString(x509Cert.AuthorityKeyId)
 
 	return
+}
+
+func extraArgErrorTest(in *TestData, t *testing.T) {
+	err := RunMain(in.input)
+	if err == nil {
+		assert.Error(t, errors.New("Should have resulted in an error as extra agruments provided"))
+	}
+	if err != nil {
+		if !strings.Contains(err.Error(), "Extra arguments") {
+			assert.Error(t, fmt.Errorf("Failed for other reason besides extra argument: %s", err))
+		}
+	}
 }

@@ -54,6 +54,7 @@ var rootCmd = &cobra.Command{
 
 const (
 	fabricCAClientProfileMode = "FABRIC_CA_CLIENT_PROFILE_MODE"
+	extraArgsError            = "Unrecognized arguments found: %v\n\n%s"
 )
 
 var (

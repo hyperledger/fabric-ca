@@ -18,6 +18,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 
 	"github.com/cloudflare/cfssl/log"
@@ -33,7 +34,13 @@ var revokeCmd = &cobra.Command{
 	Use:   "revoke",
 	Short: "Revoke an identity",
 	Long:  "Revoke an identity with fabric-ca server",
+	// PreRunE block for this command will check to make sure enrollment
+	// information exists before running the command
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+		}
+
 		err := configInit(cmd.Name())
 		if err != nil {
 			return err
@@ -44,11 +51,6 @@ var revokeCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			cmd.Help()
-			return nil
-		}
-
 		err := runRevoke(cmd)
 		if err != nil {
 			return err
