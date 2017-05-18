@@ -48,8 +48,8 @@ func GetDefaultBCCSP() bccsp.BCCSP {
 }
 
 // InitBCCSP initializes BCCSP
-func InitBCCSP(optsPtr **factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
-	err := ConfigureBCCSP(optsPtr)
+func InitBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) (bccsp.BCCSP, error) {
+	err := ConfigureBCCSP(optsPtr, mspDir)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func InitBCCSP(optsPtr **factory.FactoryOpts, homeDir string) (bccsp.BCCSP, erro
 }
 
 // ConfigureBCCSP configures BCCSP, using
-func ConfigureBCCSP(optsPtr **factory.FactoryOpts) error {
+func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir string) error {
 	var err error
 	if optsPtr == nil {
 		return errors.New("nil argument not allowed")
@@ -83,10 +83,14 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts) error {
 		if opts.SwOpts.SecLevel == 0 {
 			opts.SwOpts.SecLevel = 256
 		}
-		// Only override the KeyStorePath if it was left empty
-		if opts.SwOpts.FileKeystore == nil ||
-			opts.SwOpts.FileKeystore.KeyStorePath == "" {
-			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: path.Join("msp", "keystore")}
+		if opts.SwOpts.FileKeystore == nil {
+			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{}
+		}
+		// The mspDir overrides the KeyStorePath; otherwise, if not set, set default
+		if mspDir != "" {
+			opts.SwOpts.FileKeystore.KeyStorePath = path.Join(mspDir, "keystore")
+		} else if opts.SwOpts.FileKeystore.KeyStorePath == "" {
+			opts.SwOpts.FileKeystore.KeyStorePath = path.Join("msp", "keystore")
 		}
 	}
 	log.Debugf("Initializing BCCSP: %+v", opts)
@@ -107,6 +111,7 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts) error {
 
 // GetBCCSP returns BCCSP
 func GetBCCSP(opts *factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
+
 	err := makeFileNamesAbsolute(opts, homeDir)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make BCCSP files absolute: %s", err)

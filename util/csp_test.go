@@ -76,16 +76,16 @@ func TestGetDefaultBCCSP(t *testing.T) {
 func TestInitBCCSP(t *testing.T) {
 	mspDir := "msp"
 	var opts *factory.FactoryOpts
-	_, err := InitBCCSP(&opts, mspDir)
+	_, err := InitBCCSP(&opts, "", mspDir)
 	if err != nil {
 		t.Fatalf("Failed initialization 1 of BCCSP: %s", err)
 	}
 	cfg := &factory.FactoryOpts{ProviderName: "SW"}
-	_, err = InitBCCSP(&cfg, mspDir)
+	_, err = InitBCCSP(&cfg, "msp2", mspDir)
 	if err != nil {
 		t.Fatalf("Failed initialization 2 of BCCSP: %s", err)
 	}
-	_, err = InitBCCSP(nil, mspDir)
+	_, err = InitBCCSP(nil, "", mspDir)
 	if err == nil {
 		t.Fatalf("Initialization 3 of BCCSP should have failed but did not")
 	}
