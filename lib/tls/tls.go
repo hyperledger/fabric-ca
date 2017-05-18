@@ -82,13 +82,13 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	rootCAPool := x509.NewCertPool()
 
 	if len(cfg.CertFiles) == 0 {
-		return nil, errors.New("No CA certificate files provided")
+		return nil, errors.New("No root CA TLS certificate files provided")
 	}
 
 	for _, cacert := range cfg.CertFiles {
 		caCert, err := ioutil.ReadFile(cacert)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to read '%s': %s", cacert, err)
 		}
 		ok := rootCAPool.AppendCertsFromPEM(caCert)
 		if !ok {
@@ -122,6 +122,31 @@ func AbsTLSClient(cfg *ClientTLSConfig, configDir string) error {
 	}
 
 	cfg.Client.KeyFile, err = util.MakeFileAbs(cfg.Client.KeyFile, configDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AbsTLSServer makes TLS client files absolute
+func AbsTLSServer(cfg *ServerTLSConfig, configDir string) error {
+	var err error
+
+	for i := 0; i < len(cfg.ClientAuth.CertFiles); i++ {
+		cfg.ClientAuth.CertFiles[i], err = util.MakeFileAbs(cfg.ClientAuth.CertFiles[i], configDir)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	cfg.CertFile, err = util.MakeFileAbs(cfg.CertFile, configDir)
+	if err != nil {
+		return err
+	}
+
+	cfg.KeyFile, err = util.MakeFileAbs(cfg.KeyFile, configDir)
 	if err != nil {
 		return err
 	}

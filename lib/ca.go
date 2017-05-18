@@ -217,14 +217,19 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 
 // Get the CA certificate for this CA
 func (ca *CA) getCACert() (cert []byte, err error) {
-	log.Debugf("Getting CA cert; parent server URL is '%s'", ca.Config.ParentServer.URL)
-	if ca.Config.ParentServer.URL != "" {
+	log.Debugf("Getting CA cert; parent server URL is '%s'", ca.Config.Intermediate.ParentServer.URL)
+	if ca.Config.Intermediate.ParentServer.URL != "" {
 		// This is an intermediate CA, so call the parent fabric-ca-server
 		// to get the cert
 		clientCfg := ca.Config.Client
 		if clientCfg == nil {
 			clientCfg = &ClientConfig{}
 		}
+		// Copy over the intermediate configuration into client configuration
+		clientCfg.TLS = ca.Config.Intermediate.TLS
+		clientCfg.Enrollment = ca.Config.Intermediate.Enrollment
+		clientCfg.CAName = ca.Config.Intermediate.ParentServer.CAName
+		clientCfg.CSR = ca.Config.CSR
 		if clientCfg.Enrollment.Profile == "" {
 			clientCfg.Enrollment.Profile = "ca"
 		}
@@ -236,7 +241,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
 		var resp *EnrollmentResponse
-		resp, err = clientCfg.Enroll(ca.Config.ParentServer.URL, ca.HomeDir)
+		resp, err = clientCfg.Enroll(ca.Config.Intermediate.ParentServer.URL, ca.HomeDir)
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +313,7 @@ func (ca *CA) getCAChain() (chain []byte, err error) {
 		return util.ReadFile(certAuth.Chainfile)
 	}
 	// Otherwise, if this is a root CA, we always return the contents of the CACertfile
-	if ca.Config.ParentServer.URL == "" {
+	if ca.Config.Intermediate.ParentServer.URL == "" {
 		return util.ReadFile(certAuth.Certfile)
 	}
 	// If this is an intermediate CA but the ca.Chainfile doesn't exist,
@@ -457,7 +462,7 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 	}
 
 	// Make sure the policy reflects the new remote
-	parentServerURL := ca.Config.ParentServer.URL
+	parentServerURL := ca.Config.Intermediate.ParentServer.URL
 	if parentServerURL != "" {
 		err = policy.OverrideRemotes(parentServerURL)
 		if err != nil {

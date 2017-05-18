@@ -113,7 +113,6 @@ func getEnrollmentPayload(t *testing.T, c *Client) ([]byte, error) {
 
 	// Get the body of the request
 	sreq := signer.SignRequest{
-		Hosts:   signer.SplitHosts(req.Hosts),
 		Request: string(csrPEM),
 		Profile: req.Profile,
 		Label:   req.Label,
@@ -141,8 +140,10 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		},
 		CA: CA{
 			Config: &CAConfig{
-				ParentServer: ParentServer{
-					URL: parentURL,
+				Intermediate: IntermediateCA{
+					ParentServer: ParentServer{
+						URL: parentURL,
+					},
 				},
 				Affiliations: affiliations,
 				Registry: CAConfigRegistry{

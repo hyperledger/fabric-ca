@@ -30,7 +30,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cloudflare/cfssl/csr"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
@@ -751,7 +751,7 @@ func getCAConfig() *lib.CAConfig {
 			Certfile: certfile,
 		},
 		Affiliations: affiliations,
-		CSR: csr.CertificateRequest{
+		CSR: api.CSRInfo{
 			CN: "TestCN",
 		},
 	}
