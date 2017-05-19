@@ -35,22 +35,24 @@ func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, bool, error) {
 	log.Debugf("Using sqlite database, connect to database in home (%s) directory", datasource)
 
 	datasource = filepath.Join(datasource)
-	var exists bool
+	exists := false
 
 	if datasource != "" {
-		// Check if database exists if not create it and bootstrap it based on the config file
-		if _, err := os.Stat(datasource); err != nil {
-			if os.IsNotExist(err) {
-				log.Debugf("Database (%s) does not exist", datasource)
-				exists = false
-				err2 := createSQLiteDBTables(datasource)
-				if err2 != nil {
-					return nil, false, err2
-				}
-			} else {
-				log.Debug("Database (%s) exists", datasource)
-				exists = true
+		// Check if database exists if not create it and bootstrap it based
+		// on the config file
+		_, err := os.Stat(datasource)
+		if err != nil && os.IsNotExist(err) {
+			log.Debugf("Database (%s) does not exist", datasource)
+			err2 := createSQLiteDBTables(datasource)
+			if err2 != nil {
+				return nil, false, err2
 			}
+		} else {
+			// database file exists. If os.Stat returned an error
+			// other than IsNotExist error, which still means
+			// file exists
+			log.Debugf("Database (%s) exists", datasource)
+			exists = true
 		}
 	}
 
@@ -58,6 +60,7 @@ func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
+
 	// Set maximum open connections to one. This is to share one connection
 	// across multiple go routines. This will serialize database operations
 	// with in a single server there by preventing "database is locked"
@@ -89,7 +92,7 @@ func createSQLiteDBTables(datasource string) error {
 	}
 	log.Debug("Created users table")
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
 		return err
 	}
 	log.Debug("Created affiliation table")
@@ -187,7 +190,7 @@ func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}
@@ -273,7 +276,7 @@ func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
 		log.Errorf("Error creating users table [error: %s] ", err)
 		return err
 	}
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64), prekey VARCHAR(64))"); err != nil {
+	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
 		log.Errorf("Error creating affiliations table [error: %s] ", err)
 		return err
 	}

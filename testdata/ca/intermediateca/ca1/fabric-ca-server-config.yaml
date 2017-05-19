@@ -22,5 +22,5 @@ csr:
 
 intermediate:
   parentserver:
-    url: http://admin:adminpw@localhost:7055
+    url: http://admin:adminpw@localhost:7075
     caname: rootca2
