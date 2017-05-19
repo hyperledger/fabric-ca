@@ -53,6 +53,15 @@ const (
 	defaultDatabaseType = "sqlite3"
 )
 
+var (
+	// Default root CA certificate expiration is 15 years (in hours).
+	defaultRootCACertificateExpiration = "131400h"
+	// Default intermediate CA certificate expiration is 5 years (in hours).
+	defaultIntermediateCACertificateExpiration = parseDuration("43800h")
+	// Default issued certificate expiration is 1 year (in hours).
+	defaultIssuedCertificateExpiration = parseDuration("8760h")
+)
+
 // CA represents a certificate authority which signs, issues and revokes certificates
 type CA struct {
 	// The home directory for the CA
@@ -253,9 +262,6 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if clientCfg.Enrollment.CSR == nil {
 			clientCfg.Enrollment.CSR = &api.CSRInfo{}
 		}
-		if clientCfg.Enrollment.CSR.CA == nil {
-			clientCfg.Enrollment.CSR.CA = &cfcsr.CAConfig{PathLength: 0, PathLenZero: true}
-		}
 		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
 		var resp *EnrollmentResponse
 		resp, err = clientCfg.Enroll(ca.Config.Intermediate.ParentServer.URL, ca.HomeDir)
@@ -293,6 +299,12 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 			ca.Config.CSR.CN = "fabric-ca-server"
 		}
 		csr := &ca.Config.CSR
+		if csr.CA == nil {
+			csr.CA = &cfcsr.CAConfig{}
+		}
+		if csr.CA.Expiry == "" {
+			csr.CA.Expiry = defaultRootCACertificateExpiration
+		}
 		req := cfcsr.CertificateRequest{
 			CN:    csr.CN,
 			Names: csr.Names,
@@ -302,6 +314,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 			CA:           csr.CA,
 			SerialNumber: csr.SerialNumber,
 		}
+		log.Debugf("Root CA certificate request: %+v", req)
 		// Generate the key/signer
 		_, cspSigner, err := util.BCCSPKeyRequestGenerate(&req, ca.csp)
 		if err != nil {
@@ -365,6 +378,28 @@ func (ca *CA) initConfig() (err error) {
 	if cfg.CA.Keyfile == "" {
 		cfg.CA.Keyfile = "ca-key.pem"
 	}
+	if cfg.CSR.CA == nil {
+		cfg.CSR.CA = &cfcsr.CAConfig{}
+	}
+	if cfg.CSR.CA.Expiry == "" {
+		cfg.CSR.CA.Expiry = defaultRootCACertificateExpiration
+	}
+	if cfg.Signing == nil {
+		cfg.Signing = &config.Signing{}
+	}
+	cs := cfg.Signing
+	if cs.Profiles == nil {
+		cs.Profiles = make(map[string]*config.SigningProfile)
+	}
+	caProfile := cs.Profiles["ca"]
+	initSigningProfile(&caProfile,
+		defaultIntermediateCACertificateExpiration,
+		true)
+	cs.Profiles["ca"] = caProfile
+	initSigningProfile(
+		&cs.Default,
+		defaultIssuedCertificateExpiration,
+		false)
 	// Set log level if debug is true
 	if ca.server.Config.Debug {
 		log.Level = log.LevelDebug
@@ -894,4 +929,26 @@ func affiliationPath(name, parent string) string {
 		return name
 	}
 	return fmt.Sprintf("%s.%s", parent, name)
+}
+
+func parseDuration(str string) time.Duration {
+	d, err := time.ParseDuration(str)
+	if err != nil {
+		panic(err)
+	}
+	return d
+}
+
+func initSigningProfile(spp **config.SigningProfile, expiry time.Duration, isCA bool) {
+	sp := *spp
+	if sp == nil {
+		sp = &config.SigningProfile{CAConstraint: config.CAConstraint{IsCA: isCA}}
+		*spp = sp
+	}
+	if sp.Usage == nil {
+		sp.Usage = []string{"cert sign"}
+	}
+	if sp.Expiry == 0 {
+		sp.Expiry = expiry
+	}
 }

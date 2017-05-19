@@ -26,6 +26,8 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -105,6 +107,11 @@ func testRegister(c *Client, t *testing.T) {
 	if err != nil {
 		t.Fatalf("testRegister failed to store admin identity: %s", err)
 	}
+
+	// Verify that the duration of the newly created enrollment certificate is 1 year
+	d, err := util.GetCertificateDurationFromFile(c.GetCertFilePath())
+	assert.NoError(t, err)
+	assert.True(t, d.Hours() == 8760, fmt.Sprintf("Expecting 8760 but found %f", d.Hours()))
 
 	err = c.CheckEnrollment()
 	if err != nil {

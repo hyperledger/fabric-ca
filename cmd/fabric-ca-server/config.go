@@ -207,23 +207,33 @@ affiliations:
 
 #############################################################################
 #  Signing section
+#
+#  The "default" subsection is used to sign enrollment certificates;
+#  the default expiration ("expiry" field) is "8760h", which is 1 year in hours.
+#
+#  The "ca" profile subsection is used to sign intermediate CA certificates;
+#  the default expiration ("expiry" field) is "43800h" which is 5 years in hours.
+#  Note that "isca" is true, meaning that it issues a CA certificate.
 #############################################################################
 signing:
+    default:
+      usage:
+        - cert sign
+      expiry: 8760h
     profiles:
       ca:
          usage:
            - cert sign
-         expiry: 8000h
+         expiry: 43800h
          caconstraint:
            isca: true
-    default:
-      usage:
-        - cert sign
-      expiry: 8000h
 
 ###########################################################################
-#  Certificate Signing Request (CSR) section for generating the request
-#  for an intermediate CA certificate.
+#  Certificate Signing Request (CSR) section.
+#  This controls the creation of the root CA certificate.
+#  The expiration for the root CA certificate is configured with the
+#  "ca.expiry" field below, whose default value is "131400h" which is
+#  15 years in hours.
 ###########################################################################
 csr:
    cn: fabric-ca-server
@@ -235,10 +245,11 @@ csr:
         OU: Fabric
    hosts:
      - <<<MYHOST>>>
+     - localhost
    ca:
       pathlen:
       pathlenzero:
-      expiry:
+      expiry: 131400h
 
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section is used to select which

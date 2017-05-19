@@ -343,6 +343,11 @@ func (c *Client) LoadCSRInfo(path string) (*api.CSRInfo, error) {
 	return &csrInfo, nil
 }
 
+// GetCertFilePath returns the path to the certificate file for this client
+func (c *Client) GetCertFilePath() string {
+	return c.certFile
+}
+
 // NewGet create a new GET request
 func (c *Client) newGet(endpoint string) (*http.Request, error) {
 	curl, err := c.getURL(endpoint)

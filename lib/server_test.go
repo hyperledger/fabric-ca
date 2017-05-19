@@ -29,12 +29,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudflare/cfssl/config"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -63,6 +63,10 @@ func TestServerInit(t *testing.T) {
 	if err != nil {
 		t.Errorf("Third Server init renew failed: %s", err)
 	}
+	// Verify that the duration of the newly created certificate is 15 years
+	d, err := util.GetCertificateDurationFromFile(path.Join(rootDir, "ca-cert.pem"))
+	assert.NoError(t, err)
+	assert.True(t, d.Hours() == 131400, fmt.Sprintf("Expecting 131400 but found %f", d.Hours()))
 }
 
 func TestRootServer(t *testing.T) {
@@ -312,10 +316,10 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 		t.Errorf("Root server stop failed: %s", err)
 	}
 
-	// Check that CSR fields are correctly getting inserted into certificate
+	// Make sure that the hostname was not inserted into the CA certificate
 	err = util.CheckHostsInCert(filepath.Join(intermediateDir, "ca-cert.pem"), "testhost")
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("A CA certificate should not have any hostnames")
 	}
 }
 
@@ -601,10 +605,10 @@ func TestMultiCAWithIntermediate(t *testing.T) {
 		t.Error("Failed to stop server: ", err)
 	}
 
-	// Check that CSR fields are correctly getting inserted into certificate
+	// Make sure there is no host name in the intermediate CA cert
 	err = util.CheckHostsInCert(filepath.Join("../testdata/ca/intermediateca/ca1", "ca-cert.pem"), "testhost1")
-	if err != nil {
-		t.Error(err)
+	if err == nil {
+		t.Error("Intermediate CA should not contain a hostname, but does")
 	}
 }
 
@@ -760,6 +764,10 @@ func testIntermediateServer(idx int, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Intermediate server init failed: %s", err)
 	}
+	// Verify that the duration of the newly created intermediate certificate is 5 years
+	d, err := util.GetCertificateDurationFromFile(path.Join(intermediateServer.HomeDir, "ca-cert.pem"))
+	assert.NoError(t, err)
+	assert.True(t, d.Hours() == 43800, fmt.Sprintf("Expecting 43800 but found %f", d.Hours()))
 	// Start it
 	err = intermediateServer.Start()
 	if err != nil {
@@ -882,16 +890,6 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 		"org2": nil,
 	}
 
-	defaultSigningProfile := &config.SigningProfile{
-		Usage:        []string{"cert sign"},
-		ExpiryString: "8000h",
-		Expiry:       time.Hour * 8000,
-	}
-
-	profiles := map[string]*config.SigningProfile{
-		"ca": defaultSigningProfile,
-	}
-
 	srv := &Server{
 		Config: &ServerConfig{
 			Port:  port,
@@ -907,10 +905,6 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 				Affiliations: affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
-				},
-				Signing: &config.Signing{
-					Default:  defaultSigningProfile,
-					Profiles: profiles,
 				},
 			},
 		},
