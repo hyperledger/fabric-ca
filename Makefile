@@ -21,7 +21,6 @@
 #   - fabric-ca-client - builds the fabric-ca-client executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
-#   - ldap-tests - runs the LDAP tests
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
 #   - clean - cleans the build area
 
@@ -47,7 +46,7 @@ BASEIMAGE_RELEASE = 0.3.0
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 DOCKER_ORG = hyperledger
-IMAGES = $(PROJECT_NAME) openldap
+IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
 path-map.fabric-ca-client := ./cmd/fabric-ca-client
@@ -83,8 +82,6 @@ vet: .FORCE
 
 fabric-ca-client: bin/fabric-ca-client
 fabric-ca-server: bin/fabric-ca-server
-
-openldap: build/image/openldap/$(DUMMY)
 
 bin/%:
 	@echo "Building ${@F} in bin directory ..."
@@ -126,8 +123,6 @@ build/image/fabric-ca/payload: \
 	build/docker/bin/fabric-ca-client \
 	build/docker/bin/fabric-ca-server \
 	build/fabric-ca.tar.bz2
-build/image/openldap/payload : \
-	images/openldap/openldap.tar
 build/image/fabric-ca-fvt/payload: \
 	build/docker/bin/fabric-ca-client \
 	build/docker/bin/fabric-ca-server \
@@ -148,10 +143,7 @@ build/%.tar.bz2:
 unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_tests
 
-container-tests: docker ldap-tests
-
-ldap-tests: openldap
-	@scripts/run_ldap_tests
+container-tests: docker
 
 fvt-tests:
 	@scripts/run_fvt_tests
