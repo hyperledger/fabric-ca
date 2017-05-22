@@ -1,4 +1,10 @@
 #!/bin/sh
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 
 if [ "$#" -ne 3 ]; then
     echo "Prepends a changelog into the current CHANGELOG.md at the root of the project"
