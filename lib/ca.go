@@ -119,7 +119,7 @@ func (ca *CA) init(renew bool) (err error) {
 		return err
 	}
 	// Initialize the crypto layer (BCCSP) for this CA
-	ca.csp, err = util.InitBCCSP(&ca.Config.CSP, ca.HomeDir)
+	ca.csp, err = util.InitBCCSP(&ca.Config.CSP, "", ca.HomeDir)
 	if err != nil {
 		return err
 	}

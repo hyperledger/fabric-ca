@@ -54,6 +54,7 @@ const (
 	rootCertEnvVar       = "FABRIC_CA_CLIENT_TLS_CERTFILES"
 	clientKeyEnvVar      = "FABRIC_CA_CLIENT_TLS_CLIENT_KEYFILE"
 	clientCertEnvVar     = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
+	moptionDir           = "moption-test"
 )
 
 const jsonConfig = `{
@@ -301,6 +302,34 @@ func testEnroll(t *testing.T) {
 	}
 
 	os.Remove(defYaml)
+}
+
+// TestMOption tests to make sure that the key is stored in the correct
+// directory when the "-M" option is used.
+func TestMOption(t *testing.T) {
+	os.RemoveAll(moptionDir)
+	port := 7173
+	s := startServer(path.Join(moptionDir, "server"), port, t)
+	if s == nil {
+		return
+	}
+	homedir := path.Join(moptionDir, "client")
+	mspdir := "msp2" // relative to homedir
+	err := RunMain([]string{
+		cmdName, "enroll",
+		"-u", fmt.Sprintf("http://admin:adminpw@localhost:%d", port),
+		"-c", path.Join(homedir, "config.yaml"),
+		"-M", mspdir, "-d"})
+	if err != nil {
+		t.Fatalf("client enroll -u failed: %s", err)
+	}
+	keystore := path.Join(homedir, mspdir, "keystore")
+	count := getNumFiles(keystore, t)
+	if count != 1 {
+		t.Fatalf("client enroll -M failed: expecting 1 file in keystore %s but found %d",
+			keystore, count)
+	}
+	s.Stop()
 }
 
 // TestReenroll tests fabric-ca-client reenroll
@@ -718,6 +747,7 @@ func TestCleanUp(t *testing.T) {
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
 	os.RemoveAll(mspDir)
+	os.RemoveAll(moptionDir)
 	cleanMultiCADir()
 }
 
@@ -810,4 +840,38 @@ func extraArgErrorTest(in *TestData, t *testing.T) {
 			assert.Error(t, fmt.Errorf("Failed for other reason besides extra argument: %s", err))
 		}
 	}
+}
+
+// get the number of files in a directory
+func getNumFiles(dir string, t *testing.T) int {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("Failed to get number of files in directory '%s': %s", dir, err)
+	}
+	return len(files)
+}
+
+func startServer(home string, port int, t *testing.T) *lib.Server {
+	affiliations := map[string]interface{}{"org1": nil}
+	srv := &lib.Server{
+		HomeDir: home,
+		Config: &lib.ServerConfig{
+			Debug: true,
+			Port:  port,
+		},
+		CA: lib.CA{
+			Config: &lib.CAConfig{
+				Affiliations: affiliations,
+			},
+		},
+	}
+	err := srv.RegisterBootstrapUser("admin", "adminpw", "")
+	if err != nil {
+		t.Fatalf("Failed to register bootstrap user: %s", err)
+	}
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+	return srv
 }
