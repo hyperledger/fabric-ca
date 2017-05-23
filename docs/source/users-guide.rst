@@ -67,7 +67,7 @@ Overview
 The diagram below illustrates how the Fabric CA server fits into the
 overall Hyperledger Fabric architecture.
 
-.. image:: ../images/fabric-ca.png
+.. image:: ./images/fabric-ca.png
 
 There are two ways of interacting with a Fabric CA server:
 via the Fabric CA client or through one of the Fabric SDKs.
