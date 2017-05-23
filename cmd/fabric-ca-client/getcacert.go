@@ -35,6 +35,22 @@ import (
 var getCACertCmd = &cobra.Command{
 	Use:   "getcacert -u http://serverAddr:serverPort -M <MSP-directory>",
 	Short: "Get CA certificate chain",
+	// PreRunE block for this command will load client configuration
+	// before running the command
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+		}
+
+		err := configInit(cmd.Name())
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Client configuration settings: %+v", clientCfg)
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
