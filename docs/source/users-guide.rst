@@ -649,9 +649,13 @@ command again.
 The ``fabric-ca-server init`` command generates a self-signed CA certificate
 unless the ``-u <parent-fabric-ca-server-URL>`` option is specified.
 If the ``-u`` is specified, the server's CA certificate is signed by the
-parent Fabric CA server.  The ``fabric-ca-server init`` command also
-generates a default configuration file named **fabric-ca-server-config.yaml**
-in the server's home directory.
+parent Fabric CA server.
+In order to authenticate to the parent Fabric CA server, the URL must
+be of the form ``<scheme>://<enrollmentID>:<secret>@<host>:<port>``, where
+<enrollmentID> and <secret> correspond to an identity with an 'hf.IntermediateCA'
+attribute whose value equals 'true'.
+The ``fabric-ca-server init`` command also generates a default configuration
+file named **fabric-ca-server-config.yaml** in the server's home directory.
 
 Algorithms and key sizes
 
