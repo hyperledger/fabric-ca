@@ -29,15 +29,17 @@ import (
 
 // A test struct
 type A struct {
-	ASlice     []string          `help:"Slice description"`
-	AStr       string            `def:"defval" help:"Str1 description"`
-	AInt       int               `def:"10" help:"Int1 description"`
-	AB         B                 `help:"FB description"`
-	AStr2      string            `skip:"true"`
-	AIntArray  []int             `help:"IntArray description"`
-	AMap       map[string]string `skip:"true"`
-	ABPtr      *B                `help:"FBP description"`
-	AInterface interface{}       `skip:"true"`
+	ASlice      []string          `help:"Slice description"`
+	AStr        string            `def:"defval" help:"Str1 description"`
+	AInt        int               `def:"10" help:"Int1 description"`
+	AB          B                 `help:"FB description"`
+	AStr2       string            `skip:"true"`
+	AIntArray   []int             `help:"IntArray description"`
+	AMap        map[string]string `skip:"true"`
+	ABPtr       *B                `help:"FBP description"`
+	AInterface  interface{}       `skip:"true"`
+	aUnexported string
+	ABad        ABad `skip:"true"`
 }
 
 // B test struct

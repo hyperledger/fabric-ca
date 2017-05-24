@@ -33,7 +33,6 @@ import (
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
@@ -172,7 +171,9 @@ func (c *Client) Enroll(req *api.EnrollmentRequest) (*EnrollmentResponse, error)
 		CAName: req.CAName,
 	}
 
-	reqNet.SignRequest.Hosts = signer.SplitHosts(req.Hosts)
+	if req.CSR != nil {
+		reqNet.SignRequest.Hosts = req.CSR.Hosts
+	}
 	reqNet.SignRequest.Request = string(csrPEM)
 	reqNet.SignRequest.Profile = req.Profile
 	reqNet.SignRequest.Label = req.Label

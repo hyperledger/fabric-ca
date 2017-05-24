@@ -60,8 +60,6 @@ type EnrollmentRequest struct {
 	Name string `json:"name" skip:"true"`
 	// The secret returned via Register
 	Secret string `json:"secret,omitempty" skip:"true"`
-	// Hosts is a comma-separated host list in the CSR
-	Hosts string `json:"hosts,omitempty" help:"Comma-separated host list"`
 	// Profile is the name of the signing profile to use in issuing the certificate
 	Profile string `json:"profile,omitempty" help:"Name of the signing profile to use in issuing the certificate"`
 	// Label is the label to use in HSM operations
@@ -75,8 +73,6 @@ type EnrollmentRequest struct {
 // ReenrollmentRequest is a request to reenroll an identity.
 // This is useful to renew a certificate before it has expired.
 type ReenrollmentRequest struct {
-	// Hosts is a comma-separated host list in the CSR
-	Hosts string `json:"hosts,omitempty"`
 	// Profile is the name of the signing profile to use in issuing the certificate
 	Profile string `json:"profile,omitempty"`
 	// Label is the label to use in HSM operations
