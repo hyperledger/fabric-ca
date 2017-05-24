@@ -47,6 +47,7 @@ var (
 func init() {
 	logger = logging.MustGetLogger(pkgLogID)
 	Reset()
+	initgrpclogger()
 }
 
 // Reset sets to logging to the defaults defined in this package.
@@ -93,11 +94,6 @@ func GetModuleLevel(module string) string {
 // regular expression. Can be used to dynamically change the log level for the
 // module.
 func SetModuleLevel(moduleRegExp string, level string) (string, error) {
-	// special case - `error` module, which is used to enable/disable callstacks
-	// in error messages, shouldn't use regular expressions
-	if moduleRegExp == "error" {
-		return setModuleLevel(moduleRegExp, level, false, false)
-	}
 	return setModuleLevel(moduleRegExp, level, true, false)
 }
 
