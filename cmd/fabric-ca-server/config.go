@@ -255,28 +255,27 @@ bccsp:
             keystore: msp/keystore
 
 #############################################################################
-# The fabric-ca-server init and start commands support the following two
-# additional mutually exclusive options:
+# Multi CA section
+#
+# Each Fabric CA server contains one CA by default.  This section is used
+# to configure multiple CAs in a single server.
 #
 # 1) --cacount <number-of-CAs>
-# Automatically generate multiple default CA instances.
+# Automatically generate <number-of-CAs> non-default CAs.  The names of these
+# additional CAs are "ca1", "ca2", ... "caN", where "N" is <number-of-CAs>
 # This is particularly useful in a development environment to quickly set up
 # multiple CAs.
-# For example,
-#     fabric-ca-server start -b admin:adminpw --cacount 2
-# starts a server with a default CA and two non-default CA's with names
-# 'ca1' and 'ca2'.
 #
 # 2) --cafiles <CA-config-files>
 # For each CA config file in the list, generate a separate signing CA.  Each CA
 # config file in this list MAY contain all of the same elements as are found in
 # the server config file except port, debug, and tls sections.
-# For example,
-#    fabric-ca-server start -b admin:adminpw                \
-#          --cafiles ca/ca1/fabric-ca-server-config.yaml    \
-#          --cafiles ca/ca2/fabric-ca-server-config.yaml
-# is equivalent to the previous example, except the files CA config files
-# must already exist and can be customized.
+# 
+# Examples:
+# fabric-ca-server start -b admin:adminpw --cacount 2
+#
+# fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-server-config.yaml
+# --cafiles ca/ca2/fabric-ca-server-config.yaml
 #
 #############################################################################
 
@@ -285,19 +284,30 @@ cacount:
 cafiles:
 
 #############################################################################
-# Intermediate CA which acts as a client of the root (or parent) CA.
+# Intermediate CA section
 #
-# Parentserver section
+# The relationship between servers and CAs is as follows:
+#   1) A single server process may contain or function as one or more CAs.
+#      This is configured by the "Multi CA section" above.
+#   2) Each CA is either a root CA or an intermediate CA.
+#   3) Each intermediate CA has a parent CA which is either a root CA or another intermediate CA.
+#
+# This section pertains to configuration of #2 and #3.
+# If the "intermediate.parentserver.url" property is set,
+# then this is an intermediate CA with the specified parent
+# CA.
+#
+# parentserver section
 #    url - The URL of the parent server
-#    caname - Name of the CA to enroll with on the server
+#    caname - Name of the CA to enroll within the server
 #
-# Enrollment section used to enroll an identity with fabric-ca server
+# enrollment section used to enroll intermediate CA with parent CA
 #    hosts - A comma-separated list of host names which the certificate should
 #    be valid for
 #    profile - Name of the signing profile to use in issuing the certificate
 #    label - Label to use in HSM operations
 #
-# TLS section for secure socket connection
+# tls section for secure socket connection
 #   certfiles - PEM-encoded list of trusted root certificate files
 #   client:
 #     certfile - PEM-encoded certificate file for when client authentication

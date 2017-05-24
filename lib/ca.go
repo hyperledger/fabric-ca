@@ -182,6 +182,13 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			if err != nil {
 				return fmt.Errorf("Validation of certificate and key failed: %s", err)
 			}
+			// Load CN from existing enrollment information and set CSR accordingly
+			// CN needs to be set, having a multi CA setup requires a unique CN and can't
+			// be left blank
+			ca.Config.CSR.CN, err = ca.loadCNFromEnrollmentInfo(certFile)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 
@@ -194,6 +201,13 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 				log.Info("The CA key and certificate already exist")
 				log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
 				log.Infof("The certificate is at: %s", certFile)
+				// Load CN from existing enrollment information and set CSR accordingly
+				// CN needs to be set, having a multi CA setup requires a unique CN and can't
+				// be left blank
+				ca.Config.CSR.CN, err = ca.loadCNFromEnrollmentInfo(certFile)
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 		}
@@ -230,6 +244,9 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		clientCfg.Enrollment = ca.Config.Intermediate.Enrollment
 		clientCfg.CAName = ca.Config.Intermediate.ParentServer.CAName
 		clientCfg.CSR = ca.Config.CSR
+		if ca.Config.CSR.CN != "" {
+			return nil, fmt.Errorf("CN '%s' cannot be specified for an intermediate CA. Remove CN from CSR section for enrollment of intermediate CA to be successful", ca.Config.CSR.CN)
+		}
 		if clientCfg.Enrollment.Profile == "" {
 			clientCfg.Enrollment.Profile = "ca"
 		}
@@ -245,6 +262,8 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
+		// Set the CN for an intermediate server to be the ID used to enroll with root CA
+		ca.Config.CSR.CN = resp.Identity.GetName()
 		ecert := resp.Identity.GetECert()
 		if ecert == nil {
 			return nil, errors.New("No enrollment certificate returned by parent server")
@@ -270,6 +289,9 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		log.Debugf("Stored intermediate certificate chain at %s", chainPath)
 	} else {
 		// This is a root CA, so create a CSR (Certificate Signing Request)
+		if ca.Config.CSR.CN == "" {
+			ca.Config.CSR.CN = "fabric-ca-server"
+		}
 		csr := &ca.Config.CSR
 		req := cfcsr.CertificateRequest{
 			CN:    csr.CN,
@@ -342,9 +364,6 @@ func (ca *CA) initConfig() (err error) {
 	}
 	if cfg.CA.Keyfile == "" {
 		cfg.CA.Keyfile = "ca-key.pem"
-	}
-	if cfg.CSR.CN == "" {
-		cfg.CSR.CN = "fabric-ca-server"
 	}
 	// Set log level if debug is true
 	if ca.server.Config.Debug {
@@ -845,6 +864,21 @@ func validateMatchingKeys(cert *x509.Certificate, keyFile string) error {
 	}
 
 	return nil
+}
+
+// Load CN from existing enrollment information
+func (ca *CA) loadCNFromEnrollmentInfo(certFile string) (string, error) {
+	log.Debug("Loading CN from existing enrollment information")
+	cert, err := util.ReadFile(certFile)
+	if err != nil {
+		log.Debugf("No cert found at %s", certFile)
+		return "", err
+	}
+	name, err := util.GetEnrollmentIDFromPEM(cert)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
 }
 
 func writeFile(file string, buf []byte, perm os.FileMode) error {

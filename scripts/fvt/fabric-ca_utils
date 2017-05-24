@@ -238,7 +238,6 @@ enroll() {
    setTLS
    $FABRIC_CA_CLIENTEXEC enroll -u "${PROTO}${username}:${userpswd}@${HOST}:${PORT}" $TLSOPT \
                          -c $ENROLLCONFIG \
-                         --csr.cn $username \
                          --enrollment.hosts "$username@fab-client.raleigh.ibm.com,$username.fabric.raleigh.ibm.com,127.0.0.2"
    RC=$?
    if test -n "$FABRIC_CA_DEBUG"; then

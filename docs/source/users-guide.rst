@@ -48,10 +48,11 @@ Table of Contents
    4. `Configuring LDAP`_
    5. `Setting up a cluster`_
    6. `Setting up multiple CAs`_
+   7. `Enrolling an intermediate CA`_
 
 6. `Fabric CA Client`_
 
-   1. `Enrolling the bootstrap user`_
+   1. `Enrolling the bootstrap identity`_
    2. `Registering a new identity`_
    3. `Enrolling a peer identity`_
    4. `Reenrolling an identity`_
@@ -82,6 +83,10 @@ of the fabric-ca-server cluster members.
 All Fabric CA servers in a cluster share the same database for
 keeping track of identities and certificates.  If LDAP is configured, the identity
 information is kept in LDAP rather than the database.
+
+A server may contain multiple CAs.  Each CA is either a root CA or an
+intermediate CA.  Each intermediate CA has a parent CA which is either a
+root CA or another intermediate CA.
 
 Getting Started
 ---------------
@@ -176,6 +181,14 @@ The following shows the Fabric CA server usage message.
           --db.tls.enabled                  Enable TLS for client connection
           --db.type string                  Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
       -d, --debug                           Enable debug level logging
+          --intermediate.enrollment.hosts string      Comma-separated host list
+          --intermediate.enrollment.label string      Label to use in HSM operations
+          --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
+          --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-serve
+      -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
+          --intermediate.tls.certfiles stringSlice    PEM-encoded list of trusted certificate files
+          --intermediate.tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
+          --intermediate.tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
           --ldap.enabled                    Enable the LDAP client for authentication and attributes
           --ldap.groupfilter string         The LDAP group filter for a single affiliation group (default "(memberUid=%s)")
           --ldap.url string                 LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base
@@ -185,7 +198,6 @@ The following shows the Fabric CA server usage message.
           --tls.certfile string             PEM-encoded TLS certificate file for server's listening port (default "ca-cert.pem")
           --tls.enabled                     Enable TLS on the listening port
           --tls.keyfile string              PEM-encoded TLS key for server's listening port (default "ca-key.pem")
-      -u, --url string                      URL of the parent fabric-ca-server
 
     Use "fabric-ca-server [command] --help" for more information about a command.
 
@@ -209,7 +221,6 @@ The following shows the Fabric CA client usage message:
     Flags:
           --caname string                Name of CA
       -c, --config string                Configuration file (default "$HOME/.fabric-ca-client/fabric-ca-client-config.yaml")
-          --csr.cn string                The common name field of the certificate signing request
           --csr.hosts stringSlice        A list of space-separated host names in a certificate signing request
           --csr.serialnumber string      The serial number in a certificate signing request
       -d, --debug                        Enable debug level logging
@@ -401,11 +412,19 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
          key_store_dir: keys
 
     #############################################################################
+    # Multi CA section
+    #
+    # Each Fabric CA server contains one CA by default.  This section is used
+    # to configure multiple CAs in a single server.
+    #
     # The fabric-ca-server init and start commands support the following two
     # additional mutually exclusive options:
     #
     # 1) --cacount <number-of-CAs>
-    # Automatically generate multiple default CA instances
+    # Automatically generate <number-of-CAs> non-default CAs.  The names of these
+    # additional CAs are "ca1", "ca2", ... "caN", where "N" is <number-of-CAs>
+    # This is particularly useful in a development environment to quickly set up
+    # multiple CAs.
     #
     # 2) --cafiles <CA-config-files>
     # For each CA config file in the list, generate a separate signing CA.  Each CA
@@ -424,6 +443,53 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 
     cafiles:
 
+    #############################################################################
+    # Intermediate CA section
+    #
+    # The relationship between servers and CAs is as follows:
+    #   1) A single server process may contain or function as one or more CAs.
+    #      This is configured by the "Multi CA section" above.
+    #   2) Each CA is either a root CA or an intermediate CA.
+    #   3) Each intermediate CA has a parent CA which is either a root CA or another intermediate CA.
+    #
+    # This section pertains to configuration of #2 and #3.
+    # If the "intermediate.parentserver.url" property is set,
+    # then this is an intermediate CA with the specified parent
+    # CA.
+    #
+    # parentserver section
+    #    url - The URL of the parent server
+    #    caname - Name of the CA to enroll within the server
+    #
+    # enrollment section used to enroll intermediate CA with parent CA
+    #    hosts - A comma-separated list of host names which the certificate should
+    #    be valid for
+    #    profile - Name of the signing profile to use in issuing the certificate
+    #    label - Label to use in HSM operations
+    #
+    # tls section for secure socket connection
+    #   certfiles - PEM-encoded list of trusted root certificate files
+    #   client:
+    #     certfile - PEM-encoded certificate file for when client authentication
+    #     is enabled on server
+    #     keyfile - PEM-encoded key file for when client authentication
+    #     is enabled on server
+    #############################################################################
+    intermediate:
+      parentserver:
+        url:
+        caname:
+
+      enrollment:
+        hosts:
+        profile:
+        label:
+
+      tls:
+        certfiles:
+        client:
+          certfile:
+          keyfile:
 
 Fabric CA client's configuration file format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -797,7 +863,7 @@ values for sslmode are:
 |                | signed by a    |
 |                | trusted CA and |
 |                | the server     |
-|                | hostname      |
+|                | hostname       |
 |                | matches the    |
 |                | one in the     |
 |                | certificate    |
@@ -1031,6 +1097,23 @@ For example, the following command will start two customized CA instances:
 
     fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-config.yaml
     --cafiles ca/ca2/fabric-ca-config.yaml
+
+Enrolling an intermediate CA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to create a CA signing certificate for an intermediate CA, the intermediate
+CA must enroll with a parent CA in the same way that a fabric-ca-client enrolls with a CA.
+This is done by using the -u option to specify the URL of the parent CA and the enrollment ID
+and secret as shown below.  The identity associated with this enrollment ID must have an
+attribute with a name of "hf.IntermediateCA" and a value of "true".  The CN (or Common Name)
+of the issued certificate will be set to the enrollment ID. An error will occur if an intermediate
+CA tries to explicitly specify a CN value.
+
+::
+
+    fabric-ca-server start -b admin:adminpw -u http://<enrollmentID>:<secret>@<parentserver>:<parentport>
+
+For other intermediate CA flags see `Fabric CA server's configuration file format`_ section.
 
 `Back to Top`_
 
