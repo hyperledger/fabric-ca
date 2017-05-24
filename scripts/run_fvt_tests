@@ -1,40 +1,39 @@
 #!/bin/bash
 FABRIC_CA=$GOPATH/src/github.com/hyperledger/fabric-ca
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-export TESTCASE="fabric-ca-fvt"
+. $SCRIPTDIR/fabric-ca_utils
 export RESULTLOG="/tmp/fvt-test.results"
 export STARTIME=$SECONDS
+export PATH=$PATH:$GOPATH/bin
 export RC=0
-. $SCRIPTDIR/fabric-ca_utils
+export FABRIC_TLS
 > $RESULTLOG
 
-(
+function runTests() {
+   echo "Running fvt tests ..."
+   tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh")"
+
+   for FABRIC_TLS in "true" "false"; do
+      for cmd in $tests; do
+        echo ""
+        echo "*******************"
+        export TESTCASE="${cmd##*/}"
+        echo "${cmd}"
+        echo "*******************"
+        ${cmd}
+        RC=$((RC+$?))
+        $SCRIPTDIR/fabric-ca_setup.sh -R
+        echo ""
+        echo ""
+        echo ""
+      done
+   done
+}
+
 TimeStamp
-echo "Running fvt tests ..."
-
-for TLS in $SCRIPTDIR/tls.env $SCRIPTDIR/notls.env; do
-. $TLS
-export PATH=$PATH:$GOPATH/bin
-tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test**sh")"
-for cmd in $tests; do
-  echo ""
-  echo "*******************"
-  TESTCASE="${cmd##*/}"
-  echo "${cmd}"
-  echo "*******************"
-  ${cmd} 2>&1
-  RC=$((RC+$?))
-  $SCRIPTDIR/fabric-ca_setup.sh -R
-  echo ""
-  echo ""
-  echo ""
-done
-done
-
-echo "Finished running fvt tests"
+runTests > >( tee $RESULTLOG )
 grep RC: $RESULTLOG
-echo $RC >> $RESULTLOG
-) | tee -a $RESULTLOG 2>&1
-RC=$(tail -n1 $RESULTLOG)
+echo "Finished running fvt tests"
+TESTCASE="fabric-ca-fvt"
 CleanUp "$RC"
 exit "$RC"
