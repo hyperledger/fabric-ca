@@ -31,6 +31,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -863,6 +864,55 @@ func TestSqliteLocking(t *testing.T) {
 		if i++; i == users {
 			break
 		}
+	}
+}
+
+func TestNewUserRegistryMySQL(t *testing.T) {
+	datasource := ""
+
+	// Test with no cert files specified
+	tlsConfig := &tls.ClientTLSConfig{
+		Enabled: true,
+	}
+	_, _, err := dbutil.NewUserRegistryMySQL(datasource, tlsConfig)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
+
+	// Test with with a file that does not exist
+	tlsConfig = &tls.ClientTLSConfig{
+		Enabled:   true,
+		CertFiles: []string{"doesnotexit.pem"},
+	}
+	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no such file or directory")
+
+	// Test with a file that is not of appropriate format
+	tlsConfig = &tls.ClientTLSConfig{
+		Enabled:   true,
+		CertFiles: []string{"../testdata/empty.json"},
+	}
+	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to process certificate from file")
+
+	// Test with a file that does not have read permissions
+	err = os.Chmod("../testdata/root.pem", 0000)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	tlsConfig = &tls.ClientTLSConfig{
+		Enabled:   true,
+		CertFiles: []string{"../testdata/root.pem"},
+	}
+	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "permission denied")
+
+	err = os.Chmod("../testdata/root.pem", 0644)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
