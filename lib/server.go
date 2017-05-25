@@ -22,6 +22,7 @@ import (
 	"crypto/x509/pkix"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -34,6 +35,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/cloudflare/cfssl/revoke"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
@@ -222,9 +224,9 @@ func (s *Server) initConfig() (err error) {
 	if err != nil {
 		return err
 	}
+	revoke.SetCRLFetcher(s.fetchCRL)
 	// Make file names absolute
 	s.makeFileNamesAbsolute()
-	// Create empty CA map
 	return nil
 }
 
@@ -603,6 +605,21 @@ func (s *Server) compareDN(existingCACertFile, newCACertFile string) error {
 		return fmt.Errorf("Please modify CSR in %s and try adding CA again: %s", newCACertFile, err)
 	}
 	return nil
+}
+
+// Read the CRL from body of http response
+func (s *Server) fetchCRL(r io.Reader) ([]byte, error) {
+	crlSizeLimit := s.Config.CRLSizeLimit
+	log.Debugf("CRL size limit is %d bytes", crlSizeLimit)
+
+	crl := make([]byte, crlSizeLimit)
+
+	crl, err := util.Read(r, crl)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading CRL with max buffer size of %d: %s", crlSizeLimit, err)
+	}
+
+	return crl, nil
 }
 
 func (s *Server) loadDNFromCertFile(certFile string) (*DN, error) {
