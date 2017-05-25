@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 POSTGRES_PORT=5432
 MYSQL_PORT=3306
 LDAP_PORT=389

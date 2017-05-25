@@ -1,4 +1,10 @@
 # !/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
 TESTDATA="$FABRIC_CA/testdata"
