@@ -565,6 +565,33 @@ func TestMultiCAConfigs(t *testing.T) {
 
 }
 
+func TestDefaultCAWithSetCAName(t *testing.T) {
+	srv := getServer(rootPort, testdataDir, "", 0, t)
+	srv.CA.Config.CA.Name = "DefaultCA"
+	t.Logf("Server configuration: %+v\n", srv.Config)
+
+	// Starting server with two cas with same name
+	err := srv.Start()
+	if err != nil {
+		t.Fatal("Failed to start server:", err)
+	}
+
+	// No ca name specified should sent to default CA 'ca'
+	client := getRootClient()
+	_, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	if err != nil {
+		t.Error("Failed to enroll, error: ", err)
+	}
+
+	err = srv.Stop()
+	if err != nil {
+		t.Error("Failed to stop server:", err)
+	}
+}
+
 func TestMultiCAWithIntermediate(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", 0, t)
 	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}

@@ -92,6 +92,7 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 
 	if req.CAName == "" {
 		log.Debugf("Directing traffic to default CA")
+		req.CAName = ah.server.CA.Config.CA.Name
 	} else {
 		log.Debugf("Directing traffic to CA %s", req.CAName)
 	}
