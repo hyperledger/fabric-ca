@@ -45,6 +45,15 @@ import (
 const (
 	defaultClientAuth         = "noclientcert"
 	fabricCAServerProfilePort = "FABRIC_CA_SERVER_PROFILE_PORT"
+	allRoles                  = "user,app,peer,orderer,client,validator,auditor"
+)
+
+// Attribute names
+const (
+	attrRoles          = "hf.Registrar.Roles"
+	attrDelegateRoles  = "hf.Registrar.DelegateRoles"
+	attrRevoker        = "hf.Revoker"
+	attrIntermediateCA = "hf.IntermediateCA"
 )
 
 // Server is the fabric-ca server
@@ -140,10 +149,10 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 		Affiliation:    affiliation,
 		MaxEnrollments: s.CA.Config.Registry.MaxEnrollments,
 		Attrs: map[string]string{
-			"hf.Registrar.Roles":         "client,user,peer,validator,auditor",
-			"hf.Registrar.DelegateRoles": "client,user,validator,auditor",
-			"hf.Revoker":                 "true",
-			"hf.IntermediateCA":          "true",
+			attrRoles:          allRoles,
+			attrDelegateRoles:  allRoles,
+			attrRevoker:        "true",
+			attrIntermediateCA: "true",
 		},
 	}
 

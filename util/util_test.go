@@ -572,3 +572,23 @@ func getPEM(file string, t *testing.T) []byte {
 	assert.NoError(t, err)
 	return buf
 }
+
+func TestIsSubsetOf(t *testing.T) {
+	testIsSubsetOf(t, "a,b", "b,a,c", true)
+	testIsSubsetOf(t, "a,b", "b,a", true)
+	testIsSubsetOf(t, "a,b,c", "a,b", false)
+	testIsSubsetOf(t, "a,b,c", "", false)
+}
+
+func testIsSubsetOf(t *testing.T, small, large string, expectToPass bool) {
+	err := IsSubsetOf(small, large)
+	if expectToPass {
+		if err != nil {
+			t.Errorf("IsSubsetOf('%s','%s') failed: %s", small, large, err)
+		}
+	} else {
+		if err == nil {
+			t.Errorf("IsSubsetOf('%s','%s') expected error but passed", small, large)
+		}
+	}
+}

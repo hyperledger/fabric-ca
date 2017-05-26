@@ -144,6 +144,14 @@ func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet, caname
 		return "", fmt.Errorf("Unlimited enrollments not allowed, value must be equal to or less than %d", maxEnrollments)
 	}
 
+	// Make sure delegateRoles is not larger than roles
+	roles := GetAttrValue(req.Attributes, attrRoles)
+	delegateRoles := GetAttrValue(req.Attributes, attrDelegateRoles)
+	err := util.IsSubsetOf(delegateRoles, roles)
+	if err != nil {
+		return "", fmt.Errorf("delegateRoles is superset of roles: %s", err)
+	}
+
 	insert := spi.UserInfo{
 		Name:           req.Name,
 		Pass:           req.Secret,
@@ -155,7 +163,7 @@ func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet, caname
 
 	registry := h.server.caMap[caname].registry
 
-	_, err := registry.GetUser(req.Name, nil)
+	_, err = registry.GetUser(req.Name, nil)
 	if err == nil {
 		return "", fmt.Errorf("Identity '%s' is already registered", req.Name)
 	}

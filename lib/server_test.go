@@ -95,6 +95,8 @@ func TestRootServer(t *testing.T) {
 		t.Fatalf("Failed to enroll admin/adminpw: %s", err)
 	}
 	admin = eresp.Identity
+	// test registration permissions wrt roles and affiliation
+	testRegistration(admin, t)
 	// Register user1
 	rr, err = admin.Register(&api.RegistrationRequest{
 		Name:        "user1",
@@ -970,4 +972,77 @@ func getTLSConfig(srv *Server, clientAuthType string, clientRootCerts []string) 
 	srv.Config.TLS.ClientAuth.CertFiles = clientRootCerts
 
 	return srv
+}
+
+func testRegistration(admin *Identity, t *testing.T) {
+	name := "testRegistrationUser1"
+	topAffiliation := "hyperledger"
+	midAffiliation := "hyperledger.fabric"
+	botAffiliation := "hyperledger.fabric.security"
+	_, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: midAffiliation,
+		Attributes:  makeAttrs(t, "hf.Registrar.Roles=user", "hf.Registrar.DelegateRoles=user,peer"),
+	})
+	if err == nil {
+		t.Error("Should have failed to register delegate roles which exceed roles")
+	}
+	id1, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: midAffiliation,
+		Attributes:  makeAttrs(t, "hf.Registrar.Roles=user,peer", "hf.Registrar.DelegateRoles=user"),
+	})
+	if err != nil {
+		t.Fatalf("Failed to register %s: %s", name, err)
+	}
+	_, err = id1.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: botAffiliation,
+		Attributes:  makeAttrs(t, "hf.Registrar.Roles=peer"),
+	})
+	if err == nil {
+		t.Error("ID1 should not be allowed to delegate peer registration to another identity")
+	}
+	_, err = id1.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: topAffiliation,
+	})
+	if err == nil {
+		t.Error("ID1 should not be allowed to registrar outside of its affiliation hierarchy")
+	}
+	name = "testRegistrationUser2"
+	id2, err := id1.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: botAffiliation,
+	})
+	if err != nil {
+		t.Fatalf("ID1 failed to register %s: %s", name, err)
+	}
+	name = "testRegistrationUser3"
+	_, err = id2.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: botAffiliation,
+	})
+	if err == nil {
+		t.Error("ID2 should not be allowed to register")
+	}
+}
+
+func makeAttrs(t *testing.T, args ...string) []api.Attribute {
+	attrs := make([]api.Attribute, len(args))
+	for idx, attr := range args {
+		eles := strings.Split(attr, "=")
+		if len(eles) != 2 {
+			t.Fatalf("Not two elements in %s", attr)
+		}
+		attrs[idx].Name = eles[0]
+		attrs[idx].Value = eles[1]
+	}
+	return attrs
 }

@@ -26,6 +26,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -129,4 +130,15 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, caFile string, server,
 		}
 	}
 	return nil
+}
+
+// GetAttrValue searches 'attrs' for the attribute with name 'name' and returns
+// its value, or "" if not found.
+func GetAttrValue(attrs []api.Attribute, name string) string {
+	for _, attr := range attrs {
+		if attr.Name == name {
+			return attr.Value
+		}
+	}
+	return ""
 }

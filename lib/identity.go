@@ -53,6 +53,11 @@ func (i *Identity) GetName() string {
 	return i.name
 }
 
+// GetClient returns the client associated with this identity
+func (i *Identity) GetClient() *Client {
+	return i.client
+}
+
 // GetECert returns the enrollment certificate signer for this identity
 func (i *Identity) GetECert() *Signer {
 	return i.ecert
@@ -99,6 +104,25 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 
 	log.Debug("The register request completely successfully")
 	return resp, nil
+}
+
+// RegisterAndEnroll registers and enrolls an identity and returns the identity
+func (i *Identity) RegisterAndEnroll(req *api.RegistrationRequest) (*Identity, error) {
+	if i.client == nil {
+		return nil, errors.New("No client is associated with this identity")
+	}
+	rresp, err := i.Register(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to register %s: %s", req.Name, err)
+	}
+	eresp, err := i.client.Enroll(&api.EnrollmentRequest{
+		Name:   req.Name,
+		Secret: rresp.Secret,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to enroll %s: %s", req.Name, err)
+	}
+	return eresp.Identity, nil
 }
 
 // Reenroll reenrolls an existing Identity and returns a new Identity
