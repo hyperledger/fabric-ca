@@ -559,6 +559,14 @@ func TestCheckHostsInCert(t *testing.T) {
 	assert.Error(t, err, "Certificate contained no host, should have failed")
 }
 
+func TestCertDuration(t *testing.T) {
+	d, err := GetCertificateDurationFromFile("../testdata/ec.pem")
+	assert.NoError(t, err)
+	assert.True(t, d.Hours() == 43800, "Expected certificate duration of 43800h in ec.pem")
+	_, err = GetCertificateDurationFromFile("bogus.pem")
+	assert.Error(t, err)
+}
+
 func getPEM(file string, t *testing.T) []byte {
 	buf, err := ioutil.ReadFile(file)
 	assert.NoError(t, err)

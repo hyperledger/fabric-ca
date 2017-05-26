@@ -167,14 +167,9 @@ func Unmarshal(from []byte, to interface{}, what string) error {
 // @param key The pem-encoded key
 // @param body The body of an HTTP request
 func CreateToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, body []byte) (string, error) {
-
-	block, _ := pem.Decode(cert)
-	if block == nil {
-		return "", errors.New("Failed to PEM decode certificate")
-	}
-	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	x509Cert, err := GetX509CertificateFromPEM(cert)
 	if err != nil {
-		return "", fmt.Errorf("Error from x509.ParseCertificate: %s", err)
+		return "", err
 	}
 	publicKey := x509Cert.PublicKey
 
@@ -307,11 +302,7 @@ func DecodeToken(token string) (*x509.Certificate, string, string, error) {
 	if err != nil {
 		return nil, "", "", fmt.Errorf("Failed to decode base64 encoded x509 cert: %s", err)
 	}
-	block, _ := pem.Decode(certDecoded)
-	if block == nil {
-		return nil, "", "", errors.New("Failed to PEM decode the certificate")
-	}
-	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	x509Cert, err := GetX509CertificateFromPEM(certDecoded)
 	if err != nil {
 		return nil, "", "", fmt.Errorf("Error in parsing x509 cert given Block Bytes: %s", err)
 	}
@@ -450,7 +441,20 @@ func GetDefaultConfigFile(cmdName string) string {
 	return path.Join(os.Getenv("HOME"), ".fabric-ca-client", fname)
 }
 
-// GetX509CertificateFromPEM converts a PEM buffer to an X509 Certificate
+// GetX509CertificateFromPEMFile gets an X509 certificate from a file
+func GetX509CertificateFromPEMFile(file string) (*x509.Certificate, error) {
+	pemBytes, err := ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+	x509Cert, err := GetX509CertificateFromPEM(pemBytes)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid certificate in %s: %s", file, err)
+	}
+	return x509Cert, nil
+}
+
+// GetX509CertificateFromPEM get an X509 certificate from bytes in PEM format
 func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(cert)
 	if block == nil {
@@ -458,9 +462,24 @@ func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 	}
 	x509Cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Error from x509.ParseCertificate: %s", err)
+		return nil, fmt.Errorf("Error parsing certificate: %s", err)
 	}
 	return x509Cert, nil
+}
+
+// GetCertificateDurationFromFile returns the validity duration for a certificate
+// in a file.
+func GetCertificateDurationFromFile(file string) (time.Duration, error) {
+	cert, err := GetX509CertificateFromPEMFile(file)
+	if err != nil {
+		return 0, err
+	}
+	return GetCertificateDuration(cert), nil
+}
+
+// GetCertificateDuration returns the validity duration for a certificate
+func GetCertificateDuration(cert *x509.Certificate) time.Duration {
+	return cert.NotAfter.Sub(cert.NotBefore)
 }
 
 // GetEnrollmentIDFromPEM returns the EnrollmentID from a PEM buffer
