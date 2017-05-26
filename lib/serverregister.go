@@ -137,11 +137,11 @@ func (h *registerHandler) registerUserID(req *api.RegistrationRequestNet, caname
 	maxEnrollments := h.server.caMap[caname].Config.Registry.MaxEnrollments
 
 	if (req.MaxEnrollments > maxEnrollments && maxEnrollments != 0) || (req.MaxEnrollments < 0) {
-		return "", fmt.Errorf("Invalid max enrollment value specified, value must be equal to or less then %d", maxEnrollments)
+		return "", fmt.Errorf("Invalid max enrollment value specified, value must be equal to or less than %d", maxEnrollments)
 	}
 
 	if req.MaxEnrollments == 0 && maxEnrollments != 0 {
-		return "", fmt.Errorf("Unlimited enrollments not allowed, value must be equal to or less then %d", maxEnrollments)
+		return "", fmt.Errorf("Unlimited enrollments not allowed, value must be equal to or less than %d", maxEnrollments)
 	}
 
 	insert := spi.UserInfo{
