@@ -40,8 +40,6 @@ type RegistrationRequest struct {
 	// The identity's affiliation.
 	// For example, an affiliation of "org1.department1" associates the identity with "department1" in "org1".
 	Affiliation string `json:"affiliation" help:"The identity's affiliation"`
-	// Attr is used to support a single attribute provided through the fabric-ca-client CLI
-	Attr string `help:"Attributes associated with this identity (e.g. hf.Revoker=true)"`
 	// Attributes associated with this identity
 	Attributes []Attribute `json:"attrs,omitempty"`
 	// CAName is the name of the CA to connect to

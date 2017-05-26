@@ -201,6 +201,10 @@ var (
 	// cfgFileName is the name of the client's config file
 	cfgFileName string
 
+	// cfgAttrs are the attributes specified via flags or env variables
+	// and translated to Attributes field in registration
+	cfgAttrs []string
+
 	// clientCfg is the client's config
 	clientCfg *lib.ClientConfig
 )
@@ -273,9 +277,11 @@ func configInit(command string) error {
 
 	clientCfg.TLS.Enabled = purl.Scheme == "https"
 
-	if clientCfg.ID.Attr != "" {
-		processAttributes()
+	err = processAttributes()
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -314,14 +320,20 @@ func createDefaultConfigFile() error {
 	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0755)
 }
 
-// processAttributes parses attributes from command line
-func processAttributes() {
-	splitAttr := strings.Split(clientCfg.ID.Attr, "=")
-	if len(clientCfg.ID.Attributes) == 0 {
-		clientCfg.ID.Attributes = make([]api.Attribute, 1)
+// processAttributes parses attributes from command line or env variable
+func processAttributes() error {
+	if cfgAttrs != nil {
+		clientCfg.ID.Attributes = make([]api.Attribute, len(cfgAttrs))
+		for idx, attr := range cfgAttrs {
+			sattr := strings.SplitN(attr, "=", 2)
+			if len(sattr) != 2 {
+				return fmt.Errorf("Attribute '%s' is missing '=' ; it must be of the form <name>=<value>", attr)
+			}
+			clientCfg.ID.Attributes[idx].Name = sattr[0]
+			clientCfg.ID.Attributes[idx].Value = sattr[1]
+		}
 	}
-	clientCfg.ID.Attributes[0].Name = splitAttr[0]
-	clientCfg.ID.Attributes[0].Value = strings.Join(splitAttr[1:], "")
+	return nil
 }
 
 func checkForEnrollment() error {
