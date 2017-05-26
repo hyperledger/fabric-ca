@@ -51,7 +51,11 @@ DOCKER_TAG=$(ARCH)-$(PROJECT_VERSION)
 BASE_DOCKER_TAG=$(ARCH)-$(BASEIMAGE_RELEASE)
 
 DOCKER_GO_LDFLAGS += $(GO_LDFLAGS)
+ifeq ($(FABRIC_CA_DYNAMIC_LINK),true)
+DOCKER_GO_LDFLAGS += -linkmode external -extldflags '-lpthread'
+else
 DOCKER_GO_LDFLAGS += -linkmode external -extldflags '-static -lpthread'
+endif
 
 #
 # What is a .dummy file?

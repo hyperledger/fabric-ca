@@ -145,6 +145,24 @@ You can build and start the server via docker-compose as shown below.
 The hyperledger/fabric-ca docker image contains both the fabric-ca-server and
 the fabric-ca-client.
 
+WARNING: In some cases, the fabric-ca-server is known to panic due to a bug in
+a native library (libc) on some platforms.  One known
+case is when fabric-ca-server is configured with TLS to a PostgreSQL database,
+though there may also be other cases.
+As a work around, you may set the FABRIC_CA_DYNAMIC_LINK environment variable
+to a value of true prior when issuing the "make docker" command as shown below.
+This causes the executables to be dynamically linked rather than statically
+linked, which avoids the bug in the native library code.
+For more information on this issue, see
+https://jira.hyperledger.org/browse/FAB-2919.
+
+::
+
+    # cd $GOPATH/src/github.com/hyperledger/fabric-ca
+    # FABRIC_CA_DYNAMIC_LINK=true make docker
+    # cd docker/server
+    # docker-compose up -d
+
 Explore the Fabric CA CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -809,19 +827,19 @@ Configuring the database
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 This section describes how to configure the Fabric CA server to connect
-to Postgres or MySQL databases. The default database is SQLite and the
+to PostgreSQL or MySQL databases. The default database is SQLite and the
 default database file is ``fabric-ca-server.db`` in the Fabric CA
 server's home directory.
 
 If you don't care about running the Fabric CA server in a cluster, you
-may skip this section; otherwise, you must configure either Postgres or
+may skip this section; otherwise, you must configure either PostgreSQL or
 MySQL as described below.
 
-Postgres
+PostgreSQL
 ^^^^^^^^^^
 
 The following sample may be added to the server's configuration file in
-order to connect to a Postgres database. Be sure to customize the
+order to connect to a PostgreSQL database. Be sure to customize the
 various values appropriately.
 
 ::
@@ -873,7 +891,7 @@ values for sslmode are:
 
 If you would like to use TLS, then the ``db.tls`` section in the Fabric CA server
 configuration file must be specified. If SSL client authentication is enabled
-on the Postgres server, then the client certificate and key file must also be
+on the PostgreSQL server, then the client certificate and key file must also be
 specified in the ``db.tls.client`` section. The following is an example
 of the ``db.tls`` section:
 
@@ -890,7 +908,7 @@ of the ``db.tls`` section:
                 keyfile: db-client-key.pem
 
 | **certfiles** - A list of PEM-encoded trusted root certificate files.
-| **certfile** and **keyfile** - PEM-encoded certificate and key files that are used by the Fabric CA server to communicate securely with the Postgres server
+| **certfile** and **keyfile** - PEM-encoded certificate and key files that are used by the Fabric CA server to communicate securely with the PostgreSQL server
 
 MySQL
 ^^^^^^^
@@ -906,7 +924,7 @@ values appropriately.
       datasource: root:rootpw@tcp(localhost:3306)/fabric-ca?parseTime=true&tls=custom
 
 If connecting over TLS to the MySQL server, the ``db.tls.client``
-section is also required as described in the **Postgres** section above.
+section is also required as described in the **PostgreSQL** section above.
 
 Configuring LDAP
 ~~~~~~~~~~~~~~~~
@@ -1413,14 +1431,14 @@ can be specified on the command line of a client command as follows:
 Appendix
 --------
 
-Postgres SSL Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+PostgreSQL SSL Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Basic instructions for configuring SSL on the Postgres server:**
+**Basic instructions for configuring SSL on the PostgreSQL server:**
 
 1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
 
-2. Place certificate and key files in the Postgres data directory.
+2. Place certificate and key files in the PostgreSQL data directory.
 
 Instructions for generating self-signed certificates for:
 https://www.postgresql.org/docs/9.5/static/ssl-tcp.html
@@ -1428,16 +1446,16 @@ https://www.postgresql.org/docs/9.5/static/ssl-tcp.html
 Note: Self-signed certificates are for testing purposes and should not
 be used in a production environment
 
-**Postgres Server - Require Client Certificates**
+**PostgreSQL Server - Require Client Certificates**
 
-1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the Postgres data directory
+1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the PostgreSQL data directory
 
 2. In postgresql.conf, set "ssl\_ca\_file" to point to the root cert of the client (CA cert)
 
 3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg\_hba.conf.
 
-For more details on configuring SSL on the Postgres server, please refer
-to the following Postgres documentation:
+For more details on configuring SSL on the PostgreSQL server, please refer
+to the following PostgreSQL documentation:
 https://www.postgresql.org/docs/9.4/static/libpq-ssl.html
 
 MySQL SSL Configuration
