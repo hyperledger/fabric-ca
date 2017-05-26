@@ -89,7 +89,7 @@ func TestGetClientTLSConfigInvalidArgs(t *testing.T) {
 	AbsTLSClient(cfg, configDir)
 	_, err = GetClientTLSConfig(cfg)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "No root CA TLS certificate files provided")
+	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
 
 	// 3.
 	cfg = &ClientTLSConfig{
@@ -114,7 +114,7 @@ func TestGetClientTLSConfigInvalidArgs(t *testing.T) {
 	}
 	_, err = GetClientTLSConfig(cfg)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "No root CA TLS certificate files provided")
+	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
 
 	// 5.
 	cfg = &ClientTLSConfig{
