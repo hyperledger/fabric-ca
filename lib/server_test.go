@@ -253,16 +253,15 @@ func TestIntermediateServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Root server start failed: %s", err)
 	}
-	defer rootServer.Stop()
+	defer func() {
+		err = rootServer.Stop()
+		if err != nil {
+			t.Errorf("Root server stop failed: %s", err)
+		}
+	}()
 
 	for idx := 0; idx < 3; idx++ {
 		testIntermediateServer(idx, t)
-	}
-
-	// Stop both servers
-	err = rootServer.Stop()
-	if err != nil {
-		t.Errorf("Root server stop failed: %s", err)
 	}
 }
 
@@ -282,17 +281,23 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Root server start failed: %s", err)
 	}
+	defer func() {
+		err = rootServer.Stop()
+		if err != nil {
+			t.Errorf("Root server stop failed: %s", err)
+		}
+	}()
 
 	parentURL := fmt.Sprintf("https://admin:adminpw@localhost:%d", rootPort)
 	intermediateServer := getServer(intermediatePort, intermediateDir, parentURL, 0, t)
 	if intermediateServer == nil {
 		return
 	}
-	intermediateServer.CA.Config.Intermediate.TLS.CertFiles = []string{"../../testdata/root.pem"}
 	intermediateServer.CA.Config.Intermediate.TLS.Client.CertFile = "../../testdata/tls_client-cert.pem"
 	intermediateServer.CA.Config.Intermediate.TLS.Client.KeyFile = "../../testdata/tls_client-key.pem"
 	intermediateServer.CA.Config.CSR.CN = "intermediateServer"
 
+	// Error case 1: CN specified for intermediate server
 	err = intermediateServer.Start()
 	if err == nil {
 		t.Errorf("CN specified for intermediate server, the server should have failed to start")
@@ -301,21 +306,23 @@ func TestIntermediateServerWithTLS(t *testing.T) {
 	intermediateServer.CA.Config.CSR.CN = ""
 	intermediateServer.CA.Config.CSR.Hosts = []string{"testhost"}
 
+	// Error case 2: tls.certfiles not specified for intermediate server while connecting to parent CA server over TLS
+	err = intermediateServer.Start()
+	if err == nil {
+		t.Errorf("Certfiles not specified for the Intermediate server, the server should have failed to start")
+	}
+
+	// Success case
+	intermediateServer.CA.Config.Intermediate.TLS.CertFiles = []string{"../../testdata/root.pem"}
 	err = intermediateServer.Start()
 	if err != nil {
 		t.Errorf("Intermediate server start failed: %s", err)
 	}
-
 	time.Sleep(time.Second)
 
 	err = intermediateServer.Stop()
 	if err != nil {
 		t.Errorf("Intermediate server stop failed: %s", err)
-	}
-
-	err = rootServer.Stop()
-	if err != nil {
-		t.Errorf("Root server stop failed: %s", err)
 	}
 
 	// Make sure that the hostname was not inserted into the CA certificate

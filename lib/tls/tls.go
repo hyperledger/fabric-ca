@@ -78,11 +78,9 @@ func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
 	} else {
 		log.Debug("Client TLS certificate and/or key file not provided")
 	}
-
 	rootCAPool := x509.NewCertPool()
-
 	if len(cfg.CertFiles) == 0 {
-		return nil, errors.New("No root CA TLS certificate files provided")
+		return nil, errors.New("No TLS certificate files were provided")
 	}
 
 	for _, cacert := range cfg.CertFiles {
