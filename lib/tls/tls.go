@@ -39,13 +39,13 @@ type ServerTLSConfig struct {
 // ClientAuth defines the key material needed to verify client certificates
 type ClientAuth struct {
 	Type      string   `def:"noclientcert" help:"Policy the server will follow for TLS Client Authentication."`
-	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
+	CertFiles []string `help:"A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)"`
 }
 
 // ClientTLSConfig defines the key material for a TLS client
 type ClientTLSConfig struct {
 	Enabled   bool     `skip:"true"`
-	CertFiles []string `help:"PEM-encoded list of trusted certificate files"`
+	CertFiles []string `help:"A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)"`
 	Client    KeyCertFiles
 }
 

@@ -183,38 +183,44 @@ The following shows the Fabric CA server usage message.
       start       Start the Fabric CA server
 
     Flags:
-          --address string                  Listening address of fabric-ca-server (default "0.0.0.0")
-      -b, --boot string                     The user:pass for bootstrap admin which is required to build default config file
-          --ca.certfile string              PEM-encoded CA certificate file (default "ca-cert.pem")
-          --ca.keyfile string               PEM-encoded CA key file (default "ca-key.pem")
-          --cacount int                     Number of non-default CA instances
-          --cafiles stringSlice             CA configuration files
-      -c, --config string                   Configuration file (default "fabric-ca-server-config.yaml")
-          --csr.cn string                   The common name field of the certificate signing request to a parent fabric-ca-server
-          --csr.serialnumber string         The serial number in a certificate signing request to a parent fabric-ca-server
-          --db.datasource string            Data source which is database specific (default "fabric-ca-server.db")
-          --db.tls.certfiles string         PEM-encoded comma separated list of trusted certificate files (e.g. root1.pem, root2.pem)
-          --db.tls.client.certfile string   PEM-encoded certificate file when mutual authentication is enabled
-          --db.tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
-          --db.tls.enabled                  Enable TLS for client connection
-          --db.type string                  Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
-      -d, --debug                           Enable debug level logging
-          --intermediate.enrollment.label string      Label to use in HSM operations
-          --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
-          --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-serve
-      -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
-          --intermediate.tls.certfiles stringSlice    PEM-encoded list of trusted certificate files
-          --intermediate.tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
-          --intermediate.tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
-          --ldap.enabled                    Enable the LDAP client for authentication and attributes
-          --ldap.groupfilter string         The LDAP group filter for a single affiliation group (default "(memberUid=%s)")
-          --ldap.url string                 LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base
-          --ldap.userfilter string          The LDAP user filter to use when searching for users (default "(uid=%s)")
-      -p, --port int                        Listening port of fabric-ca-server (default 7054)
-          --registry.maxenrollments int     Maximum number of enrollments; valid if LDAP not enabled
-          --tls.certfile string             PEM-encoded TLS certificate file for server's listening port (default "ca-cert.pem")
-          --tls.enabled                     Enable TLS on the listening port
-          --tls.keyfile string              PEM-encoded TLS key for server's listening port (default "ca-key.pem")
+      --address string                            Listening address of fabric-ca-server (default "0.0.0.0")
+  -b, --boot string                               The user:pass for bootstrap admin which is required to build default config file
+      --ca.certfile string                        PEM-encoded CA certificate file (default "ca-cert.pem")
+      --ca.chainfile string                       PEM-encoded CA chain file (default "ca-chain.pem")
+      --ca.keyfile string                         PEM-encoded CA key file (default "ca-key.pem")
+  -n, --ca.name string                            Certificate Authority name
+      --cacount int                               Number of non-default CA instances
+      --cafiles stringSlice                       A list of comma-separated CA configuration files
+  -c, --config string                             Configuration file (default "fabric-ca-server-config.yaml")
+      --csr.cn string                             The common name field of the certificate signing request to a parent fabric-ca-server
+      --csr.hosts stringSlice                     A list of comma-separated host names in a certificate signing request to a parent fabric-ca-server
+      --db.datasource string                      Data source which is database specific (default "fabric-ca-server.db")
+      --db.tls.certfiles stringSlice              A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+      --db.tls.client.certfile string             PEM-encoded certificate file when mutual authenticate is enabled
+      --db.tls.client.keyfile string              PEM-encoded key file when mutual authentication is enabled
+      --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
+  -d, --debug                                     Enable debug level logging
+      --intermediate.enrollment.label string      Label to use in HSM operations
+      --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
+      --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-serve
+  -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
+      --intermediate.tls.certfiles stringSlice    A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+      --intermediate.tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
+      --intermediate.tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
+      --ldap.enabled                              Enable the LDAP client for authentication and attributes
+      --ldap.groupfilter string                   The LDAP group filter for a single affiliation group (default "(memberUid=%s)")
+      --ldap.tls.certfiles stringSlice            A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+      --ldap.tls.client.certfile string           PEM-encoded certificate file when mutual authenticate is enabled
+      --ldap.tls.client.keyfile string            PEM-encoded key file when mutual authentication is enabled
+      --ldap.url string                           LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base
+      --ldap.userfilter string                    The LDAP user filter to use when searching for users (default "(uid=%s)")
+  -p, --port int                                  Listening port of fabric-ca-server (default 7054)
+      --registry.maxenrollments int               Maximum number of enrollments; valid if LDAP not enabled
+      --tls.certfile string                       PEM-encoded TLS certificate file for server's listening port (default "ca-cert.pem")
+      --tls.clientauth.certfiles stringSlice      A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+      --tls.clientauth.type string                Policy the server will follow for TLS Client Authentication. (default "noclientcert")
+      --tls.enabled                               Enable TLS on the listening port
+      --tls.keyfile string                        PEM-encoded TLS key for server's listening port (default "ca-key.pem")
 
     Use "fabric-ca-server [command] --help" for more information about a command.
 
@@ -236,33 +242,38 @@ The following shows the Fabric CA client usage message:
       revoke      Revoke an identity
 
     Flags:
-          --caname string                Name of CA
-      -c, --config string                Configuration file (default "$HOME/.fabric-ca-client/fabric-ca-client-config.yaml")
-          --csr.hosts stringSlice        A list of space-separated host names in a certificate signing request
-          --csr.serialnumber string      The serial number in a certificate signing request
-      -d, --debug                        Enable debug level logging
-          --enrollment.label string      Label to use in HSM operations
-          --enrollment.profile string    Name of the signing profile to use in issuing the certificate
-          --id.affiliation string        The identity's affiliation
-          --id.attrs stringSlice         A space-separated list of attributes of the form <name>=<value> (e.g. foo=foo1 bar=bar1)
-          --id.maxenrollments int        The maximum number of times the secret can be reused to enroll
-          --id.name string               Unique name of the identity
-          --id.secret string             The enrollment secret for the identity being registered
-          --id.type string               Type of identity being registered (e.g. 'peer, app, user')
-      -M, --mspdir string                Membership Service Provider directory (default "msp")
-      -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
-          --tls.certfiles stringSlice    PEM-encoded list of trusted certificate files
-          --tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
-          --tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
-      -u, --url string                   URL of the Fabric CA server (default "http://localhost:7054")
+      --caname string                Name of CA
+  -c, --config string                Configuration file (default "/Users/saadkarim/.fabric-ca-client/fabric-ca-client-config.yaml")
+      --csr.hosts stringSlice        A list of comma-separated host names in a certificate signing request
+      --csr.serialnumber string      The serial number in a certificate signing request, which becomes part of the DN (Distinquished Name)
+  -d, --debug                        Enable debug level logging
+      --enrollment.label string      Label to use in HSM operations
+      --enrollment.profile string    Name of the signing profile to use in issuing the certificate
+      --id.affiliation string        The identity's affiliation
+      --id.attrs stringSlice         A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+      --id.maxenrollments int        The maximum number of times the secret can be reused to enroll.
+      --id.name string               Unique name of the identity
+      --id.secret string             The enrollment secret for the identity being registered
+      --id.type string               Type of identity being registered (e.g. 'peer, app, user')
+  -M, --mspdir string                Membership Service Provider directory (default "msp")
+  -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "saads-mbp.raleigh.ibm.com")
+  -a, --revoke.aki string            AKI (Authority Key Identifier) of the certificate to be revoked
+  -e, --revoke.name string           Identity whose certificates should be revoked
+  -r, --revoke.reason string         Reason for revocation
+  -s, --revoke.serial string         Serial number of the certificate to be revoked
+      --tls.certfiles stringSlice    A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+      --tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
+      --tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
+  -u, --url string                   URL of fabric-ca-server (default "http://localhost:7054")
 
     Use "fabric-ca-client [command] --help" for more information about a command.
 
 Note that command line options that are string slices (lists) can be specified either
-by specifying the option with space-separated list elements or by specifying the option
+by specifying the option with comma-separated list elements or by specifying the option
 multiple times, each with a string value that make up the list. For example, to specify
 ``host1`` and ``host2`` for `csr.hosts` option, you can either pass `--csr.hosts
-"host1 host2"` or `--csr.hosts host1 --csr.hosts host2`
+'host1,host2'` when using this format make sure there is no space before or after comma
+or `--csr.hosts host1 --csr.hosts host2`
 
 `Back to Top`_
 
@@ -482,8 +493,6 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
     #    caname - Name of the CA to enroll within the server
     #
     # enrollment section used to enroll intermediate CA with parent CA
-    #    hosts - A comma-separated list of host names which the certificate should
-    #    be valid for
     #    profile - Name of the signing profile to use in issuing the certificate
     #    label - Label to use in HSM operations
     #
@@ -1225,12 +1234,25 @@ an attribute named "foo" with a value of "bar".
 ::
 
     # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs "hf.Revoker=true foo=bar"
+    # fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs 'hf.Revoker=true,foo=bar'
 
 The password, also known as the enrollment secret, is printed.
 This password is required to enroll the identity.
 This allows an administrator to register an identity and give the
 enrollment ID and the secret to someone else to enroll the identity.
+
+Multiple attributes can be specified as part of the --id.attrs flag, each
+attribute must be comma separated. For an attribute value that contains a comma,
+the attribute must be encapsulated in double quotes. See example below.
+
+::
+
+    # fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
+
+or
+::
+
+    # fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true 
 
 You may set default values for any of the fields used in the register command
 by editing the client's configuration file.  For example, suppose the configuration

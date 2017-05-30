@@ -168,12 +168,10 @@ id:
 #############################################################################
 #  Enrollment section used to enroll an identity with fabric-ca server
 #
-#  hosts - A comma-separated list of host names which the certificate should be valid for
 #  profile - Name of the signing profile to use in issuing the certificate
 #  label - Label to use in HSM operations
 #############################################################################
 enrollment:
-  hosts:
   profile:
   label:
 

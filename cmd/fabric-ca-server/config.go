@@ -313,8 +313,6 @@ cafiles:
 #    caname - Name of the CA to enroll within the server
 #
 # enrollment section used to enroll intermediate CA with parent CA
-#    hosts - A comma-separated list of host names which the certificate should
-#    be valid for
 #    profile - Name of the signing profile to use in issuing the certificate
 #    label - Label to use in HSM operations
 #
