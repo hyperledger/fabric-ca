@@ -27,10 +27,11 @@ import (
 )
 
 const (
-	whitePort  = 7058
-	user       = "admin"
-	pass       = "adminpw"
-	serversDir = "testservers"
+	whitePort            = 7058
+	user                 = "admin"
+	pass                 = "adminpw"
+	serversDir           = "testservers"
+	testTLSClientAuthDir = "testTLSClientAuthDir"
 )
 
 var clientConfig = path.Join(testdataDir, "client-config.json")
@@ -50,6 +51,105 @@ func TestClient1(t *testing.T) {
 	server.Stop()
 
 	os.RemoveAll(serversDir)
+}
+
+// TestTLS performs 3 main steps:
+// 1) Test over HTTP to get an standard ecert
+// 2) Test over HTTPS with client auth disabled
+// 3) Test over HTTPS with client auth enabled, using standard ecert from #1
+func TestTLSClientAuth(t *testing.T) {
+	os.RemoveAll(testTLSClientAuthDir)
+	defer os.RemoveAll(testTLSClientAuthDir)
+	//
+	// 1) Test over HTTP to get a standard ecert
+	//
+	// Start server
+	server := getServer(whitePort, path.Join(testTLSClientAuthDir, "server"), "", 1, t)
+	if server == nil {
+		return
+	}
+	server.CA.Config.CSR.CN = "localhost"
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+	defer server.Stop()
+	// Enroll over HTTP
+	client := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", whitePort)},
+		HomeDir: path.Join(testTLSClientAuthDir, "client"),
+	}
+	eresp, err := client.Enroll(&api.EnrollmentRequest{Name: user, Secret: pass})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	id := eresp.Identity
+	// Stop server
+	err = server.Stop()
+	if err != nil {
+		t.Fatalf("Failed to stop server: %s", err)
+	}
+
+	//
+	// 2) Test over HTTPS with client auth disabled
+	//
+	// Start server
+	server.Config.TLS.Enabled = true
+	server.Config.TLS.CertFile = "ca-cert.pem"
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server with HTTPS: %s", err)
+	}
+	// Try to reenroll over HTTP and it should fail because server is listening on HTTPS
+	_, err = id.Reenroll(&api.ReenrollmentRequest{})
+	if err == nil {
+		t.Fatal("Client HTTP should have failed to reenroll with server HTTPS")
+	}
+	// Reenroll over HTTPS
+	client.Config.URL = fmt.Sprintf("https://localhost:%d", whitePort)
+	client.Config.TLS.Enabled = true
+	client.Config.TLS.CertFiles = []string{"../server/ca-cert.pem"}
+	resp, err := id.Reenroll(&api.ReenrollmentRequest{})
+	if err != nil {
+		t.Fatalf("Failed to reenroll over HTTPS: %s", err)
+	}
+	id = resp.Identity
+	// Store identity persistently
+	err = id.Store()
+	if err != nil {
+		t.Fatalf("Failed to store identity: %s", err)
+	}
+	// Stop server
+	err = server.Stop()
+	if err != nil {
+		t.Fatalf("Failed to stop server: %s", err)
+	}
+
+	//
+	// 3) Test over HTTPS with client auth enabled
+	//
+	server.Config.TLS.ClientAuth.Type = "RequireAndVerifyClientCert"
+	server.Config.TLS.ClientAuth.CertFiles = []string{"ca-cert.pem"}
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server with HTTPS and client auth: %s", err)
+	}
+	// Try to reenroll and it should fail because client has no client cert
+	_, err = id.Reenroll(&api.ReenrollmentRequest{})
+	if err == nil {
+		t.Fatal("Client reenroll without client cert should have failed")
+	}
+	// Reenroll over HTTPS with client auth
+	client.Config.TLS.Client.CertFile = path.Join("msp", "signcerts", "cert.pem")
+	_, err = id.Reenroll(&api.ReenrollmentRequest{})
+	if err != nil {
+		t.Fatalf("Client reenroll with client auth failed: %s", err)
+	}
+	// Stop server
+	err = server.Stop()
+	if err != nil {
+		t.Fatalf("Failed to stop server: %s", err)
+	}
 }
 
 func testInvalidAuthEnrollment(t *testing.T) {

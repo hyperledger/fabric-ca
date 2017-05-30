@@ -145,12 +145,14 @@ func BccspBackedSigner(caFile, keyFile string, policy *config.Signing, csp bccsp
 		// Fallback: attempt to read out of keyFile and import
 		log.Debugf("No key found in BCCSP keystore, attempting fallback")
 		var key bccsp.Key
+		var signer crypto.Signer
+
 		key, err = ImportBCCSPKeyFromPEM(keyFile, csp, false)
 		if err != nil {
 			return nil, fmt.Errorf("Could not find the private key in BCCSP keystore nor in keyfile %s: %s", keyFile, err)
 		}
 
-		signer, err := cspsigner.New(csp, key)
+		signer, err = cspsigner.New(csp, key)
 		if err != nil {
 			return nil, fmt.Errorf("Failed initializing CryptoSigner: %s", err)
 		}

@@ -444,7 +444,7 @@ func (ca *CA) initDB() error {
 			return err
 		}
 	case "mysql":
-		ca.db, exists, err = dbutil.NewUserRegistryMySQL(db.Datasource, &db.TLS)
+		ca.db, exists, err = dbutil.NewUserRegistryMySQL(db.Datasource, &db.TLS, ca.csp)
 		if err != nil {
 			return err
 		}
@@ -486,7 +486,7 @@ func (ca *CA) initUserRegistry() error {
 
 	if ldapCfg.Enabled {
 		// Use LDAP for the user registry
-		ca.registry, err = ldap.NewClient(ldapCfg)
+		ca.registry, err = ldap.NewClient(ldapCfg, ca.server.csp)
 		log.Debugf("Initialized LDAP identity registry; err=%s", err)
 		return err
 	}

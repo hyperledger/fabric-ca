@@ -395,7 +395,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 			return err
 		}
 
-		tlsConfig, err2 := tls.GetClientTLSConfig(&c.Config.TLS)
+		tlsConfig, err2 := tls.GetClientTLSConfig(&c.Config.TLS, c.csp)
 		if err2 != nil {
 			return fmt.Errorf("Failed to get client TLS config: %s", err2)
 		}

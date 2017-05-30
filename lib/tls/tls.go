@@ -26,6 +26,8 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 // ServerTLSConfig defines key material for a TLS server
@@ -56,25 +58,29 @@ type KeyCertFiles struct {
 }
 
 // GetClientTLSConfig creates a tls.Config object from certs and roots
-func GetClientTLSConfig(cfg *ClientTLSConfig) (*tls.Config, error) {
+func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, error) {
 	var certs []tls.Certificate
+
+	if csp == nil {
+		csp = factory.GetDefault()
+	}
 
 	log.Debugf("CA Files: %+v\n", cfg.CertFiles)
 	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
 	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
 
-	if cfg.Client.CertFile != "" && cfg.Client.KeyFile != "" {
+	if cfg.Client.CertFile != "" {
 		err := checkCertDates(cfg.Client.CertFile)
 		if err != nil {
 			return nil, err
 		}
 
-		clientCert, err := tls.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile)
+		clientCert, err := util.LoadX509KeyPair(cfg.Client.CertFile, cfg.Client.KeyFile, csp)
 		if err != nil {
 			return nil, err
 		}
 
-		certs = append(certs, clientCert)
+		certs = append(certs, *clientCert)
 	} else {
 		log.Debug("Client TLS certificate and/or key file not provided")
 	}
