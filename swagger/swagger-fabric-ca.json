@@ -43,8 +43,8 @@
                     "null"
                   ],
                   "description": "Name of the CA to direct traffic to within server."
-                },
-              },
+                }
+              }
             }
           }
         ],
@@ -588,7 +588,7 @@
                   ],
                   "description": "Name of the CA to direct traffic to within server."
                 }
-              },
+              }
             }
           }
         ],
