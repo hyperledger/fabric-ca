@@ -36,11 +36,29 @@ var enrollCmd = &cobra.Command{
 	Use:   "enroll -u http://user:userpw@serverAddr:serverPort",
 	Short: "Enroll an identity",
 	Long:  "Enroll identity with fabric-ca server",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	// PreRunE block for this command will check to make sure username
+	// and secret provided for the enroll command before creating and/or
+	// reading configuration file
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
 			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
 		}
 
+		_, _, err := util.GetUser()
+		if err != nil {
+			return err
+		}
+
+		err = configInit(cmd.Name())
+		if err != nil {
+			return err
+		}
+
+		log.Debugf("Client configuration settings: %+v", clientCfg)
+
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := runEnroll(cmd)
 		if err != nil {
 			return err
@@ -57,16 +75,6 @@ func init() {
 // The client enroll main logic
 func runEnroll(cmd *cobra.Command) error {
 	log.Debug("Entered runEnroll")
-	_, _, err := util.GetUser()
-	if err != nil {
-		return err
-	}
-
-	err = configInit(cmd.Name())
-	if err != nil {
-		return err
-	}
-
 	resp, err := clientCfg.Enroll(clientCfg.URL, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err

@@ -212,6 +212,8 @@ var (
 func configInit(command string) error {
 	var err error
 
+	cmd := NewCommand(command)
+
 	if cfgFileName != "" {
 		log.Infof("User provided config file: %s\n", cfgFileName)
 	}
@@ -224,20 +226,28 @@ func configInit(command string) error {
 		}
 	}
 
-	if command != "enroll" {
+	// Commands other than 'enroll' and 'getcacert' require that client already
+	// be enrolled
+	if cmd.requiresEnrollment() {
 		err = checkForEnrollment()
 		if err != nil {
 			return err
 		}
 	}
 
-	// If the config file doesn't exist, create a default one
-	if !util.FileExists(cfgFileName) {
-		err = createDefaultConfigFile()
-		if err != nil {
-			return fmt.Errorf("Failed to create default configuration file: %s", err)
+	// If the config file doesn't exist, create a default one if enroll
+	// command being executed. Enroll should be the first command to be
+	// executed, and furthermore the default configuration file requires
+	// enrollment ID to populate CN field which is something the enroll
+	// command requires
+	if cmd.shouldCreateDefaultConfig() {
+		if !util.FileExists(cfgFileName) {
+			err = createDefaultConfigFile()
+			if err != nil {
+				return fmt.Errorf("Failed to create default configuration file: %s", err)
+			}
+			log.Infof("Created a default configuration file at %s", cfgFileName)
 		}
-		log.Infof("Created a default configuration file at %s", cfgFileName)
 	} else {
 		log.Infof("Configuration file location: %s", cfgFileName)
 	}
@@ -245,9 +255,11 @@ func configInit(command string) error {
 	// Call viper to read the config
 	viper.SetConfigFile(cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
-	err = viper.ReadInConfig()
-	if err != nil {
-		return fmt.Errorf("Failed to read config file: %s", err)
+	if util.FileExists(cfgFileName) {
+		err = viper.ReadInConfig()
+		if err != nil {
+			return fmt.Errorf("Failed to read config file: %s", err)
+		}
 	}
 
 	// Unmarshal the config into 'clientCfg'
@@ -281,6 +293,9 @@ func configInit(command string) error {
 	if err != nil {
 		return err
 	}
+
+	// Check for separaters and insert values back into slice
+	normalizeStringSlices()
 
 	return nil
 }
@@ -343,4 +358,15 @@ func checkForEnrollment() error {
 		Config:  clientCfg,
 	}
 	return client.CheckEnrollment()
+}
+
+func normalizeStringSlices() {
+	fields := []*[]string{
+		&clientCfg.CSR.Hosts,
+		&clientCfg.TLS.CertFiles,
+	}
+	for _, namePtr := range fields {
+		norm := util.NormalizeStringSlice(*namePtr)
+		*namePtr = norm
+	}
 }
