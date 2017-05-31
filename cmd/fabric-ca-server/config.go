@@ -151,7 +151,7 @@ registry:
        affiliation: ""
        maxenrollments: -1
        attrs:
-          hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
+          hf.Registrar.Roles: "client,user,peer,validator,auditor"
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
           hf.IntermediateCA: true
@@ -215,6 +215,9 @@ affiliations:
 #  The "ca" profile subsection is used to sign intermediate CA certificates;
 #  the default expiration ("expiry" field) is "43800h" which is 5 years in hours.
 #  Note that "isca" is true, meaning that it issues a CA certificate.
+#  A maxpathlen of 0 means that the intermediate CA cannot issue other
+#  intermediate CA certificates, though it can still issue end entity certificates.
+#  (See RFC 5280, section 4.2.1.9)
 #############################################################################
 signing:
     default:
@@ -228,6 +231,7 @@ signing:
          expiry: 43800h
          caconstraint:
            isca: true
+           maxpathlen: 0
 
 ###########################################################################
 #  Certificate Signing Request (CSR) section.
@@ -235,9 +239,20 @@ signing:
 #  The expiration for the root CA certificate is configured with the
 #  "ca.expiry" field below, whose default value is "131400h" which is
 #  15 years in hours.
+#  The pathlength field is used to limit CA certificate hierarchy as described
+#  in section 4.2.1.9 of RFC 5280.
+#  Examples:
+#  1) No pathlength value means no limit is requested.
+#  2) pathlength == 1 means a limit of 1 is requested which is the default for
+#     a root CA.  This means the root CA can issue intermediate CA certificates,
+#     but these intermediate CAs may not in turn issue other CA certificates
+#     though they can still issue end entity certificates.
+#  3) pathlength == 0 means a limit of 0 is requested;
+#     this is the default for an intermediate CA, which means it can not issue
+#     CA certificates though it can still issue end entity certificates.
 ###########################################################################
 csr:
-   cn: fabric-ca-server
+   cn: <<<COMMONNAME>>>
    names:
       - C: US
         ST: "North Carolina"
@@ -248,15 +263,13 @@ csr:
      - <<<MYHOST>>>
      - localhost
    ca:
-      pathlen:
-      pathlenzero:
       expiry: 131400h
+      pathlength: <<<PATHLENGTH>>>
 
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section is used to select which
 # crypto library implementation to use
 #############################################################################
-
 bccsp:
     default: SW
     sw:
@@ -282,7 +295,7 @@ bccsp:
 # For each CA config file in the list, generate a separate signing CA.  Each CA
 # config file in this list MAY contain all of the same elements as are found in
 # the server config file except port, debug, and tls sections.
-# 
+#
 # Examples:
 # fabric-ca-server start -b admin:adminpw --cacount 2
 #
@@ -379,6 +392,21 @@ func configInit() (err error) {
 		return err
 	}
 
+	// The pathlength field controls how deep the CA hierarchy when requesting
+	// certificates. If it is explicitly set to 0, set the PathLenZero field to
+	// true as CFSSL expects.
+	pl := "csr.ca.pathlength"
+	if viper.IsSet(pl) && viper.GetInt(pl) == 0 {
+		serverCfg.CAcfg.CSR.CA.PathLenZero = true
+	}
+	// The maxpathlen field controls how deep the CA hierarchy when issuing
+	// a CA certificate. If it is explicitly set to 0, set the PathLenZero
+	// field to true as CFSSL expects.
+	pl = "signing.profiles.ca.caconstraint.maxpathlen"
+	if viper.IsSet(pl) && viper.GetInt(pl) == 0 {
+		serverCfg.CAcfg.Signing.Profiles["ca"].CAConstraint.MaxPathLenZero = true
+	}
+
 	return nil
 }
 
@@ -416,6 +444,17 @@ func createDefaultConfigFile() error {
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
+	purl := viper.GetString("intermediate.parentserver.url")
+	log.Debugf("parent server URL: '%s'", purl)
+	if purl == "" {
+		// This is a root CA
+		cfg = strings.Replace(cfg, "<<<COMMONNAME>>>", "fabric-ca-server", 1)
+		cfg = strings.Replace(cfg, "<<<PATHLENGTH>>>", "1", 1)
+	} else {
+		// This is an intermediate CA
+		cfg = strings.Replace(cfg, "<<<COMMONNAME>>>", "", 1)
+		cfg = strings.Replace(cfg, "<<<PATHLENGTH>>>", "0", 1)
+	}
 
 	// Now write the file
 	cfgDir := filepath.Dir(cfgFileName)
