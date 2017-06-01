@@ -33,3 +33,6 @@ This will build a docker-fvt test image and run all of the currently defined uni
 
 ###Creating tests
 You may add additional tests (essentially any scripts or executables, in any language, that generates a return code and follows the naming convention `*test.sh`) by placing them in the ``$GOPATH/src/github.com/hyperledger/fabric-ca/scripts/fvt`` directory. You may invoke them directly within an interactive test container, or rely on the image's default command to succesively run all of the tests in the `$GOPATH/src/github.com/hyperledger/fabric-ca/scripts/fvt`` directory. Note that each test in the fvt directory will be run twice: once using TLS and once without using TLS. Consequently, the tests should be written to run in either environment.
+
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
+s
