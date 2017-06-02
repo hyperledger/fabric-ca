@@ -99,7 +99,7 @@ type CAConfigDB struct {
 
 // CAConfigRegistry is the registry part of the server's config
 type CAConfigRegistry struct {
-	MaxEnrollments int `def:"0" help:"Maximum number of enrollments; valid if LDAP not enabled"`
+	MaxEnrollments int `def:"-1" help:"Maximum number of enrollments; valid if LDAP not enabled"`
 	Identities     []CAConfigIdentity
 }
 

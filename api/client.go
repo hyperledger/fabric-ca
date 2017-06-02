@@ -35,7 +35,7 @@ type RegistrationRequest struct {
 	Secret string `json:"secret,omitempty" help:"The enrollment secret for the identity being registered"`
 	// MaxEnrollments is the maximum number of times the secret can
 	// be reused to enroll.
-	MaxEnrollments int `json:"max_enrollments,omitempty" help:"The maximum number of times the secret can be reused to enroll."`
+	MaxEnrollments int `json:"max_enrollments,omitempty" def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
 	// is returned in the response.
 	// The identity's affiliation.
 	// For example, an affiliation of "org1.department1" associates the identity with "department1" in "org1".

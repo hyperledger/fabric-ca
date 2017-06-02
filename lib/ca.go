@@ -187,7 +187,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			log.Info("The CA key and certificate files already exist")
 			log.Infof("Key file location: %s", keyFile)
 			log.Infof("Certificate file location: %s", certFile)
-			err := ca.validateCert(certFile, keyFile)
+			err = ca.validateCert(certFile, keyFile)
 			if err != nil {
 				return fmt.Errorf("Validation of certificate and key failed: %s", err)
 			}
@@ -369,6 +369,7 @@ func (ca *CA) initConfig() (err error) {
 	// Init config if not set
 	if ca.Config == nil {
 		ca.Config = new(CAConfig)
+		ca.Config.Registry.MaxEnrollments = -1
 	}
 	// Set config defaults
 	cfg := ca.Config
@@ -615,17 +616,18 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 		return nil
 	}
 
-	maxEnrollments, err := ca.getMaxEnrollments(id.MaxEnrollments)
+	id.MaxEnrollments, err = getMaxEnrollments(id.MaxEnrollments, ca.Config.Registry.MaxEnrollments)
 	if err != nil {
 		return err
 	}
+
 	rec := spi.UserInfo{
 		Name:           id.Name,
 		Pass:           id.Pass,
 		Type:           id.Type,
 		Affiliation:    id.Affiliation,
 		Attributes:     ca.convertAttrs(id.Attrs),
-		MaxEnrollments: maxEnrollments,
+		MaxEnrollments: id.MaxEnrollments,
 	}
 	err = ca.registry.InsertUser(rec)
 	if err != nil {

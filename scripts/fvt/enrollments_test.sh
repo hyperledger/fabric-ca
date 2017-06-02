@@ -205,9 +205,9 @@ trap "CleanUp 1; exit 1" INT
    test "$currId" != "$prevId" && ErrorMsg "Prior and current certificates are different"
    prevId="$currId"
 
-# explicitly set value to '0'
+# explicitly set value to '-1'
    # user enrollment unlimited
-   MAX_ENROLL=0
+   MAX_ENROLL=-1
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -m $MAX_ENROLL
    i=0
@@ -219,7 +219,7 @@ trap "CleanUp 1; exit 1" INT
       prevId="$currId"
    done
 
-# implicitly set value to '0' (default)
+# implicitly set value to '-1' (default)
    # user enrollment unlimited
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    test -d $CA_CFG_PATH || mkdir $CA_CFG_PATH

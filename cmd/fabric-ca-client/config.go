@@ -161,6 +161,7 @@ id:
   type:
   maxenrollments:
   affiliation:
+  maxenrollments: -1
   attributes:
     - name:
       value:

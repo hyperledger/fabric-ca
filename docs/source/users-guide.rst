@@ -322,8 +322,8 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
     #############################################################################
     registry:
       # Maximum number of times a password/secret can be reused for enrollment
-      # (default: 0, which means there is no limit)
-      maxEnrollments: 0
+      # (default: -1, which means there is no limit)
+      maxenrollments: -1
 
       # Contains identity information which is used when LDAP is disabled
       identities:
@@ -810,12 +810,14 @@ To cause the Fabric CA server to listen on ``https`` rather than
 ``http``, set ``tls.enabled`` to ``true``.
 
 To limit the number of times that the same secret (or password) can be
-used for enrollment, set the ``registry.maxEnrollments`` in the configuration
+used for enrollment, set the ``registry.maxenrollments`` in the configuration
 file to the appropriate value. If you set the value to 1, the Fabric CA
 server allows passwords to only be used once for a particular enrollment
-ID. If you set the value to 0, the Fabric CA server places no limit on
+ID. If you set the value to -1, the Fabric CA server places no limit on
 the number of times that a secret can be reused for enrollment. The
-default value is 0.
+default value is -1. Setting the value to 0, the Fabric CA server will
+disable enrollment for all identitiies and registeration of identities will
+not be allowed.
 
 The Fabric CA server should now be listening on port 7054.
 
@@ -1242,6 +1244,7 @@ file contains the following:
       name:
       type: user
       affiliation: org1.department1
+      maxenrollments: -1
       attributes:
         - name: hf.Revoker
           value: true
@@ -1260,6 +1263,12 @@ and two attributes: "hf.Revoker" and "anotherAttrName".
 
 To register an identity with multiple attributes requires specifying all attribute names and values
 in the configuration file as shown above.
+
+Setting `maxenrollments` to 0 or leaving it out from the configuration will result in the identity
+being registerd to use the CA's max enrollment value. Furthermore, the max enrollment value for
+an identity being registered cannot exceed the CA's max enrollment value. For example, if the CA's
+max enrollment value is 5. Any new identity must have a value less than or equal to 5, and also
+can't set it to -1 (infinite enrollments).
 
 Next, let's register a peer identity which will be used to enroll the peer in the following section.
 The following command registers the **peer1** identity.  Note that we choose to specify our own
