@@ -64,7 +64,7 @@ func init() {
 	tags := map[string]string{
 		"help.csr.cn":           "The common name field of the certificate signing request to a parent fabric-ca-server",
 		"skip.csr.serialnumber": "true",
-		"help.csr.hosts":        "A list of space-separated host names in a certificate signing request to a parent fabric-ca-server",
+		"help.csr.hosts":        "A list of comma-separated host names in a certificate signing request to a parent fabric-ca-server",
 	}
 	err := util.RegisterFlags(pflags, serverCfg, nil)
 	if err != nil {

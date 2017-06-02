@@ -82,7 +82,7 @@ func init() {
 	pflags := rootCmd.PersistentFlags()
 	pflags.StringVarP(&cfgFileName, "config", "c", cfg, "Configuration file")
 	pflags.StringSliceVarP(
-		&cfgAttrs, "id.attrs", "", nil, "A space separated list of attributes of the form <name>=<value> (e.g. foo=foo1 bar=bar1)")
+		&cfgAttrs, "id.attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
 	util.FlagString(pflags, "myhost", "m", host,
 		"Hostname to include in the certificate signing request during enrollment")
 
@@ -90,7 +90,7 @@ func init() {
 	tags := map[string]string{
 		"skip.csr.cn":           "true", // Skip CN on client side as enrollment ID is used as CN
 		"help.csr.serialnumber": "The serial number in a certificate signing request, which becomes part of the DN (Distinquished Name)",
-		"help.csr.hosts":        "A list of host names in a certificate signing request",
+		"help.csr.hosts":        "A list of comma-separated host names in a certificate signing request",
 	}
 	err = util.RegisterFlags(pflags, clientCfg, tags)
 	if err != nil {
