@@ -152,14 +152,14 @@ csr:
 #
 #  name - Unique name of the identity
 #  type - Type of identity being registered (e.g. 'peer, app, user')
-#  maxenrollments - The maximum number of times the secret can be reused to enroll
 #  affiliation - The identity's affiliation
+#  maxenrollments - The maximum number of times the secret can be reused to enroll.
+#                   Specially, -1 means unlimited; 0 means disabled
 #  attributes - List of name/value pairs of attribute for identity
 #############################################################################
 id:
   name:
   type:
-  maxenrollments:
   affiliation:
   maxenrollments: -1
   attributes:
