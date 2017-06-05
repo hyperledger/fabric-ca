@@ -299,36 +299,56 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 
     #############################################################################
     #  TLS section for the server's listening port
+    #
+    #  The following types are supported for client authentication: NoClientCert,
+    #  RequestClientCert, RequireAnyClientCert, VerfiyClientCertIfGiven,
+    #  and RequireAndVerifyClientCert.
+    #
+    #  Certfiles is a list of root certificate authorities that the server uses
+    #  when verifying client certificates.
     #############################################################################
     tls:
       # Enable TLS (default: false)
       enabled: false
+      # TLS for the server's listening port
       certfile: ca-cert.pem
       keyfile: ca-key.pem
+      clientauth:
+        type: noclientcert
+        certfiles:
 
     #############################################################################
-    #  The CA section contains the key and certificate files used when
-    #  issuing enrollment certificates (ECerts) and transaction
+    #  The CA section contains information related to the Certificate Authority
+    #  including the name of the CA, which should be unique for all members
+    #  of a blockchain network.  It also includes the key and certificate files
+    #  used when issuing enrollment certificates (ECerts) and transaction
     #  certificates (TCerts).
+    #  The chainfile (if it exists) contains the certificate chain which
+    #  should be trusted for this CA, where the 1st in the chain is always the
+    #  root CA certificate.
     #############################################################################
     ca:
-      # Certificate file (default: ca-cert.pem)
-      certfile: ca-cert.pem
+      # Name of this CA
+      name:
       # Key file (default: ca-key.pem)
       keyfile: ca-key.pem
+      # Certificate file (default: ca-cert.pem)
+      certfile: ca-cert.pem
+      # Chain file (default: chain-cert.pem)
+      chainfile: ca-chain.pem
 
     #############################################################################
-    #  The registry section controls how the Fabric CA server does two things:
-    #  1) authenticates enrollment requests which contain identity name and
-    #     password (also known as enrollment ID and secret).
+    #  The registry section controls how the fabric-ca-server does two things:
+    #  1) authenticates enrollment requests which contain a username and password
+    #     (also known as an enrollment ID and secret).
     #  2) once authenticated, retrieves the identity's attribute names and
-    #     values which the Fabric CA server optionally puts into TCerts
+    #     values which the fabric-ca-server optionally puts into TCerts
     #     which it issues for transacting on the Hyperledger Fabric blockchain.
     #     These attributes are useful for making access control decisions in
     #     chaincode.
     #  There are two main configuration options:
-    #  1) The Fabric CA server is the registry
-    #  2) An LDAP server is the registry, in which case the Fabric CA server
+    #  1) The fabric-ca-server is the registry
+    #  2) An LDAP server is the registry, in which case the fabric-ca-server
     #     calls the LDAP server to perform these tasks.
     #############################################################################
     registry:
@@ -342,20 +362,21 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
            pass: <<<ADMINPW>>>
            type: client
            affiliation: ""
+           maxenrollments: -1
            attrs:
-              hf.Registrar.Roles: "client,user,peer,validator,auditor,ca"
+              hf.Registrar.Roles: "client,user,peer,validator,auditor"
               hf.Registrar.DelegateRoles: "client,user,validator,auditor"
               hf.Revoker: true
               hf.IntermediateCA: true
-
+    
     #############################################################################
     #  Database section
     #  Supported types are: "sqlite3", "postgres", and "mysql".
     #  The datasource value depends on the type.
     #  If the type is "sqlite3", the datasource value is a file name to use
     #  as the database store.  Since "sqlite3" is an embedded database, it
-    #  may not be used if you want to run the Fabric CA server in a cluster.
-    #  To run the Fabric CA server in a cluster, you must choose "postgres"
+    #  may not be used if you want to run the fabric-ca-server in a cluster.
+    #  To run the fabric-ca-server in a cluster, you must choose "postgres"
     #  or "mysql".
     #############################################################################
     db:
@@ -371,9 +392,9 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 
     #############################################################################
     #  LDAP section
-    #  If LDAP is enabled, the Fabric CA server calls LDAP to:
-    #  1) authenticate enrollment ID and secret (i.e. identity name and password)
-    #     for enrollment requests
+    #  If LDAP is enabled, the fabric-ca-server calls LDAP to:
+    #  1) authenticate enrollment ID and secret (i.e. username and password)
+    #     for enrollment requests;
     #  2) To retrieve identity attributes
     #############################################################################
     ldap:
@@ -400,56 +421,82 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 
     #############################################################################
     #  Signing section
+    #
+    #  The "default" subsection is used to sign enrollment certificates;
+    #  the default expiration ("expiry" field) is "8760h", which is 1 year in hours.
+    #
+    #  The "ca" profile subsection is used to sign intermediate CA certificates;
+    #  the default expiration ("expiry" field) is "43800h" which is 5 years in hours.
+    #  Note that "isca" is true, meaning that it issues a CA certificate.
+    #  A maxpathlen of 0 means that the intermediate CA cannot issue other
+    #  intermediate CA certificates, though it can still issue end entity certificates.
+    #  (See RFC 5280, section 4.2.1.9)
     #############################################################################
     signing:
+        default:
+          usage:
+            - cert sign
+          expiry: 8760h
         profiles:
           ca:
              usage:
                - cert sign
-             expiry: 8000h
+             expiry: 43800h
              caconstraint:
                isca: true
-        default:
-          usage:
-            - cert sign
-          expiry: 8000h
+               maxpathlen: 0
 
     ###########################################################################
-    #  Certificate Signing Request section for generating the CA certificate
+    #  Certificate Signing Request (CSR) section.
+    #  This controls the creation of the root CA certificate.
+    #  The expiration for the root CA certificate is configured with the
+    #  "ca.expiry" field below, whose default value is "131400h" which is
+    #  15 years in hours.
+    #  The pathlength field is used to limit CA certificate hierarchy as described
+    #  in section 4.2.1.9 of RFC 5280.
+    #  Examples:
+    #  1) No pathlength value means no limit is requested.
+    #  2) pathlength == 1 means a limit of 1 is requested which is the default for
+    #     a root CA.  This means the root CA can issue intermediate CA certificates,
+    #     but these intermediate CAs may not in turn issue other CA certificates
+    #     though they can still issue end entity certificates.
+    #  3) pathlength == 0 means a limit of 0 is requested;
+    #     this is the default for an intermediate CA, which means it can not issue
+    #     CA certificates though it can still issue end entity certificates.
     ###########################################################################
     csr:
-       cn: fabric-ca-server
+       cn: <<<COMMONNAME>>>
        names:
           - C: US
-            ST: North Carolina
+            ST: "North Carolina"
             L:
             O: Hyperledger
             OU: Fabric
        hosts:
          - <<<MYHOST>>>
+         - localhost
        ca:
-          pathlen:
-          pathlenzero:
-          expiry:
+          expiry: 131400h
+          pathlength: <<<PATHLENGTH>>>
 
     #############################################################################
-    #  Crypto section configures the crypto primitives used for all
+    # BCCSP (BlockChain Crypto Service Provider) section is used to select which
+    # crypto library implementation to use
     #############################################################################
-    crypto:
-      software:
-         hash_family: SHA2
-         security_level: 256
-         ephemeral: false
-         key_store_dir: keys
+    bccsp:
+        default: SW
+        sw:
+            hash: SHA2
+            security: 256
+            filekeystore:
+                # The directory used for the software file-based keystore
+                keystore: msp/keystore
 
     #############################################################################
     # Multi CA section
     #
     # Each Fabric CA server contains one CA by default.  This section is used
     # to configure multiple CAs in a single server.
-    #
-    # The fabric-ca-server init and start commands support the following two
-    # additional mutually exclusive options:
     #
     # 1) --cacount <number-of-CAs>
     # Automatically generate <number-of-CAs> non-default CAs.  The names of these
@@ -510,6 +557,7 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
         caname:
 
       enrollment:
+        hosts:
         profile:
         label:
 
