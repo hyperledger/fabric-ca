@@ -401,7 +401,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	fooName := "foo"
 	fooVal := "a=b"
 	roleName := "hf.Registrar.Roles"
-	roleVal := "peer,user,asdfclient"
+	roleVal := "peer,user,client"
 	attributes := fmt.Sprintf("%s=%s,bar=c,\"%s=%s\"", fooName, fooVal, roleName, roleVal)
 
 	err := RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister3", "--id.affiliation", "hyperledger.org1", "--id.type", "client", "--id.attrs", attributes})

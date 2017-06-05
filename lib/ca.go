@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -720,17 +721,36 @@ func (ca *CA) normalizeStringSlices() {
 	}
 }
 
-// userHasAttribute returns nil if the user has the attribute, or an
-// appropriate error if the user does not have this attribute.
-func (ca *CA) userHasAttribute(username, attrname string) error {
+// userHasAttribute returns nil error and the value of the attribute
+// if the user has the attribute, or an appropriate error if the user
+// does not have this attribute.
+func (ca *CA) userHasAttribute(username, attrname string) (string, error) {
 	val, err := ca.getUserAttrValue(username, attrname)
+	if err != nil {
+		return "", err
+	}
+	if val == "" {
+		return "", fmt.Errorf("Identity '%s' does not have attribute '%s'", username, attrname)
+	}
+	return val, nil
+}
+
+// attributeIsTrue returns nil if the attribute has
+// one of the following values: "1", "t", "T", "true", "TRUE", "True";
+// otherwise it will return an error
+func (ca *CA) attributeIsTrue(username, attrname string) error {
+	val, err := ca.userHasAttribute(username, attrname)
 	if err != nil {
 		return err
 	}
-	if val == "" {
-		return fmt.Errorf("Identity '%s' does not have attribute '%s'", username, attrname)
+	val2, err := strconv.ParseBool(val)
+	if err != nil {
+		return fmt.Errorf("Invalid value for attribute '%s' of identity '%s': %s", attrname, username, err)
 	}
-	return nil
+	if val2 {
+		return nil
+	}
+	return fmt.Errorf("Attribute '%s' is not set to true for identity '%s'", attrname, username)
 }
 
 // getUserAttrValue returns a user's value for an attribute
