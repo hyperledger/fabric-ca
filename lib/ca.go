@@ -69,7 +69,7 @@ type CA struct {
 	// The CA's configuration
 	Config *CAConfig
 	// The file path of the config file
-	configFilePath string
+	ConfigFilePath string
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
@@ -96,9 +96,10 @@ const (
 
 // NewCA creates a new CA with the specified
 // home directory, parent server URL, and config
-func NewCA(homeDir string, config *CAConfig, server *Server, renew bool) (*CA, error) {
+func NewCA(caFile string, config *CAConfig, server *Server, renew bool) (*CA, error) {
 	ca := new(CA)
-	err := initCA(ca, homeDir, config, server, renew)
+	ca.ConfigFilePath = caFile
+	err := initCA(ca, filepath.Dir(caFile), config, server, renew)
 	if err != nil {
 		return nil, err
 	}

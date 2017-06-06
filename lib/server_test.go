@@ -683,6 +683,82 @@ func TestDefaultMultiCA(t *testing.T) {
 	}
 }
 
+// Test the combination of multiple CAs in both root and intermediate servers.
+func TestMultiCAIntermediates(t *testing.T) {
+	myTestDir := "multicaIntermediates"
+	os.RemoveAll(myTestDir)
+	defer os.RemoveAll(myTestDir)
+	// Start the root server with 2 non-default CAs
+	rootServer := TestGetServer(rootPort, path.Join(myTestDir, "root"), "", -1, t)
+	rootServer.Config.CAcount = 2
+	err := rootServer.Start()
+	if err != nil {
+		t.Fatalf("Failed to start root CA: %s", err)
+	}
+	home := path.Join(myTestDir, "intermediate")
+	parentURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
+	intServer := TestGetServer(0, home, parentURL, -1, t)
+	intServer.Config.CAfiles = []string{"ca1/ca1.yaml", "ca2/ca2.yaml"}
+	ca1home := filepath.Join(home, "ca1")
+	ca2home := filepath.Join(home, "ca2")
+
+	// Negative Case - same CA name from two intermediate CAs sent to the same root CA
+	// Check that CA file paths are getting printed
+	// Create ca1.yaml and ca2.yaml for the intermediate server CAs
+	writeCAFile("ca1", "ca1", "ca1", ca1home, rootPort, t)
+	writeCAFile("ca1", "ca2", "ca2", ca2home, rootPort, t)
+	err = intServer.Init(false)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), ca1home)
+		assert.Contains(t, err.Error(), ca2home)
+	}
+	err = rootServer.Stop()
+	if err != nil {
+		t.Error("Failed to stop server: ", err)
+	}
+
+	os.RemoveAll(myTestDir)
+
+	// Negative Case - same subject distinguished name from two intermediate CAs sent to the same root CA
+	// Create ca1.yaml and ca2.yaml for the intermediate server CAs
+	rootServer = TestGetServer(rootPort, path.Join(myTestDir, "root"), "", -1, t) // reset server from last run above
+	rootServer.Config.CAcount = 2
+	err = rootServer.Start()
+	if err != nil {
+		t.Fatalf("Failed to start root CA: %s", err)
+	}
+	writeCAFile("ca1", "ca1", "ca1", ca1home, rootPort, t)
+	writeCAFile("ca2", "ca1", "ca2", ca2home, rootPort, t)
+	err = intServer.Init(false)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Both issuer and subject distinguished name are already in use")
+	}
+	err = rootServer.Stop()
+	if err != nil {
+		t.Error("Failed to stop server: ", err)
+	}
+	os.RemoveAll(myTestDir)
+
+	// Positive Case - same subject distinguished names from two intermediate CAs sent to two different root CAs
+	rootServer = TestGetServer(rootPort, path.Join(myTestDir, "root"), "", -1, t) // reset server from last run above
+	rootServer.Config.CAcount = 2
+	err = rootServer.Start()
+	if err != nil {
+		t.Fatalf("Failed to start root CA: %s", err)
+	}
+	writeCAFile("ca1", "ca1", "ca1", ca1home, rootPort, t)
+	writeCAFile("ca2", "ca2", "ca2", ca2home, rootPort, t)
+	// Init the intermediate server
+	err = intServer.Init(false)
+	if err != nil {
+		t.Fatalf("Failed to initialize intermediate server: %s", err)
+	}
+	err = rootServer.Stop()
+	if err != nil {
+		t.Error("Failed to stop server: ", err)
+	}
+}
+
 func TestMaxEnrollmentInfinite(t *testing.T) {
 	os.RemoveAll(rootDir)
 	t.Log("Test max enrollment infinite")
@@ -1296,4 +1372,21 @@ func makeAttrs(t *testing.T, args ...string) []api.Attribute {
 		attrs[idx].Value = eles[1]
 	}
 	return attrs
+}
+
+func writeCAFile(name, parentcaname, filename, home string, port int, t *testing.T) {
+	contents := fmt.Sprintf(`
+ca:
+   name: %s
+intermediate:
+   parentserver:
+      url: http://admin:adminpw@localhost:%d
+      caname: %s
+`, name, port, parentcaname)
+	os.MkdirAll(home, 0755)
+	fpath := path.Join(home, fmt.Sprintf("%s.yaml", filename))
+	err := ioutil.WriteFile(fpath, []byte(contents), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create ca1.yaml: %s", err)
+	}
 }

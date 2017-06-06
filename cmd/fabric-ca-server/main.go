@@ -107,7 +107,8 @@ func getServer() *lib.Server {
 		Config:        serverCfg,
 		BlockingStart: blockingStart,
 		CA: lib.CA{
-			Config: &serverCfg.CAcfg,
+			Config:         &serverCfg.CAcfg,
+			ConfigFilePath: cfgFileName,
 		},
 	}
 }
