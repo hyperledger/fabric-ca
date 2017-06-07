@@ -25,8 +25,9 @@
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION   = 1.0.0-alpha3
-IS_RELEASE     = false
+BASE_VERSION   = 1.0.0-beta
+PREV_VERSION   = 1.0.0-alpha2
+IS_RELEASE     = true
 
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
@@ -62,6 +63,9 @@ rename: .FORCE
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
+
+changelog:
+	./scripts/changelog.sh v$(PREV_VERSION) HEAD v$(BASE_VERSION)
 
 checks: license vet lint format imports
 
