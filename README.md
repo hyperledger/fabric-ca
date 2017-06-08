@@ -2,7 +2,7 @@
 
 This is the Developer's Guide for Fabric CA, which is a Certificate Authority for Hyperledger Fabric.
 
-See [User's Guide for Fabric CA](https://hyperledger-fabric.readthedocs.io/en/latest/Setup/ca-setup.html) for information on how to use Fabric CA.
+See [User's Guide for Fabric CA](https://hyperledger-fabric-ca.readthedocs.io) for information on how to use Fabric CA.
 
 ## Prerequisites
 
