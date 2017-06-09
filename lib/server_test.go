@@ -131,7 +131,7 @@ func TestRootServer(t *testing.T) {
 		Affiliation: "hyperledger.fabric-ca",
 	})
 	if err == nil {
-		t.Errorf("Failed to register user1: %s", err)
+		t.Error("Should have failed to register")
 	}
 	// User1 renew
 	eresp, err = user1.Reenroll(&api.ReenrollmentRequest{})
@@ -158,6 +158,28 @@ func TestRootServer(t *testing.T) {
 	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
 	if err == nil {
 		t.Errorf("User1 should have failed to get tcerts since it is revoked")
+	}
+
+	// Test to make sure that if an identity registered with an
+	// attribute 'hf.Revoker=false' should not be able to make a
+	// successfull revocation request
+	secret, err := admin.Register(&api.RegistrationRequest{
+		Name:        "user2",
+		Type:        "user",
+		Affiliation: "hyperledger.fabric-ca",
+		Attributes:  makeAttrs(t, "hf.Revoker=false"),
+	})
+	assert.NoError(t, err, "Failed to register user")
+	eresp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "user2",
+		Secret: secret.Secret,
+	})
+	assert.NoError(t, err, "Failed to enroll user2")
+	user2 := eresp.Identity
+	// User2 should not be allowed to revoke because of attribute 'hf.Revoker=false'
+	err = user2.Revoke(&api.RevocationRequest{Name: "admin"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "is not set to true")
 	}
 
 	// Stop the server
@@ -242,6 +264,36 @@ func sendGetReq(url string, t *testing.T) (resp *http.Response, err error) {
 	return httpClient.Do(req)
 }
 
+func TestIntermediateServerWithFalseAttr(t *testing.T) {
+	var err error
+
+	// Start the root server
+	rootServer := TestGetRootServer(t)
+	if rootServer == nil {
+		return
+	}
+	rootServer.CA.Config.Registry.Identities[0].Attrs["hf.IntermediateCA"] = "false"
+	err = rootServer.Start()
+	if !assert.NoError(t, err, "Server failed start") {
+		assert.FailNow(t, err.Error())
+	}
+
+	intermediateServer := TestGetIntermediateServer(0, t)
+	if intermediateServer == nil {
+		return
+	}
+
+	err = intermediateServer.Init(false)
+	if assert.Error(t, err, "Should have failed, the attribute 'hf.IntermediateCA' is not set to true. Cannot register as Intermediate CA") {
+		assert.Contains(t, err.Error(), "is not set to true")
+	}
+
+	err = rootServer.Stop()
+	if err != nil {
+		t.Errorf("Root server stop failed: %s", err)
+	}
+
+}
 func TestIntermediateServer(t *testing.T) {
 	var err error
 

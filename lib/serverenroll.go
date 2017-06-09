@@ -164,7 +164,7 @@ func (sh *signHandler) csrAuthCheck(req *signer.SignRequest, r *http.Request) er
 				log.Debug("CSR request received for an intermediate CA")
 				// This is a request for a CA certificate, so make sure the caller
 				// has the 'hf.IntermediateCA' attribute
-				return sh.server.caMap[caname].userHasAttribute(r.Header.Get(enrollmentIDHdrName), "hf.IntermediateCA")
+				return sh.server.caMap[caname].attributeIsTrue(r.Header.Get(enrollmentIDHdrName), "hf.IntermediateCA")
 			}
 		}
 	}
