@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -83,6 +84,8 @@ type CA struct {
 	registry spi.UserRegistry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
+	// The options to use in verifying a signature in token-based authentication
+	verifyOptions *x509.VerifyOptions
 	// The tcert manager for this CA
 	tcertMgr *tcert.Mgr
 	// The key tree
@@ -409,6 +412,54 @@ func (ca *CA) initConfig() (err error) {
 	}
 	ca.normalizeStringSlices()
 	return nil
+}
+
+// VerifyCertificate verifies that 'cert' was issued by this CA
+// Return nil if successful; otherwise, return an error.
+func (ca *CA) VerifyCertificate(cert *x509.Certificate) error {
+	opts, err := ca.getVerifyOptions()
+	if err != nil {
+		return fmt.Errorf("Failed to get verify options: %s", err)
+	}
+	_, err = cert.Verify(*opts)
+	if err != nil {
+		return fmt.Errorf("Failed to verify certificate: %s", err)
+	}
+	return nil
+}
+
+// Get the options to verify
+func (ca *CA) getVerifyOptions() (*x509.VerifyOptions, error) {
+	if ca.verifyOptions != nil {
+		return ca.verifyOptions, nil
+	}
+	chain, err := ca.getCAChain()
+	if err != nil {
+		return nil, err
+	}
+	block, rest := pem.Decode(chain)
+	if block == nil {
+		return nil, errors.New("No root certificate was found")
+	}
+	rootCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse root certificate: %s", err)
+	}
+	rootPool := x509.NewCertPool()
+	rootPool.AddCert(rootCert)
+	var intPool *x509.CertPool
+	for len(rest) > 0 {
+		intPool = x509.NewCertPool()
+		if !intPool.AppendCertsFromPEM(rest) {
+			return nil, errors.New("Failed to add intermediate PEM certificates")
+		}
+	}
+	ca.verifyOptions = &x509.VerifyOptions{
+		Roots:         rootPool,
+		Intermediates: intPool,
+		KeyUsages:     []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+	}
+	return ca.verifyOptions, nil
 }
 
 // Initialize the database for the CA

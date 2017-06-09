@@ -16,6 +16,9 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path"
@@ -24,6 +27,9 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
+	"github.com/hyperledger/fabric/bccsp/utils"
 )
 
 const (
@@ -84,6 +90,7 @@ func TestTLSClientAuth(t *testing.T) {
 		t.Fatalf("Failed to enroll admin: %s", err)
 	}
 	id := eresp.Identity
+	testImpersonation(id, t)
 	// Stop server
 	err = server.Stop()
 	if err != nil {
@@ -193,6 +200,48 @@ func enrollAndCheck(t *testing.T, c *Client, body []byte, authHeader string) {
 	if err == nil {
 		t.Errorf("Enrollment with bad basic auth header '%s' should have failed",
 			authHeader)
+	}
+}
+
+// Try to impersonate 'id' identity by creating a self-signed certificate
+// with the same serial and AKI as this identity.
+func testImpersonation(id *Identity, t *testing.T) {
+	// test as a fake user trying to impersonate admin give only the cert
+	cert, err := BytesToX509Cert(id.GetECert().Cert())
+	if err != nil {
+		t.Fatalf("Failed to convert admin's cert: %s", err)
+	}
+	csp := util.GetDefaultBCCSP()
+	privateKey, err := csp.KeyGen(&bccsp.ECDSAKeyGenOpts{Temporary: false})
+	if err != nil {
+		t.Fatalf("Failed generating ECDSA key [%s]", err)
+	}
+	cspSigner, err := cspsigner.New(csp, privateKey)
+	if err != nil {
+		t.Fatalf("Failed initializing signer: %s", err)
+	}
+	// Export the public key
+	publicKey, err := privateKey.PublicKey()
+	if err != nil {
+		t.Fatalf("Failed getting ECDSA public key: %s", err)
+	}
+	pkRaw, err := publicKey.Bytes()
+	if err != nil {
+		t.Fatalf("Failed getting ECDSA raw public key [%s]", err)
+	}
+	pub, err := utils.DERToPublicKey(pkRaw)
+	if err != nil {
+		t.Fatalf("Failed converting raw to ECDSA.PublicKey [%s]", err)
+	}
+	fakeCertBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, pub, cspSigner)
+	if err != nil {
+		t.Fatalf("Failed to create self-signed fake cert: %s", err)
+	}
+	fakeCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: fakeCertBytes})
+	fakeID := newIdentity(id.GetClient(), "admin", privateKey, fakeCert)
+	err = fakeID.RevokeSelf()
+	if err == nil {
+		t.Fatalf("Fake ID should not have failed revocation")
 	}
 }
 
