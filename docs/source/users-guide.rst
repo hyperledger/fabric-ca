@@ -62,8 +62,6 @@ Table of Contents
    6. `Enabling TLS`_
    7. `Contact specific CA instance`_
 
-7. `Appendix`_
-
 Overview
 --------
 
@@ -123,11 +121,31 @@ For more information on libltdl-dev, see https://www.gnu.org/software/libtool/ma
 Install
 ~~~~~~~
 
-The following installs both the `fabric-ca-server` and `fabric-ca-client` commands.
+The following installs both the `fabric-ca-server` and `fabric-ca-client` binaries
+in $GOPATH/bin.
 
 .. code:: bash
 
     go get -u github.com/hyperledger/fabric-ca/cmd/...
+
+Note: If you have already cloned the fabric-ca repository, make sure you are on the
+master branch before running the 'go get' command above. Otherwise, you might see the
+following error:
+
+::
+
+    <gopath>/src/github.com/hyperledger/fabric-ca; git pull --ff-only
+    There is no tracking information for the current branch.
+    Please specify which branch you want to merge with.
+    See git-pull(1) for details.
+
+        git pull <remote> <branch>
+
+    If you wish to set tracking information for this branch you can do so with:
+
+        git branch --set-upstream-to=<remote>/<branch> tlsdoc
+
+    package github.com/hyperledger/fabric-ca/cmd/fabric-ca-client: exit status 1
 
 Start Server Natively
 ~~~~~~~~~~~~~~~~~~~~~
@@ -148,6 +166,47 @@ is created in the local directory which can be customized.
 Start Server via Docker
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+Docker Hub
+^^^^^^^^^^^^
+
+Go to: https://hub.docker.com/r/hyperledger/fabric-ca/tags/
+
+Find the tag that matches the architecture and version of fabric-ca
+that you want to pull. 
+
+Navigate to `$GOPATH/src/github.com/hyperledger/fabric-ca/docker/server`
+and open up docker-compose.yml in an editor.
+
+Change the `image` line to reflect the tag you found previously. The file
+may look like this for an x86 architecture for version beta.
+
+.. code:: yaml
+
+    fabric-ca-server:
+      image: hyperledger/fabric-ca:x86_64-1.0.0-beta
+      container_name: fabric-ca-server
+      ports:
+        - "7054:7054"
+      environment:
+        - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      volumes:
+        - "./fabric-ca-server:/etc/hyperledger/fabric-ca-server"
+      command: sh -c 'fabric-ca-server start -b admin:adminpw'
+
+Open up a terminal in the same directory as the docker-compose.yml file
+and execute the following:
+
+.. code:: bash
+
+    # docker-compose up -d
+
+This will pull down the specified fabric-ca image in the compose file
+if it does not already exist, and start an instance of the fabric-ca
+server.
+
+Building Your Own Docker image
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 You can build and start the server via docker-compose as shown below.
 
 .. code:: bash
@@ -160,24 +219,12 @@ You can build and start the server via docker-compose as shown below.
 The hyperledger/fabric-ca docker image contains both the fabric-ca-server and
 the fabric-ca-client.
 
-.. note:: WARNING: In some cases, the fabric-ca-server is known to panic due
-          to a bug in a native library (libc) on some platforms.  One known
-          case is when fabric-ca-server is configured with TLS to a PostgreSQL
-          database, though there may also be other cases.
-          As a work around, you may set the FABRIC_CA_DYNAMIC_LINK environment
-          variable to a value of true prior to issuing the "make docker"
-          command as shown below.
-          This causes the executables to be dynamically linked rather than
-          statically linked, which avoids the bug in the native library code.
-          Complete information about this issue can be found in
-          `JIRA FAB-2919 <https://jira.hyperledger.org/browse/FAB-2919>`__.
-
 .. code:: bash
 
-    cd $GOPATH/src/github.com/hyperledger/fabric-ca
-    FABRIC_CA_DYNAMIC_LINK=true make docker
-    cd docker/server
-    docker-compose up -d
+    # cd $GOPATH/src/github.com/hyperledger/fabric-ca
+    # FABRIC_CA_DYNAMIC_LINK=true make docker
+    # cd docker/server
+    # docker-compose up -d
 
 Explore the Fabric CA CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -302,10 +349,7 @@ File Formats
 Fabric CA server's configuration file format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A configuration file can be provided to the server using the ``-c`` or ``--config``
-option. If the ``--config`` option is used and the specified file doesn't exist,
-a default configuration file (like the one shown below) will be created in the
-specified location. However, if no config option was used, it will be created in
+A default configuration file (like the one shown below) is created in
 the server's home directory (see `Fabric CA Server <#server>`__ section more info).
 
 .. code:: yaml
@@ -589,10 +633,7 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 Fabric CA client's configuration file format
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A configuration file can be provided to the client using the ``-c`` or ``--config``
-option. If the config option is used and the specified file doesn't exist,
-a default configuration file (like the one shown below) will be created in the
-specified location. However, if no config option was used, it will be created in
+A default configuration file (like the one shown below) is created in
 the client's home directory (see `Fabric CA Client <#client>`__ section more info).
 
 .. code:: yaml
@@ -713,7 +754,7 @@ The same approach applies to fabric-ca-server, except instead of using
 
 A word on file paths
 --------------------
-All the properties in the Fabric CA server and client configuration file,
+All the properties in the Fabric CA server and client configuration file
 that specify file names support both relative and absolute paths.
 Relative paths are relative to the config directory, where the
 configuration file is located. For example, if the config directory is
@@ -739,7 +780,9 @@ Fabric CA Server
 
 This section describes the Fabric CA server.
 
-You may initialize the Fabric CA server before starting it. This provides an opportunity for you to generate a default configuration file but to review and customize its settings before starting it.
+You may initialize the Fabric CA server before starting it. This provides an
+opportunity for you to generate a default configuration file that can be
+reviewed and customized before starting the server.
 
 The Fabric CA server's home directory is determined as follows:
   - if the ``FABRIC_CA_SERVER_HOME`` environment variable is set, use
@@ -826,7 +869,7 @@ file named **fabric-ca-server-config.yaml** in the server's home directory.
 Algorithms and key sizes
 
 The CSR can be customized to generate X.509 certificates and keys that
-support both RSA and Elliptic Curve (ECDSA). The following setting is an
+support Elliptic Curve (ECDSA). The following setting is an
 example of the implementation of Elliptic Curve Digital Signature
 Algorithm (ECDSA) with curve ``prime256v1`` and signature algorithm
 ``ecdsa-with-SHA256``:
@@ -851,16 +894,6 @@ Elliptic Curve (ECDSA) offers the following key size options:
 | 521    | secp521r1    | ecdsa-with-SHA512     |
 +--------+--------------+-----------------------+
 
-RSA offers the following key size options:
-
-+--------+------------------+---------------------------+
-| size   | Modulus (bits)   | Signature Algorithm       |
-+========+==================+===========================+
-| 2048   | 2048             | sha256WithRSAEncryption   |
-+--------+------------------+---------------------------+
-| 4096   | 4096             | sha512WithRSAEncryption   |
-+--------+------------------+---------------------------+
-
 Starting the server
 ~~~~~~~~~~~~~~~~~~~
 
@@ -880,13 +913,6 @@ Unless the Fabric CA server is configured to use LDAP, it must be
 configured with at least one pre-registered bootstrap identity to enable you
 to register and enroll other identities. The ``-b`` option specifies the
 name and password for a bootstrap identity.
-
-A different configuration file may be specified with the ``-c`` option
-as shown below.
-
-.. code:: bash
-
-    fabric-ca-server start -c <path-to-config-file> -b <admin>:<adminpw>
 
 To cause the Fabric CA server to listen on ``https`` rather than
 ``http``, set ``tls.enabled`` to ``true``.
@@ -924,13 +950,15 @@ PostgreSQL
 
 The following sample may be added to the server's configuration file in
 order to connect to a PostgreSQL database. Be sure to customize the
-various values appropriately.
+various values appropriately. There are limitations on what characters are allowed
+in the database name. Please refer to the following Postgres documentation
+for more information: https://www.postgresql.org/docs/current/static/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
 
 .. code:: yaml
 
     db:
       type: postgres
-      datasource: host=localhost port=5432 user=Username password=Password dbname=fabric-ca-server sslmode=verify-full
+      datasource: host=localhost port=5432 user=Username password=Password dbname=fabric_ca sslmode=verify-full
 
 Specifying *sslmode* configures the type of SSL authentication. Valid
 values for sslmode are:
@@ -994,12 +1022,54 @@ of the ``db.tls`` section:
 | **certfiles** - A list of PEM-encoded trusted root certificate files.
 | **certfile** and **keyfile** - PEM-encoded certificate and key files that are used by the Fabric CA server to communicate securely with the PostgreSQL server
 
+PostgreSQL SSL Configuration
+"""""""""""""""""""""""""""""
+
+**Basic instructions for configuring SSL on the PostgreSQL server:**
+
+1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
+
+2. Place certificate and key files in the PostgreSQL data directory.
+
+Instructions for generating self-signed certificates for:
+https://www.postgresql.org/docs/9.5/static/ssl-tcp.html
+
+Note: Self-signed certificates are for testing purposes and should not
+be used in a production environment
+
+**PostgreSQL Server - Require Client Certificates**
+
+1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the PostgreSQL data directory
+
+2. In postgresql.conf, set "ssl\_ca\_file" to point to the root cert of the client (CA cert)
+
+3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg\_hba.conf.
+
+For more details on configuring SSL on the PostgreSQL server, please refer
+to the following PostgreSQL documentation:
+https://www.postgresql.org/docs/9.4/static/libpq-ssl.html
+
 MySQL
 ^^^^^^^
 
 The following sample may be added to the Fabric CA server configuration file in
 order to connect to a MySQL database. Be sure to customize the various
-values appropriately.
+values appropriately. There are limitations on what characters are allowed
+in the database name. Please refer to the following MySQL documentation
+for more information: https://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+
+On MySQL 5.7.X, certain modes affect whether the server permits '0000-00-00' as a valid date.
+It might be necessary to relax the modes that MySQL server uses. We want to allow
+the server to be able to accept zero date values.
+
+In my.cnf, find the configuration option *sql_mode* and remove *NO_ZERO_DATE* if present.
+Restart MySQL server after making this change.
+
+Please refer to the following MySQL documentation on different modes available
+and select the appropriate settings for the specific version of MySQL that is
+being used.
+
+https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
 
 On MySQL 5.7.X, certain modes affect whether the server permits '0000-00-00' as a valid date.
 It might be necessary to relax the modes that MySQL server uses. We want to allow
@@ -1018,10 +1088,71 @@ https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
 
     db:
       type: mysql
-      datasource: root:rootpw@tcp(localhost:3306)/fabric-ca?parseTime=true&tls=custom
+      datasource: root:rootpw@tcp(localhost:3306)/fabric_ca?parseTime=true&tls=custom
 
 If connecting over TLS to the MySQL server, the ``db.tls.client``
 section is also required as described in the **PostgreSQL** section above.
+
+MySQL SSL Configuration
+""""""""""""""""""""""""
+
+**Basic instructions for configuring SSL on MySQL server:**
+
+1. Open or create my.cnf file for the server. Add or uncomment the
+   lines below in the [mysqld] section. These should point to the key and
+   certificates for the server, and the root CA cert.
+
+   Instructions on creating server and client-side certficates:
+   http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html
+
+   [mysqld] ssl-ca=ca-cert.pem ssl-cert=server-cert.pem ssl-key=server-key.pem
+
+   Can run the following query to confirm SSL has been enabled.
+
+   mysql> SHOW GLOBAL VARIABLES LIKE 'have\_%ssl';
+
+   Should see:
+
+   +----------------+----------------+
+   | Variable_name  | Value          |
+   +================+================+
+   | have_openssl   | YES            |
+   +----------------+----------------+
+   | have_ssl       | YES            |
+   +----------------+----------------+
+
+2. After the server-side SSL configuration is finished, the next step is
+   to create a user who has a privilege to access the MySQL server over
+   SSL. For that, log in to the MySQL server, and type:
+
+   mysql> GRANT ALL PRIVILEGES ON *.* TO 'ssluser'@'%' IDENTIFIED BY
+   'password' REQUIRE SSL; mysql> FLUSH PRIVILEGES;
+
+   If you want to give a specific IP address from which the user will
+   access the server change the '%' to the specific IP address.
+
+**MySQL Server - Require Client Certificates**
+
+Options for secure connections are similar to those used on the server side.
+
+-  ssl-ca identifies the Certificate Authority (CA) certificate. This
+   option, if used, must specify the same certificate used by the server.
+-  ssl-cert identifies MySQL server's certificate.
+-  ssl-key identifies MySQL server's private key.
+
+Suppose that you want to connect using an account that has no special
+encryption requirements or was created using a GRANT statement that
+includes the REQUIRE SSL option. As a recommended set of
+secure-connection options, start the MySQL server with at least
+--ssl-cert and --ssl-key options. Then set the ``db.tls.certfiles`` property
+in the server configuration file and start the Fabric CA server.
+
+To require that a client certificate also be specified, create the
+account using the REQUIRE X509 option. Then the client must also specify
+proper client key and certificate files; otherwise, the MySQL server
+will reject the connection. To specify client key and certificate files
+for the Fabric CA server, set the ``db.tls.client.certfile``,
+and ``db.tls.client.keyfile`` configuration properties.
 
 Configuring LDAP
 ~~~~~~~~~~~~~~~~
@@ -1546,100 +1677,6 @@ can be specified on the command line of a client command as follows:
 .. code:: bash
 
     fabric-ca-client enroll -u http://admin:adminpw@localhost:7054 --caname <caname>
-
-`Back to Top`_
-
-Appendix
---------
-
-PostgreSQL SSL Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Basic instructions for configuring SSL on the PostgreSQL server:**
-
-  1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
-  2. Place certificate and key files in the PostgreSQL data directory.
-
-Instructions for generating self-signed certificates for:
-https://www.postgresql.org/docs/9.5/static/ssl-tcp.html
-
-Note: Self-signed certificates are for testing purposes and should not
-be used in a production environment
-
-**PostgreSQL Server - Require Client Certificates**
-
-  1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the PostgreSQL data directory
-  2. In postgresql.conf, set "ssl\_ca\_file" to point to the root cert of the client (CA cert)
-  3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg\_hba.conf.
-
-For more details on configuring SSL on the PostgreSQL server, please refer
-to the
-`PostgreSQL documentation <https://www.postgresql.org/docs/9.4/static/libpq-ssl.html>`__.
-
-MySQL SSL Configuration
-~~~~~~~~~~~~~~~~~~~~~~~
-
-**Basic instructions for configuring SSL on MySQL server:**
-
-1. Open or create my.cnf file for the server. Add or uncomment the
-   lines below in the [mysqld] section. These should point to the key and
-   certificates for the server, and the root CA cert.
-
-   Please refer to the
-   `instructions <http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html>`__`
-   for creating server and client-side certficates for more detail.
-
-
-   [mysqld] ssl-ca=ca-cert.pem ssl-cert=server-cert.pem ssl-key=server-key.pem
-
-   Can run the following query to confirm SSL has been enabled.
-
-   .. code::
-
-      mysql> SHOW GLOBAL VARIABLES LIKE 'have\_%ssl';
-
-   Should see:
-
-   +----------------+----------------+
-   | Variable_name  | Value          |
-   +================+================+
-   | have_openssl   | YES            |
-   +----------------+----------------+
-   | have_ssl       | YES            |
-   +----------------+----------------+
-
-2. After the server-side SSL configuration is finished, the next step is
-   to create a user who has a privilege to access the MySQL server over
-   SSL. For that, log in to the MySQL server, and type:
-
-   mysql> GRANT ALL PRIVILEGES ON *.* TO 'ssluser'@'%' IDENTIFIED BY
-   'password' REQUIRE SSL; mysql> FLUSH PRIVILEGES;
-
-   If you want to give a specific IP address from which the user will
-   access the server change the '%' to the specific IP address.
-
-**MySQL Server - Require Client Certificates**
-
-Options for secure connections are similar to those used on the server side.
-
-  -  ssl-ca identifies the Certificate Authority (CA) certificate. This
-     option, if used, must specify the same certificate used by the server.
-  -  ssl-cert identifies MySQL server's certificate.
-  -  ssl-key identifies MySQL server's private key.
-
-Suppose that you want to connect using an account that has no special
-encryption requirements or was created using a GRANT statement that
-includes the REQUIRE SSL option. As a recommended set of
-secure-connection options, start the MySQL server with at least
---ssl-cert and --ssl-key options. Then set the ``db.tls.certfiles`` property
-in the server configuration file and start the Fabric CA server.
-
-To require that a client certificate also be specified, create the
-account using the REQUIRE X509 option. Then the client must also specify
-proper client key and certificate files; otherwise, the MySQL server
-will reject the connection. To specify client key and certificate files
-for the Fabric CA server, set the ``db.tls.client.certfile``,
-and ``db.tls.client.keyfile`` configuration properties.
 
 `Back to Top`_
 
