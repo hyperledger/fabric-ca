@@ -53,6 +53,7 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
+GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/cmd.%,$(METADATA_VAR))
 export GO_LDFLAGS
 
@@ -94,10 +95,13 @@ lint: .FORCE
 vet: .FORCE
 	@scripts/check_vet
 
+docs: fabric-ca-client fabric-ca-server
+	@scripts/regenDocs
+
 fabric-ca-client: bin/fabric-ca-client
 fabric-ca-server: bin/fabric-ca-server
 
-bin/%:
+bin/%: $(GO_SOURCE)
 	@echo "Building ${@F} in bin directory ..."
 	@mkdir -p bin && go build -o bin/${@F} -ldflags "$(GO_LDFLAGS)" $(path-map.${@F})
 	@echo "Built bin/${@F}"

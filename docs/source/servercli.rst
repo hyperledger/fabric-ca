@@ -1,0 +1,58 @@
+Fabric-CA Server's CLI
+=======================
+
+::
+
+    Hyperledger Fabric Certificate Authority Server
+    
+    Usage:
+      fabric-ca-server [command]
+    
+    Available Commands:
+      init        Initialize the fabric-ca server
+      start       Start the fabric-ca server
+      version     Prints Fabric CA Server version
+    
+    Flags:
+          --address string                            Listening address of fabric-ca-server (default "0.0.0.0")
+      -b, --boot string                               The user:pass for bootstrap admin which is required to build default config file
+          --ca.certfile string                        PEM-encoded CA certificate file (default "ca-cert.pem")
+          --ca.chainfile string                       PEM-encoded CA chain file (default "ca-chain.pem")
+          --ca.keyfile string                         PEM-encoded CA key file (default "ca-key.pem")
+      -n, --ca.name string                            Certificate Authority name
+          --cacount int                               Number of non-default CA instances
+          --cafiles stringSlice                       A list of comma-separated CA configuration files
+      -c, --config string                             Configuration file (default "fabric-ca-server-config.yaml")
+          --crlsizelimit int                          Size limit of an acceptable CRL in bytes (default 512000)
+          --csr.cn string                             The common name field of the certificate signing request to a parent fabric-ca-server
+          --csr.hosts stringSlice                     A list of space-separated host names in a certificate signing request to a parent fabric-ca-server
+          --csr.serialnumber string                   The serial number in a certificate signing request to a parent fabric-ca-server
+          --db.datasource string                      Data source which is database specific (default "fabric-ca-server.db")
+          --db.tls.certfiles stringSlice              A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+          --db.tls.client.certfile string             PEM-encoded certificate file when mutual authenticate is enabled
+          --db.tls.client.keyfile string              PEM-encoded key file when mutual authentication is enabled
+          --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
+      -d, --debug                                     Enable debug level logging
+          --intermediate.enrollment.label string      Label to use in HSM operations
+          --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
+          --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-server
+      -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
+          --intermediate.tls.certfiles stringSlice    A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+          --intermediate.tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
+          --intermediate.tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
+          --ldap.enabled                              Enable the LDAP client for authentication and attributes
+          --ldap.groupfilter string                   The LDAP group filter for a single affiliation group (default "(memberUid=%s)")
+          --ldap.tls.certfiles stringSlice            A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+          --ldap.tls.client.certfile string           PEM-encoded certificate file when mutual authenticate is enabled
+          --ldap.tls.client.keyfile string            PEM-encoded key file when mutual authentication is enabled
+          --ldap.url string                           LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base
+          --ldap.userfilter string                    The LDAP user filter to use when searching for users (default "(uid=%s)")
+      -p, --port int                                  Listening port of fabric-ca-server (default 7054)
+          --registry.maxenrollments int               Maximum number of enrollments; valid if LDAP not enabled (default -1)
+          --tls.certfile string                       PEM-encoded TLS certificate file for server's listening port (default "tls-cert.pem")
+          --tls.clientauth.certfiles stringSlice      A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+          --tls.clientauth.type string                Policy the server will follow for TLS Client Authentication. (default "noclientcert")
+          --tls.enabled                               Enable TLS on the listening port
+          --tls.keyfile string                        PEM-encoded TLS key for server's listening port
+    
+    Use "fabric-ca-server [command] --help" for more information about a command.
