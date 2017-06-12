@@ -24,6 +24,7 @@ import (
 	"path"
 	"testing"
 
+	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
@@ -91,6 +92,7 @@ func TestTLSClientAuth(t *testing.T) {
 	}
 	id := eresp.Identity
 	testImpersonation(id, t)
+	testMasqueradeEnroll(t, client, id)
 	// Stop server
 	err = server.Stop()
 	if err != nil {
@@ -245,6 +247,37 @@ func testImpersonation(id *Identity, t *testing.T) {
 	}
 }
 
+func testMasqueradeEnroll(t *testing.T, c *Client, id *Identity) {
+	// Register masqueradeUser
+	log.Debug("Entering testMasqueradeEnroll")
+	name := "masqueradeUser"
+	rr, err := id.Register(&api.RegistrationRequest{
+		Name:        name,
+		Type:        "user",
+		Affiliation: "hyperledger.fabric.security",
+	})
+	if err != nil {
+		t.Fatalf("Failed to register maqueradeUser: %s", err)
+	}
+	// Try to enroll user1 but masquerading as 'admin'
+	_, err = masqueradeEnroll(c, "admin", false, &api.EnrollmentRequest{
+		Name:   name,
+		Secret: rr.Secret,
+	})
+	if err == nil {
+		t.Fatalf("%s masquerading as admin (false) should have failed", name)
+	}
+	log.Debugf("testMasqueradeEnroll (false) error: %s", err)
+	_, err = masqueradeEnroll(c, "admin", true, &api.EnrollmentRequest{
+		Name:   name,
+		Secret: rr.Secret,
+	})
+	if err == nil {
+		t.Fatalf("%s masquerading as admin (true) should have failed", name)
+	}
+	log.Debugf("testMasqueradeEnroll (true) error: %s", err)
+}
+
 func getEnrollmentPayload(t *testing.T, c *Client) ([]byte, error) {
 	req := &api.EnrollmentRequest{
 		Name:   user,
@@ -319,4 +352,47 @@ func getTestClient(port int) *Client {
 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
 		HomeDir: testdataDir,
 	}
+}
+
+// Enroll enrolls a new identity
+// @param req The enrollment request
+func masqueradeEnroll(c *Client, id string, passInSubject bool, req *api.EnrollmentRequest) (*EnrollmentResponse, error) {
+	err := c.Init()
+	if err != nil {
+		return nil, err
+	}
+	csrPEM, key, err := c.GenCSR(req.CSR, id)
+	if err != nil {
+		log.Debugf("Enroll failure generating CSR: %s", err)
+		return nil, err
+	}
+	reqNet := &api.EnrollmentRequestNet{
+		CAName: req.CAName,
+	}
+	if req.CSR != nil {
+		reqNet.SignRequest.Hosts = req.CSR.Hosts
+	}
+	reqNet.SignRequest.Request = string(csrPEM)
+	reqNet.SignRequest.Profile = req.Profile
+	reqNet.SignRequest.Label = req.Label
+	if passInSubject {
+		reqNet.SignRequest.Subject = &signer.Subject{CN: id}
+	}
+	body, err := util.Marshal(reqNet, "SignRequest")
+	if err != nil {
+		return nil, err
+	}
+	// Send the CSR to the fabric-ca server with basic auth header
+	post, err := c.newPost("enroll", body)
+	if err != nil {
+		return nil, err
+	}
+	post.SetBasicAuth(req.Name, req.Secret)
+	var result enrollmentResponseNet
+	err = c.SendReq(post, &result)
+	if err != nil {
+		return nil, err
+	}
+	// Create the enrollment response
+	return c.newEnrollmentResponse(&result, req.Name, key)
 }
