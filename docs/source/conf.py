@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 #
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 # hyperledger-fabric-ca documentation build configuration file, created by
 # sphinx-quickstart on Tue May 23 17:35:49 2017.
 #

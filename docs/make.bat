@@ -1,3 +1,6 @@
+REM Copyright IBM Corp. All Rights Reserved.
+REM SPDX-License-Identifier: Apache-2.0
+
 @ECHO OFF
 
 pushd %~dp0
