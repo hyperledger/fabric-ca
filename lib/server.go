@@ -374,6 +374,7 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("reenroll", newReenrollHandler, token)
 	s.registerHandler("revoke", newRevokeHandler, token)
 	s.registerHandler("tcert", newTCertHandler, token)
+	s.registerHandler("ecert", newECertHandler, noAuth)
 }
 
 // Register an endpoint handler

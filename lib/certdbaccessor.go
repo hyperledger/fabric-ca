@@ -41,6 +41,10 @@ INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label,
 SELECT %s FROM certificates
 WHERE (id = ?);`
 
+	selectLast1SQLbyID = `
+SELECT %s FROM certificates
+WHERE (id = ?) order by expiry desc limit 1;`
+
 	selectSQL = `
 SELECT %s FROM certificates
 WHERE (serial_number = ? AND authority_key_identifier = ?);`
@@ -147,6 +151,22 @@ func (d *CertDBAccessor) GetCertificatesByID(id string) (crs []CertRecord, err e
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectSQLbyID), sqlstruct.Columns(CertRecord{})), id)
 	if err != nil {
 		return nil, err
+	}
+
+	return crs, nil
+}
+
+// GetLastCertificatesByID gets a CertificateRecord indexed by id.
+func (d *CertDBAccessor) GetLastCertificatesByID(id string) (crs []CertRecord, err error) {
+	log.Debugf("DB: Get last certificate by ID (%s)", id)
+	err = d.checkDB()
+	if err != nil {
+		return crs, err
+	}
+
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectLast1SQLbyID), sqlstruct.Columns(CertRecord{})), id)
+	if err != nil {
+		return crs, err
 	}
 
 	return crs, nil
