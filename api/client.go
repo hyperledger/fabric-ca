@@ -81,6 +81,13 @@ type ReenrollmentRequest struct {
 	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
+// UserECertRequest is a request about the certificate for user
+type UserECertRequest struct {
+	// The identity name to request a certificate
+	Name string `json:"name"`
+}
+
+
 // RevocationRequest is a revocation request for a single certificate or all certificates
 // associated with an identity.
 // To revoke a single certificate, both the Serial and AKI fields must be set;
