@@ -287,6 +287,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 			if err != nil {
 				return nil, fmt.Errorf("Failed to create intermediate chain file path: %s", err)
 			}
+			ca.Config.CA.Chainfile = chainPath
 		}
 		chain := ca.concatChain(resp.ServerInfo.CAChain, cert)
 		err = os.MkdirAll(path.Dir(chainPath), 0755)
@@ -448,7 +449,7 @@ func (ca *CA) getVerifyOptions() (*x509.VerifyOptions, error) {
 	rootPool := x509.NewCertPool()
 	rootPool.AddCert(rootCert)
 	var intPool *x509.CertPool
-	for len(rest) > 0 {
+	if len(rest) > 0 {
 		intPool = x509.NewCertPool()
 		if !intPool.AppendCertsFromPEM(rest) {
 			return nil, errors.New("Failed to add intermediate PEM certificates")

@@ -1129,6 +1129,17 @@ func testIntermediateServer(idx int, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Intermediate server start failed: %s", err)
 	}
+	// Test enroll against intermediate (covering basic auth)
+	c := getTestClient(intermediateServer.Config.Port)
+	resp, err := c.Enroll(&api.EnrollmentRequest{Name: "admin", Secret: "adminpw"})
+	if err != nil {
+		t.Fatalf("Failed to enroll with intermediate server: %s", err)
+	}
+	// Test reenroll against intermediate (covering token auth)
+	_, err = resp.Identity.Reenroll(&api.ReenrollmentRequest{})
+	if err != nil {
+		t.Fatalf("Failed to reenroll with intermediate server: %s", err)
+	}
 	// Stop it
 	intermediateServer.Stop()
 }

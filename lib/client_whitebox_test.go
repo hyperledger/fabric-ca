@@ -80,7 +80,6 @@ func TestTLSClientAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
-	defer server.Stop()
 	// Enroll over HTTP
 	client := &Client{
 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", whitePort)},
@@ -88,6 +87,7 @@ func TestTLSClientAuth(t *testing.T) {
 	}
 	eresp, err := client.Enroll(&api.EnrollmentRequest{Name: user, Secret: pass})
 	if err != nil {
+		server.Stop()
 		t.Fatalf("Failed to enroll admin: %s", err)
 	}
 	id := eresp.Identity
@@ -112,7 +112,7 @@ func TestTLSClientAuth(t *testing.T) {
 	// Try to reenroll over HTTP and it should fail because server is listening on HTTPS
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err == nil {
-		t.Fatal("Client HTTP should have failed to reenroll with server HTTPS")
+		t.Error("Client HTTP should have failed to reenroll with server HTTPS")
 	}
 	// Reenroll over HTTPS
 	client.Config.URL = fmt.Sprintf("https://localhost:%d", whitePort)
@@ -120,12 +120,14 @@ func TestTLSClientAuth(t *testing.T) {
 	client.Config.TLS.CertFiles = []string{"../server/ca-cert.pem"}
 	resp, err := id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
+		server.Stop()
 		t.Fatalf("Failed to reenroll over HTTPS: %s", err)
 	}
 	id = resp.Identity
 	// Store identity persistently
 	err = id.Store()
 	if err != nil {
+		server.Stop()
 		t.Fatalf("Failed to store identity: %s", err)
 	}
 	// Stop server
@@ -146,13 +148,14 @@ func TestTLSClientAuth(t *testing.T) {
 	// Try to reenroll and it should fail because client has no client cert
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err == nil {
-		t.Fatal("Client reenroll without client cert should have failed")
+		t.Error("Client reenroll without client cert should have failed")
 	}
 	// Reenroll over HTTPS with client auth
 	client.Config.TLS.Client.CertFile = path.Join("msp", "signcerts", "cert.pem")
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
-		t.Fatalf("Client reenroll with client auth failed: %s", err)
+		server.Stop()
+		t.Errorf("Client reenroll with client auth failed: %s", err)
 	}
 	// Stop server
 	err = server.Stop()
