@@ -311,30 +311,37 @@ func testEnroll(t *testing.T) {
 
 // TestMOption tests to make sure that the key is stored in the correct
 // directory when the "-M" option is used.
+// This also ensures the intermediatecerts directory structure is populated
+// since we enroll with an intermediate CA.
 func TestMOption(t *testing.T) {
 	os.RemoveAll(moptionDir)
-	port := 7173
-	s := startServer(path.Join(moptionDir, "server"), port, t)
-	if s == nil {
+	defer os.RemoveAll(moptionDir)
+	rootCAPort := 7173
+	rootServer := startServer(path.Join(moptionDir, "rootServer"), rootCAPort, "", t)
+	if rootServer == nil {
 		return
 	}
+	defer rootServer.Stop()
+	rootCAURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", rootCAPort)
+	intCAPort := 7174
+	intServer := startServer(path.Join(moptionDir, "intServer"), intCAPort, rootCAURL, t)
+	if intServer == nil {
+		return
+	}
+	defer intServer.Stop()
 	homedir := path.Join(moptionDir, "client")
 	mspdir := "msp2" // relative to homedir
 	err := RunMain([]string{
 		cmdName, "enroll",
-		"-u", fmt.Sprintf("http://admin:adminpw@localhost:%d", port),
+		"-u", fmt.Sprintf("http://admin:adminpw@localhost:%d", intCAPort),
 		"-c", path.Join(homedir, "config.yaml"),
 		"-M", mspdir, "-d"})
 	if err != nil {
 		t.Fatalf("client enroll -u failed: %s", err)
 	}
-	keystore := path.Join(homedir, mspdir, "keystore")
-	count := getNumFiles(keystore, t)
-	if count != 1 {
-		t.Fatalf("client enroll -M failed: expecting 1 file in keystore %s but found %d",
-			keystore, count)
-	}
-	s.Stop()
+	assertOneFileInDir(path.Join(homedir, mspdir, "keystore"), t)
+	assertOneFileInDir(path.Join(homedir, mspdir, "cacerts"), t)
+	assertOneFileInDir(path.Join(homedir, mspdir, "intermediatecerts"), t)
 }
 
 // TestReenroll tests fabric-ca-client reenroll
@@ -939,16 +946,19 @@ func extraArgErrorTest(in *TestData, t *testing.T) {
 	}
 }
 
-// get the number of files in a directory
-func getNumFiles(dir string, t *testing.T) int {
+// Make sure there is exactly one file in a directory
+func assertOneFileInDir(dir string, t *testing.T) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("Failed to get number of files in directory '%s': %s", dir, err)
 	}
-	return len(files)
+	count := len(files)
+	if count != 1 {
+		t.Fatalf("expecting 1 file in %s but found %d", dir, count)
+	}
 }
 
-func startServer(home string, port int, t *testing.T) *lib.Server {
+func startServer(home string, port int, parentURL string, t *testing.T) *lib.Server {
 	affiliations := map[string]interface{}{"org1": nil}
 	srv := &lib.Server{
 		HomeDir: home,
@@ -964,6 +974,9 @@ func startServer(home string, port int, t *testing.T) *lib.Server {
 				},
 			},
 		},
+	}
+	if parentURL != "" {
+		srv.CA.Config.Intermediate.ParentServer.URL = parentURL
 	}
 	err := srv.RegisterBootstrapUser("admin", "adminpw", "")
 	if err != nil {

@@ -11,6 +11,7 @@ SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 RC=0
 
 TDIR=intermediateca-tests
+export FABRIC_CA_CLIENT_HOME=$TDIR/client
 
 mkdir -p $TDIR/root
 cd $TDIR/root
@@ -26,6 +27,11 @@ sleep 3
 
 fabric-ca-client getcacert -u http://admin:adminpw@localhost:7055
 test $? -ne 0 && ErrorExit "Failed to talk to intermediate CA1"
+
+intDir=$FABRIC_CA_CLIENT_HOME/msp/intermediatecerts
+if [ ! -d $intDir ]; then
+   ErrorExit "Failed to create directory $intDir"
+fi
 
 fabric-ca-server init -b admin:adminpw -u http://admin:adminpw@localhost:7055 -d
 test $? -eq 0 && ErrorExit "CA2 should have failed to initialize"
