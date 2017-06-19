@@ -18,6 +18,8 @@ package lib_test
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -32,7 +34,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/tls"
+	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/stretchr/testify/assert"
@@ -399,9 +401,9 @@ func TestRunningTLSServer(t *testing.T) {
 
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
-		TLS: tls.ClientTLSConfig{
+		TLS: libtls.ClientTLSConfig{
 			CertFiles: []string{"../testdata/root.pem"},
-			Client: tls.KeyCertFiles{
+			Client: libtls.KeyCertFiles{
 				KeyFile:  "../testdata/tls_client-key.pem",
 				CertFile: "../testdata/tls_client-cert.pem",
 			},
@@ -413,6 +415,26 @@ func TestRunningTLSServer(t *testing.T) {
 	_, err = clientConfig.Enroll(rawURL, testdataDir)
 	if err != nil {
 		t.Errorf("Failed to enroll over TLS: %s", err)
+	}
+
+	// make sure only TLS 1.2 is supported
+	rootPool := x509.NewCertPool()
+	rootBytes, _ := ioutil.ReadFile("../testdata/root.pem")
+	rootPool.AppendCertsFromPEM(rootBytes)
+	_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
+		RootCAs:    rootPool,
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: tls.VersionTLS12,
+	})
+	assert.NoError(t, err, "Should have connected using TLS 1.2")
+	for _, tlsVersion := range []uint16{tls.VersionSSL30, tls.VersionTLS10, tls.VersionTLS11} {
+		_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
+			MinVersion: tlsVersion,
+			MaxVersion: tlsVersion,
+		})
+		t.Logf("Attempting TLS version [%d]", tlsVersion)
+		assert.Error(t, err, "Should not have been able to connect with TLS version < 1.2")
+		assert.Contains(t, err.Error(), "protocol version not supported")
 	}
 
 	err = srv.Stop()
@@ -1015,7 +1037,7 @@ func testNoClientCert(t *testing.T) {
 
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
-		TLS: tls.ClientTLSConfig{
+		TLS: libtls.ClientTLSConfig{
 			CertFiles: []string{"../testdata/root.pem"},
 		},
 	}
@@ -1074,7 +1096,7 @@ func testClientAuth(t *testing.T) {
 
 	clientConfig := &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
-		TLS: tls.ClientTLSConfig{
+		TLS: libtls.ClientTLSConfig{
 			CertFiles: []string{"../testdata/root.pem"},
 		},
 	}
@@ -1090,9 +1112,9 @@ func testClientAuth(t *testing.T) {
 	// Client created with certificate and key for TLS
 	clientConfig = &ClientConfig{
 		URL: fmt.Sprintf("https://localhost:%d", rootPort),
-		TLS: tls.ClientTLSConfig{
+		TLS: libtls.ClientTLSConfig{
 			CertFiles: []string{"../testdata/root.pem"},
-			Client: tls.KeyCertFiles{
+			Client: libtls.KeyCertFiles{
 				KeyFile:  "../testdata/tls_client-key.pem",
 				CertFile: "../testdata/tls_client-cert.pem",
 			},
@@ -1201,7 +1223,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 	datasource := ""
 
 	// Test with no cert files specified
-	tlsConfig := &tls.ClientTLSConfig{
+	tlsConfig := &libtls.ClientTLSConfig{
 		Enabled: true,
 	}
 	csp := util.GetDefaultBCCSP()
@@ -1210,7 +1232,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
 
 	// Test with with a file that does not exist
-	tlsConfig = &tls.ClientTLSConfig{
+	tlsConfig = &libtls.ClientTLSConfig{
 		Enabled:   true,
 		CertFiles: []string{"doesnotexit.pem"},
 	}
@@ -1219,7 +1241,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 	assert.Contains(t, err.Error(), "no such file or directory")
 
 	// Test with a file that is not of appropriate format
-	tlsConfig = &tls.ClientTLSConfig{
+	tlsConfig = &libtls.ClientTLSConfig{
 		Enabled:   true,
 		CertFiles: []string{"../testdata/empty.json"},
 	}
@@ -1233,7 +1255,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	tlsConfig = &tls.ClientTLSConfig{
+	tlsConfig = &libtls.ClientTLSConfig{
 		Enabled:   true,
 		CertFiles: []string{"../testdata/root.pem"},
 	}
