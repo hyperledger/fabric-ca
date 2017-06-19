@@ -59,6 +59,7 @@ func TestClient(t *testing.T) {
 
 	c := getTestClient(ctport1)
 
+	testLoadIdentity(c, t)
 	testGetCAInfo(c, t)
 	testRegister(c, t)
 	testEnrollIncorrectPassword(c, t)
@@ -272,6 +273,21 @@ func testLoadBadCSRInfo(c *Client, t *testing.T) {
 	}
 }
 
+func testLoadIdentity(c *Client, t *testing.T) {
+	_, err := c.LoadIdentity("foo", "bar")
+	if err == nil {
+		t.Error("testLoadIdentity foo/bar passed but should have failed")
+	}
+	_, err = c.LoadIdentity("foo", "../testdata/ec.pem")
+	if err == nil {
+		t.Error("testLoadIdentity foo passed but should have failed")
+	}
+	_, err = c.LoadIdentity("../testdata/ec-key.pem", "../testdata/ec.pem")
+	if err != nil {
+		t.Errorf("testLoadIdentity failed: %s", err)
+	}
+}
+
 func TestCustomizableMaxEnroll(t *testing.T) {
 	os.Remove("../testdata/fabric-ca-server.db")
 
@@ -384,4 +400,5 @@ func TestLast(t *testing.T) {
 	os.RemoveAll(serversDir)
 	os.RemoveAll("multica")
 	os.RemoveAll("rootDir")
+	os.RemoveAll("msp")
 }
