@@ -29,6 +29,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/hyperledger/fabric/bccsp/utils"
 )
@@ -216,7 +217,11 @@ func testImpersonation(id *Identity, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to convert admin's cert: %s", err)
 	}
-	csp := util.GetDefaultBCCSP()
+	bc := &factory.FactoryOpts{}
+	csp, err := util.InitBCCSP(&bc, "", path.Join(testTLSClientAuthDir, "client"))
+	if err != nil {
+		t.Fatalf("Failed to initialize BCCSP: %s", err)
+	}
 	privateKey, err := csp.KeyGen(&bccsp.ECDSAKeyGenOpts{Temporary: false})
 	if err != nil {
 		t.Fatalf("Failed generating ECDSA key [%s]", err)
