@@ -1,22 +1,24 @@
 Fabric CA User's Guide
 ======================
 
-Fabric CA is a Certificate Authority for Hyperledger Fabric.
+The Hyperledger Fabric CA is a Certificate Authority (CA)
+for Hyperledger Fabric.
 
-| It provides features such as:
-| 1) registration of identities, or connects to LDAP as the user
-  registry;
-| 2) issuance of Enrollment Certificates (ECerts);
-| 3) issuance of Transaction Certificates (TCerts), providing both
-  anonymity and unlinkability when transacting on a Hyperledger Fabric
-  blockchain;
-| 4) certificate renewal and revocation.
+It provides features such as:
 
-Fabric CA consists of both a server and a client component as described
-later in this document.
+  * registration of identities, or connects to LDAP as the user
+    registry
+  * issuance of Enrollment Certificates (ECerts)
+  * issuance of Transaction Certificates (TCerts), providing both
+    anonymity and unlinkability when transacting on a Hyperledger Fabric
+    blockchain
+  * certificate renewal and revocation
 
-For developers interested in contributing to Fabric CA, see the `Fabric
-CA repository <https://github.com/hyperledger/fabric-ca>`__ for more
+Hyperledger Fabric CA consists of both a server and a client component as
+described later in this document.
+
+For developers interested in contributing to Hyperledger Fabric CA, see the
+`Fabric CA repository <https://github.com/hyperledger/fabric-ca>`__ for more
 information.
 
 
@@ -65,22 +67,23 @@ Table of Contents
 Overview
 --------
 
-The diagram below illustrates how the Fabric CA server fits into the
+The diagram below illustrates how the Hyperledger Fabric CA server fits into the
 overall Hyperledger Fabric architecture.
 
 .. image:: ./images/fabric-ca.png
 
-There are two ways of interacting with a Fabric CA server:
-via the Fabric CA client or through one of the Fabric SDKs.
-All communication to the Fabric CA server is via REST APIs.
+There are two ways of interacting with a Hyperledger Fabric CA server:
+via the Hyperledger Fabric CA client or through one of the Fabric SDKs.
+All communication to the Hyperledger Fabric CA server is via REST APIs.
 See `fabric-ca/swagger/swagger-fabric-ca.json` for the swagger documentation
 for these REST APIs.
 
-The Fabric CA client or SDK may connect to a server in a cluster of Fabric CA
-servers.   This is illustrated in the top right section of the diagram.
-The client routes to an HA Proxy endpoint which load balances traffic to one
-of the fabric-ca-server cluster members.
-All Fabric CA servers in a cluster share the same database for
+The Hyperledger Fabric CA client or SDK may connect to a server in a cluster
+of Hyperledger Fabric CA servers.   This is illustrated in the top right section
+of the diagram. The client routes to an HA Proxy endpoint which load balances
+traffic to one of the fabric-ca-server cluster members.
+
+All Hyperledger Fabric CA servers in a cluster share the same database for
 keeping track of identities and certificates.  If LDAP is configured, the identity
 information is kept in LDAP rather than the database.
 
@@ -94,37 +97,46 @@ Getting Started
 Prerequisites
 ~~~~~~~~~~~~~~~
 
--  Go 1.7+ installation or later
--  **GOPATH** environment variable is set correctly
+-  Go 1.7.x installation
+-  ``GOPATH`` environment variable is set correctly
 - libtool and libtdhl-dev packages are installed
 
-The following installs the libtool dependencies.
+The following installs the libtool dependencies on Ubuntu:
 
-::
+.. code:: bash
 
-   # sudo apt install libtool libltdl-dev
+   sudo apt install libtool libltdl-dev
+
+The following installs the libtool dependencies on MacOSX:
+
+.. code:: bash
+
+   brew install libtool
+
+.. note:: libtldl-dev is not necessary on MacOSX if you instal
+          libtool via Homebrew
 
 For more information on libtool, see https://www.gnu.org/software/libtool.
 
-For more information on libtdhr-dev, see https://www.gnu.org/software/libtool/manual/html_node/Using-libltdl.html.
+For more information on libltdl-dev, see https://www.gnu.org/software/libtool/manual/html_node/Using-libltdl.html.
 
 Install
 ~~~~~~~
 
 The following installs both the `fabric-ca-server` and `fabric-ca-client` commands.
 
-::
+.. code:: bash
 
-    # go get -u github.com/hyperledger/fabric-ca/cmd/...
+    go get -u github.com/hyperledger/fabric-ca/cmd/...
 
 Start Server Natively
 ~~~~~~~~~~~~~~~~~~~~~
 
 The following starts the `fabric-ca-server` with default settings.
 
-::
+.. code:: bash
 
-    # fabric-ca-server start -b admin:adminpw
+    fabric-ca-server start -b admin:adminpw
 
 The `-b` option provides the enrollment ID and secret for a bootstrap
 administrator; this is required if LDAP is not enabled with the "ldap.enabled"
@@ -138,33 +150,34 @@ Start Server via Docker
 
 You can build and start the server via docker-compose as shown below.
 
-::
+.. code:: bash
 
-    # cd $GOPATH/src/github.com/hyperledger/fabric-ca
-    # make docker
-    # cd docker/server
-    # docker-compose up -d
+    cd $GOPATH/src/github.com/hyperledger/fabric-ca
+    make docker
+    cd docker/server
+    docker-compose up -d
 
 The hyperledger/fabric-ca docker image contains both the fabric-ca-server and
 the fabric-ca-client.
 
-WARNING: In some cases, the fabric-ca-server is known to panic due to a bug in
-a native library (libc) on some platforms.  One known
-case is when fabric-ca-server is configured with TLS to a PostgreSQL database,
-though there may also be other cases.
-As a work around, you may set the FABRIC_CA_DYNAMIC_LINK environment variable
-to a value of true prior when issuing the "make docker" command as shown below.
-This causes the executables to be dynamically linked rather than statically
-linked, which avoids the bug in the native library code.
-For more information on this issue, see
-https://jira.hyperledger.org/browse/FAB-2919.
+.. note:: WARNING: In some cases, the fabric-ca-server is known to panic due
+          to a bug in a native library (libc) on some platforms.  One known
+          case is when fabric-ca-server is configured with TLS to a PostgreSQL
+          database, though there may also be other cases.
+          As a work around, you may set the FABRIC_CA_DYNAMIC_LINK environment
+          variable to a value of true prior to issuing the "make docker"
+          command as shown below.
+          This causes the executables to be dynamically linked rather than
+          statically linked, which avoids the bug in the native library code.
+          Complete information about this issue can be found in
+          `JIRA FAB-2919 <https://jira.hyperledger.org/browse/FAB-2919>`__.
 
-::
+.. code:: bash
 
-    # cd $GOPATH/src/github.com/hyperledger/fabric-ca
-    # FABRIC_CA_DYNAMIC_LINK=true make docker
-    # cd docker/server
-    # docker-compose up -d
+    cd $GOPATH/src/github.com/hyperledger/fabric-ca
+    FABRIC_CA_DYNAMIC_LINK=true make docker
+    cd docker/server
+    docker-compose up -d
 
 Explore the Fabric CA CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -174,8 +187,9 @@ for convenience.  Additional usage information is provided in following sections
 
 The following shows the Fabric CA server usage message.
 
-::
+.. code:: bash
 
+    fabric-ca-server --help
     Hyperledger Fabric Certificate Authority Server
 
     Usage:
@@ -229,9 +243,9 @@ The following shows the Fabric CA server usage message.
 
 The following shows the Fabric CA client usage message:
 
-::
+.. code:: bash
 
-    # fabric-ca-client
+    fabric-ca-client --help
     Hyperledger Fabric Certificate Authority Client
 
     Usage:
@@ -271,12 +285,14 @@ The following shows the Fabric CA client usage message:
 
     Use "fabric-ca-client [command] --help" for more information about a command.
 
-Note that command line options that are string slices (lists) can be specified either
-by specifying the option with comma-separated list elements or by specifying the option
-multiple times, each with a string value that make up the list. For example, to specify
-``host1`` and ``host2`` for `csr.hosts` option, you can either pass `--csr.hosts
-'host1,host2'` when using this format make sure there is no space before or after comma
-or `--csr.hosts host1 --csr.hosts host2`
+.. note:: Note that command line options that are string slices (lists) can be
+          specified either by specifying the option with comma-separated list
+          elements or by specifying the option multiple times, each with a
+          string value that make up the list. For example, to specify
+          ``host1`` and ``host2`` for the ``csr.hosts`` option, you can either
+          pass ``--csr.hosts 'host1,host2'`` or
+          ``--csr.hosts host1 --csr.hosts host2``. When using the former format,
+          please make sure there are no space before or after any commas.
 
 `Back to Top`_
 
@@ -292,7 +308,7 @@ a default configuration file (like the one shown below) will be created in the
 specified location. However, if no config option was used, it will be created in
 the server's home directory (see `Fabric CA Server <#server>`__ section more info).
 
-::
+.. code:: yaml
 
     # Server's listening port (default: 7054)
     port: 7054
@@ -371,7 +387,7 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
               hf.Registrar.DelegateRoles: "client,user,validator,auditor"
               hf.Revoker: true
               hf.IntermediateCA: true
-    
+
     #############################################################################
     #  Database section
     #  Supported types are: "sqlite3", "postgres", and "mysql".
@@ -579,7 +595,7 @@ a default configuration file (like the one shown below) will be created in the
 specified location. However, if no config option was used, it will be created in
 the client's home directory (see `Fabric CA Client <#client>`__ section more info).
 
-::
+.. code:: yaml
 
     #############################################################################
     # Client Configuration
@@ -652,9 +668,9 @@ Configuration Settings Precedence
 The Fabric CA provides 3 ways to configure settings on the Fabric CA server
 and client. The precedence order is:
 
-1. CLI flags
-2. Environment variables
-3. Configuration file
+  1. CLI flags
+  2. Environment variables
+  3. Configuration file
 
 In the remainder of this document, we refer to making changes to
 configuration files. However, configuration file changes can be
@@ -662,7 +678,7 @@ overridden through environment variables or CLI flags.
 
 For example, if we have the following in the client configuration file:
 
-::
+.. code:: yaml
 
     tls:
       # Enable TLS (default: false)
@@ -677,12 +693,16 @@ For example, if we have the following in the client configuration file:
 The following environment variable may be used to override the ``cert.pem``
 setting in the configuration file:
 
-``export FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE=cert2.pem``
+.. code:: bash
+
+  export FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE=cert2.pem
 
 If we wanted to override both the environment variable and configuration
 file, we can use a command line flag.
 
-``fabric-ca-client enroll --tls.client.certfile cert3.pem``
+.. code:: bash
+
+  fabric-ca-client enroll --tls.client.certfile cert3.pem
 
 The same approach applies to fabric-ca-server, except instead of using
 ``FABIRC_CA_CLIENT`` as the prefix to environment variables,
@@ -702,7 +722,7 @@ or client will look for the ``root.pem`` file in the ``~/config``
 directory, ``cert.pem`` file in the ``~/config/certs`` directory and the
 ``key.pem`` file in the ``/abs/path`` directory
 
-::
+.. code:: yaml
 
     tls:
       enabled: true
@@ -721,14 +741,14 @@ This section describes the Fabric CA server.
 
 You may initialize the Fabric CA server before starting it. This provides an opportunity for you to generate a default configuration file but to review and customize its settings before starting it.
 
-| The Fabric CA server's home directory is determined as follows:
-| - if the ``FABRIC_CA_SERVER_HOME`` environment variable is set, use
-  its value;
-| - otherwise, if ``FABRIC_CA_HOME`` environment variable is set, use
-  its value;
-| - otherwise, if the ``CA_CFG_PATH`` environment variable is set, use
-  its value;
-| - otherwise, use current working directory.
+The Fabric CA server's home directory is determined as follows:
+  - if the ``FABRIC_CA_SERVER_HOME`` environment variable is set, use
+    its value
+  - otherwise, if ``FABRIC_CA_HOME`` environment variable is set, use
+    its value
+  - otherwise, if the ``CA_CFG_PATH`` environment variable is set, use
+    its value
+  - otherwise, use current working directory
 
 For the remainder of this server section, we assume that you have set
 the ``FABRIC_CA_HOME`` environment variable to
@@ -744,9 +764,9 @@ Initializing the server
 
 Initialize the Fabric CA server as follows:
 
-::
+.. code:: bash
 
-    # fabric-ca-server init -b admin:adminpw
+    fabric-ca-server init -b admin:adminpw
 
 The ``-b`` (bootstrap identity) option is required for initialization when
 LDAP is disabled. At least one bootstrap identity is required to start the
@@ -761,7 +781,7 @@ will be running your Fabric CA server.
 
 .. _csr-fields:
 
-::
+.. code:: yaml
 
     cn: localhost
     key:
@@ -779,13 +799,13 @@ is generated by the ``fabric-ca-server init``.  This corresponds to the
 ``ca.certfile`` and ``ca.keyfile`` files in the server's configuration file.
 The fields are as follows:
 
--  **cn** is the Common Name
--  **key** specifies the algorithm and key size as described below
--  **O** is the organization name
--  **OU** is the organizational unit
--  **L** is the location or city
--  **ST** is the state
--  **C** is the country
+  -  **cn** is the Common Name
+  -  **key** specifies the algorithm and key size as described below
+  -  **O** is the organization name
+  -  **OU** is the organizational unit
+  -  **L** is the location or city
+  -  **ST** is the state
+  -  **C** is the country
 
 If custom values for the CSR are required, you may customize the configuration
 file, delete the files specified by the ``ca.certfile`` and ``ca-keyfile``
@@ -811,7 +831,7 @@ example of the implementation of Elliptic Curve Digital Signature
 Algorithm (ECDSA) with curve ``prime256v1`` and signature algorithm
 ``ecdsa-with-SHA256``:
 
-::
+.. code:: yaml
 
     key:
        algo: ecdsa
@@ -846,9 +866,9 @@ Starting the server
 
 Start the Fabric CA server as follows:
 
-::
+.. code:: bash
 
-    # fabric-ca-server start -b <admin>:<adminpw>
+    fabric-ca-server start -b <admin>:<adminpw>
 
 If the server has not been previously initialized, it will initialize
 itself as it starts for the first time.  During this initialization, the
@@ -864,9 +884,9 @@ name and password for a bootstrap identity.
 A different configuration file may be specified with the ``-c`` option
 as shown below.
 
-::
+.. code:: bash
 
-    # fabric-ca-server start -c <path-to-config-file> -b <admin>:<adminpw>
+    fabric-ca-server start -c <path-to-config-file> -b <admin>:<adminpw>
 
 To cause the Fabric CA server to listen on ``https`` rather than
 ``http``, set ``tls.enabled`` to ``true``.
@@ -906,7 +926,7 @@ The following sample may be added to the server's configuration file in
 order to connect to a PostgreSQL database. Be sure to customize the
 various values appropriately.
 
-::
+.. code:: yaml
 
     db:
       type: postgres
@@ -959,7 +979,7 @@ on the PostgreSQL server, then the client certificate and key file must also be
 specified in the ``db.tls.client`` section. The following is an example
 of the ``db.tls`` section:
 
-::
+.. code:: yaml
 
     db:
       ...
@@ -994,7 +1014,7 @@ being used.
 
 https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
 
-::
+.. code:: yaml
 
     db:
       type: mysql
@@ -1017,7 +1037,7 @@ the following:
 Modify the LDAP section of the Fabric CA server's configuration file to configure the
 server to connect to an LDAP server.
 
-::
+.. code:: yaml
 
     ldap:
        # Enables or disables the LDAP client (default: false)
@@ -1026,25 +1046,26 @@ server to connect to an LDAP server.
        url: <scheme>://<adminDN>:<adminPassword>@<host>:<port>/<base>
        userfilter: filter
 
-| where:
-| \* ``scheme`` is one of *ldap* or *ldaps*;
-| \* ``adminDN`` is the distinquished name of the admin user;
-| \* ``pass`` is the password of the admin user;
-| \* ``host`` is the hostname or IP address of the LDAP server;
-| \* ``port`` is the optional port number, where default 389 for *ldap*
-  and 636 for *ldaps*;
-| \* ``base`` is the optional root of the LDAP tree to use for searches;
-| \* ``filter`` is a filter to use when searching to convert a login
-  user name to a distinquished name. For example, a value of
-  ``(uid=%s)`` searches for LDAP entries with the value of a ``uid``
-  attribute whose value is the login user name. Similarly,
-  ``(email=%s)`` may be used to login with an email address.
+Where:
+
+  * ``scheme`` is one of *ldap* or *ldaps*;
+  * ``adminDN`` is the distinquished name of the admin user;
+  * ``pass`` is the password of the admin user;
+  * ``host`` is the hostname or IP address of the LDAP server;
+  * ``port`` is the optional port number, where default 389 for *ldap*
+    and 636 for *ldaps*;
+  * ``base`` is the optional root of the LDAP tree to use for searches;
+  * ``filter`` is a filter to use when searching to convert a login
+    user name to a distinquished name. For example, a value of
+    ``(uid=%s)`` searches for LDAP entries with the value of a ``uid``
+    attribute whose value is the login user name. Similarly,
+    ``(email=%s)`` may be used to login with an email address.
 
 The following is a sample configuration section for the default settings
 for the OpenLDAP server whose docker image is at
 ``https://github.com/osixia/docker-openldap``.
 
-::
+.. code:: yaml
 
     ldap:
        enabled: true
@@ -1091,7 +1112,7 @@ to reflect the settings of your Fabric CA servers.
 
 haproxy.conf
 
-::
+.. code::
 
     global
           maxconn 4096
@@ -1128,7 +1149,7 @@ The `cacount` provides a quick way to start X number of default additional
 CAs. The home directory will be relative to the server directory. With this option,
 the directory structure will be as follows:
 
-::
+.. code:: yaml
 
     --<Server Home>
       |--ca
@@ -1140,7 +1161,7 @@ directory, within the configuration file it will contain a unique CA name.
 
 For example, the following command will start 2 default CA instances:
 
-::
+.. code:: bash
 
     fabric-ca-server start -b admin:adminpw --cacount 2
 
@@ -1159,14 +1180,14 @@ replaced by the values from the default CA.
 
 The precedence order will be as follows:
 
-1. CA Configuration file
-1. Default CA CLI flags
-2. Default CA Environment variables
-3. Default CA Configuration file
+  1. CA Configuration file
+  2. Default CA CLI flags
+  3. Default CA Environment variables
+  4. Default CA Configuration file
 
 A CA configuration file must contain at least the following:
 
-::
+.. code:: yaml
 
     ca:
     # Name of this CA
@@ -1177,7 +1198,7 @@ A CA configuration file must contain at least the following:
 
 You may configure your directory structure as follows:
 
-::
+.. code:: yaml
 
     --<Server Home>
       |--ca
@@ -1188,7 +1209,7 @@ You may configure your directory structure as follows:
 
 For example, the following command will start two customized CA instances:
 
-::
+.. code:: bash
 
     fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-config.yaml
     --cafiles ca/ca2/fabric-ca-config.yaml
@@ -1204,7 +1225,7 @@ attribute with a name of "hf.IntermediateCA" and a value of "true".  The CN (or 
 of the issued certificate will be set to the enrollment ID. An error will occur if an intermediate
 CA tries to explicitly specify a CN value.
 
-::
+.. code:: bash
 
     fabric-ca-server start -b admin:adminpw -u http://<enrollmentID>:<secret>@<parentserver>:<parentport>
 
@@ -1219,14 +1240,15 @@ Fabric CA Client
 
 This section describes how to use the fabric-ca-client command.
 
-| The Fabric CA client's home directory is determined as follows:
-| - if the ``FABRIC_CA_CLIENT_HOME`` environment variable is set, use
-  its value;
-| - otherwise, if the ``FABRIC_CA_HOME`` environment variable is set,
-  use its value;
-| - otherwise, if the ``CA_CFG_PATH`` environment variable is set, use
-  its value;
-| - otherwise, use ``$HOME/.fabric-ca-client``.
+The Fabric CA client's home directory is determined as follows:
+
+  - if the ``FABRIC_CA_CLIENT_HOME`` environment variable is set, use
+    its value
+  - otherwise, if the ``FABRIC_CA_HOME`` environment variable is set,
+    use its value
+  - otherwise, if the ``CA_CFG_PATH`` environment variable is set, use
+    its value
+  - otherwise, use ``$HOME/.fabric-ca-client``
 
 
 The instructions below assume that the client configuration file exists
@@ -1239,7 +1261,7 @@ First, if needed, customize the CSR (Certificate Signing Request) section
 in the client configuration file. Note that ``csr.cn`` field must be set
 to the ID of the bootstrap identity. Default CSR values are shown below:
 
-::
+.. code:: yaml
 
     csr:
       cn: <<enrollment ID>>
@@ -1265,10 +1287,10 @@ Then run ``fabric-ca-client enroll`` command to enroll the identity. For example
 following command enrolls an identity whose ID is **admin** and password is **adminpw**
 by calling Fabric CA server that is running locally at 7054 port.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client enroll -u http://admin:adminpw@localhost:7054
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client enroll -u http://admin:adminpw@localhost:7054
 
 The enroll command stores an enrollment certificate (ECert), corresponding private key and CA
 certificate chain PEM files in the subdirectories of the Fabric CA client's ``msp`` directory.
@@ -1299,10 +1321,10 @@ identity with an enrollment id of "admin2", a type of "user", an affiliation of
 "org1.department1", an attribute named "hf.Revoker" with a value of "true", and
 an attribute named "foo" with a value of "bar".
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs 'hf.Revoker=true,foo=bar'
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs 'hf.Revoker=true,foo=bar'
 
 The password, also known as the enrollment secret, is printed.
 This password is required to enroll the identity.
@@ -1313,20 +1335,21 @@ Multiple attributes can be specified as part of the --id.attrs flag, each
 attribute must be comma separated. For an attribute value that contains a comma,
 the attribute must be encapsulated in double quotes. See example below.
 
-::
+.. code:: bash
 
-    # fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
+    fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
 
 or
-::
 
-    # fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true 
+.. code:: bash
+
+    fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true
 
 You may set default values for any of the fields used in the register command
 by editing the client's configuration file.  For example, suppose the configuration
 file contains the following:
 
-::
+.. code:: yaml
 
     id:
       name:
@@ -1344,10 +1367,10 @@ The following command would then register a new identity with an enrollment id o
 configuration file including the identity type: "user", affiliation: "org1.department1",
 and two attributes: "hf.Revoker" and "anotherAttrName".
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client register --id.name admin3
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client register --id.name admin3
 
 To register an identity with multiple attributes requires specifying all attribute names and values
 in the configuration file as shown above.
@@ -1362,10 +1385,10 @@ Next, let's register a peer identity which will be used to enroll the peer in th
 The following command registers the **peer1** identity.  Note that we choose to specify our own
 password (or secret) rather than letting the server generate one for us.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client register --id.name peer1 --id.type peer --id.affiliation org1.department1 --id.secret peer1pw
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client register --id.name peer1 --id.type peer --id.affiliation org1.department1 --id.secret peer1pw
 
 Enrolling a Peer Identity
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1382,10 +1405,10 @@ peer's MSP directory which is the
 'mspConfigPath' setting in the peer's core.yaml file.
 You may also set the FABRIC_CA_CLIENT_HOME to the home directory of your peer.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
-    # fabric-ca-client enroll -u http://peer1:peer1pw@localhost:7054 -M $FABRIC_CA_CLIENT_HOME/msp
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
+    fabric-ca-client enroll -u http://peer1:peer1pw@localhost:7054 -M $FABRIC_CA_CLIENT_HOME/msp
 
 Enrolling an orderer is the same, except the path to the MSP directory is
 the 'LocalMSPDir' setting in your orderer's orderer.yaml file.
@@ -1403,17 +1426,17 @@ For example, the following will start a second Fabric CA server on localhost
 listening on port 7055 with a name of "CA2".  This represents a completely separate
 root of trust and would be managed by a different member on the blockchain.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_SERVER_HOME=$HOME/ca2
-    # fabric-ca-server start -b admin:ca2pw -p 7055 -n CA2
+    export FABRIC_CA_SERVER_HOME=$HOME/ca2
+    fabric-ca-server start -b admin:ca2pw -p 7055 -n CA2
 
 The following command will install CA2's certificate chain into peer1's MSP directory.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
-    # fabric-ca-client getcacert -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
+    fabric-ca-client getcacert -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
 
 Reenrolling an Identity
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1421,10 +1444,10 @@ Reenrolling an Identity
 Suppose your enrollment certificate is about to expire or has been compromised.
 You can issue the reenroll command to renew your enrollment certificate as follows.
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
-    # fabric-ca-client reenroll
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
+    fabric-ca-client reenroll
 
 Revoking a certificate or identity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1445,42 +1468,42 @@ The following command disables an identity and revokes all of the certificates
 associated with the identity. All future requests received by the Fabric CA server
 from this identity will be rejected.
 
-::
+.. code:: bash
 
     fabric-ca-client revoke -e <enrollment_id> -r <reason>
 
 The following are the supported reasons that can be specified using ``-r`` flag:
 
-1. unspecified
-2. keycompromise
-3. cacompromise
-4. affiliationchange
-5. superseded
-6. cessationofoperation
-7. certificatehold
-8. removefromcrl
-9. privilegewithdrawn
-10. aacompromise
+  1. unspecified
+  2. keycompromise
+  3. cacompromise
+  4. affiliationchange
+  5. superseded
+  6. cessationofoperation
+  7. certificatehold
+  8. removefromcrl
+  9. privilegewithdrawn
+  10. aacompromise
 
 For example, the bootstrap admin who is associated with root of the affiliation tree
 can revoke **peer1**'s identity as follows:
 
-::
+.. code:: bash
 
-    # export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    # fabric-ca-client revoke -e peer1
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client revoke -e peer1
 
 An enrollment certificate that belongs to an identity can be revoked by
 specifying its AKI (Authority Key Identifier) and serial number as follows:
 
-::
+.. code:: bash
 
     fabric-ca-client revoke -a xxx -s yyy -r <reason>
 
 For example, you can get the AKI and the serial number of a certificate using the openssl command
 and pass them to the ``revoke`` command to revoke the said certificate as follows:
 
-::
+.. code:: bash
 
    serial=$(openssl x509 -in userecert.pem -serial -noout | cut -d "=" -f 2)
    aki=$(openssl x509 -in userecert.pem -text | awk '/keyid/ {gsub(/ *keyid:|:/,"",$1);print tolower($0)}')
@@ -1493,7 +1516,7 @@ This section describes in more detail how to configure TLS for a Fabric CA clien
 
 The following sections may be configured in the ``fabric-ca-client-config.yaml``.
 
-::
+.. code:: yaml
 
     tls:
       # Enable TLS (default: false)
@@ -1520,7 +1543,7 @@ specific CA. By default, if no CA name is specified in the client request the
 request will be directed to the default CA on the fabric-ca server. A CA name
 can be specified on the command line of a client command as follows:
 
-::
+.. code:: bash
 
     fabric-ca-client enroll -u http://admin:adminpw@localhost:7054 --caname <caname>
 
@@ -1534,9 +1557,8 @@ PostgreSQL SSL Configuration
 
 **Basic instructions for configuring SSL on the PostgreSQL server:**
 
-1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
-
-2. Place certificate and key files in the PostgreSQL data directory.
+  1. In postgresql.conf, uncomment SSL and set to "on" (SSL=on)
+  2. Place certificate and key files in the PostgreSQL data directory.
 
 Instructions for generating self-signed certificates for:
 https://www.postgresql.org/docs/9.5/static/ssl-tcp.html
@@ -1546,15 +1568,13 @@ be used in a production environment
 
 **PostgreSQL Server - Require Client Certificates**
 
-1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the PostgreSQL data directory
-
-2. In postgresql.conf, set "ssl\_ca\_file" to point to the root cert of the client (CA cert)
-
-3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg\_hba.conf.
+  1. Place certificates of the certificate authorities (CAs) you trust in the file root.crt in the PostgreSQL data directory
+  2. In postgresql.conf, set "ssl\_ca\_file" to point to the root cert of the client (CA cert)
+  3. Set the clientcert parameter to 1 on the appropriate hostssl line(s) in pg\_hba.conf.
 
 For more details on configuring SSL on the PostgreSQL server, please refer
-to the following PostgreSQL documentation:
-https://www.postgresql.org/docs/9.4/static/libpq-ssl.html
+to the
+`PostgreSQL documentation <https://www.postgresql.org/docs/9.4/static/libpq-ssl.html>`__.
 
 MySQL SSL Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1565,14 +1585,18 @@ MySQL SSL Configuration
    lines below in the [mysqld] section. These should point to the key and
    certificates for the server, and the root CA cert.
 
-   Instructions on creating server and client-side certficates:
-   http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html
+   Please refer to the
+   `instructions <http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html>`__`
+   for creating server and client-side certficates for more detail.
+
 
    [mysqld] ssl-ca=ca-cert.pem ssl-cert=server-cert.pem ssl-key=server-key.pem
 
    Can run the following query to confirm SSL has been enabled.
 
-   mysql> SHOW GLOBAL VARIABLES LIKE 'have\_%ssl';
+   .. code::
+
+      mysql> SHOW GLOBAL VARIABLES LIKE 'have\_%ssl';
 
    Should see:
 
@@ -1598,10 +1622,10 @@ MySQL SSL Configuration
 
 Options for secure connections are similar to those used on the server side.
 
--  ssl-ca identifies the Certificate Authority (CA) certificate. This
-   option, if used, must specify the same certificate used by the server.
--  ssl-cert identifies MySQL server's certificate.
--  ssl-key identifies MySQL server's private key.
+  -  ssl-ca identifies the Certificate Authority (CA) certificate. This
+     option, if used, must specify the same certificate used by the server.
+  -  ssl-cert identifies MySQL server's certificate.
+  -  ssl-key identifies MySQL server's private key.
 
 Suppose that you want to connect using an account that has no special
 encryption requirements or was created using a GRANT statement that
@@ -1621,4 +1645,3 @@ and ``db.tls.client.keyfile`` configuration properties.
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
-
