@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 export FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 export FABRIC_CA_CLIENTEXEC="/usr/local/bin/fabric-ca-client"
 export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
@@ -270,7 +275,7 @@ reenroll() {
    ENROLLCONFIG="$FABRIC_CA_CLIENT_HOME/enroll.yaml"
    export FABRIC_CA_CLIENT_HOME
    setTLS
-   $FABRIC_CA_CLIENTEXEC reenroll -u $PROTO$HOST:$PORT $TLSOPT -c $ENROLLCONFIG 
+   $FABRIC_CA_CLIENTEXEC reenroll -u $PROTO$HOST:$PORT $TLSOPT -c $ENROLLCONFIG
    RC=$?
    $($FABRIC_CA_DEBUG) && printAuth $FABRIC_CA_CERT_FILE $FABRIC_CA_KEY_FILE
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver
