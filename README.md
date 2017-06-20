@@ -16,7 +16,7 @@ See [User's Guide for Fabric CA](https://hyperledger-fabric-ca.readthedocs.io) f
 ## Contribution guidelines
 
 You are welcome to contribute to Fabric CA!
-   
+
 The following are guidelines to follow when contributing:
 
 1. See the general information about [contributing to fabric](http://hyperledger-fabric.readthedocs.io/en/latest/CONTRIBUTING.html).
@@ -32,8 +32,27 @@ The following are guidelines to follow when contributing:
    # cdr
    # make unit-tests
    ```
-   
+
    The test coverage for each package must be 75% or greater.  If this fails due to insufficient test coverage, then you can run `gencov` to get a coverage report to see what code is not being tested.   Once you have added additional test cases, you can run `go test -cover` in the appropriate package to see the current coverage level.
+
+   WARNING: Running the unit-tests may fail due to too many open file descriptors.
+   Depending on where the failure occurs, the error message may not be obvious and may only say something similar to "unable to open database file".
+   Depending on the settings on your host, you may need to increase the maximum number of open file descriptors.
+   For example, the OSX default per-process maximum number of open file descriptors is 256.
+   You may issue the following command to display your current setting:
+
+   ```
+   # ulimit -n
+   256
+   ```
+
+   And the following command will increase this setting to 65536:
+
+   ```
+   # ulimit -n 65536
+   ```
+
+   Please note that this change is only temporary. To make it permanent, you will need to consult the documentation for your host operating system.
 
 ## Package overview
 
@@ -64,8 +83,8 @@ Run `go tool pprof -h` to view the options supported by the pprof tool. For more
 
 See [FVT tests](scripts/fvt/README.md) for information on functional verification test cases.
 
-    
- 
+
+
 
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
 s
