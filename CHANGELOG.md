@@ -1,3 +1,26 @@
+## v1.0.0-rc1
+Fri Jun 23 14:47:44 EDT 2017
+
+* [2a00490](https://github.com/hyperledger/fabric-ca/commit/2a00490) FAB-4520 1.0.0-rc1 release
+* [7d4cd37](https://github.com/hyperledger/fabric-ca/commit/7d4cd37) [FAB-4499](https://jira.hyperledger.org/browse/FAB-4499) Reformatting doc
+* [5200f07](https://github.com/hyperledger/fabric-ca/commit/5200f07) [FAB-4841](https://jira.hyperledger.org/browse/FAB-4841) Doc no support for encrypted keys
+* [a71e0f5](https://github.com/hyperledger/fabric-ca/commit/a71e0f5) [FAB-4887](https://jira.hyperledger.org/browse/FAB-4887) Server creates unused MSP directory
+* [699e1b9](https://github.com/hyperledger/fabric-ca/commit/699e1b9) [FAB-4864](https://jira.hyperledger.org/browse/FAB-4864) Doc update for max file descriptors
+* [5b7790f](https://github.com/hyperledger/fabric-ca/commit/5b7790f) [FAB-4868](https://jira.hyperledger.org/browse/FAB-4868) Verify key has 'Cert Sign' usage
+* [4f4264d](https://github.com/hyperledger/fabric-ca/commit/4f4264d) [FAB-4865](https://jira.hyperledger.org/browse/FAB-4865) NPE occurs on LoadIdentity
+* [82fad13](https://github.com/hyperledger/fabric-ca/commit/82fad13) [FAB-4856](https://jira.hyperledger.org/browse/FAB-4856) Only allow TLS 1.2
+* [d263557](https://github.com/hyperledger/fabric-ca/commit/d263557) FAB-4861 fix various doc format issues
+* [313d945](https://github.com/hyperledger/fabric-ca/commit/313d945) [FAB-4826](https://jira.hyperledger.org/browse/FAB-4826) Token-based auth issue to int server
+* [7e72c6e](https://github.com/hyperledger/fabric-ca/commit/7e72c6e) FAB-3963 add missing license headers
+* [cef4f1f](https://github.com/hyperledger/fabric-ca/commit/cef4f1f) [FAB-4567](https://jira.hyperledger.org/browse/FAB-4567) Fix for id attributes security issue
+* [989b563](https://github.com/hyperledger/fabric-ca/commit/989b563) FAB-4572 add missing license headers
+* [1424b33](https://github.com/hyperledger/fabric-ca/commit/1424b33) [FAB-4515](https://jira.hyperledger.org/browse/FAB-4515) Fix concurrency issue with enroll
+* [ef110bc](https://github.com/hyperledger/fabric-ca/commit/ef110bc) [FAB-4507](https://jira.hyperledger.org/browse/FAB-4507) Token-based authentication issue
+* [037b407](https://github.com/hyperledger/fabric-ca/commit/037b407) [FAB-4211](https://jira.hyperledger.org/browse/FAB-4211) WIP: Allow zero date values MySQL
+* [60f4fae](https://github.com/hyperledger/fabric-ca/commit/60f4fae) [FAB-4484](https://jira.hyperledger.org/browse/FAB-4484) Fix link to user guide
+* [56cca2e](https://github.com/hyperledger/fabric-ca/commit/56cca2e) FAB-4382 prepare for 1.0.0-rc1 development
+* [6b8c55d](https://github.com/hyperledger/fabric-ca/commit/6b8c55d) [FAB-4372](https://jira.hyperledger.org/browse/FAB-4372) Value of attributes are ignored
+
 ## v1.0.0-beta
 Wed Jun  7 08:10:56 EDT 2017
 

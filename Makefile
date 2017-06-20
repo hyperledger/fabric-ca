@@ -27,7 +27,7 @@
 PROJECT_NAME   = fabric-ca
 BASE_VERSION   = 1.0.0-rc1
 PREV_VERSION   = 1.0.0-beta
-IS_RELEASE     = false
+IS_RELEASE     = true
 
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
