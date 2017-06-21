@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -31,6 +32,7 @@ const (
 	ecCert               = "../testdata/ec_cert.pem"
 	ecPrivKeyMatching    = "../testdata/ec_key.pem"
 	rsacert              = "../testdata/rsa.pem"
+	badusage             = "../testdata/tls_server-cert.pem"
 )
 
 func TestBadCACertificates(t *testing.T) {
@@ -65,6 +67,22 @@ func testValidUsages(cert *x509.Certificate, t *testing.T) {
 	t.Log("validateUsage Error: ", err)
 	if err == nil {
 		t.Error("Should have failed, incorrect usage specified for certificate")
+	}
+
+	certPEM, err := ioutil.ReadFile(badusage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err = util.GetX509CertificateFromPEM(certPEM)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = validateUsage(cert)
+	t.Log("validateUsage Error: ", err)
+	if assert.Error(t, err, "Should have failed, missing 'Cert Sign' key usage") {
+		assert.Contains(t, err.Error(), "'Cert Sign' key usage is required")
 	}
 }
 

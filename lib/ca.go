@@ -914,6 +914,10 @@ func validateUsage(cert *x509.Certificate) error {
 		return errors.New("No usage specified for certificate")
 	}
 
+	if cert.KeyUsage&x509.KeyUsageCertSign == 0 {
+		return errors.New("'Cert Sign' key usage is required")
+	}
+
 	return nil
 }
 
