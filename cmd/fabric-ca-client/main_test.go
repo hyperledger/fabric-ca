@@ -794,6 +794,26 @@ func TestMultiCA(t *testing.T) {
 	}
 }
 
+func TestMSPDirectoryCreation(t *testing.T) {
+	os.RemoveAll("mspConfigTest")
+	defer os.RemoveAll("mspConfigTest")
+	srv := lib.TestGetServer(serverPort, "mspConfigTest", "", -1, t)
+
+	err := srv.Start()
+	if err != nil {
+		t.Fatal("Failed to start server:", err)
+	}
+
+	if util.FileExists("msp") {
+		t.Errorf("MSP directory should not exist at the local directory")
+	}
+
+	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
 func TestCleanUp(t *testing.T) {
 	os.Remove("../../testdata/ca-cert.pem")
 	os.Remove("../../testdata/ca-key.pem")
