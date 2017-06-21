@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
@@ -75,12 +76,12 @@ type Server struct {
 	CA
 	// A map of CAs stored by CA name as key
 	caMap map[string]*CA
-
 	// A map of CA configs stored by CA file as key
 	caConfigMap map[string]*CAConfig
-
 	// channel for communication between http.serve and main threads.
 	wait chan bool
+	// Server mutex
+	mutex sync.Mutex
 }
 
 // Init initializes a fabric-ca server
@@ -130,7 +131,30 @@ func (s *Server) Start() (err error) {
 // requests in transit to fail, and so is only used for testing.
 // A graceful shutdown will be supported with golang 1.8.
 func (s *Server) Stop() error {
-	return s.closeListener()
+	err := s.closeListener()
+	if err != nil {
+		return err
+	}
+	if s.wait == nil {
+		return nil
+	}
+	// Wait for message on wait channel from the http.serve thread. If message
+	// is not received in 10 seconds, return
+	port := s.Config.Port
+	for i := 0; i < 10; i++ {
+		select {
+		case <-s.wait:
+			log.Debugf("Stop: successful stop on port %d", port)
+			close(s.wait)
+			s.wait = nil
+			return nil
+		default:
+			log.Debugf("Stop: waiting for listener on port %d to stop", port)
+			time.Sleep(time.Second)
+		}
+	}
+	log.Debugf("Stop: timed out waiting for stop notification for port %d", port)
+	return nil
 }
 
 // RegisterBootstrapUser registers the bootstrap user with appropriate privileges
@@ -465,7 +489,7 @@ func (s *Server) listenAndServe() (err error) {
 		}
 	}
 	s.listener = listener
-	log.Infof("Listening on %s", addrStr)
+	log.Infof("Listening on %s", s.Config.Port, addrStr)
 
 	err = s.checkAndEnableProfiling()
 	if err != nil {
@@ -497,10 +521,10 @@ func (s *Server) serve() error {
 	}
 	s.serveError = http.Serve(listener, s.mux)
 	log.Errorf("Server has stopped serving: %s", s.serveError)
+	s.closeListener()
 	if s.wait != nil {
 		s.wait <- true
 	}
-	s.closeListener()
 	return s.serveError
 }
 
@@ -544,34 +568,21 @@ func (s *Server) makeFileNamesAbsolute() error {
 
 // closeListener closes the listening endpoint
 func (s *Server) closeListener() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	port := s.Config.Port
 	if s.listener == nil {
-		return errors.New("server is not currently started")
+		msg := fmt.Sprintf("Stop: listener was already closed on port %d", port)
+		log.Debugf(msg)
+		return fmt.Errorf(msg)
 	}
 	err := s.listener.Close()
-	if err == nil {
-		log.Info("The server closed its listener endpoint")
-	} else {
-		log.Errorf("The server failed to close its listener endpoint; err=%s", err)
+	s.listener = nil
+	if err != nil {
+		log.Debugf("Stop: failed to close listener on port %d: %s", port, err)
 		return err
 	}
-	s.listener = nil
-	if s.wait == nil {
-		return nil
-	}
-	// Wait for message on wait channel from the http.serve thread. If message
-	// is not recevied in three seconds, return
-	for i := 0; i < 3; i++ {
-		select {
-		case <-s.wait:
-			log.Debugf("Received server stopped message")
-			close(s.wait)
-			return nil
-		default:
-			log.Debugf("Waiting for server to stop")
-			time.Sleep(time.Second)
-		}
-	}
-	log.Debugf("Stopped waiting for server to stop")
+	log.Debugf("Stop: successfully closed listener on port %d", port)
 	return nil
 }
 
