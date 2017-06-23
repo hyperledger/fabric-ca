@@ -222,6 +222,9 @@ affiliations:
 #  A maxpathlen of 0 means that the intermediate CA cannot issue other
 #  intermediate CA certificates, though it can still issue end entity certificates.
 #  (See RFC 5280, section 4.2.1.9)
+#
+#  The "tls" profile subsection is used to sign TLS certificate requests;
+#  the default expiration ("expiry" field) is "8760h", which is 1 year in hours.
 #############################################################################
 signing:
     default:
@@ -236,6 +239,14 @@ signing:
          caconstraint:
            isca: true
            maxpathlen: 0
+      tls:
+         usage:
+            - signing
+            - key encipherment
+            - server auth
+            - client auth
+            - key agreement
+         expiry: 8760h
 
 ###########################################################################
 #  Certificate Signing Request (CSR) section.

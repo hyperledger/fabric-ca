@@ -22,6 +22,8 @@ import (
 	"path"
 	"strconv"
 	"testing"
+
+	"github.com/cloudflare/cfssl/config"
 )
 
 const (
@@ -53,7 +55,13 @@ func TestGetIntermediateServer(idx int, t *testing.T) *Server {
 
 // TestGetServer creates and returns a pointer to a server struct
 func TestGetServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
-	if home != testdataDir {
+	return TestGetServer2(home != testdataDir, port, home, parentURL, maxEnroll, t)
+}
+
+// TestGetServer2 creates and returns a pointer to a server struct, with an option of
+// whether or not to remove the home directory first
+func TestGetServer2(deleteHome bool, port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
+	if deleteHome {
 		os.RemoveAll(home)
 	}
 	affiliations := map[string]interface{}{
@@ -63,6 +71,24 @@ func TestGetServer(port int, home, parentURL string, maxEnroll int, t *testing.T
 			"sdk":       nil,
 		},
 		"org2": nil,
+	}
+	profiles := map[string]*config.SigningProfile{
+		"tls": &config.SigningProfile{
+			Usage:        []string{"signing", "key encipherment", "server auth", "client auth", "key agreement"},
+			ExpiryString: "8760h",
+		},
+		"ca": &config.SigningProfile{
+			Usage:        []string{"cert sign"},
+			ExpiryString: "8760h",
+			CAConstraint: config.CAConstraint{
+				IsCA:       true,
+				MaxPathLen: 0,
+			},
+		},
+	}
+	defaultProfile := &config.SigningProfile{
+		Usage:        []string{"cert sign"},
+		ExpiryString: "8760h",
 	}
 	srv := &Server{
 		Config: &ServerConfig{
@@ -79,6 +105,10 @@ func TestGetServer(port int, home, parentURL string, maxEnroll int, t *testing.T
 				Affiliations: affiliations,
 				Registry: CAConfigRegistry{
 					MaxEnrollments: maxEnroll,
+				},
+				Signing: &config.Signing{
+					Profiles: profiles,
+					Default:  defaultProfile,
 				},
 			},
 		},

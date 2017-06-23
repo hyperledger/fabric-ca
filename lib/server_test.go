@@ -1062,6 +1062,91 @@ func TestMaxEnrollmentLimited(t *testing.T) {
 	os.RemoveAll(rootDir)
 }
 
+// Get certificate using the TLS profile on the server to retrieve a certificate to be used for TLS connection
+func TestTLSCertIssuance(t *testing.T) {
+	testDir := "tlsTestDir"
+	os.RemoveAll(testDir)
+	defer os.RemoveAll(testDir)
+	srv := TestGetServer(rootPort, testDir, "", -1, t)
+	err := srv.Start()
+	if err != nil {
+		t.Fatalf("Root server start failed: %s", err)
+	}
+	defer srv.Stop()
+	client := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", rootPort)},
+		HomeDir: testDir,
+	}
+	eresp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:    "admin",
+		Secret:  "adminpw",
+		Profile: "tls",
+		CSR:     &api.CSRInfo{Hosts: []string{"localhost"}},
+	})
+	if err != nil {
+		t.Fatalf("Failed to enroll: %s", err)
+	}
+	tlsCertBytes := eresp.Identity.GetECert().Cert()
+	cert, err := util.GetX509CertificateFromPEM(tlsCertBytes)
+	if err != nil {
+		t.Fatalf("Failed to get certificate: %s", err)
+	}
+	// Check if the certificate has correct key usages
+	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 || cert.KeyUsage&x509.KeyUsageKeyEncipherment == 0 || cert.KeyUsage&x509.KeyUsageKeyAgreement == 0 {
+		t.Fatal("Certificate does not have correct extended key usage. Should have Digital Signature, Key Encipherment, and Key Agreement")
+	}
+	// Check if the certificate has correct extended key usages
+	clientAuth := false
+	serverAuth := false
+	for _, usage := range cert.ExtKeyUsage {
+		if usage == x509.ExtKeyUsageClientAuth {
+			clientAuth = true
+		}
+		if usage == x509.ExtKeyUsageServerAuth {
+			serverAuth = true
+		}
+	}
+	if !clientAuth || !serverAuth {
+		t.Fatal("Certificate does not have correct extended key usage. Should have ExtKeyUsageServerAuth and ExtKeyUsageClientAuth")
+	}
+	err = srv.Stop()
+	if err != nil {
+		t.Fatalf("Server stop failed: %s", err)
+	}
+	// Write the TLS certificate to disk
+	os.MkdirAll(testDir, 0755)
+	tlsCertFile := path.Join(testDir, "tls-cert.pem")
+	err = util.WriteFile(tlsCertFile, tlsCertBytes, 0644)
+	if err != nil {
+		t.Fatalf("Failed to write TLS certificate file: %s", err)
+	}
+	// Get a new server with TLS enabled
+	srv = TestGetServer2(false, rootPort, testDir, "", -1, t)
+	srv.Config.TLS.Enabled = true
+	srv.Config.TLS.CertFile = "tls-cert.pem"
+	// Start the server
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("TLS server start failed: %s", err)
+	}
+	// Connect to the server over TLS
+	cfg := &ClientConfig{URL: fmt.Sprintf("https://localhost:%d", rootPort)}
+	cfg.TLS.Enabled = true
+	cfg.TLS.CertFiles = []string{"ca-cert.pem"}
+	client = &Client{Config: cfg, HomeDir: testDir}
+	eresp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	if err != nil {
+		t.Fatalf("Failed to enroll over TLS: %s", err)
+	}
+	err = srv.Stop()
+	if err != nil {
+		t.Fatalf("Stop of TLS server failed: %s", err)
+	}
+}
+
 // Configure server to start server with no client authentication required
 func testNoClientCert(t *testing.T) {
 	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
