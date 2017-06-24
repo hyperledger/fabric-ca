@@ -226,7 +226,7 @@ affiliations:
 signing:
     default:
       usage:
-        - cert sign
+        - digital signature
       expiry: 8760h
     profiles:
       ca:

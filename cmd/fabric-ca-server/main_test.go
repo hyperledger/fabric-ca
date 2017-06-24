@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -61,6 +63,12 @@ func checkTest(in *TestData, t *testing.T) {
 	if err != nil {
 		t.Errorf("FAILED:\n \tin: %v;\n \tout: %v\n \texpected: SUCCESS\n", in.input, err.Error())
 	}
+	signingProfile := serverCfg.CAcfg.Signing.Default
+	ku, eku, unk := signingProfile.Usages()
+	// expected key usage is digital signature
+	assert.Equal(t, x509.KeyUsageDigitalSignature, ku, "Expected KeyUsageDigitalSignature")
+	assert.Equal(t, 0, len(eku), "Found %d extended usages but expected 0", len(eku))
+	assert.Equal(t, 0, len(unk), "Found %d unknown key usages", len(unk))
 }
 
 // errorTest validates error cases
