@@ -32,12 +32,12 @@ function startFabricCa() {
 
    $FABRIC_EXEC server start $server_addr $server_port -ca $DST_CERT -ca-key $DST_KEY -config $RUNCONFIG &
    FABRIC_PID=$!
-   until test "$started" = "${addr-127.0.0.1}:${port-7054}" -o "$now" -gt "$timeout"; do
-      started="$(ss -ltnp src "${addr-127.0.0.1}:${port-7054}" | awk 'NR!=1 {print $4}')"
+   until test "$started" = "${addr-127.0.0.1}:${port-$CA_DEFAULT_PORT}" -o "$now" -gt "$timeout"; do
+      started="$(ss -ltnp src "${addr-127.0.0.1}:${port-$CA_DEFAULT_PORT}" | awk 'NR!=1 {print $4}')"
       sleep .5
       let now+=1
    done
-   test "$started" = "${addr-127.0.0.1}:${port-7054}" && return 0 || return 1
+   test "$started" = "${addr-127.0.0.1}:${port-$CA_DEFAULT_PORT}" && return 0 || return 1
 }
 
 startFabricCa

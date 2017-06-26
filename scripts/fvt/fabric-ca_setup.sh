@@ -141,7 +141,7 @@ defaults
       timeout server 50000
 
 frontend haproxy
-      bind *:8888
+      bind *:$PROXY_PORT
       mode tcp
       option tcplog
       default_backend fabric-cas
@@ -176,7 +176,7 @@ listen stats
       stats enable
 
 frontend haproxy
-      bind *:8888
+      bind *:$PROXY_PORT
       mode http
       option tcplog
       default_backend fabric-cas
@@ -208,6 +208,7 @@ function startFabricCa() {
                     # --db.datasource $DATASRC --ca.keyfile $DST_KEY --config $RUNCONFIG 2>&1 | sed 's/^/     /' &
    until test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" -o "$now" -gt "$timeout"; do
       started=$(ss -ltnp src $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} | awk 'NR!=1 {print $4}')
+      test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" && break
       sleep .5
       let now+=1
    done
@@ -261,7 +262,7 @@ done
 : ${TIMEOUT:="10"}
 : ${HTTP_PORT:="3755"}
 : ${DBNAME:="fabric_ca"}
-: ${MAXENROLL:="1"}
+: ${MAXENROLL:="-1"}
 : ${AUTH:="true"}
 : ${DRIVER:="sqlite3"}
 : ${FABRIC_CA_INSTANCES:=1}

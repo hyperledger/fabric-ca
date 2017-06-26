@@ -10,11 +10,11 @@ FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
 TESTDATA="$FABRIC_CA/testdata"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 CSR="$TESTDATA/csr.json"
-HOST="http://localhost:8888"
+HOST="http://localhost:$PROXY_PORT"
 RUNCONFIG="$TESTDATA/postgres.json"
 INITCONFIG="$TESTDATA/csr_ecdsa256.json"
 RC=0
-$($FABRIC_TLS) && HOST="https://localhost:8888"
+$($FABRIC_TLS) && HOST="https://localhost:$PROXY_PORT"
 
 . $SCRIPTDIR/fabric-ca_utils
 

@@ -1,9 +1,9 @@
 #!/bin/bash
-#
 # Copyright IBM Corp. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+
 function usage {
    echo ""
    echo "pki - create self-signed, CA, user and CA-signed certificates"
@@ -206,8 +206,8 @@ function  newca {
                -policy policy_anything\
                -subj "$subjectname" \
                -extensions v3_ca_has_san \
-               -days "$caexpire" \
                -keyfile "${caroot}/private/$cakey" \
+               -startdate "$startDate" -enddate "$endDate" \
                -selfsign -infiles "${caroot}/$careq"
        fi
 

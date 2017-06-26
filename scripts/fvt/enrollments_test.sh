@@ -54,7 +54,7 @@ registry:
           hf.Revoker: true
 ldap:
    enabled: false
-   url: ldap://admin:adminpw@localhost:7054/base
+   url: ldap://admin:adminpw@localhost:$LDAP_PORT/base
    tls:
       certfiles:
         - ldap-server-cert.pem
@@ -124,7 +124,7 @@ registry:
           hf.Revoker: true
 ldap:
    enabled: false
-   url: ldap://admin:adminpw@localhost:7054/base
+   url: ldap://admin:adminpw@localhost:$LDAP_PORT/base
    tls:
       certfiles:
         - ldap-server-cert.pem
@@ -188,7 +188,7 @@ trap "CleanUp 1; exit 1" INT
 # explicitly set value to '1'
    # user can only enroll once
    MAX_ENROLL=1
-   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH 
+   $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -m $MAX_ENROLL
    i=0
    while test $((i++)) -lt "$MAX_ENROLL"; do
