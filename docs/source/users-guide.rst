@@ -172,7 +172,7 @@ Docker Hub
 Go to: https://hub.docker.com/r/hyperledger/fabric-ca/tags/
 
 Find the tag that matches the architecture and version of fabric-ca
-that you want to pull. 
+that you want to pull.
 
 Navigate to `$GOPATH/src/github.com/hyperledger/fabric-ca/docker/server`
 and open up docker-compose.yml in an editor.
@@ -364,7 +364,7 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
     #  TLS section for the server's listening port
     #
     #  The following types are supported for client authentication: NoClientCert,
-    #  RequestClientCert, RequireAnyClientCert, VerfiyClientCertIfGiven,
+    #  RequestClientCert, RequireAnyClientCert, VerifyClientCertIfGiven,
     #  and RequireAndVerifyClientCert.
     #
     #  Certfiles is a list of root certificate authorities that the server uses

@@ -88,7 +88,7 @@ debug: false
 #  TLS section for the server's listening port
 #
 #  The following types are supported for client authentication: NoClientCert,
-#  RequestClientCert, RequireAnyClientCert, VerfiyClientCertIfGiven,
+#  RequestClientCert, RequireAnyClientCert, VerifyClientCertIfGiven,
 #  and RequireAndVerifyClientCert.
 #
 #  Certfiles is a list of root certificate authorities that the server uses
