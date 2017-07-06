@@ -70,7 +70,7 @@ SELECT name, prekey FROM affiliations
 // UserRecord defines the properties of a user
 type UserRecord struct {
 	Name           string `db:"id"`
-	Pass           string `db:"token"`
+	Pass           []byte `db:"token"`
 	Type           string `db:"type"`
 	Affiliation    string `db:"affiliation"`
 	Attributes     string `db:"attributes"`
@@ -116,7 +116,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 
 	res, err := d.db.NamedExec(insertUser, &UserRecord{
 		Name:           user.Name,
-		Pass:           user.Pass,
+		Pass:           []byte(user.Pass),
 		Type:           user.Type,
 		Affiliation:    user.Affiliation,
 		Attributes:     string(attrBytes),
@@ -142,7 +142,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 		return fmt.Errorf("Expected to add one record to the database, but %d records were added", numRowsAffected)
 	}
 
-	log.Debugf("Successfully added Identity %s to the database", user.Name)
+	log.Debugf("Successfully added identity %s to the database", user.Name)
 
 	return nil
 
@@ -179,7 +179,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 
 	res, err := d.db.NamedExec(updateUser, &UserRecord{
 		Name:           user.Name,
-		Pass:           user.Pass,
+		Pass:           []byte(user.Pass),
 		Type:           user.Type,
 		Affiliation:    user.Affiliation,
 		Attributes:     string(attributes),
@@ -245,7 +245,7 @@ func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
 	json.Unmarshal([]byte(userRec.Attributes), &attributes)
 
 	userInfo.Name = userRec.Name
-	userInfo.Pass = userRec.Pass
+	userInfo.Pass = string(userRec.Pass)
 	userInfo.Type = userRec.Type
 	userInfo.Affiliation = userRec.Affiliation
 	userInfo.State = userRec.State
@@ -308,7 +308,7 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	var user = new(DBUser)
 	user.Name = userRec.Name
-	user.Pass = userRec.Pass
+	user.Pass = string(userRec.Pass)
 	user.State = userRec.State
 	user.MaxEnrollments = userRec.MaxEnrollments
 	user.Affiliation = userRec.Affiliation

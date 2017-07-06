@@ -191,6 +191,41 @@ func TestRootServer(t *testing.T) {
 	}
 }
 
+// Test passwords with lowercase "e" to make sure it is stored
+// correctly in the database with no conversion problems.
+// See https://jira.hyperledger.org/projects/FAB/issues/FAB-5188
+func TestSpecialPassword(t *testing.T) {
+
+	user := "admin2"
+	pwd := "034e220796"
+
+	// Start the server
+	server := TestGetRootServer(t)
+	if server == nil {
+		return
+	}
+	err := server.RegisterBootstrapUser(user, pwd, "")
+	if err != nil {
+		t.Fatalf("Failed to register %s: %s", user, err)
+	}
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+	defer server.Stop()
+	// Enroll request
+	client := getRootClient()
+	_, err = client.Enroll(&api.EnrollmentRequest{Name: user, Secret: pwd})
+	if err != nil {
+		t.Fatalf("Failed to enroll %s: %s", user, err)
+	}
+	// Stop the server
+	err = server.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
 // TestProfiling tests if profiling endpoint can be accessed when profiling is
 // enabled and not accessible when disabled (default)
 func TestProfiling(t *testing.T) {
