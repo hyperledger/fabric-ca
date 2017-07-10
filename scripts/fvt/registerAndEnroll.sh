@@ -38,7 +38,6 @@ for i in $USERNAME; do
                                    tail -n1 | awk '{print $NF}')
    enroll $i $pswd
    RC=$((RC+$?))
-   sleep 1
 done
 
 exit $RC

@@ -12,6 +12,13 @@ HOST="127.0.0.1:10888"
 RC=0
 HTTP_PORT="3755"
 CA_CFG_PATH="/tmp/fabric-ca/roundrobin"
+NUM_SERVERS=4
+USER_SERVER_RATIO=8
+for u in $(eval echo {1..$((NUM_SERVERS*USER_SERVER_RATIO-1))}); do
+   USERS[u]="user$u"
+done
+NUM_USERS=${#USERS[*]}
+EXPECTED_DISTRIBUTION=$(((NUM_USERS+1)*2/$NUM_SERVERS))
 export CA_CFG_PATH
 
 cd $TESTDATA
@@ -23,15 +30,18 @@ trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
 
 for driver in sqlite3 mysql postgres ; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver
+   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n $NUM_SERVERS -t rsa -l 2048 -d $driver
    test $? -ne 0 && ErrorExit "Failed to setup server"
-   $SCRIPTDIR/registerAndEnroll.sh -u 'user1 user2 user3 user4 user5 user6 user7 user8 user9'
+   $SCRIPTDIR/registerAndEnroll.sh -u "${USERS[*]}"
    test $? -ne 0 && ErrorMsg "registerAndEnroll failed"
    reenroll admin
-   if test "$FABRIC_TLS" = 'false'; then
-      for s in 1 2 3 4; do
-         curl -s http://$HOST/ | awk -v s="server${s}" '$0~s'|html2text | egrep "HTTP|server${s}"
-         verifyServerTraffic $HOST server${s} 5
+   if ! $(${FABRIC_TLS:-false}); then 
+      for s in $(eval echo {1..$NUM_SERVERS}); do
+         curl -s http://$HOST/ | 
+            awk -v s="server${s}\"" '$0~s'|
+               html2text |
+                  egrep "HTTP|server${s}"
+         verifyServerTraffic $HOST server${s} $EXPECTED_DISTRIBUTION
          test $? -ne 0 && ErrorMsg "verifyServerTraffic failed"
       done
    fi

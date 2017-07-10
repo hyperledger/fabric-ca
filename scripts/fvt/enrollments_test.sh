@@ -238,7 +238,7 @@ trap "CleanUp 1; exit 1" INT
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    test -d $CA_CFG_PATH || mkdir $CA_CFG_PATH
    genServerConfig invalid
-   $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $SERVERCONFIG
+   $SCRIPTDIR/fabric-ca_setup.sh -o 1 -S -X -g $SERVERCONFIG
    test $? -eq 0 && ErrorMsg "user enrollment > global setting"
 
 $SCRIPTDIR/fabric-ca_setup.sh -L
