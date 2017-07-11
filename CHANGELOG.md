@@ -1,3 +1,12 @@
+## v1.0.0
+Tue Jul 11 16:38:28 CEST 2017
+
+* [2a65467](https://github.com/hyperledger/fabric-ca/commit/2a65467) [FAB-5203](https://jira.hyperledger.org/browse/FAB-5203) Store hash of password in DB
+* [e52c670](https://github.com/hyperledger/fabric-ca/commit/e52c670) [FAB-5188](https://jira.hyperledger.org/browse/FAB-5188) Fix password conversion bug
+* [f013d54](https://github.com/hyperledger/fabric-ca/commit/f013d54) [FAB-4997](https://jira.hyperledger.org/browse/FAB-4997) Typo - VerfiyClientCertIfGiven
+* [ecb50ed](https://github.com/hyperledger/fabric-ca/commit/ecb50ed) [FAB-4993](https://jira.hyperledger.org/browse/FAB-4993) Incorrect key usage for issued certs
+* [756ba98](https://github.com/hyperledger/fabric-ca/commit/756ba98) FAB-4520 prepare for rc2 development
+
 ## v1.0.0-rc1
 Fri Jun 23 14:47:44 EDT 2017
 
