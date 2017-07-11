@@ -40,6 +40,7 @@ import (
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -202,13 +203,19 @@ func TestSRVRootServer(t *testing.T) {
 		t.Error("dba.InsertCertificate on empty accessor should have failed")
 	}
 	// User1 should not be allowed to register
-	_, err = user1.Register(&api.RegistrationRequest{
+	user2Registration := &api.RegistrationRequest{
 		Name:        "user2",
 		Type:        "user",
 		Affiliation: "hyperledger.fabric-ca",
-	})
+	}
+	_, err = user1.Register(user2Registration)
 	if err == nil {
-		t.Error("Should have failed to register")
+		t.Error("User1 should have failed to register user2")
+	}
+	// Admin should be allowed to register user2
+	_, err = admin.Register(user2Registration)
+	if err != nil {
+		t.Errorf("Admin failed to register user2: %s", err)
 	}
 	// User1 renew
 	eresp, err = user1.Reenroll(&api.ReenrollmentRequest{})
@@ -219,7 +226,12 @@ func TestSRVRootServer(t *testing.T) {
 	// User1 should not be allowed to revoke admin
 	err = user1.Revoke(&api.RevocationRequest{Name: "admin"})
 	if err == nil {
-		t.Error("User1 should not be be allowed to revoke admin")
+		t.Error("User1 should not be allowed to revoke admin")
+	}
+	// User1 should not be allowed to revoke user2 because of affiliation
+	err = user1.Revoke(&api.RevocationRequest{Name: "user2"})
+	if err == nil {
+		t.Error("User1 should not be allowed to revoke user2 because of affiliation")
 	}
 	// User1 get's batch of tcerts
 	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1, AttrNames: []string{"attr1"}})
@@ -230,6 +242,11 @@ func TestSRVRootServer(t *testing.T) {
 	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
 	if err != nil {
 		t.Fatalf("Failed to get tcerts for user1: %s", err)
+	}
+	// Admin should not be allowed to revoke an invalid cert
+	err = admin.Revoke(&api.RevocationRequest{AKI: "foo", Serial: "bar"})
+	if err == nil {
+		t.Error("Admin should have failed to revoke foo/bar")
 	}
 	// Revoke user1's identity
 	err = admin.Revoke(&api.RevocationRequest{Name: "user1"})
@@ -246,24 +263,21 @@ func TestSRVRootServer(t *testing.T) {
 	// attribute 'hf.Revoker=false' should not be able to make a
 	// successfull revocation request
 	secret, err := admin.Register(&api.RegistrationRequest{
-		Name:        "user2",
+		Name:        "user3",
 		Type:        "user",
 		Affiliation: "hyperledger.fabric-ca",
 		Attributes:  makeAttrs(t, "hf.Revoker=false"),
 	})
 	assert.NoError(t, err, "Failed to register user")
 	eresp, err = client.Enroll(&api.EnrollmentRequest{
-		Name:   "user2",
+		Name:   "user3",
 		Secret: secret.Secret,
 	})
 	assert.NoError(t, err, "Failed to enroll user2")
-	user2 := eresp.Identity
-	// User2 should not be allowed to revoke because of attribute 'hf.Revoker=false'
-	err = user2.Revoke(&api.RevocationRequest{Name: "admin"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "is not set to true")
-	}
-
+	user3 := eresp.Identity
+	// User3 should not be allowed to revoke because of attribute 'hf.Revoker=false'
+	err = user3.Revoke(&api.RevocationRequest{Name: "admin"})
+	assert.Error(t, err)
 	// Stop the server
 	err = server.Stop()
 	if err != nil {
@@ -737,8 +751,8 @@ func invalidBasicAuthorization(t *testing.T) {
 	req.SetBasicAuth("admin", "adminpw")
 
 	err = client.SendReq(req, nil)
-	if err.Error() != "Error response from server was: Authorization failure" {
-		t.Error("Incorrect auth type set, request should have failed with authorization error")
+	if err == nil {
+		t.Error("Incorrect auth type set for register request; it should have failed but passed")
 	}
 }
 
@@ -938,7 +952,6 @@ func TestSRVDefaultCAWithSetCAName(t *testing.T) {
 	srv := getServer(rootPort, testdataDir, "", -1, t)
 	srv.CA.Config.CA.Name = "DefaultCA"
 
-	// Starting server with two cas with same name
 	err := srv.Start()
 	if err != nil {
 		t.Fatal("Failed to start server:", err)
@@ -1536,6 +1549,23 @@ func testIntermediateServer(idx int, t *testing.T) {
 	intermediateServer.Stop()
 }
 
+func TestUnmarshalConfig(t *testing.T) {
+	cfg := &ServerConfig{}
+	cfgFile := "../testdata/testviperunmarshal.yaml"
+	err := UnmarshalConfig(cfg, viper.GetViper(), cfgFile, true, true)
+	if err != nil {
+		t.Errorf("UnmarshalConfig workaround=true failed: %s", err)
+	}
+	err = UnmarshalConfig(cfg, viper.GetViper(), cfgFile, true, false)
+	if err != nil {
+		t.Errorf("UnmarshalConfig workaround=false failed: %s", err)
+	}
+	err = UnmarshalConfig(cfg, viper.GetViper(), "foo.yaml", true, false)
+	if err == nil {
+		t.Error("UnmarshalConfig invalid file passed but should have failed")
+	}
+}
+
 // TestSqliteLocking tests to ensure that "database is locked"
 // error does not occur when multiple requests are sent at the
 // same time.
@@ -1894,7 +1924,7 @@ func testRegistration(admin *Identity, t *testing.T) {
 		Attributes:  makeAttrs(t, "hf.Registrar.Roles=user,peer", "hf.Registrar.DelegateRoles=user"),
 	})
 	if err != nil {
-		t.Fatalf("Failed to register %s: %s", name, err)
+		t.Fatalf("%s", err)
 	}
 	_, err = id1.RegisterAndEnroll(&api.RegistrationRequest{
 		Name:        name,

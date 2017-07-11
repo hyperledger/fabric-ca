@@ -33,6 +33,7 @@ func TestServerEndpoint(t *testing.T) {
 	// Positive tests
 	url := "http://localhost:7054/api/v1/enroll"
 	handlerError = nil
+	testEndpoint(t, "HEAD", url, 200, 0)
 	testEndpoint(t, "GET", url, 200, 0)
 	testEndpoint(t, "POST", url, 200, 0)
 	// Negative tests
@@ -43,7 +44,7 @@ func TestServerEndpoint(t *testing.T) {
 
 func testEndpoint(t *testing.T, method, url string, scode, rcode int) {
 	se := &serverEndpoint{
-		Methods: []string{"GET", "POST"},
+		Methods: []string{"GET", "POST", "HEAD"},
 		Handler: testEndpointHandler,
 	}
 	r, err := http.NewRequest(method, url, nil)
