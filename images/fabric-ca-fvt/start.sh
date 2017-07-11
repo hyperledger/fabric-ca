@@ -24,6 +24,13 @@ then
 fi
 
 /usr/bin/mysqld_safe --sql-mode=STRICT_TRANS_TABLES &
+# Set "olcIdleTimeout" to 1 second to force slapd (the LDAP server) to
+# close connections after they have been idle for 1 second.  This is
+# necessary to adequately validate that the fabric-ca-server correctly
+# reconnects after the LDAP server has closed a connection.
+# This is not the recommended configuration of slapd from a performance
+# perspective.
+echo "olcIdleTimeout: 1" >> "/etc/ldap/slapd.d/cn=config.ldif"
 /etc/init.d/slapd start &
 
 for port in ${PORTS[*]}; do
