@@ -25,7 +25,7 @@ URI="${PROTO}user:pass@localhost:$PROXY_PORT"
 genAffYaml() {
    local Planet=(0 1)
    local Landmass=(0)
-   local Country=(0 1) 
+   local Country=(0 1)
    local Province=(0 1 2)
    local Locale=(0)
    local City=(0 1)
@@ -66,29 +66,6 @@ genAffYaml() {
      indent="${indent#  }"
    done
    indent="${indent}  "
-}
-
-function testStatus() {
-   local user="$1"
-   local driver="$2"
-   : ${driver:="sqlite3"}
-   case $driver in
-      sqlite3)
-         user_status=$(sqlite3 $CA_CFG_PATH/$DB "SELECT * FROM users WHERE (id=\"$user\");")
-         cert_status=$(sqlite3 $CA_CFG_PATH/$DB "SELECT * FROM certificates WHERE (id=\"$user\");")
-         user_status_code=$(echo $user_status | awk -F'|' '{print $6}')
-         cert_status_code=$(echo $cert_status | awk -F'|' '{print $5}')
-      ;;
-      mysql)
-         user_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM users WHERE (id=\"$user\");" $DB| awk -F'\t' -v u=$user '$1~u {print $6}')
-         cert_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\");" $DB| awk -F'\t' -v u=$user '$1~u {print $5}')
-      ;;
-      postgres)
-         user_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,state FROM users WHERE id='$user';" --dbname=fabric_ca | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
-         cert_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,encode(status,'escape') FROM certificates WHERE id='$user';" --dbname=fabric_ca | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
-      ;;
-    esac
-    echo "$user_status_code $cert_status_code"
 }
 
 # Expected codes
