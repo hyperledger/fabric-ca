@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -686,5 +687,24 @@ func testIsSubsetOf(t *testing.T, small, large string, expectToPass bool) {
 		if err == nil {
 			t.Errorf("IsSubsetOf('%s','%s') expected error but passed", small, large)
 		}
+	}
+}
+
+func TestHostname(t *testing.T) {
+	host := Hostname()
+	assert.NotEqual(t, "", host, "Hostname should not be empty")
+}
+
+func TestHTTPRequestToString(t *testing.T) {
+	url := "http://localhost:7054"
+	reqBody := "Hello"
+	req, err := http.NewRequest("POST", url, strings.NewReader(reqBody))
+	if err != nil {
+		t.Errorf("Failed to create a request: %s", err)
+	} else {
+		reqStr := HTTPRequestToString(req)
+		assert.Contains(t, reqStr, url)
+		assert.Contains(t, reqStr, "POST")
+		assert.Contains(t, reqStr, reqBody)
 	}
 }

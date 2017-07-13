@@ -21,6 +21,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"testing"
@@ -88,7 +89,9 @@ func TestCWBTLSClientAuth(t *testing.T) {
 
 	// Enroll over HTTP
 	client := &Client{
-		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", whitePort)},
+		Config: &ClientConfig{
+			URL: fmt.Sprintf("http://localhost:%d", whitePort),
+		},
 		HomeDir: path.Join(testTLSClientAuthDir, "client"),
 	}
 
@@ -122,6 +125,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	testMasqueradeReenroll(t, client, id2)
 
 	// Stop server
+	log.Debug("Stopping the server")
 	err = server.Stop()
 	if err != nil {
 		t.Fatalf("Failed to stop server: %s", err)
@@ -131,22 +135,33 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	// 2) Test over HTTPS with client auth disabled
 	//
 	// Start server
+	log.Debug("Starting the server with TLS")
 	server.Config.TLS.Enabled = true
 	server.Config.TLS.CertFile = "ca-cert.pem"
 	err = server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server with HTTPS: %s", err)
 	}
+
+	// Close the idle connections that were established to the non-SSL
+	// server. client will create new connection for the next request
+	// There is no need to do this in real scenario where the Fabric CA
+	// server's transport can only be changed from ssl to non-ssl or vice-versa
+	// by restarting the server, in which case connections in the client's
+	// connection pool are invalidated and it is forced to create new connection.
+	client.httpClient.Transport.(*http.Transport).CloseIdleConnections()
+
 	// Try to reenroll over HTTP and it should fail because server is listening on HTTPS
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
-	t.Logf("id.Reenroll: %v", err)
 	if err == nil {
 		t.Error("Client HTTP should have failed to reenroll with server HTTPS")
 	}
-	// Reenroll over HTTPS
+
 	client.Config.URL = fmt.Sprintf("https://localhost:%d", whitePort)
 	client.Config.TLS.Enabled = true
 	client.Config.TLS.CertFiles = []string{"../server/ca-cert.pem"}
+	// Reinialize the http client with updated config and re-enroll over HTTPS
+	err = client.initHTTPClient()
 	resp, err := id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		server.Stop()
@@ -174,14 +189,18 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server with HTTPS and client auth: %s", err)
 	}
+	// Close all idle connections
+	client.httpClient.Transport.(*http.Transport).CloseIdleConnections()
+
 	// Try to reenroll and it should fail because client has no client cert
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
-	t.Logf("id.Reenroll: %v", err)
 	if err == nil {
 		t.Error("Client reenroll without client cert should have failed")
 	}
-	// Reenroll over HTTPS with client auth
+
 	client.Config.TLS.Client.CertFile = path.Join("msp", "signcerts", "cert.pem")
+	// Reinialize the http client with updated config and re-enroll over HTTPS with client auth
+	err = client.initHTTPClient()
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		server.Stop()

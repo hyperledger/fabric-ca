@@ -129,7 +129,7 @@ func (i *Identity) RegisterAndEnroll(req *api.RegistrationRequest) (*Identity, e
 // Reenroll reenrolls an existing Identity and returns a new Identity
 // @param req The reenrollment request
 func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
-	log.Debugf("Reenrolling %s", req)
+	log.Debugf("Reenrolling %s", util.StructToString(req))
 
 	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
 	if err != nil {

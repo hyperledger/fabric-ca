@@ -53,6 +53,8 @@ type Client struct {
 	keyFile, certFile, caCertsDir string
 	// The crypto service provider (BCCSP)
 	csp bccsp.BCCSP
+	// HTTP client associated with this Fabric CA client
+	httpClient *http.Client
 }
 
 // Init initializes the client
@@ -93,9 +95,35 @@ func (c *Client) Init() error {
 		if err != nil {
 			return err
 		}
+		// Create http.Client object and associate it with this client
+		err = c.initHTTPClient()
+		if err != nil {
+			return err
+		}
+
 		// Successfully initialized the client
 		c.initialized = true
 	}
+	return nil
+}
+
+func (c *Client) initHTTPClient() error {
+	tr := new(http.Transport)
+	if c.Config.TLS.Enabled {
+		log.Info("TLS Enabled")
+
+		err := tls.AbsTLSClient(&c.Config.TLS, c.HomeDir)
+		if err != nil {
+			return err
+		}
+
+		tlsConfig, err2 := tls.GetClientTLSConfig(&c.Config.TLS, c.csp)
+		if err2 != nil {
+			return fmt.Errorf("Failed to get client TLS config: %s", err2)
+		}
+		tr.TLSClientConfig = tlsConfig
+	}
+	c.httpClient = &http.Client{Transport: tr}
 	return nil
 }
 
@@ -391,33 +419,19 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 		return err
 	}
 
-	var tr = new(http.Transport)
-
-	if c.Config.TLS.Enabled {
-		log.Info("TLS Enabled")
-
-		err = tls.AbsTLSClient(&c.Config.TLS, c.HomeDir)
-		if err != nil {
-			return err
-		}
-
-		tlsConfig, err2 := tls.GetClientTLSConfig(&c.Config.TLS, c.csp)
-		if err2 != nil {
-			return errors.WithMessage(err2, "Failed to get client TLS config")
-		}
-
-		tr.TLSClientConfig = tlsConfig
-	}
-
-	httpClient := &http.Client{Transport: tr}
-	resp, err := httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrapf(err, "POST failure of request: %s", reqStr)
 	}
 	var respBody []byte
 	if resp.Body != nil {
 		respBody, err = ioutil.ReadAll(resp.Body)
-		defer resp.Body.Close()
+		defer func() {
+			err := resp.Body.Close()
+			if err != nil {
+				log.Debugf("Failed to close the response body: %s", err.Error())
+			}
+		}()
 		if err != nil {
 			return errors.Wrapf(err, "Failed to read response of request: %s", reqStr)
 		}
