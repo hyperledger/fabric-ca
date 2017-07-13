@@ -22,6 +22,11 @@
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
+#   - bench - Runs benchmarks in all the packages and stores the results in /tmp/bench.results
+#   - bench-cpu - Runs the benchmarks in the specified package with cpu profiling
+#   - bench-mem - Runs the benchmarks in the specified package with memory profiling
+#   - bench-clean - Removes all benchmark related files
+#   - benchcmp - Compares benchmarks results of current and previous release
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
@@ -152,7 +157,36 @@ build/%.tar.bz2:
 unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_tests
 
+# Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
+bench: checks fabric-ca-server fabric-ca-client
+	@scripts/run_benchmarks
+
+# Runs benchmarks in the specified package with cpu profiling
+# e.g. make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib
+bench-cpu: checks fabric-ca-server fabric-ca-client
+	@scripts/run_benchmarks -C -P $(pkg)
+
+# Runs benchmarks in the specified package with memory profiling
+# e.g. make bench-mem pkg=github.com/hyperledger/fabric-ca/lib
+bench-mem: checks fabric-ca-server fabric-ca-client
+	@scripts/run_benchmarks -M -P $(pkg)
+
+# Removes all benchmark related files (bench, bench-cpu, bench-mem and *.test)
+bench-clean:
+	@scripts/run_benchmarks -R
+
+# Compares benchmarks results of current and previous release
+# Previous release git tag must be specified using the prev_rel variable.
+# e.g. make benchcmp -prev_rel=v1.0.0
+benchcmp: bench
+	@scripts/compare_benchmarks $(prev_rel)
+
 container-tests: docker
+
+load-test: docker-clean docker-fvt
+	@docker run -p 8888:8888 -p 8054:8054 -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca -e FABRIC_CA_SERVER_PROFILE_PORT=8054 --name loadTest -td hyperledger/fabric-ca-fvt test/fabric-ca-load-tester/launchServer.sh 3
+	@test/fabric-ca-load-tester/runLoad.sh -B
+	@docker kill loadTest
 
 fvt-tests:
 	@scripts/run_fvt_tests

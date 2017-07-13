@@ -1,0 +1,80 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+#############################################################################
+#   This is a fabric-ca load test configuration file
+#############################################################################
+
+#############################################################################
+# URL of the Fabric CA server. It is of the form: 
+# <http|https>://<bootstrap user id>:<bootstrap password>@<hostname>:<port>
+# The bootstrap user must have revoker authority and must be affiliated with
+# root of the affiliation tree, which is "" or the parent affiliation of the
+# affiliation specified in the `affiliation` property.
+# If the scheme is https, then set tls.enabled=true and specify the server's
+# tls certificate in the "tls.certfiles" property
+#############################################################################
+serverURL: https://admin:adminpw@localhost:8888
+
+#############################################################################
+# Number of clients. Each client thread sends number of requests specified
+# by the "numReqsPerClient" property in the order specified by the "testSeq"
+# property. 
+#############################################################################
+numClients: 25
+numReqsPerClient: 250
+
+#############################################################################
+# The "testSeq" property specifies the sequence of tests that are run in 
+# each iteration by a client. Each test has a "name" and optional "repeat" 
+# and "req" properties. The "repeat" property specifies how many times 
+# to repeat the test in each iteration. The "req" property specifies payload 
+# for the request that is sent to the Fabric CA server. 
+#############################################################################
+testSeq:
+- name: register-enroll
+- name: get-tcerts
+- name: re-enroll
+- name: get-tcerts
+  repeat: 1
+  req:
+    count: 10
+    prekey: ''
+    disable_kdf: true
+    encrypt_attrs: true
+- name: revoke
+  repeat: 1
+  req:
+    name: ''
+    aki: revokeaki
+    serial: ''
+    reason: 1
+- name: get-cacert
+
+#############################################################################
+# Name of the affiliation used in the tests
+#############################################################################
+affiliation: bank_a
+
+#############################################################################
+# The Fabric CA client configuration. Each test client uses a fabric CA client
+# to send requests to the Fabric CA server
+#############################################################################
+caClientConfig:
+  csr:
+    cn: ''
+    names:
+    - C: US
+      ST: North Carolina
+      L: Raleigh
+      O: Hyperledger
+      OU: Fabric
+  tls:
+    enabled: true
+    certfiles:
+      - ../../testdata/root.pem
+    client:
+      certfile: ''
+      keyfile: ''
