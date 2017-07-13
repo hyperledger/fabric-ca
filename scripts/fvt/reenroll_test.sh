@@ -104,7 +104,8 @@ for driver in sqlite3 postgres mysql; do
    done
 
    if ! $(${FABRIC_TLS:-false}); then
-      for s in $(eval echo {1..$NUM_SERVERS}); do
+      nums=$((NUM_SERVERS-1))
+      for s in $(eval echo {0..$nums}); do
          curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
          verifyServerTraffic $HOST server${s} $EXPECTED_DISTRIBUTION
          test $? -ne 0 && ErrorMsg "Distributed traffic to server FAILED"

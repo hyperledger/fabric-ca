@@ -29,6 +29,7 @@ function usage() {
    echo "  -X)   set PROXY='true' - start haproxy for \$FABRIC_CA_INSTANCES of fabric-ca servers"
    echo "  -K)   set KILL='true'  - kill all running fabric-ca instances and haproxy"
    echo "  -L)   list all running fabric-ca instances"
+   echo "  -P)   Enable profiling port on the server"
    echo " ?|h)  this help text"
    echo ""
    echo "Defaults: -d sqlite3 -n 1 -k ecdsa -l 256"
@@ -57,9 +58,12 @@ resetFabricCa(){
 
 listFabricCa(){
    echo "Listening servers;"
-   lsof -n -i tcp:${USER_CA_PORT-$CA_DEFAULT_PORT}
-
-
+   local port=${USER_CA_PORT-$CA_DEFAULT_PORT}
+   local inst=0
+   while test $((inst)) -lt $FABRIC_CA_INSTANCES; do
+     lsof -n -i tcp:$((port+$inst))
+     inst=$((inst+1))
+   done
    case $DRIVER in
       mysql)
          echo ""
@@ -134,7 +138,7 @@ function startHaproxy() {
 defaults
       log     global
       option  dontlognull
-      maxconn 1024
+      maxconn 4096
       timeout connect 5000
       timeout client 50000
       timeout server 50000
@@ -146,15 +150,36 @@ frontend haproxy
       default_backend fabric-cas
 
 backend fabric-cas
-      mode tcp
+   mode tcp
+   balance roundrobin";
+
+   # For each requested instance passed to startHaproxy
+   # (which is determined by the -n option passed to the
+   # main script) create a backend server in haproxy config
+   # Each server binds to a unique port on INADDR_ANY
+   while test $((i)) -lt $inst; do
+      echo "      server server$i  localhost:$((server_port+$i))"
+      i=$((i+1))
+   done
+
+if test -n "$FABRIC_CA_SERVER_PROFILE_PORT" ; then
+echo "
+frontend haproxy-profile
+      bind *:8889
+      mode http
+      option tcplog
+      default_backend fabric-ca-profile
+
+backend fabric-ca-profile
+      mode http
+      http-request set-header X-Forwarded-Port %[dst_port]
       balance roundrobin";
-      # For each requested instance passed to startHaproxy
-      # (which is determined by the -n option passed to the
-      # main script) create a backend server in haproxy config
-      # Each server uses a separate loopback address.
-      while test $((i++)) -lt $inst; do
-         echo "      server server$i  127.0.0.$i:$server_port"
-      done)
+   while test $((i)) -lt $inst; do
+      echo "      server server$i  localhost:$((FABRIC_CA_SERVER_PROFILE_PORT+$i))"
+      i=$((i+1))
+   done
+fi
+   )
    ;;
    *)
    haproxy -f  <(echo "global
@@ -165,7 +190,7 @@ defaults
       mode http
       option  httplog
       option  dontlognull
-      maxconn 1024
+      maxconn 4096
       timeout connect 5000
       timeout client 50000
       timeout server 50000
@@ -187,9 +212,28 @@ backend fabric-cas
       mode http
       http-request set-header X-Forwarded-Port %[dst_port]
       balance roundrobin";
-   while test $((i++)) -lt $inst; do
-      echo "      server server$i  127.0.0.$i:$server_port"
-   done)
+   while test $((i)) -lt $inst; do
+      echo "      server server$i  localhost:$((server_port+$i))"
+      i=$((i+1))
+   done
+if test -n "$FABRIC_CA_SERVER_PROFILE_PORT" ; then
+echo "
+frontend haproxy-profile
+      bind *:8889
+      mode http
+      option tcplog
+      default_backend fabric-ca-profile
+
+backend fabric-ca-profile
+      mode http
+      http-request set-header X-Forwarded-Port %[dst_port]
+      balance roundrobin";
+   while test $((i)) -lt $inst; do
+      echo "      server server$i  localhost:$((FABRIC_CA_SERVER_PROFILE_PORT+$i))"
+      i=$((i+1))
+   done
+fi
+   )
    ;;
    esac
 
@@ -200,22 +244,27 @@ function startFabricCa() {
    local start=$SECONDS
    local timeout="$((TIMEOUT*2))"
    local now=0
-   local server_addr=127.0.0.$inst
+   local server_addr=0.0.0.0
+   local port=${USER_CA_PORT-$CA_DEFAULT_PORT}
+   port=$((port+$inst))
    # if not explcitly set, use default
-   test -n "${USER_CA_PORT-$CA_DEFAULT_PORT}" && local server_port="--port ${USER_CA_PORT-$CA_DEFAULT_PORT}" || local server_port=""
+   test -n "${port}" && local server_port="--port $port" || local server_port=""
 
-   inst=0
-   $FABRIC_CA_SERVEREXEC start --address $server_addr $server_port --ca.certfile $DST_CERT \
+   if test -n "$FABRIC_CA_SERVER_PROFILE_PORT" ; then
+      local profile_port=$((FABRIC_CA_SERVER_PROFILE_PORT+$inst))
+      FABRIC_CA_SERVER_PROFILE_PORT=$profile_port $FABRIC_CA_SERVEREXEC start --address $server_addr $server_port --ca.certfile $DST_CERT \
                      --ca.keyfile $DST_KEY --config $RUNCONFIG 2>&1 &
-                    # --db.datasource $DATASRC --ca.keyfile $DST_KEY --config $RUNCONFIG 2>&1 | sed 's/^/     /' &
-   until test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" -o "$now" -gt "$timeout"; do
-      started=$(ss -ltnp src $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} | awk 'NR!=1 {print $4}')
-      test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" && break
+   else
+      $FABRIC_CA_SERVEREXEC start --address $server_addr $server_port --ca.certfile $DST_CERT \
+                     --ca.keyfile $DST_KEY --config $RUNCONFIG 2>&1 &
+   fi
+   until test "$started" = ":::$port" -o "$now" -gt "$timeout"; do
+      started=$(ss -ltnp src :$port | awk 'NR!=1 {print $4}')
       sleep .1
       let now+=1
    done
-   printf "FABRIC_CA server on $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} "
-   if test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}"; then
+   printf "FABRIC_CA server on $server_addr:$port "
+   if test "$started" = ":::$port"; then
       echo "STARTED"
    else
       RC=$((RC+1))
@@ -230,7 +279,7 @@ function killAllFabricCas() {
    test -n "$proxypids" && kill $proxypids
 }
 
-while getopts "\?hRCISKXLDTAad:t:l:n:c:k:x:g:m:p:r:o:" option; do
+while getopts "\?hRCISKXLDTAPad:t:l:n:c:k:x:g:m:p:r:o:" option; do
   case "$option" in
      a)   LDAP_ENABLE="true" ;;
      o)   TIMEOUT="$OPTARG" ;;
@@ -254,6 +303,7 @@ while getopts "\?hRCISKXLDTAad:t:l:n:c:k:x:g:m:p:r:o:" option; do
      K)   KILL="true" ;;
      L)   LIST="true" ;;
      T)   TLS_ON="true" ;;
+     P)   export FABRIC_CA_SERVER_PROFILE_PORT=$PROFILING_PORT ;;
    \?|h)  usage
           exit 1
           ;;
@@ -322,8 +372,9 @@ test -n "$SERVERCONFIG" && cp "$SERVERCONFIG" "$RUNCONFIG"
 $($INIT) && initFabricCa
 if $($START); then
    inst=0
-   while test $((inst++)) -lt $FABRIC_CA_INSTANCES; do
+   while test $((inst)) -lt $FABRIC_CA_INSTANCES; do
       startFabricCa $inst
+      inst=$((inst+1))
    done
 fi
 exit $RC

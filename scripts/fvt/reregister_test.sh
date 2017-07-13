@@ -67,7 +67,8 @@ for driver in sqlite3 postgres mysql; do
    # all servers should register = number of successful requests
    # but...it's only available when tls is disabled
    if ! $(${FABRIC_TLS:-false}); then
-      for s in $(eval echo {1..$NUM_SERVERS}); do
+      nums=$((NUM_SERVERS-1))
+      for s in $(eval echo {0..$nums}); do
          curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
          verifyServerTraffic $HOST server${s} 0 0 "HTTP 5xx" gt
          test $? -eq 0 || ErrorMsg "verifyServerTraffic failed"
