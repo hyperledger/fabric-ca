@@ -61,6 +61,22 @@ type enrollmentResponseNet struct {
 	ServerInfo serverInfoResponseNet
 }
 
+func newEnrollEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"POST"},
+		Handler: enrollHandler,
+		Server:  s,
+	}
+}
+
+func newReenrollEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"POST"},
+		Handler: reenrollHandler,
+		Server:  s,
+	}
+}
+
 // Handle an enroll request, guarded by basic authentication
 func enrollHandler(ctx *serverRequestContext) (interface{}, error) {
 	id, err := ctx.BasicAuthentication()

@@ -177,9 +177,15 @@ bench-clean:
 
 # Compares benchmarks results of current and previous release
 # Previous release git tag must be specified using the prev_rel variable.
-# e.g. make benchcmp -prev_rel=v1.0.0
-benchcmp: bench
+# e.g. make benchcmp prev_rel=v1.0.0
+benchcmp: guard-prev_rel bench
 	@scripts/compare_benchmarks $(prev_rel)
+
+guard-%:
+	@ if [ "${${*}}" = "" ]; then \
+		echo "Environment variable $* not set"; \
+		exit 1; \
+	fi
 
 container-tests: docker
 

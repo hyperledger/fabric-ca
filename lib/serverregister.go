@@ -29,6 +29,14 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 )
 
+func newRegisterEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"POST"},
+		Handler: registerHandler,
+		Server:  s,
+	}
+}
+
 // Handle a register request
 func registerHandler(ctx *serverRequestContext) (interface{}, error) {
 	// Read request body
