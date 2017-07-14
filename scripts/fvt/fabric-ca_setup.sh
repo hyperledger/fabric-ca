@@ -289,10 +289,10 @@ export CA_CFG_PATH
 #      else honor the envvar
 #        else (default) turn off tls
 if test -n "$TLS_ON"; then
-   TLS_DISABLE='false'
+   TLS_DISABLE='false'; LDAP_PORT=636; LDAP_PROTO="ldaps://";sslmode="require";mysqlTls='&tls=custom'
 else
    case "$FABRIC_TLS" in
-      true) TLS_DISABLE='false';TLS_ON='true'; ;;
+      true) TLS_DISABLE='false';TLS_ON='true'; LDAP_PORT=636; LDAP_PROTO="ldaps://";sslmode="require";mysqlTls='&tls=custom' ;;
      false) TLS_DISABLE='true' ;TLS_ON='false' ;;
          *) TLS_DISABLE='true' ;TLS_ON='false' ;;
    esac
@@ -308,7 +308,7 @@ RUNCONFIG="$DATADIR/runFabricCaFvt.yaml"
 case $DRIVER in
    postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
    sqlite3)  DATASRC="$DATADIR/$DBNAME" ;;
-   mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME?parseTime=true" ;;
+   mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME?parseTime=true$mysqlTls" ;;
 esac
 
 $($LIST)  && listFabricCa
