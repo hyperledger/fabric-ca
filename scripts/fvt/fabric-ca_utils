@@ -10,12 +10,21 @@ export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"
 export SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 export MYSQL_PORT="3306"
-export POSTGRES_PORT="5432"
 export LDAP_PORT="389"
+export LDAP_PROTO="ldap://"
+export LDAP_TLS_PROTO="ldaps://"
+export POSTGRES_PORT="5432"
 export PGPASSWORD='postgres'
 export MSP_KEY_DIR='msp/keystore'
 export MSP_CERT_DIR='msp/signcerts'
-export ROOTCERT="$TESTDATA/root.pem"
+export FABRIC_CA_DATA="/etc/hyperledger/fabric-ca"
+export TLS_ROOTCERT="$FABRIC_CA_DATA/FabricTlsPkiBundle.pem"
+export TLS_SUBCACERT="$FABRIC_CA_DATA/FabricTlsSubCa-cert.pem"
+export TLS_RACERT="$FABRIC_CA_DATA/FabricTlsRa-cert.pem"
+export TLS_SERVERCERT="$FABRIC_CA_DATA/FabricTlsServerEEcert.pem"
+export TLS_SERVERKEY="$FABRIC_CA_DATA/FabricTlsServerEEkey.pem"
+export TLS_CLIENTCERT="$FABRIC_CA_DATA/FabricTlsClientEEcert.pem"
+export TLS_CLIENTKEY="$FABRIC_CA_DATA/FabricTlsClientEEkey.pem"
 export CA_HOST_ADDRESS="localhost"
 export PROXY_PORT="7054"
 export CA_DEFAULT_PORT="1${PROXY_PORT}"
@@ -39,7 +48,9 @@ setTLS() {
      # otherwise, set TLS-related stuff
      if $($FABRIC_TLS); then
         PROTO="https://"
-        TLSOPT="--tls.certfiles $ROOTCERT"
+        LDAP_PROTO="ldaps://"
+        LDAP_PORT=636
+        TLSOPT="--tls.certfiles $TLS_ROOTCERT"
      fi
    fi
 }
@@ -298,7 +309,6 @@ register() {
    local USERATTR="$5"
    : ${USERATTR:='test=testValue'}
    local FABRIC_CA_ENROLLMENT_DIR="$6"
-   #FIXME - should not require USER:PASS
 
    : ${FABRIC_CA_ENROLLMENT_DIR:="$CA_CFG_PATH/$REGISTRAR"}
    : ${FABRIC_CA_CLIENT_HOME:="$CA_CFG_PATH/$REGISTRAR"}
@@ -327,6 +337,7 @@ function genRunconfig() {
    : ${FABRIC_TLS:='false'}
    : ${FABRIC_CA_DEBUG:='false'}
    local registry=""
+   setTLS
 
    case ${version:-"yaml"} in
       json) if ! $($LDAP_ENABLE); then registry="
@@ -447,17 +458,17 @@ cat > $runconfig <<EOF
       "datasource": "$datasrc",
        "tls": {
           "enabled": "$TLS_ON",
-          "certfiles": [ "$ROOTCERT" ],
+          "certfiles": [ "$TLS_ROOTCERT", $TLS_RACERT, $TLS_SUBCACERT ],
           "client": {
-             "certfile": "$TESTDATA/tls_server-cert.pem",
-             "keyfile": "$TESTDATA/tls_server-key.pem"
+             "certfile": "$TLS_CLIENTCERT",
+             "keyfile": "$TLS_CLIENTKEY"
           }
        }
    },
    "tls": {
       "enabled": "$TLS_ON",
-      "certfile": "$TESTDATA/tls_server-cert.pem",
-      "keyfile": "$TESTDATA/tls_server-key.pem"
+      "certfile": "$TLS_SERVERCERT",
+      "keyfile": "$TLS_SERVERKEY"
    },
    "ca": {
       "certfile": "$serverCert",
@@ -466,12 +477,12 @@ cat > $runconfig <<EOF
    $registry
    "ldap": {
       "enabled": $LDAP_ENABLE,
-      "url": "ldap://CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com",
+      "url": "${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com",
       "tls": {
-         "certfiles": [ "$ROOTCERT" ],
+         "certfiles": [ "$TLS_ROOTCERT", $TLS_RACERT, $TLS_SUBCACERT ],
          "client": {
-            "certfile": "$TESTDATA/tls_server-cert.pem",
-            "keyfile": "$TESTDATA/tls_server-key.pem"
+            "certfile": "$TLS_CLIENTCERT",
+            "keyfile": "$TLS_CLIENTKEY"
          }
       }
    },
@@ -644,37 +655,34 @@ cat > $runconfig <<EOF
 address: $CA_HOST_ADDRESS
 port: $CA_DEFAULT_PORT
 debug: $FABRIC_CA_DEBUG
-tls:
-  enabled: $TLS_ON
-  certfile: $TESTDATA/tls_server-cert.pem
-  keyfile: $TESTDATA/tls_server-key.pem
-  clientauth:
-    type: noclientcert
-    certfiles:
-ca:
-  name:
-  certfile: $serverCert
-  keyfile: $serverKey
 db:
   type: $driver
   datasource: $datasrc
   tls:
      enabled: $TLS_ON
      certfiles:
-       - $ROOTCERT
+       - $TLS_ROOTCERT
      client:
-       certfile: $TESTDATA/tls_server-cert.pem
-       keyfile: $TESTDATA/tls_server-key.pem
+       certfile: $TLS_CLIENTCERT
+       keyfile: $TLS_CLIENTKEY
+tls:
+  enabled: $TLS_ON
+  certfile: $TLS_SERVERCERT
+  keyfile: $TLS_SERVERKEY
+ca:
+  name:
+  certfile: $serverCert
+  keyfile: $serverKey
 $registry
 ldap:
   enabled: $LDAP_ENABLE
-  url: ldap://CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
+  url: ${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
   tls:
     certfiles:
-      - $ROOTCERT
+      - $TLS_ROOTCERT
     client:
-      certfile: $TESTDATA/tls_server-key.pem
-      keyfile: $TESTDATA/tls_server-key.pem
+      certfile: $TLS_CLIENTCERT
+      keyfile: $TLS_CLIENTKEY
 affiliations:
   bank_a:
     - department1
@@ -690,18 +698,18 @@ affiliations:
     - department2
 signing:
   default:
-    usage:
-      - cert sign
-      - crl sign
-      - digital signature
-      - key encipherment
-      - timestamping
-    expiry: 17520h
-    caconstraint:
-      isca: true
-      maxpathlen: 1
-      ocspnocheck: true
-      notbefore: 2016-12-30T00:00:00Z
+  usage:
+    - cert sign
+    - crl sign
+    - digital signature
+    - key encipherment
+    - timestamping
+  expiry: 17520h
+  caconstraint:
+    isca: true
+    maxpathlen: 1
+    ocspnocheck: true
+    notbefore: 2016-12-30T00:00:00Z
   profiles:
      ca:
        usage:
