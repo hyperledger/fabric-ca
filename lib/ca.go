@@ -557,6 +557,18 @@ func (ca *CA) initDB() error {
 	return nil
 }
 
+// Close CA's DB
+func (ca *CA) closeDB() error {
+	if ca.db != nil {
+		err := ca.db.Close()
+		ca.db = nil
+		if err != nil {
+			return errors.Wrapf(err, "Failed to close CA database, where CA home directory is '%s'", ca.HomeDir)
+		}
+	}
+	return nil
+}
+
 // Initialize the user registry interface
 func (ca *CA) initUserRegistry() error {
 	log.Debug("Initializing identity registry")
