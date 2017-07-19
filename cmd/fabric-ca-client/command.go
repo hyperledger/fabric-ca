@@ -27,6 +27,7 @@ const (
 	register  = "register"
 	revoke    = "revoke"
 	getcacert = "getcacert"
+	gencsr    = "gencsr"
 )
 
 // Command is the object for fabric-ca-client commands
@@ -44,10 +45,14 @@ func NewCommand(commandName string) *Command {
 // Certain client commands can only be executed if enrollment credentials
 // are present
 func (cmd *Command) requiresEnrollment() bool {
-	return cmd.name != enroll && cmd.name != getcacert
+	return cmd.name != enroll && cmd.name != getcacert && cmd.name != gencsr
 }
 
 // Create default client configuration file only during an enroll command
 func (cmd *Command) shouldCreateDefaultConfig() bool {
-	return cmd.name == enroll
+	return cmd.name == enroll || cmd.name == gencsr
+}
+
+func (cmd *Command) requiresUser() bool {
+	return cmd.name != gencsr
 }

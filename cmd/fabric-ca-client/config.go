@@ -24,6 +24,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"reflect"
+
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
@@ -204,6 +207,10 @@ var (
 	// and translated to Attributes field in registration
 	cfgAttrs []string
 
+	// cfgCsrNames are the certificate signing request names specified via flags
+	// or env variables
+	cfgCsrNames []string
+
 	// clientCfg is the client's config
 	clientCfg *lib.ClientConfig
 )
@@ -241,7 +248,7 @@ func configInit(command string) error {
 	// command requires
 	if cmd.shouldCreateDefaultConfig() {
 		if !util.FileExists(cfgFileName) {
-			err = createDefaultConfigFile()
+			err = createDefaultConfigFile(cmd)
 			if err != nil {
 				return fmt.Errorf("Failed to create default configuration file: %s", err)
 			}
@@ -293,13 +300,18 @@ func configInit(command string) error {
 		return err
 	}
 
+	err = processCsrNames()
+	if err != nil {
+		return err
+	}
+
 	// Check for separaters and insert values back into slice
 	normalizeStringSlices()
 
 	return nil
 }
 
-func createDefaultConfigFile() error {
+func createDefaultConfigFile(cmd *Command) error {
 	// Create a default config, if URL provided via CLI or envar update config files
 	var cfg string
 	fabricCAServerURL := viper.GetString("url")
@@ -318,9 +330,17 @@ func createDefaultConfigFile() error {
 	// Do string subtitution to get the default config
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
-	user, _, err := util.GetUser()
-	if err != nil {
-		return err
+
+	var user string
+	var err error
+
+	if cmd.requiresUser() {
+		user, _, err = util.GetUser()
+		if err != nil {
+			return err
+		}
+	} else {
+		user = ""
 	}
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
@@ -345,6 +365,26 @@ func processAttributes() error {
 			}
 			clientCfg.ID.Attributes[idx].Name = sattr[0]
 			clientCfg.ID.Attributes[idx].Value = sattr[1]
+		}
+	}
+	return nil
+}
+
+// processAttributes parses attributes from command line or env variable
+func processCsrNames() error {
+	if cfgCsrNames != nil {
+		clientCfg.CSR.Names = make([]csr.Name, len(cfgCsrNames))
+		for idx, name := range cfgCsrNames {
+			sname := strings.SplitN(name, "=", 2)
+			if len(sname) != 2 {
+				return fmt.Errorf("CSR name/value '%s' is missing '=' ; it must be of the form <name>=<value>", name)
+			}
+			v := reflect.ValueOf(&clientCfg.CSR.Names[idx]).Elem().FieldByName(sname[0])
+			if v.IsValid() {
+				v.SetString(sname[1])
+			} else {
+				return fmt.Errorf("Invalid CSR name: '%s'", sname[0])
+			}
 		}
 	}
 	return nil
