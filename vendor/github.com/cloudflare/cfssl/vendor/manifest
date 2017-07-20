@@ -165,12 +165,12 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/google/certificate-transparency/go",
-			"repository": "https://github.com/google/certificate-transparency",
+			"importpath": "github.com/google/certificate-transparency-go",
+			"repository": "https://github.com/google/certificate-transparency-go",
 			"vcs": "git",
-			"revision": "0f6e3d1d1ba4d03fdaab7cd716f36255c2e48341",
+			"revision": "0dac42a6ed448ba220ee315abfaa6d26fd5fc9bb",
 			"branch": "master",
-			"path": "/go"
+			"notests": true
 		},
 		{
 			"importpath": "github.com/jessevdk/go-flags",
@@ -192,6 +192,14 @@
 			"vcs": "",
 			"revision": "398dd5876282499cdfd4cb8ea0f31a672abe9495",
 			"branch": "master"
+		},
+		{
+			"importpath": "github.com/juju/ratelimit",
+			"repository": "https://github.com/juju/ratelimit",
+			"vcs": "git",
+			"revision": "acf38b000a03e4ab89e40f20f1e548f4e6ac7f72",
+			"branch": "master",
+			"notests": true
 		},
 		{
 			"importpath": "github.com/kardianos/osext",
@@ -290,8 +298,8 @@
 		{
 			"importpath": "golang.org/x/crypto/ocsp",
 			"repository": "https://go.googlesource.com/crypto",
-			"vcs": "",
-			"revision": "1f22c0103821b9390939b6776727195525381532",
+			"vcs": "git",
+			"revision": "9a6f0a01987842989747adff311d80750ba25530",
 			"branch": "master",
 			"path": "/ocsp"
 		},
