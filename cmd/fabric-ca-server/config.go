@@ -364,12 +364,12 @@ var (
 	// cfgFileName is the name of the config file
 	cfgFileName string
 	// serverCfg is the server's config
-	serverCfg *lib.ServerConfig
+	serverCfg      *lib.ServerConfig
+	extraArgsError = "Unrecognized arguments found: %v\n\n%s"
 )
 
 // Initialize config
-func configInit() (err error) {
-
+func configInit(cmd string) (err error) {
 	// Make the config file name absolute
 	if !filepath.IsAbs(cfgFileName) {
 		cfgFileName, err = filepath.Abs(cfgFileName)

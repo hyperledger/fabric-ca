@@ -869,6 +869,13 @@ func testGetCACertConfigFile(t *testing.T) error {
 	return nil
 }
 
+func TestVersion(t *testing.T) {
+	err := RunMain([]string{cmdName, "version"})
+	if err != nil {
+		t.Error("Failed to get fabric-ca-client version: ", err)
+	}
+}
+
 func getServer() *lib.Server {
 	return &lib.Server{
 		HomeDir: ".",
@@ -933,9 +940,8 @@ func extraArgErrorTest(in *TestData, t *testing.T) {
 		assert.Error(t, errors.New("Should have resulted in an error as extra agruments provided"))
 	}
 	if err != nil {
-		if !strings.Contains(err.Error(), "Extra arguments") {
-			assert.Error(t, fmt.Errorf("Failed for other reason besides extra argument: %s", err))
-		}
+		assert.Contains(t, err.Error(), "Unrecognized arguments found",
+			"Failed for other reason besides unrecognized argument")
 	}
 }
 
