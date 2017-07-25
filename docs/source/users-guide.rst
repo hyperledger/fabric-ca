@@ -948,7 +948,11 @@ server's home directory.
 
 If you don't care about running the Fabric CA server in a cluster, you
 may skip this section; otherwise, you must configure either PostgreSQL or
-MySQL as described below.
+MySQL as described below. Fabric CA supports the following database
+versions in a cluster setup:
+
+- PostgreSQL: 9.5.5 or later
+- MySQL: 5.17.16 or later
 
 PostgreSQL
 ^^^^^^^^^^
