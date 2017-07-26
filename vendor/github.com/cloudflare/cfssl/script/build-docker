@@ -18,14 +18,14 @@ else
 fi
 
 if [ -z "$2" ]; then
-    OS_ARCH_ARG=(-arch="386 amd64 arm")
+    OS_ARCH_ARG=(-arch="386 amd64 arm ppc64le")
 else
     OS_ARCH_ARG=($2)
 fi
 
 # Build Docker image unless we opt out of it
 if [[ -z "$SKIP_BUILD" ]]; then
-    docker build -t cfssl-build -f Dockerfile.build .
+    docker build --build-arg HTTP_PROXY=${HTTP_PROXY} --build-arg HTTPS_PROXY=${HTTPS_PROXY} -t cfssl-build -f Dockerfile.build .
 fi
 
 # Temporarily change SELinux context of build directory

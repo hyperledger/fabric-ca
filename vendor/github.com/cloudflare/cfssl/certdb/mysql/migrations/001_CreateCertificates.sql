@@ -2,7 +2,7 @@
 -- SQL in section 'Up' is executed when this migration is applied
 
 CREATE TABLE certificates (
-  serial_number            varbinary(20)  NOT NULL,
+  serial_number            varbinary(128) NOT NULL,
   authority_key_identifier varbinary(128) NOT NULL,
   ca_label                 varbinary(128),
   status                   varbinary(128) NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE certificates (
 );
 
 CREATE TABLE ocsp_responses (
-  serial_number            varbinary(20) NOT NULL,
+  serial_number            varbinary(128) NOT NULL,
   authority_key_identifier varbinary(128) NOT NULL,
   body                     varbinary(4096) NOT NULL,
   expiry                   timestamp DEFAULT '0000-00-00 00:00:00',

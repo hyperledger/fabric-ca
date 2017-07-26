@@ -84,7 +84,30 @@ Run `go tool pprof -h` to view the options supported by the pprof tool. For more
 See [FVT tests](scripts/fvt/README.md) for information on functional verification test cases.
 
 
+### Updating the cfssl vendored package
+Following are the steps to update cfssl package using version 1.0.8 of govendor tool. 
+
+* Remove cfssl from vendor folder
+   * cd $GOPATH/src/github.com/hyperledger/fabric-ca/vendor
+   * govendor remove github.com/cloudflare/cfssl/...
+   * rm -rf github.com/cloudflare/cfssl/
+
+* Clone cfssl repo
+   * cd $GOPATH/src/github.com/
+   * mkdir cloudflare
+   * cd cloudflare
+   * git clone https://github.com/cloudflare/cfssl.git
+
+* Add cfssl from $GOPATH to the vendor folder
+   * cd $GOPATH/src/github.com/hyperledger/fabric-ca/vendor
+   * govendor add github.com/cloudflare/cfssl/^
+   * You can optionally specify revision or tag to add a particular revision of code to the vendor folder
+      * govendor add github.com/cloudflare/cfssl/^@abc12032
+
+* Remove sqlx package from cfssl vendor folder. This is because certsql.NewAccessor (called by fabric-ca) requires sqlx.db object to be passed from the same package. If we were to have sqlx package both in fabric-ca and cfssl vendor folder, go compiler will throw an error
+   * rm -rf github.com/cloudflare/cfssl/vendor/github.com/jmoiron/sqlx
+
+* Remove the packages that are added to the fabric-ca vendor folder that are not needed by fabric-ca
 
 
-<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.
-s
+<a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>
