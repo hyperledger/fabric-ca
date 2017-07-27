@@ -444,15 +444,21 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
+type configID struct {
+	Name  string
+	Addr  string `json:"address"`
+	Pass  string `secret:"password"`
+	Pass1 string `secret:"password,token"`
+	Pass2 string `secret:"token,password"`
+	pass3 string `secret:"token,password,basic"`
+}
+
+func (cc configID) String() string {
+	return StructToString(&cc)
+}
+
 func TestStructToString(t *testing.T) {
-	var obj struct {
-		Name  string
-		Addr  string `json:"address"`
-		Pass  string `secret:"password"`
-		Pass1 string `secret:"password,token"`
-		Pass2 string `secret:"token,password"`
-		pass3 string `secret:"token,password,basic"`
-	}
+	var obj configID
 	obj.Name = "foo"
 	addr := "101, penn ave"
 	obj.Addr = addr
@@ -468,6 +474,41 @@ func TestStructToString(t *testing.T) {
 	if strings.Index(str, addr) < 0 {
 		t.Errorf("Addr is masked by the StructToString function: %s", str)
 	}
+
+	type registry struct {
+		MaxEnrollments int
+		Identities     []configID
+	}
+	type config struct {
+		Registry     registry
+		Affiliations map[string]interface{}
+	}
+	affiliations := map[string]interface{}{"org1": nil}
+	caConfig := config{
+		Affiliations: affiliations,
+		Registry: registry{
+			MaxEnrollments: -1,
+			Identities: []configID{
+				configID{
+					Name: "foo",
+					Pass: "foopwd",
+					Addr: "user",
+				},
+				configID{
+					Name: "bar",
+					Pass: "barpwd",
+					Addr: "user",
+				},
+			},
+		},
+	}
+	caConfigStr := fmt.Sprintf("caConfig=%+v", caConfig)
+	assert.NotContains(t, caConfigStr, "foopwd", "Identity password is not masked in the output")
+	assert.NotContains(t, caConfigStr, "barpwd", "Identity password is not masked in the output")
+	idStr := fmt.Sprintf("Identity[0]=%+v", caConfig.Registry.Identities[0])
+	assert.NotContains(t, idStr, "foopwd", "Identity password is not masked in the output")
+	idStr = fmt.Sprintf("Identity[1]=%+v", &caConfig.Registry.Identities[1])
+	assert.NotContains(t, idStr, "barpwd", "Identity password is not masked in the output")
 }
 
 func TestNormalizeFileList(t *testing.T) {

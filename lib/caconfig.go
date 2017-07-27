@@ -128,6 +128,6 @@ type IntermediateCA struct {
 	Enrollment   api.EnrollmentRequest
 }
 
-func (cc *CAConfigIdentity) String() string {
-	return util.StructToString(cc)
+func (cc CAConfigIdentity) String() string {
+	return util.StructToString(&cc)
 }
