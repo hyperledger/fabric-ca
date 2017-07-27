@@ -117,7 +117,7 @@ type CAConfigIdentity struct {
 // the server to connect to
 type ParentServer struct {
 	URL    string `opt:"u" help:"URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)"`
-	CAName string `help:"Name of the CA to connect to on fabric-ca-serve"`
+	CAName string `help:"Name of the CA to connect to on fabric-ca-server"`
 }
 
 // IntermediateCA contains parent server information, TLS configuration, and
