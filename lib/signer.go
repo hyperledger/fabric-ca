@@ -17,8 +17,13 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/x509"
+	"fmt"
+
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/attrmgr"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 )
 
@@ -34,7 +39,6 @@ func newSigner(key bccsp.Key, cert []byte, id *Identity) *Signer {
 // Signer represents a signer
 // Each identity may have multiple signers, currently one ecert and multiple tcerts
 type Signer struct {
-	name   string
 	key    bccsp.Key
 	cert   []byte
 	id     *Identity
@@ -51,9 +55,18 @@ func (s *Signer) Cert() []byte {
 	return s.cert
 }
 
+// GetX509Cert returns the X509 certificate for this signer
+func (s *Signer) GetX509Cert() (*x509.Certificate, error) {
+	cert, err := util.GetX509CertificateFromPEM(s.cert)
+	if err != nil {
+		return nil, fmt.Errorf("Failed getting X509 certificate for '%s': %s", s.id.name, err)
+	}
+	return cert, nil
+}
+
 // RevokeSelf revokes only the certificate associated with this signer
 func (s *Signer) RevokeSelf() error {
-	log.Debugf("RevokeSelf %s", s.name)
+	log.Debugf("RevokeSelf %s", s.id.name)
 	serial, aki, err := GetCertID(s.cert)
 	if err != nil {
 		return err
@@ -63,4 +76,17 @@ func (s *Signer) RevokeSelf() error {
 		AKI:    aki,
 	}
 	return s.id.Revoke(req)
+}
+
+// Attributes returns the attributes that are in the certificate
+func (s *Signer) Attributes() (*attrmgr.Attributes, error) {
+	cert, err := s.GetX509Cert()
+	if err != nil {
+		return nil, fmt.Errorf("Failed getting attributes for '%s': %s", s.id.name, err)
+	}
+	attrs, err := attrmgr.New().GetAttributesFromCert(cert)
+	if err != nil {
+		return nil, fmt.Errorf("Failed getting attributes for '%s': %s", s.id.name, err)
+	}
+	return attrs, nil
 }

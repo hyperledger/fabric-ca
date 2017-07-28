@@ -197,7 +197,8 @@ func (c *Client) Enroll(req *api.EnrollmentRequest) (*EnrollmentResponse, error)
 	}
 
 	reqNet := &api.EnrollmentRequestNet{
-		CAName: req.CAName,
+		CAName:   req.CAName,
+		AttrReqs: req.AttrReqs,
 	}
 
 	if req.CSR != nil {
