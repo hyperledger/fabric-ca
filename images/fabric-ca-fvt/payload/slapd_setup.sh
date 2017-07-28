@@ -38,6 +38,7 @@ done
 ldapadd -h localhost -p $LDAPPORT -D cn=$LDAPUSER,dc=example,dc=com -w $LDAPPASWD -f /etc/ldap/base.ldif || let RC+=1
 ldapadd -h localhost -p $LDAPPORT -D cn=$LDAPUSER,dc=example,dc=com -w $LDAPPASWD -f /etc/ldap/add-users.ldif || let RC+=1
 ldapmodify -Y EXTERNAL -H ldapi:/// -f /etc/ldap/certinfo.ldif || let RC+=1
+ldapmodify -Y EXTERNAL -H ldapi:/// -f /etc/ldap/forceTimeout.ldif
 /etc/init.d/slapd stop
 
 exit $RC

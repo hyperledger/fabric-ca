@@ -1,0 +1,3 @@
+dn: cn=config
+add: olcIdleTimeout
+olcIdleTimeout: 1
