@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// rootCmd is the base command for the Hyerledger Fabric CA client
+// rootCmd is the base command for the Hyperledger Fabric CA client
 var rootCmd = &cobra.Command{
 	Use:   cmdName,
 	Short: longName,
@@ -89,7 +89,7 @@ func init() {
 	clientCfg = &lib.ClientConfig{}
 	tags := map[string]string{
 		"skip.csr.cn":           "true", // Skip CN on client side as enrollment ID is used as CN
-		"help.csr.serialnumber": "The serial number in a certificate signing request, which becomes part of the DN (Distinquished Name)",
+		"help.csr.serialnumber": "The serial number in a certificate signing request, which becomes part of the DN (Distinguished Name)",
 		"help.csr.hosts":        "A list of comma-separated host names in a certificate signing request",
 	}
 	err = util.RegisterFlags(pflags, clientCfg, tags)
@@ -121,7 +121,7 @@ func RunMain(args []string) error {
 }
 
 // checkAndEnableProfiling checks for the FABRIC_CA_CLIENT_PROFILE_MODE
-// env variable, if it is set to "cpu", cpu profiling is enbled;
+// env variable, if it is set to "cpu", cpu profiling is enabled;
 // if it is set to "heap", heap profiling is enabled
 func checkAndEnableProfiling() error {
 	profileMode = strings.ToLower(os.Getenv(fabricCAClientProfileMode))

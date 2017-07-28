@@ -122,7 +122,7 @@ tls:
 #  hosts - A list of space-separated host names which the certificate should be valid for
 #
 #  NOTE: The serialnumber field below, if specified, becomes part of the issued
-#  certificate's DN (Distinquished Name).  For example, one use case for this is
+#  certificate's DN (Distinguished Name).  For example, one use case for this is
 #  a company with its own CA (Certificate Authority) which issues certificates
 #  to its employees and wants to include the employee's serial number in the DN
 #  of its issued certificates.
