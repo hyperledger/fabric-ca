@@ -33,7 +33,7 @@ import (
 var csp bccsp.BCCSP
 
 func TestGetBCCSPFromOpts(t *testing.T) {
-	opts := &factory.DefaultOpts
+	opts := factory.GetDefaultOpts()
 	opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: os.TempDir()}
 	opts.SwOpts.Ephemeral = false
 	var err error
