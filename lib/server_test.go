@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
@@ -31,6 +32,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
@@ -1304,6 +1306,122 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 	}
 }
 
+func TestCSRInputLengthCheck(t *testing.T) {
+	t.Log("Testing CSR input length check")
+	os.RemoveAll("../testdata/msp/")
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll("../testdata/msp/")
+	defer os.RemoveAll(rootDir)
+
+	server := TestGetServer(rootPort, rootDir, "", -1, t)
+	if server == nil {
+		return
+	}
+	longCN := randSeq(65)
+	err := server.RegisterBootstrapUser(longCN, "pass", "")
+	if err != nil {
+		t.Errorf("Failed to register bootstrap user: %s", err)
+	}
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+	defer server.Stop()
+
+	// Passing case: all value are of appropriate length
+	client := getRootClient()
+	csr1 := api.CSRInfo{
+		CN: "test",
+		Names: []csr.Name{
+			csr.Name{
+				C:  "US",
+				ST: "North Carolina",
+				L:  "Raleigh",
+				O:  "Hyperledger",
+				OU: "Fabric",
+			},
+			csr.Name{
+				C: "CA",
+			},
+		},
+		SerialNumber: "123abc",
+	}
+	_, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		CSR:    &csr1,
+	})
+	if err != nil {
+		t.Error("Failed to enroll user in passing case: ", err)
+	}
+
+	// Failing case: CN is greater than 64 characters
+	badCSR := &api.CSRInfo{
+		CN: longCN,
+	}
+	_, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   longCN,
+		Secret: "pass",
+		CSR:    badCSR,
+	})
+	if assert.Error(t, err, fmt.Sprint("Number of characters for CN is greater than the maximum limit, should have resulted in an error")) {
+		assert.Contains(t, err.Error(), "CN")
+	}
+
+	// CSRs that test failing cases for other fields in the CSR
+	badCSRs := map[string]*api.CSRInfo{
+		"country": &api.CSRInfo{
+			Names: []csr.Name{
+				csr.Name{
+					C: randSeq(3),
+				},
+			},
+		},
+		"locality": &api.CSRInfo{
+			Names: []csr.Name{
+				csr.Name{
+					L: randSeq(129),
+				},
+			},
+		},
+		"state": &api.CSRInfo{
+			Names: []csr.Name{
+				csr.Name{
+					ST: randSeq(129),
+				},
+			},
+		},
+		"organization": &api.CSRInfo{
+			Names: []csr.Name{
+				csr.Name{
+					O: randSeq(65),
+				},
+			},
+		},
+		"organizational unit": &api.CSRInfo{
+			Names: []csr.Name{
+				csr.Name{
+					OU: randSeq(65),
+				},
+			},
+		},
+		"serial number": &api.CSRInfo{
+			SerialNumber: randSeq(65),
+		},
+	}
+
+	for name, badCSR := range badCSRs {
+		_, err = client.Enroll(&api.EnrollmentRequest{
+			Name:   "admin",
+			Secret: "adminpw",
+			CSR:    badCSR,
+		})
+		if assert.Error(t, err, fmt.Sprintf("Number of characters for '%s' is greater than the maximum limit, should have resulted in an error", name)) {
+			assert.Contains(t, err.Error(), name)
+		}
+	}
+}
+
 func TestEnd(t *testing.T) {
 	os.Remove("../testdata/ca-cert.pem")
 	os.Remove("../testdata/ca-key.pem")
@@ -1509,4 +1627,14 @@ intermediate:
 	if err != nil {
 		t.Fatalf("Failed to create ca1.yaml: %s", err)
 	}
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

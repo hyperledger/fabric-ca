@@ -19,6 +19,7 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -443,15 +444,21 @@ func TestGetUser(t *testing.T) {
 	}
 }
 
+type configID struct {
+	Name  string
+	Addr  string `json:"address"`
+	Pass  string `secret:"password"`
+	Pass1 string `secret:"password,token"`
+	Pass2 string `secret:"token,password"`
+	pass3 string `secret:"token,password,basic"`
+}
+
+func (cc configID) String() string {
+	return StructToString(&cc)
+}
+
 func TestStructToString(t *testing.T) {
-	var obj struct {
-		Name  string
-		Addr  string `json:"address"`
-		Pass  string `secret:"password"`
-		Pass1 string `secret:"password,token"`
-		Pass2 string `secret:"token,password"`
-		pass3 string `secret:"token,password,basic"`
-	}
+	var obj configID
 	obj.Name = "foo"
 	addr := "101, penn ave"
 	obj.Addr = addr
@@ -467,6 +474,41 @@ func TestStructToString(t *testing.T) {
 	if strings.Index(str, addr) < 0 {
 		t.Errorf("Addr is masked by the StructToString function: %s", str)
 	}
+
+	type registry struct {
+		MaxEnrollments int
+		Identities     []configID
+	}
+	type config struct {
+		Registry     registry
+		Affiliations map[string]interface{}
+	}
+	affiliations := map[string]interface{}{"org1": nil}
+	caConfig := config{
+		Affiliations: affiliations,
+		Registry: registry{
+			MaxEnrollments: -1,
+			Identities: []configID{
+				configID{
+					Name: "foo",
+					Pass: "foopwd",
+					Addr: "user",
+				},
+				configID{
+					Name: "bar",
+					Pass: "barpwd",
+					Addr: "user",
+				},
+			},
+		},
+	}
+	caConfigStr := fmt.Sprintf("caConfig=%+v", caConfig)
+	assert.NotContains(t, caConfigStr, "foopwd", "Identity password is not masked in the output")
+	assert.NotContains(t, caConfigStr, "barpwd", "Identity password is not masked in the output")
+	idStr := fmt.Sprintf("Identity[0]=%+v", caConfig.Registry.Identities[0])
+	assert.NotContains(t, idStr, "foopwd", "Identity password is not masked in the output")
+	idStr = fmt.Sprintf("Identity[1]=%+v", &caConfig.Registry.Identities[1])
+	assert.NotContains(t, idStr, "barpwd", "Identity password is not masked in the output")
 }
 
 func TestNormalizeFileList(t *testing.T) {
@@ -565,6 +607,60 @@ func TestCertDuration(t *testing.T) {
 	assert.True(t, d.Hours() == 43800, "Expected certificate duration of 43800h in ec.pem")
 	_, err = GetCertificateDurationFromFile("bogus.pem")
 	assert.Error(t, err)
+}
+
+type MyReader struct {
+	buf                   []byte
+	maxPerRead, bytesRead int
+}
+
+func (r *MyReader) Read(data []byte) (int, error) {
+	if r.bytesRead >= len(r.buf) {
+		return 0, io.EOF
+	}
+	buf := r.buf[r.bytesRead:]
+	count := 0
+	for i, v := range buf {
+		if i >= len(data) || count > r.maxPerRead {
+			break
+		}
+		data[i] = v
+		count++
+	}
+	r.bytesRead = r.bytesRead + count
+	return count, nil
+}
+
+func TestRead(t *testing.T) {
+	myReader := MyReader{
+		buf:        []byte("123456789012345"),
+		maxPerRead: 6,
+	}
+
+	// Test with a buffer that is too small to fit data
+	buf := make([]byte, 10)
+	data, err := Read(&myReader, buf)
+	assert.Error(t, err, "Should have errored, the data passed is bigger than the buffer")
+
+	// Test with a buffer that is big enough to fit data
+	buf = make([]byte, 25)
+	myReader.bytesRead = 0
+	data, err = Read(&myReader, buf)
+	if assert.NoError(t, err, fmt.Sprintf("Error occured during read: %s", err)) {
+		if string(data) != string(myReader.buf) {
+			t.Error("The data returned does not match")
+		}
+	}
+
+	// Test with a buffer with exact size of data
+	buf = make([]byte, len(myReader.buf))
+	myReader.bytesRead = 0
+	data, err = Read(&myReader, buf)
+	if assert.NoError(t, err, fmt.Sprintf("Error occured during exact size read: %s", err)) {
+		if string(data) != string(myReader.buf) {
+			t.Error("The data returned does not match")
+		}
+	}
 }
 
 func getPEM(file string, t *testing.T) []byte {

@@ -10,9 +10,9 @@ FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
 TESTDATA="$FABRIC_CA/testdata"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
-HOST="http://localhost:8888"
+HOST="http://localhost:$PROXY_PORT"
 RC=0
-$($FABRIC_TLS) && HOST="https://localhost:8888"
+$($FABRIC_TLS) && HOST="https://localhost:$PROXY_PORT"
 
 while getopts "du:p:t:l:x:" option; do
   case "$option" in

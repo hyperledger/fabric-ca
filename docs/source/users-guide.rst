@@ -256,6 +256,7 @@ The following shows the Fabric CA server usage message.
       --cacount int                               Number of non-default CA instances
       --cafiles stringSlice                       A list of comma-separated CA configuration files
   -c, --config string                             Configuration file (default "fabric-ca-server-config.yaml")
+      --crlsizelimit int                          Size limit of an acceptable CRL in bytes (default 512000)
       --csr.cn string                             The common name field of the certificate signing request to a parent fabric-ca-server
       --csr.hosts stringSlice                     A list of comma-separated host names in a certificate signing request to a parent fabric-ca-server
       --db.datasource string                      Data source which is database specific (default "fabric-ca-server.db")
@@ -359,6 +360,9 @@ the server's home directory (see `Fabric CA Server <#server>`__ section more inf
 
     # Enables debug logging (default: false)
     debug: false
+
+    # Size limit of an acceptable CRL in bytes (default: 512000)
+    crlsizelimit: 512000
 
     #############################################################################
     #  TLS section for the server's listening port
@@ -948,7 +952,11 @@ server's home directory.
 
 If you don't care about running the Fabric CA server in a cluster, you
 may skip this section; otherwise, you must configure either PostgreSQL or
-MySQL as described below.
+MySQL as described below. Fabric CA supports the following database
+versions in a cluster setup:
+
+- PostgreSQL: 9.5.5 or later
+- MySQL: 5.17.16 or later
 
 PostgreSQL
 ^^^^^^^^^^

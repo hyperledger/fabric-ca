@@ -20,7 +20,7 @@ HTTP_PORT="3755"
 . $SCRIPTDIR/fabric-ca_utils
 setTLS
 # FIXME should not require user:pass
-URI="${PROTO}user:pass@localhost:8888"
+URI="${PROTO}user:pass@localhost:$PROXY_PORT"
 
 genAffYaml() {
    local Planet=(0 1)
