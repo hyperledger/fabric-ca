@@ -1,0 +1,26 @@
+v1.0.1 July 31, 2017
+------------------------
+
+Release Notes
+-------------
+Bug fixes, documentation and test coverage improvements, UX improvements
+based on user feedback and changes to address a variety of static scan
+findings (unused code, static security scanning, spelling, linting and more).
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+https://jira.hyperledger.org/browse/FAB-3026
+https://jira.hyperledger.org/browse/FAB-3051
+https://jira.hyperledger.org/browse/FAB-5510
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/master/CHANGELOG.md#v101

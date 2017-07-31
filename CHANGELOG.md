@@ -1,3 +1,23 @@
+## v1.0.1
+Mon Jul 31 05:57:59 EDT 2017
+
+* [748467f](https://github.com/hyperledger/fabric-ca/commit/748467f) [FAB-5510](https://jira.hyperledger.org/browse/FAB-5510) Mask the identity password in the log
+* [fa60287](https://github.com/hyperledger/fabric-ca/commit/fa60287) [FAB-5530](https://jira.hyperledger.org/browse/FAB-5530) Vendor latest version of bccsp
+* [72e010e](https://github.com/hyperledger/fabric-ca/commit/72e010e) [ [FAB-5009](https://jira.hyperledger.org/browse/FAB-5009) ] Update intermediate CA test
+* [d24c05c](https://github.com/hyperledger/fabric-ca/commit/d24c05c) [ [FAB-5434](https://jira.hyperledger.org/browse/FAB-5434) ] Fix mysql internal_DB permissions
+* [f54aaf2](https://github.com/hyperledger/fabric-ca/commit/f54aaf2) [FAB-3026](https://jira.hyperledger.org/browse/FAB-3026) OOM for very large CRLs
+* [3ba0088](https://github.com/hyperledger/fabric-ca/commit/3ba0088) [FAB-4844](https://jira.hyperledger.org/browse/FAB-4844) Store MSP intermediatecerts
+* [2abc451](https://github.com/hyperledger/fabric-ca/commit/2abc451) [FAB-4409](https://jira.hyperledger.org/browse/FAB-4409) update vendored package cfssl
+* [dd60a58](https://github.com/hyperledger/fabric-ca/commit/dd60a58) [FAB-3662](https://jira.hyperledger.org/browse/FAB-3662) Document DB version support
+* [d31c0d7](https://github.com/hyperledger/fabric-ca/commit/d31c0d7) [FAB-5239](https://jira.hyperledger.org/browse/FAB-5239) LDAP reconnect for idle timeout
+* [e03673c](https://github.com/hyperledger/fabric-ca/commit/e03673c) [FAB-3051](https://jira.hyperledger.org/browse/FAB-3051) Input validation on CSR fields
+* [4e5c55f](https://github.com/hyperledger/fabric-ca/commit/4e5c55f) [FAB-4915](https://jira.hyperledger.org/browse/FAB-4915) Fix timing bug in server stop
+* [bc2b642](https://github.com/hyperledger/fabric-ca/commit/bc2b642) [FAB-5434](https://jira.hyperledger.org/browse/FAB-5434) Fix mysql config in fvt image
+* [086cc2f](https://github.com/hyperledger/fabric-ca/commit/086cc2f) [FAB-4126](https://jira.hyperledger.org/browse/FAB-4126) Convert fatal message to error
+* [b9e8a8e](https://github.com/hyperledger/fabric-ca/commit/b9e8a8e) [FAB-5334](https://jira.hyperledger.org/browse/FAB-5334) Intermediate CA does not copy BCCSP config
+* [b2679c9](https://github.com/hyperledger/fabric-ca/commit/b2679c9) [FAB-5531](https://jira.hyperledger.org/browse/FAB-5531) Create 1.0.1 fabric-ca release
+* [a21585d](https://github.com/hyperledger/fabric-ca/commit/a21585d) [FAB-5071](https://jira.hyperledger.org/browse/FAB-5071) Prepare for v1.0.1 release
+
 ## v1.0.0
 Tue Jul 11 16:38:28 CEST 2017
 
