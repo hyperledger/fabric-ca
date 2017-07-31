@@ -688,3 +688,12 @@ func Read(r io.Reader, data []byte) ([]byte, error) {
 
 	return data[:j], nil
 }
+
+// Hostname name returns the hostname of the machine
+func Hostname() string {
+	hostname, _ := os.Hostname()
+	if hostname == "" {
+		hostname = "localhost"
+	}
+	return hostname
+}

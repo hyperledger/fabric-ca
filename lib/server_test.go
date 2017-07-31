@@ -1758,6 +1758,72 @@ func TestCSRInputLengthCheck(t *testing.T) {
 	}
 }
 
+func TestAutoTLSCertificateGeneration(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+	srv := TestGetRootServer(t)
+
+	srv.Config.TLS.Enabled = true
+	srv.Config.TLS.CertFile = "tls-cert.pem"
+	srv.Config.CAcfg.CSR.CN = "fabric-ca-server"
+	srv.Config.CAcfg.CSR.Hosts = []string{"localhost"}
+
+	err := srv.Start()
+	if !assert.NoError(t, err, "Failed to start server") {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+
+	cert, err := util.GetX509CertificateFromPEMFile(srv.Config.TLS.CertFile)
+	assert.NoError(t, err, "Failed to get certificate")
+
+	// Check if the certificate has correct extended key usages
+	clientAuth := false
+	serverAuth := false
+	for _, usage := range cert.ExtKeyUsage {
+		if usage == x509.ExtKeyUsageClientAuth {
+			clientAuth = true
+		}
+		if usage == x509.ExtKeyUsageServerAuth {
+			serverAuth = true
+		}
+	}
+
+	if !clientAuth || !serverAuth {
+		t.Error("Certificate does not have correct extended key usage. Should have ExtKeyUsageServerAuth and ExtKeyUsageClientAuth")
+	}
+
+	trustedTLSCert, err := filepath.Abs(srv.CA.Config.CA.Certfile)
+	trustedTLSCerts := []string{trustedTLSCert}
+
+	// Test enrolling with with client using TLS
+	client := getTLSTestClient(7075, trustedTLSCerts)
+	enrollReq := &api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	}
+	_, err = client.Enroll(enrollReq)
+	assert.NoError(t, err, "Error occured during enrollment on TLS enabled fabric-ca server")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to stop server")
+
+	// Test the case where TLS key is provided but TLS certificate does not exist
+	srv.Config.TLS.CertFile = "fake-tls-cert.pem"
+	srv.Config.TLS.KeyFile = "key.pem"
+
+	err = srv.Start()
+	if assert.Error(t, err, "Should have failed to start server where TLS key is specified but certificate does not exist") {
+		assert.Contains(t, err.Error(), "must not be specified in order to automatically generate the key")
+	}
+
+	// TLS certificate does not exist
+	srv.Config.TLS.CertFile = ""
+	err = srv.Start()
+	if assert.Error(t, err, "Should have failed to start server where, no TLS certificate provided") {
+		assert.Contains(t, err.Error(), "TLS is enabled but no TLS certificate provided")
+	}
+}
+
 func TestEnd(t *testing.T) {
 	TestSRVServerClean(t)
 }
@@ -1859,6 +1925,19 @@ func getIntermediateClient() *Client {
 func getTestClient(port int) *Client {
 	return &Client{
 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+		HomeDir: testdataDir,
+	}
+}
+
+func getTLSTestClient(port int, trustedTLSCerts []string) *Client {
+	return &Client{
+		Config: &ClientConfig{
+			URL: fmt.Sprintf("https://localhost:%d", port),
+			TLS: libtls.ClientTLSConfig{
+				Enabled:   true,
+				CertFiles: trustedTLSCerts,
+			},
+		},
 		HomeDir: testdataDir,
 	}
 }
