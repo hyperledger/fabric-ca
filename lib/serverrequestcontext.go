@@ -231,16 +231,25 @@ func (ctx *serverRequestContext) GetUserInfo(attrNames []string) ([]tcert.Attrib
 
 // GetAttrExtension returns an attribute extension to place into a signing request
 func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeRequest, profile string) (*signer.Extension, error) {
-	if attrReqs == nil {
-		return nil, nil
-	}
 	ca, err := ctx.GetCA()
 	if err != nil {
 		return nil, err
 	}
+	if ca.Config.LDAP.Enabled {
+		// Attributes in ECerts when LDAP is enabled is not supported initially
+		log.Debug("No attributes will be added to certificate with LDAP enabled")
+		return nil, nil
+	}
 	ui, err := ca.registry.GetUserInfo(ctx.enrollmentID)
 	if err != nil {
 		return nil, err
+	}
+	if attrReqs == nil {
+		attrReqs = getDefaultAttrReqs(ui.Attributes)
+		if attrReqs == nil {
+			// No attributes are being requested, so we are done
+			return nil, nil
+		}
 	}
 	attrs, err := ca.attrMgr.ProcessAttributeRequests(
 		convertAttrReqs(attrReqs),
@@ -259,7 +268,7 @@ func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeReque
 			Critical: false,
 			Value:    hex.EncodeToString(buf),
 		}
-		log.Debugf("GetAttrExtension: extension=%+v", ext)
+		log.Debugf("Attribute extension being added to certificate is: %+v", ext)
 		return ext, nil
 	}
 	return nil, nil
@@ -349,4 +358,26 @@ func convertAttrs(attrs []api.Attribute) []attrmgr.Attribute {
 		rtn[i] = attrmgr.Attribute(&attrs[i])
 	}
 	return rtn
+}
+
+// Return attribute requests for attributes which should by default be added to an ECert
+func getDefaultAttrReqs(attrs []api.Attribute) []*api.AttributeRequest {
+	count := 0
+	for _, attr := range attrs {
+		if attr.ECert {
+			count++
+		}
+	}
+	if count == 0 {
+		return nil
+	}
+	reqs := make([]*api.AttributeRequest, count)
+	count = 0
+	for _, attr := range attrs {
+		if attr.ECert {
+			reqs[count] = &api.AttributeRequest{Name: attr.Name}
+			count++
+		}
+	}
+	return reqs
 }
