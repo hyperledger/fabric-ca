@@ -1459,6 +1459,10 @@ during registration as follows:
     the affiliation of the identity being registered.  For example, an invoker
     with an affiliation of "a.b" may register an identity with an affiliation
     of "a.b.c" but may not register an identity with an affiliation of "a.c".
+    If root affiliation is required for an identity, then the affiliation request
+    should be a dot (".") and the registrar must also have root affiliation.
+    If no affiliation is specified in the registration request, the identity being
+    registered will be given the affiliation of the registrar.
 
 The following command uses the **admin** identity's credentials to register a new
 user with an enrollment id of "admin2", an affiliation of

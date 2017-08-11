@@ -87,9 +87,6 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 	if req.Name == "" {
 		return nil, errors.New("Register was called without a Name set")
 	}
-	if req.Affiliation == "" {
-		return nil, errors.New("Registration request does not have an affiliation")
-	}
 
 	reqBody, err := util.Marshal(req, "RegistrationRequest")
 	if err != nil {

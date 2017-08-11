@@ -53,11 +53,6 @@ func TestBadRegistration(t *testing.T) {
 	if err == nil {
 		t.Error("Empty registration request should have failed")
 	}
-	req.Name = "foo"
-	_, err = id.Register(req)
-	if err == nil {
-		t.Error("Registration request without affiliation should have failed")
-	}
 }
 
 func testGetName(id *Identity, t *testing.T) {

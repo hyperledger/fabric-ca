@@ -1853,6 +1853,86 @@ func TestAutoTLSCertificateGeneration(t *testing.T) {
 		assert.Contains(t, err.Error(), "TLS is enabled but no TLS certificate provided")
 	}
 }
+func TestRegisterationAffiliation(t *testing.T) {
+	// Start the server
+	server := TestGetServer(rootPort, rootDir, "", -1, t)
+	if server == nil {
+		return
+	}
+	server.RegisterBootstrapUser("admin2", "admin2pw", "hyperledger")
+	err := server.Start()
+	assert.NoError(t, err, "Server start failed")
+	defer server.Stop()
+
+	// Enroll bootstrap user
+	client := getRootClient()
+	eresp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	assert.NoError(t, err, "Failed to enroll bootstrap user")
+	admin := eresp.Identity
+
+	// Registering with no affiliation specified, should default to using the registrar's affiliation
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser",
+		Type:        "user",
+		Affiliation: "",
+	})
+	assert.NoError(t, err, "Client register failed")
+
+	db := server.DBAccessor()
+	user, err := db.GetUserInfo("testuser")
+	assert.NoError(t, err)
+
+	if user.Affiliation != "" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", user.Affiliation)
+	}
+
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser2",
+		Type:        "user",
+		Affiliation: ".",
+	})
+	assert.NoError(t, err, "Client register failed")
+
+	user, err = db.GetUserInfo("testuser2")
+	assert.NoError(t, err)
+
+	if user.Affiliation != "" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", user.Affiliation)
+	}
+
+	eresp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	assert.NoError(t, err, "Failed to enroll bootstrap user")
+	admin2 := eresp.Identity // admin2 has an affiliation of 'hyperledger'
+
+	// Registering with no affiliation specified, should default to using the registrar's affiliation
+	_, err = admin2.Register(&api.RegistrationRequest{
+		Name:        "testuser3",
+		Type:        "user",
+		Affiliation: "",
+	})
+	assert.NoError(t, err, "Client register failed")
+
+	db = server.DBAccessor()
+	user, err = db.GetUserInfo("testuser3")
+	assert.NoError(t, err)
+
+	if user.Affiliation != "hyperledger" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected 'hyperledger' got %s", user.Affiliation)
+	}
+
+	_, err = admin2.Register(&api.RegistrationRequest{
+		Name:        "testuser4",
+		Type:        "user",
+		Affiliation: ".",
+	})
+	assert.Error(t, err, "Should have failed, can't register a user with root affiliation if the registrar does not have root affiliation")
+}
 
 func TestEnd(t *testing.T) {
 	TestSRVServerClean(t)
