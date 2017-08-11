@@ -233,7 +233,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	var userRec UserRecord
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return nil, err
+		return nil, dbGetError(err, "User")
 	}
 
 	return d.newDBUser(&userRec), nil
@@ -253,7 +253,7 @@ func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
 	var userRec UserRecord
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return userInfo, err
+		return userInfo, dbGetError(err, "User")
 	}
 
 	var attributes []api.Attribute
@@ -312,7 +312,7 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 
 	err = d.db.Get(&affiliation, d.db.Rebind(getAffiliation), name)
 	if err != nil {
-		return nil, err
+		return nil, dbGetError(err, "Affiliation")
 	}
 
 	return &affiliation, nil
@@ -434,4 +434,11 @@ func (u *DBUser) GetAffiliationPath() []string {
 // GetAttribute returns the value for an attribute name
 func (u *DBUser) GetAttribute(name string) string {
 	return u.attrs[name]
+}
+
+func dbGetError(err error, prefix string) error {
+	if err.Error() == "sql: no rows in result set" {
+		return fmt.Errorf("%s not found", prefix)
+	}
+	return err
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package lib_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -27,6 +28,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -232,5 +234,54 @@ func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 	_, err = ta.Accessor.GetAffiliation("Banks.Bank2")
 	if err == nil {
 		t.Error("Should have errored, and not returned any results")
+	}
+}
+
+func TestDBErrorMessages(t *testing.T) {
+	var err error
+
+	if _, err = os.Stat(dbPath); err != nil {
+		if os.IsNotExist(err) {
+			os.MkdirAll(dbPath, 0755)
+		}
+	} else {
+		os.RemoveAll(dbPath)
+		os.MkdirAll(dbPath, 0755)
+	}
+
+	dataSource := dbPath + "/fabric-ca.db"
+	db, _, err := dbutil.NewUserRegistrySQLLite3(dataSource)
+	if err != nil {
+		t.Error("Failed to open connection to DB")
+	}
+
+	accessor := NewDBAccessor()
+	accessor.SetDB(db)
+
+	ta := TestAccessor{
+		Accessor: accessor,
+		DB:       db,
+	}
+
+	expectedErr := "%s not found"
+	_, err = ta.Accessor.GetAffiliation("hyperledger")
+	if assert.Error(t, err, "Should have errored, and not returned any results") {
+		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "Affiliation"))
+	}
+
+	_, err = ta.Accessor.GetUser("testuser", []string{})
+	if assert.Error(t, err, "Should have errored, and not returned any results") {
+		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "User"))
+	}
+
+	_, err = ta.Accessor.GetUserInfo("testuser")
+	if assert.Error(t, err, "Should have errored, and not returned any results") {
+		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "User"))
+	}
+
+	newCertDBAcc := NewCertDBAccessor(db)
+	_, err = newCertDBAcc.GetCertificateWithID("serial", "aki")
+	if assert.Error(t, err, "Should have errored, and not returned any results") {
+		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "Certificate"))
 	}
 }

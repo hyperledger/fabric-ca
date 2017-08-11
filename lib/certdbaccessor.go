@@ -173,7 +173,7 @@ func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs CertRecor
 
 	err = d.db.Get(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(CertRecord{})), serial, aki)
 	if err != nil {
-		return crs, err
+		return crs, dbGetError(err, "Certificate")
 	}
 
 	return crs, nil
