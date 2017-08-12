@@ -162,7 +162,7 @@ verifyServerTraffic() {
     : ${op:="eq"}
 
    result=$(curl -s http://${haproxy_addr}/ |
-     awk -v s="$server_name" '$0~s'|html2text|
+     awk -v s="$server_name\"" '$0~s'|html2text|
         awk -v c="$code" '
            /Cum. sessions:/ {sessions=$NF}
            $0~c {gsub(/[(%)]/,"",$NF);status=$NF}

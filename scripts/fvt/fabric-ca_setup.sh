@@ -209,7 +209,7 @@ function startFabricCa() {
    until test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" -o "$now" -gt "$timeout"; do
       started=$(ss -ltnp src $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} | awk 'NR!=1 {print $4}')
       test "$started" = "$server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT}" && break
-      sleep .5
+      sleep .1
       let now+=1
    done
    printf "FABRIC_CA server on $server_addr:${USER_CA_PORT-$CA_DEFAULT_PORT} "

@@ -15,6 +15,9 @@ USERNAME="testuser99"
 HTTP_PORT="3755"
 RC=0
 
+NUM_SERVERS=4
+NUM_BAD_REQ=16
+
 while getopts "dx:" option; do
   case "$option" in
      d)   FABRIC_CA_DEBUG="true" ;;
@@ -38,7 +41,7 @@ trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
 export FABRIC_CA_DEBUG
 for driver in sqlite3 postgres mysql; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n4 -t rsa -l 2048 -d $driver -x $CA_CFG_PATH
+   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -n $NUM_SERVERS -t rsa -l 2048 -d $driver -x $CA_CFG_PATH
    if test $? -ne 0; then
       ErrorMsg "Failed to setup fabric-ca server"
       continue
@@ -56,18 +59,19 @@ for driver in sqlite3 postgres mysql; do
       continue
    fi
 
-   for i in {2..8}; do
+   for u in $(eval echo {1..$NUM_BAD_REQ}); do
       register $REGISTRAR $USERNAME
       test $? -eq 0 && ErrorMsg "Duplicate registration of $USERNAME"
    done
 
    # all servers should register = number of successful requests
    # but...it's only available when tls is disabled
-   if test "$FABRIC_TLS" = 'false'; then
-      for s in {1..4}; do
-         verifyServerTraffic $HOST server${s} 10 "" "" lt
+   if ! $(${FABRIC_TLS:-false}); then
+      for s in $(eval echo {1..$NUM_SERVERS}); do
+         curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
+         verifyServerTraffic $HOST server${s} 0 0 "HTTP 5xx" gt
          test $? -eq 0 || ErrorMsg "verifyServerTraffic failed"
-         sleep 1
+         sleep .1
       done
    fi
 
