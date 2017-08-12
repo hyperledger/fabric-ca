@@ -129,8 +129,7 @@ function startHaproxy() {
    case $TLS_ON in
      "true")
    haproxy -f  <(echo "global
-      log /dev/log	local0 debug
-      log /dev/log	local1 debug
+      log 127.0.0.1 local2
       daemon
 defaults
       log     global
@@ -149,14 +148,17 @@ frontend haproxy
 backend fabric-cas
       mode tcp
       balance roundrobin";
-   while test $((i++)) -lt $inst; do
-      echo "      server server$i  127.0.0.$i:$server_port"
-   done)
+      # For each requested instance passed to startHaproxy
+      # (which is determined by the -n option passed to the
+      # main script) create a backend server in haproxy config
+      # Each server uses a separate loopback address.
+      while test $((i++)) -lt $inst; do
+         echo "      server server$i  127.0.0.$i:$server_port"
+      done)
    ;;
    *)
    haproxy -f  <(echo "global
-      log /dev/log	local0 debug
-      log /dev/log	local1 debug
+      log 127.0.0.1 local2
       daemon
 defaults
       log     global

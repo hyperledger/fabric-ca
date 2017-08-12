@@ -11,6 +11,7 @@ LDAP_PORT=389
 PORTS=($POSTGRES_PORT $MYSQL_PORT $LDAP_PORT)
 
 timeout=12
+service rsyslog start
 su postgres -c 'postgres -D /usr/local/pgsql/data' &
 chown -R mysql.mysql /var/lib/mysql
 /usr/bin/mysqld_safe --sql-mode=STRICT_TRANS_TABLES &
