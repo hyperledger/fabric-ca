@@ -487,7 +487,7 @@ func (s *Server) listenAndServe() (err error) {
 		}
 	}
 	s.listener = listener
-	log.Infof("Listening on %s", s.Config.Port, addrStr)
+	log.Infof("Listening on %s", addrStr)
 
 	err = s.checkAndEnableProfiling()
 	if err != nil {
