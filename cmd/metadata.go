@@ -21,11 +21,11 @@ import (
 	"runtime"
 )
 
-// Version specifies fabric-ca Client version
+// Version specifies fabric-ca-client/fabric-ca-server version
 // It is defined by the Makefile and passed in with ldflags
 var Version string
 
-// GetVersionInfo returns version information for the peer
+// GetVersionInfo returns version information for the fabric-ca-client/fabric-ca-server
 func GetVersionInfo(prgName string) string {
 	if Version == "" {
 		Version = "development build"

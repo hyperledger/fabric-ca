@@ -29,50 +29,48 @@ import (
 
 var errInput = errors.New("Invalid usage; either --revoke.name and/or both --revoke.serial and --revoke.aki are required")
 
-// initCmd represents the init command
-var revokeCmd = &cobra.Command{
-	Use:   "revoke",
-	Short: "Revoke an identity",
-	Long:  "Revoke an identity with fabric-ca server",
-	// PreRunE block for this command will check to make sure enrollment
-	// information exists before running the command
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
-		}
+func (c *ClientCmd) newRevokeCommand() *cobra.Command {
+	revokeCmd := &cobra.Command{
+		Use:   "revoke",
+		Short: "Revoke an identity",
+		Long:  "Revoke an identity with Fabric CA server",
+		// PreRunE block for this command will check to make sure enrollment
+		// information exists before running the command
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+			}
 
-		err := configInit(cmd.Name())
-		if err != nil {
-			return err
-		}
+			err := c.configInit()
+			if err != nil {
+				return err
+			}
 
-		log.Debugf("Client configuration settings: %+v", clientCfg)
+			log.Debugf("Client configuration settings: %+v", c.clientCfg)
 
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := runRevoke(cmd)
-		if err != nil {
-			return err
-		}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := c.runRevoke(cmd)
+			if err != nil {
+				return err
+			}
 
-		return nil
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(revokeCmd)
+			return nil
+		},
+	}
+	return revokeCmd
 }
 
 // The client revoke main logic
-func runRevoke(cmd *cobra.Command) error {
-	log.Debug("Revoke Entered")
+func (c *ClientCmd) runRevoke(cmd *cobra.Command) error {
+	log.Debug("Entered runRevoke")
 
 	var err error
 
 	client := lib.Client{
-		HomeDir: filepath.Dir(cfgFileName),
-		Config:  clientCfg,
+		HomeDir: filepath.Dir(c.cfgFileName),
+		Config:  c.clientCfg,
 	}
 
 	id, err := client.LoadMyIdentity()
@@ -85,18 +83,19 @@ func runRevoke(cmd *cobra.Command) error {
 	// specified OR enrollment ID must be specified, else return an error.
 	// Note that all three can be specified, in which case server will revoke
 	// certificate associated with the specified aki, serial number.
-	if (clientCfg.Revoke.Name == "") && (clientCfg.Revoke.AKI == "" || clientCfg.Revoke.Serial == "") {
+	if (c.clientCfg.Revoke.Name == "") && (c.clientCfg.Revoke.AKI == "" ||
+		c.clientCfg.Revoke.Serial == "") {
 		cmd.Usage()
 		return errInput
 	}
 
 	err = id.Revoke(
 		&api.RevocationRequest{
-			Name:   clientCfg.Revoke.Name,
-			Serial: clientCfg.Revoke.Serial,
-			AKI:    clientCfg.Revoke.AKI,
-			Reason: clientCfg.Revoke.Reason,
-			CAName: clientCfg.CAName,
+			Name:   c.clientCfg.Revoke.Name,
+			Serial: c.clientCfg.Revoke.Serial,
+			AKI:    c.clientCfg.Revoke.AKI,
+			Reason: c.clientCfg.Revoke.Reason,
+			CAName: c.clientCfg.CAName,
 		})
 
 	if err == nil {

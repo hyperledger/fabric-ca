@@ -40,7 +40,7 @@
 #############################################################################
 
 # URL of the Fabric-ca-server (default: http://localhost:7054)
-URL: http://localhost:7054
+URL: http://localhost:7090
 
 #############################################################################
 #    TLS section for secure socket connection

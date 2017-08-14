@@ -199,34 +199,16 @@ bccsp:
 `
 )
 
-var (
-	// cfgFileName is the name of the client's config file
-	cfgFileName string
-
-	// cfgAttrs are the attributes specified via flags or env variables
-	// and translated to Attributes field in registration
-	cfgAttrs []string
-
-	// cfgCsrNames are the certificate signing request names specified via flags
-	// or env variables
-	cfgCsrNames []string
-
-	// clientCfg is the client's config
-	clientCfg *lib.ClientConfig
-)
-
-func configInit(command string) error {
+func (c *ClientCmd) configInit() error {
 	var err error
 
-	cmd := NewCommand(command)
-
-	if cfgFileName != "" {
-		log.Infof("User provided config file: %s\n", cfgFileName)
+	if c.cfgFileName != "" {
+		log.Infof("User provided config file: %s\n", c.cfgFileName)
 	}
 
 	// Make the config file name absolute
-	if !filepath.IsAbs(cfgFileName) {
-		cfgFileName, err = filepath.Abs(cfgFileName)
+	if !filepath.IsAbs(c.cfgFileName) {
+		c.cfgFileName, err = filepath.Abs(c.cfgFileName)
 		if err != nil {
 			return fmt.Errorf("Failed to get full path of config file: %s", err)
 		}
@@ -234,8 +216,8 @@ func configInit(command string) error {
 
 	// Commands other than 'enroll' and 'getcacert' require that client already
 	// be enrolled
-	if cmd.requiresEnrollment() {
-		err = checkForEnrollment()
+	if c.requiresEnrollment() {
+		err = checkForEnrollment(c.cfgFileName, c.clientCfg)
 		if err != nil {
 			return err
 		}
@@ -246,22 +228,22 @@ func configInit(command string) error {
 	// executed, and furthermore the default configuration file requires
 	// enrollment ID to populate CN field which is something the enroll
 	// command requires
-	if cmd.shouldCreateDefaultConfig() {
-		if !util.FileExists(cfgFileName) {
-			err = createDefaultConfigFile(cmd)
+	if c.shouldCreateDefaultConfig() {
+		if !util.FileExists(c.cfgFileName) {
+			err = c.createDefaultConfigFile()
 			if err != nil {
 				return fmt.Errorf("Failed to create default configuration file: %s", err)
 			}
-			log.Infof("Created a default configuration file at %s", cfgFileName)
+			log.Infof("Created a default configuration file at %s", c.cfgFileName)
 		}
 	} else {
-		log.Infof("Configuration file location: %s", cfgFileName)
+		log.Infof("Configuration file location: %s", c.cfgFileName)
 	}
 
 	// Call viper to read the config
-	viper.SetConfigFile(cfgFileName)
+	viper.SetConfigFile(c.cfgFileName)
 	viper.AutomaticEnv() // read in environment variables that match
-	if util.FileExists(cfgFileName) {
+	if util.FileExists(c.cfgFileName) {
 		err = viper.ReadInConfig()
 		if err != nil {
 			return fmt.Errorf("Failed to read config file: %s", err)
@@ -277,41 +259,41 @@ func configInit(command string) error {
 			"csr.hosts",
 			"tls.certfiles",
 		}
-		err = util.ViperUnmarshal(clientCfg, sliceFields, viper.GetViper())
+		err = util.ViperUnmarshal(c.clientCfg, sliceFields, viper.GetViper())
 		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+			return fmt.Errorf("Incorrect format in file '%s': %s", c.cfgFileName, err)
 		}
 	} else {
-		err = viper.Unmarshal(clientCfg)
+		err = viper.Unmarshal(c.clientCfg)
 		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", cfgFileName, err)
+			return fmt.Errorf("Incorrect format in file '%s': %s", c.cfgFileName, err)
 		}
 	}
 
-	purl, err := url.Parse(clientCfg.URL)
+	purl, err := url.Parse(c.clientCfg.URL)
 	if err != nil {
 		return err
 	}
 
-	clientCfg.TLS.Enabled = purl.Scheme == "https"
+	c.clientCfg.TLS.Enabled = purl.Scheme == "https"
 
-	err = processAttributes()
+	err = processAttributes(c.cfgAttrs, c.clientCfg)
 	if err != nil {
 		return err
 	}
 
-	err = processCsrNames()
+	err = c.processCsrNames()
 	if err != nil {
 		return err
 	}
 
 	// Check for separaters and insert values back into slice
-	normalizeStringSlices()
+	normalizeStringSlices(c.clientCfg)
 
 	return nil
 }
 
-func createDefaultConfigFile(cmd *Command) error {
+func (c *ClientCmd) createDefaultConfigFile() error {
 	// Create a default config, if URL provided via CLI or envar update config files
 	var cfg string
 	fabricCAServerURL := viper.GetString("url")
@@ -334,7 +316,7 @@ func createDefaultConfigFile(cmd *Command) error {
 	var user string
 	var err error
 
-	if cmd.requiresUser() {
+	if c.requiresUser() {
 		user, _, err = util.GetUser()
 		if err != nil {
 			return err
@@ -345,41 +327,41 @@ func createDefaultConfigFile(cmd *Command) error {
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
 	// Create the directory if necessary
-	cfgDir := filepath.Dir(cfgFileName)
+	cfgDir := filepath.Dir(c.cfgFileName)
 	err = os.MkdirAll(cfgDir, 0755)
 	if err != nil {
 		return err
 	}
 	// Now write the file
-	return ioutil.WriteFile(cfgFileName, []byte(cfg), 0755)
+	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0755)
 }
 
 // processAttributes parses attributes from command line or env variable
-func processAttributes() error {
+func processAttributes(cfgAttrs []string, cfg *lib.ClientConfig) error {
 	if cfgAttrs != nil {
-		clientCfg.ID.Attributes = make([]api.Attribute, len(cfgAttrs))
+		cfg.ID.Attributes = make([]api.Attribute, len(cfgAttrs))
 		for idx, attr := range cfgAttrs {
 			sattr := strings.SplitN(attr, "=", 2)
 			if len(sattr) != 2 {
 				return fmt.Errorf("Attribute '%s' is missing '=' ; it must be of the form <name>=<value>", attr)
 			}
-			clientCfg.ID.Attributes[idx].Name = sattr[0]
-			clientCfg.ID.Attributes[idx].Value = sattr[1]
+			cfg.ID.Attributes[idx].Name = sattr[0]
+			cfg.ID.Attributes[idx].Value = sattr[1]
 		}
 	}
 	return nil
 }
 
 // processAttributes parses attributes from command line or env variable
-func processCsrNames() error {
-	if cfgCsrNames != nil {
-		clientCfg.CSR.Names = make([]csr.Name, len(cfgCsrNames))
-		for idx, name := range cfgCsrNames {
+func (c *ClientCmd) processCsrNames() error {
+	if c.cfgCsrNames != nil {
+		c.clientCfg.CSR.Names = make([]csr.Name, len(c.cfgCsrNames))
+		for idx, name := range c.cfgCsrNames {
 			sname := strings.SplitN(name, "=", 2)
 			if len(sname) != 2 {
 				return fmt.Errorf("CSR name/value '%s' is missing '=' ; it must be of the form <name>=<value>", name)
 			}
-			v := reflect.ValueOf(&clientCfg.CSR.Names[idx]).Elem().FieldByName(sname[0])
+			v := reflect.ValueOf(&c.clientCfg.CSR.Names[idx]).Elem().FieldByName(sname[0])
 			if v.IsValid() {
 				v.SetString(sname[1])
 			} else {
@@ -390,19 +372,19 @@ func processCsrNames() error {
 	return nil
 }
 
-func checkForEnrollment() error {
+func checkForEnrollment(cfgFileName string, cfg *lib.ClientConfig) error {
 	log.Debug("Checking for enrollment")
 	client := lib.Client{
 		HomeDir: filepath.Dir(cfgFileName),
-		Config:  clientCfg,
+		Config:  cfg,
 	}
 	return client.CheckEnrollment()
 }
 
-func normalizeStringSlices() {
+func normalizeStringSlices(cfg *lib.ClientConfig) {
 	fields := []*[]string{
-		&clientCfg.CSR.Hosts,
-		&clientCfg.TLS.CertFiles,
+		&cfg.CSR.Hosts,
+		&cfg.TLS.CertFiles,
 	}
 	for _, namePtr := range fields {
 		norm := util.NormalizeStringSlice(*namePtr)

@@ -26,48 +26,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// initCmd represents the init command
-var reenrollCmd = &cobra.Command{
-	Use:   "reenroll",
-	Short: "Reenroll an identity",
-	Long:  "Reenroll an identity with fabric-ca server",
-	// PreRunE block for this command will check to make sure enrollment
-	// information exists before running the command
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
-		}
+func (c *ClientCmd) newReenrollCommand() *cobra.Command {
+	reenrollCmd := &cobra.Command{
+		Use:   "reenroll",
+		Short: "Reenroll an identity",
+		Long:  "Reenroll an identity with Fabric CA server",
+		// PreRunE block for this command will check to make sure enrollment
+		// information exists before running the command
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+			}
 
-		err := configInit(cmd.Name())
-		if err != nil {
-			return err
-		}
+			err := c.configInit()
+			if err != nil {
+				return err
+			}
 
-		log.Debugf("Client configuration settings: %+v", clientCfg)
+			log.Debugf("Client configuration settings: %+v", c.clientCfg)
 
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := runReenroll()
-		if err != nil {
-			return err
-		}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := c.runReenroll()
+			if err != nil {
+				return err
+			}
 
-		return nil
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(reenrollCmd)
+			return nil
+		},
+	}
+	return reenrollCmd
 }
 
 // The client reenroll main logic
-func runReenroll() error {
-	log.Debug("Entered Reenroll")
+func (c *ClientCmd) runReenroll() error {
+	log.Debug("Entered runReenroll")
 
 	client := lib.Client{
-		HomeDir: filepath.Dir(cfgFileName),
-		Config:  clientCfg,
+		HomeDir: filepath.Dir(c.cfgFileName),
+		Config:  c.clientCfg,
 	}
 
 	id, err := client.LoadMyIdentity()
@@ -76,10 +74,10 @@ func runReenroll() error {
 	}
 
 	req := &api.ReenrollmentRequest{
-		Label:   clientCfg.Enrollment.Label,
-		Profile: clientCfg.Enrollment.Profile,
-		CSR:     &clientCfg.CSR,
-		CAName:  clientCfg.CAName,
+		Label:   c.clientCfg.Enrollment.Label,
+		Profile: c.clientCfg.Enrollment.Profile,
+		CSR:     &c.clientCfg.CSR,
+		CAName:  c.clientCfg.CAName,
 	}
 
 	resp, err := id.Reenroll(req)
@@ -92,7 +90,7 @@ func runReenroll() error {
 		return err
 	}
 
-	err = storeCAChain(clientCfg, &resp.ServerInfo)
+	err = storeCAChain(c.clientCfg, &resp.ServerInfo)
 	if err != nil {
 		return err
 	}
