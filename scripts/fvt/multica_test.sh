@@ -172,7 +172,7 @@ for driver in sqlite3 postgres mysql; do
    done
 
    # notadmin cannot revoke
-   revokeUser notadmin user11 ca1 2>&1 | egrep "Identity 'notadmin' does not have attribute 'hf.Revoker'"
+   revokeUser notadmin user11 ca1 2>&1 | egrep "Caller does not have authority to revoke"
    test "$?" -ne 0 && ErrorMsg "Non-revoker successfully revoked cert or failed for incorrect reason"
 
    # Check the DB contents
