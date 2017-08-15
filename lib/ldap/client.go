@@ -199,7 +199,7 @@ func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error)
 		client: lc,
 	}
 
-	log.Debug("Successfully retrieved user '%s', DN: %s", username, DN)
+	log.Debugf("Successfully retrieved user '%s', DN: %s", username, DN)
 
 	return user, nil
 }
@@ -270,7 +270,7 @@ func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 	}
 	// Bind with a read only user
 	if lc.AdminDN != "" && lc.AdminPassword != "" {
-		log.Debug("Binding to the LDAP server as admin user %s", lc.AdminDN)
+		log.Debugf("Binding to the LDAP server as admin user %s", lc.AdminDN)
 		err := conn.Bind(lc.AdminDN, lc.AdminPassword)
 		if err != nil {
 			return nil, fmt.Errorf("LDAP bind failure as %s: %s", lc.AdminDN, err)
