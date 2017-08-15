@@ -46,6 +46,11 @@ endif
 BASEIMAGE_RELEASE = 0.3.1
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
+METADATA_VAR = Version=$(PROJECT_VERSION)
+
+GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/cmd.%,$(METADATA_VAR))
+export GO_LDFLAGS
+
 DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
@@ -89,7 +94,7 @@ fabric-ca-server: bin/fabric-ca-server
 
 bin/%:
 	@echo "Building ${@F} in bin directory ..."
-	@mkdir -p bin && go build -o bin/${@F} $(path-map.${@F})
+	@mkdir -p bin && go build -o bin/${@F} -ldflags "$(GO_LDFLAGS)" $(path-map.${@F})
 	@echo "Built bin/${@F}"
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg

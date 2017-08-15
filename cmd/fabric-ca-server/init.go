@@ -39,14 +39,22 @@ var initCmd = &cobra.Command{
 
 func init() {
 	initCmd.RunE = runInit
+	initCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+		}
+
+		err := configInit(cmd.Name())
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	rootCmd.AddCommand(initCmd)
 }
 
 // The server init main logic
 func runInit(cmd *cobra.Command, args []string) error {
-	if len(args) > 0 {
-		return fmt.Errorf("Usage: too many arguments.\n%s", initCmd.UsageString())
-	}
 	err := getServer().Init(false)
 	if err != nil {
 		util.Fatal("Initialization failure: %s", err)

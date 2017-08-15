@@ -19,36 +19,19 @@ package main
 import (
 	"fmt"
 
+	"github.com/hyperledger/fabric-ca/cmd"
 	"github.com/spf13/cobra"
 )
 
-// startCmd represents the enroll command
-var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: fmt.Sprintf("Start the %s", shortName),
+// versionCmd represents the "version" command
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Prints Fabric CA Client version",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Print(metadata.GetVersionInfo(cmdName))
+	},
 }
 
 func init() {
-	startCmd.RunE = runStart
-	startCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
-		}
-
-		err := configInit(cmd.Name())
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-	rootCmd.AddCommand(startCmd)
-}
-
-// The server start main logic
-func runStart(cmd *cobra.Command, args []string) error {
-	err := getServer().Start()
-	if err != nil {
-		return err
-	}
-	return nil
+	rootCmd.AddCommand(versionCmd)
 }

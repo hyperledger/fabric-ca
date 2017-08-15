@@ -33,12 +33,8 @@ var (
 		Use:   cmdName,
 		Short: longName,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			err := configInit()
-			if err != nil {
-				return err
-			}
-			cmd.SilenceUsage = true
 			util.CmdRunBegin()
+			cmd.SilenceUsage = true
 			return nil
 		},
 	}

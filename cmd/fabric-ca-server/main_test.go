@@ -116,7 +116,7 @@ func TestErrors(t *testing.T) {
 	errorCases := []TestData{
 		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
 		{[]string{cmdName, "init", "-n", "acme.com", "-b", "user::"}, "Failed to read"},
-		{[]string{cmdName, "init", "-b", "user:pass", "-n", "acme.com", "ca.key"}, "too many arguments"},
+		{[]string{cmdName, "init", "-b", "user:pass", "-n", "acme.com", "ca.key"}, "Unrecognized arguments found"},
 		{[]string{cmdName, "init", "-c", badSyntaxYaml, "-b", "user:pass"}, "Incorrect format"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", fmt.Sprintf("%s:foo", longUserName)}, "than 1024 characters"},
 		{[]string{cmdName, "init", "-c", fmt.Sprintf("/tmp/%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
@@ -125,7 +125,7 @@ func TestErrors(t *testing.T) {
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
 		{[]string{cmdName, "bogus", "-c", initYaml, "-b", "user:pass"}, "unknown command"},
 		{[]string{cmdName, "start", "-c"}, "needs an argument:"},
-		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "too many arguments"},
+		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "Unrecognized arguments found"},
 	}
 
 	// Explicitly set the default for ca.name to "", this is to test if server
@@ -265,6 +265,13 @@ func TestMultiCA(t *testing.T) {
 	}
 
 	cleanUpMultiCAFiles()
+}
+
+func TestVersion(t *testing.T) {
+	err := RunMain([]string{cmdName, "version"})
+	if err != nil {
+		t.Error("Failed to get fabric-ca-server version: ", err)
+	}
 }
 
 // Run server with specified args and check if the configuration and datasource
