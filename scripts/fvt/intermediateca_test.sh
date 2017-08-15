@@ -96,7 +96,7 @@ function createIntCA() {
 function createFailingCA {
    last=$((NUMINTCAS+1))
    mkdir -p "$TDIR/int${last}"
-   cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${last}runFabricCaFvt.yaml"
+   cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${last}/runFabricCaFvt.yaml"
    $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
                               --tls.keyfile $TLSDIR/intFabCaTls${last}-key.pem \
                               --intermediate.tls.certfiles $TLSDIR/tlsroots.pem"

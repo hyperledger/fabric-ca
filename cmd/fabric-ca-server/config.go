@@ -27,7 +27,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -403,8 +402,8 @@ func (s *ServerCmd) configInit() (err error) {
 	}
 
 	// Read the config
-	viper.AutomaticEnv() // read in environment variables that match
-	err = lib.UnmarshalConfig(s.cfg, viper.GetViper(), s.cfgFileName, true, true)
+	s.myViper.AutomaticEnv() // read in environment variables that match
+	err = lib.UnmarshalConfig(s.cfg, s.myViper, s.cfgFileName, true, true)
 	if err != nil {
 		return err
 	}
@@ -413,14 +412,14 @@ func (s *ServerCmd) configInit() (err error) {
 	// certificates. If it is explicitly set to 0, set the PathLenZero field to
 	// true as CFSSL expects.
 	pl := "csr.ca.pathlength"
-	if viper.IsSet(pl) && viper.GetInt(pl) == 0 {
+	if s.myViper.IsSet(pl) && s.myViper.GetInt(pl) == 0 {
 		s.cfg.CAcfg.CSR.CA.PathLenZero = true
 	}
 	// The maxpathlen field controls how deep the CA hierarchy when issuing
 	// a CA certificate. If it is explicitly set to 0, set the PathLenZero
 	// field to true as CFSSL expects.
 	pl = "signing.profiles.ca.caconstraint.maxpathlen"
-	if viper.IsSet(pl) && viper.GetInt(pl) == 0 {
+	if s.myViper.IsSet(pl) && s.myViper.GetInt(pl) == 0 {
 		s.cfg.CAcfg.Signing.Profiles["ca"].CAConstraint.MaxPathLenZero = true
 	}
 
@@ -432,7 +431,7 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 	// If LDAP is enabled, authentication of enrollment requests are performed
 	// by using LDAP authentication; therefore, no bootstrap username and password
 	// are required.
-	ldapEnabled := viper.GetBool("ldap.enabled")
+	ldapEnabled := s.myViper.GetBool("ldap.enabled")
 	if !ldapEnabled {
 		// When LDAP is disabled, the fabric-ca-server functions as its own
 		// identity registry; therefore, we require that the default configuration
@@ -440,7 +439,7 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 		// bootstrap administrator.  Other identities can be dynamically registered.
 		// Create the default config, but only if they provided this bootstrap
 		// username and password.
-		up := viper.GetString("boot")
+		up := s.myViper.GetString("boot")
 		if up == "" {
 			return errors.New("The '-b user:pass' option is required")
 		}
@@ -472,7 +471,7 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
-	purl := viper.GetString("intermediate.parentserver.url")
+	purl := s.myViper.GetString("intermediate.parentserver.url")
 	log.Debugf("parent server URL: '%s'", purl)
 	if purl == "" {
 		// This is a root CA

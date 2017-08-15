@@ -40,7 +40,7 @@ func (c *ClientCmd) newEnrollCommand() *cobra.Command {
 				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
-			_, _, err := util.GetUser()
+			_, _, err := util.GetUser(c.myViper)
 			if err != nil {
 				return err
 			}

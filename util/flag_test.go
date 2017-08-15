@@ -67,11 +67,11 @@ func TestRegisterFlags(t *testing.T) {
 	tags := map[string]string{
 		"help.fb.int": "This is an int field",
 	}
-	err := RegisterFlags(&pflag.FlagSet{}, &A{}, tags)
+	err := RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &A{}, tags)
 	if err != nil {
 		t.Errorf("Failed to register flags: %s", err)
 	}
-	err = RegisterFlags(&pflag.FlagSet{}, &C{}, tags)
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &C{}, tags)
 	if err != nil {
 		t.Errorf("Failed to register flags: %s", err)
 	}
@@ -189,26 +189,26 @@ func TestViperUnmarshal(t *testing.T) {
 
 func TestRegisterFlagsInvalidArgs(t *testing.T) {
 	data := struct{ Field string }{}
-	err := RegisterFlags(&pflag.FlagSet{}, &data, nil)
+	err := RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Field is missing a help tag")
 
 	data2 := struct{ Field bool }{}
-	err = RegisterFlags(&pflag.FlagSet{}, &data2, nil)
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data2, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Field is missing a help tag")
 
 	data3 := struct{ Field int }{}
-	err = RegisterFlags(&pflag.FlagSet{}, &data3, nil)
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data3, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Field is missing a help tag")
 
 	data4 := struct{ Field []string }{}
-	err = RegisterFlags(&pflag.FlagSet{}, &data4, nil)
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data4, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Field is missing a help tag")
 
 	data5 := struct{ Field float32 }{}
-	err = RegisterFlags(&pflag.FlagSet{}, &data5, nil)
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data5, nil)
 	assert.NoError(t, err)
 }
