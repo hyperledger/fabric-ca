@@ -18,14 +18,12 @@ package main
 
 import (
 	"os"
-
-	"github.com/hyperledger/fabric-ca/util"
 )
 
 // The fabric-ca client main
 func main() {
 	if err := RunMain(os.Args); err != nil {
-		util.Fatal("%s", err)
+		os.Exit(1)
 	}
 }
 
@@ -36,7 +34,11 @@ func RunMain(args []string) error {
 	os.Args = args
 
 	// Execute the command
-	ccmd := NewCommand(args[1])
+	cmdName := ""
+	if len(args) > 1 {
+		cmdName = args[1]
+	}
+	ccmd := NewCommand(cmdName)
 	err := ccmd.Execute()
 
 	// Restore original os.Args

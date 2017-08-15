@@ -18,6 +18,7 @@ package main
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -47,7 +48,6 @@ var (
 
 // Create a config element in unexpected format
 var badSyntaxYaml = "bad.yaml"
-var ymlWithoutCAName = "noCAName.yml"
 
 // Unsupported file type
 var unsupportedFileType = "config.txt"
@@ -59,16 +59,20 @@ type TestData struct {
 
 // checkTest validates success cases
 func checkTest(in *TestData, t *testing.T) {
-	err := RunMain(in.input)
+	os.Args = in.input
+	scmd := NewCommand(in.input[1], blockingStart)
+	// Execute the command
+	err := scmd.Execute()
 	if err != nil {
 		t.Errorf("FAILED:\n \tin: %v;\n \tout: %v\n \texpected: SUCCESS\n", in.input, err.Error())
+	} else {
+		signingProfile := scmd.cfg.CAcfg.Signing.Default
+		ku, eku, unk := signingProfile.Usages()
+		// expected key usage is digital signature
+		assert.Equal(t, x509.KeyUsageDigitalSignature, ku, "Expected KeyUsageDigitalSignature")
+		assert.Equal(t, 0, len(eku), "Found %d extended usages but expected 0", len(eku))
+		assert.Equal(t, 0, len(unk), "Found %d unknown key usages", len(unk))
 	}
-	signingProfile := serverCfg.CAcfg.Signing.Default
-	ku, eku, unk := signingProfile.Usages()
-	// expected key usage is digital signature
-	assert.Equal(t, x509.KeyUsageDigitalSignature, ku, "Expected KeyUsageDigitalSignature")
-	assert.Equal(t, 0, len(eku), "Found %d extended usages but expected 0", len(eku))
-	assert.Equal(t, 0, len(unk), "Found %d unknown key usages", len(unk))
 }
 
 // errorTest validates error cases
@@ -84,43 +88,25 @@ func errorTest(in *TestData, t *testing.T) {
 	}
 }
 
-// Tests for the getCAName function
-func TestGetCAName(t *testing.T) {
-	var testCases = []struct {
-		input    string // input
-		expected string // expected result
-	}{
-		{"server1.acme.com", "acme.com"},
-		{"server1.net1.acme.com", "net1.acme.com"},
-		{".com", "com"},
-		{"server2", "server2"},
-		{"foo.", "foo."},
-		{".", "."},
-	}
-	for _, tc := range testCases {
-		n := getCAName(tc.input)
-		if n != tc.expected {
-			t.Errorf("getCAName returned unexpected value '%s' for '%s', expected value is '%s'",
-				n, tc.input, tc.expected)
-		}
+func TestNoArguments(t *testing.T) {
+	err := RunMain([]string{cmdName})
+	if err == nil {
+		assert.Error(t, errors.New("Should have resulted in an error as no agruments provided"))
 	}
 }
 
 func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
 	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
-	exp := regexp.MustCompile(".*<<<CANAME>>>.*")
-	cfg := exp.ReplaceAllString(defaultCfgTemplate, "")
-	_ = ioutil.WriteFile(ymlWithoutCAName, []byte(cfg), 0644)
 
 	errorCases := []TestData{
 		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
-		{[]string{cmdName, "init", "-n", "acme.com", "-b", "user::"}, "Failed to read"},
+		{[]string{cmdName, "init", "-c", initYaml, "-n", "acme.com", "-b", "user::"}, "Failed to read"},
 		{[]string{cmdName, "init", "-b", "user:pass", "-n", "acme.com", "ca.key"}, "Unrecognized arguments found"},
 		{[]string{cmdName, "init", "-c", badSyntaxYaml, "-b", "user:pass"}, "Incorrect format"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", fmt.Sprintf("%s:foo", longUserName)}, "than 1024 characters"},
 		{[]string{cmdName, "init", "-c", fmt.Sprintf("/tmp/%s.yaml", longFileName), "-b", "user:pass"}, "file name too long"},
-		{[]string{cmdName, "init", "-c", unsupportedFileType}, "Unsupported Config Type"},
+		{[]string{cmdName, "init", "-b", "user:pass", "-c", unsupportedFileType}, "Unsupported Config Type"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user"}, "missing a colon"},
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
 		{[]string{cmdName, "bogus", "-c", initYaml, "-b", "user:pass"}, "unknown command"},
@@ -166,7 +152,7 @@ func TestValid(t *testing.T) {
 	validCases := []TestData{
 		{[]string{cmdName, "init", "-b", "admin:a:d:m:i:n:p:w"}, ""},
 		{[]string{cmdName, "init", "-d"}, ""},
-		{[]string{cmdName, "start", "-c", startYaml}, ""},
+		{[]string{cmdName, "start", "-c", startYaml, "-b", "admin:admin"}, ""},
 	}
 
 	for _, v := range validCases {
@@ -293,7 +279,6 @@ func TestClean(t *testing.T) {
 	os.Remove(initYaml)
 	os.Remove(startYaml)
 	os.Remove(badSyntaxYaml)
-	os.Remove(ymlWithoutCAName)
 	os.Remove(fmt.Sprintf("/tmp/%s.yaml", longFileName))
 	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
@@ -310,12 +295,12 @@ func TestClean(t *testing.T) {
 func cleanUpMultiCAFiles() {
 	caFolder := "../../testdata/ca/rootca"
 	nestedFolders := []string{"ca1", "ca2"}
-	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db"}
+	removeFiles := []string{"msp", "ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db"}
 
 	for _, nestedFolder := range nestedFolders {
 		path := filepath.Join(caFolder, nestedFolder)
 		for _, file := range removeFiles {
-			os.Remove(filepath.Join(path, file))
+			os.RemoveAll(filepath.Join(path, file))
 		}
 		os.RemoveAll(filepath.Join(path, "msp"))
 	}

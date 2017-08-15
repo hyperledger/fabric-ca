@@ -123,6 +123,12 @@ type TestData struct {
 	input []string // input
 }
 
+func TestNoArguments(t *testing.T) {
+	err := RunMain([]string{cmdName})
+	if err == nil {
+		assert.Error(t, errors.New("Should have resulted in an error as no agruments provided"))
+	}
+}
 func TestExtraArguments(t *testing.T) {
 	errCases := []TestData{
 		{[]string{cmdName, "enroll", "extraArg", "extraArg2"}},
