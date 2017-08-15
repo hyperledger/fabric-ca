@@ -17,14 +17,8 @@ limitations under the License.
 package lib
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
-	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
@@ -32,104 +26,69 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 )
 
-// newRevokeHandler is constructor for revoke handler
-func newRevokeHandler(server *Server) (h http.Handler, err error) {
-	return &cfsslapi.HTTPHandler{
-		Handler: &revokeHandler{server: server},
-		Methods: []string{"POST"}}, nil
-}
-
-// revokeHandler for revoke requests
-type revokeHandler struct {
-	server *Server
-}
-
 // Handle an revoke request
-func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	log.Debug("Revoke request received")
-
-	authHdr := r.Header.Get("authorization")
-	if authHdr == "" {
-		return authErr(w, errors.New("no authorization header"))
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return badRequest(w, err)
-	}
-	r.Body.Close()
-
+func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 	// Parse revoke request body
 	var req api.RevocationRequestNet
-	err = json.Unmarshal(body, &req)
+	err := ctx.ReadBody(&req)
 	if err != nil {
-		return badRequest(w, err)
+		return nil, err
 	}
-
-	log.Debugf("Revoke request: %+v", req)
-
-	caname := r.Header.Get(caHdrName)
-
-	cert, err := util.VerifyToken(h.server.caMap[caname].csp, authHdr, body)
+	// Authentication
+	id, err := ctx.TokenAuthentication()
 	if err != nil {
-		return authErr(w, err)
+		return nil, err
 	}
-
-	// Make sure that the user has the "hf.Revoker" attribute in order to be authorized
-	// to revoke a certificate.  This attribute comes from the user registry, which
-	// is either in the DB if LDAP is not configured, or comes from LDAP if LDAP is
-	// configured.
-	err = h.server.caMap[caname].attributeIsTrue(cert.Subject.CommonName, "hf.Revoker")
+	// Get targeted CA
+	ca, err := ctx.GetCA()
 	if err != nil {
-		return authErr(w, err)
+		return nil, err
+	}
+	// Authorization
+	// Make sure that the caller has the "hf.Revoker" attribute.
+	err = ca.attributeIsTrue(id, "hf.Revoker")
+	if err != nil {
+		return nil, newHTTPErr(401, ErrNotRevoker, "Caller does not have authority to revoke")
 	}
 
 	req.AKI = strings.TrimLeft(strings.ToLower(req.AKI), "0")
 	req.Serial = strings.TrimLeft(strings.ToLower(req.Serial), "0")
 
-	certDBAccessor := h.server.caMap[caname].certDBAccessor
-	registry := h.server.caMap[caname].registry
+	certDBAccessor := ca.certDBAccessor
+	registry := ca.registry
 	reason := util.RevocationReasonCodes[req.Reason]
 
 	if req.Serial != "" && req.AKI != "" {
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to retrieve certificate for the provided serial number and AKI: %s", err)
-			log.Errorf(msg)
-			return notFound(w, errors.New(msg))
+			return nil, newHTTPErr(404, ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
+				req.Serial, req.AKI, err)
 		}
 
 		if req.Name != "" && req.Name != certificate.ID {
-			err = fmt.Errorf("The serial number %s and the AKI %s do not belong to the Enrollment ID %s",
+			return nil, newHTTPErr(400, ErrCertWrongOwner, "Certificate with serial %s and AKI %s is not owned by %s",
 				req.Serial, req.AKI, req.Name)
-			return badRequest(w, err)
 		}
 
-		userInfo, err2 := registry.GetUserInfo(certificate.ID)
-		if err2 != nil {
-			msg := fmt.Sprintf("Failed to find user: %s", err2)
-			log.Errorf(msg)
-			return dbErr(w, errors.New(msg))
+		userInfo, err := registry.GetUserInfo(certificate.ID)
+		if err != nil {
+			return nil, newHTTPErr(404, ErrRevokeIDNotFound, "Identity %s was not found: %s", certificate.ID, err)
 		}
 
-		err2 = h.checkAffiliations(cert.Subject.CommonName, userInfo, caname)
-		if err2 != nil {
-			log.Error(err2)
-			return authErr(w, err2)
+		err = checkAffiliations(id, userInfo, ca)
+		if err != nil {
+			return nil, err
 		}
 
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, reason)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to revoke certificate: %s", err)
-			log.Error(msg)
-			return notFound(w, errors.New(msg))
+			return nil, newHTTPErr(500, ErrRevokeFailure, "Revoke of certificate <%s,%s> failed: %s", req.Serial, req.AKI, err)
 		}
 	} else if req.Name != "" {
 
 		user, err := registry.GetUser(req.Name, nil)
 		if err != nil {
-			err = fmt.Errorf("Failed to get identity %s: %s", req.Name, err)
-			return notFound(w, err)
+			return nil, newHTTPErr(404, ErrRevokeIDNotFound, "Identity %s was not found: %s", req.Name, err)
 		}
 
 		// Set user state to -1 for revoked user
@@ -137,30 +96,27 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 			var userInfo spi.UserInfo
 			userInfo, err = registry.GetUserInfo(req.Name)
 			if err != nil {
-				err = fmt.Errorf("Failed to get identity info %s: %s", req.Name, err)
-				return notFound(w, err)
+				return nil, newHTTPErr(500, ErrRevokeUserInfoNotFound, "Failed getting info for identity %s: %s", req.Name, err)
 			}
 
-			err = h.checkAffiliations(cert.Subject.CommonName, userInfo, caname)
+			err = checkAffiliations(id, userInfo, ca)
 			if err != nil {
-				log.Error(err)
-				return authErr(w, err)
+				return nil, err
 			}
 
 			userInfo.State = -1
 
 			err = registry.UpdateUser(userInfo)
 			if err != nil {
-				log.Warningf("Revoke failed: %s", err)
-				return dbErr(w, err)
+				return nil, newHTTPErr(500, ErrRevokeUpdateUser, "Failed to update identity info: %s", err)
 			}
 		}
 
 		var recs []CertRecord
 		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, reason)
 		if err != nil {
-			log.Warningf("No certificates were revoked for '%s' but the ID was disabled: %s", req.Name, err)
-			return dbErr(w, err)
+			return nil, newHTTPErr(500, ErrNoCertsRevoked, "Failed to revoke certificates for '%s': %s",
+				req.Name, err)
 		}
 
 		if len(recs) == 0 {
@@ -170,20 +126,21 @@ func (h *revokeHandler) Handle(w http.ResponseWriter, r *http.Request) error {
 		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
 
 	} else {
-		return badRequest(w, errors.New("Either Name or Serial and AKI are required for a revoke request"))
+		return nil, newHTTPErr(400, ErrMissingRevokeArgs, "Either Name or Serial and AKI are required for a revoke request")
 	}
 
 	log.Debugf("Revoke was successful: %+v", req)
 
+	// TODO: Return the AKI and serial number of certs which were revoked
 	result := map[string]string{}
-	return cfsslapi.SendResponse(w, result)
+	return result, nil
 }
 
-func (h *revokeHandler) checkAffiliations(revoker string, revoking spi.UserInfo, caname string) error {
+func checkAffiliations(revoker string, revoking spi.UserInfo, ca *CA) error {
 	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, revoking.Name)
-	userAffiliation, err := h.server.caMap[caname].getUserAffiliation(revoker)
+	userAffiliation, err := ca.getUserAffiliation(revoker)
 	if err != nil {
-		return err
+		return newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation of %s: %s", revoker, err)
 	}
 
 	log.Debugf("Affiliation of revoker: %s, affiliation of identity being revoked: %s", userAffiliation, revoking.Affiliation)
@@ -198,9 +155,9 @@ func (h *revokeHandler) checkAffiliations(revoker string, revoking spi.UserInfo,
 	revokerAffiliation := strings.Split(userAffiliation, ".")
 	for i := range revokerAffiliation {
 		if revokerAffiliation[i] != revokingAffiliation[i] {
-			return fmt.Errorf("Revoker %s does not have proper affiliation to revoke identity %s", revoker, revoking.Name)
+			return newHTTPErr(401, ErrRevokerNotAffiliated,
+				"Revoker %s does not have proper affiliation to revoke identity %s", revoker, revoking.Name)
 		}
-
 	}
 
 	return nil

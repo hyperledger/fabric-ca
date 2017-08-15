@@ -16,26 +16,6 @@ limitations under the License.
 
 package lib
 
-import (
-	"net/http"
-
-	cfapi "github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/log"
-)
-
-// infoHandler handles the GET /info request
-type infoHandler struct {
-	server *Server
-}
-
-// newInfoHandler is the constructor for the infoHandler
-func newInfoHandler(server *Server) (h http.Handler, err error) {
-	return &cfapi.HTTPHandler{
-		Handler: &infoHandler{server: server},
-		Methods: []string{"POST"},
-	}, nil
-}
-
 // The response to the GET /info request
 type serverInfoResponseNet struct {
 	// CAName is a unique name associated with fabric-ca-server's CA
@@ -44,16 +24,16 @@ type serverInfoResponseNet struct {
 	CAChain string
 }
 
-// Handle is the handler for the GET /info request
-func (ih *infoHandler) Handle(w http.ResponseWriter, r *http.Request) error {
-	log.Debug("Received request for server info")
-
-	caname := r.Header.Get(caHdrName)
-
-	resp := &serverInfoResponseNet{}
-	err := ih.server.caMap[caname].fillCAInfo(resp)
+// Handle is the handler for the GET or POST /info request
+func cainfoHandler(ctx *serverRequestContext) (interface{}, error) {
+	ca, err := ctx.GetCA()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return cfapi.SendResponse(w, resp)
+	resp := &serverInfoResponseNet{}
+	err = ca.fillCAInfo(resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }

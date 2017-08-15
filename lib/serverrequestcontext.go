@@ -74,6 +74,7 @@ func (ctx *serverRequestContext) BasicAuthentication() (string, error) {
 		return "", err
 	}
 	// Error if max enrollments is disabled for this CA
+	log.Debugf("ca.Config: %+v", ca.Config)
 	caMaxEnrollments := ca.Config.Registry.MaxEnrollments
 	if caMaxEnrollments == 0 {
 		return "", newAuthErr(ErrEnrollDisabled, "Enroll is disabled")
@@ -168,17 +169,15 @@ func (ctx *serverRequestContext) GetECert() *x509.Certificate {
 func (ctx *serverRequestContext) GetCA() (*CA, error) {
 	if ctx.ca == nil {
 		// Get the CA name
-		_, err := ctx.getCAName()
+		name, err := ctx.getCAName()
 		if err != nil {
 			return nil, err
 		}
 		// Get the CA by its name
-		/*
-			ctx.ca, err = ctx.endpoint.Server.GetCA(name)
-			if err != nil {
-				return nil, err
-			}
-		*/
+		ctx.ca, err = ctx.endpoint.Server.GetCA(name)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ctx.ca, nil
 }

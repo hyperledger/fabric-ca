@@ -259,6 +259,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		clientCfg.CAName = ca.Config.Intermediate.ParentServer.CAName
 		clientCfg.CSP = ca.Config.CSP
 		clientCfg.CSR = ca.Config.CSR
+		clientCfg.CSP = ca.Config.CSP
 		if ca.Config.CSR.CN != "" {
 			return nil, fmt.Errorf("CN '%s' cannot be specified for an intermediate CA. Remove CN from CSR section for enrollment of intermediate CA to be successful", ca.Config.CSR.CN)
 		}
@@ -268,7 +269,11 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if clientCfg.Enrollment.CSR == nil {
 			clientCfg.Enrollment.CSR = &api.CSRInfo{}
 		}
-		log.Debugf("Intermediate enrollment request: %v", clientCfg.Enrollment)
+		if clientCfg.Enrollment.CSR.CA == nil {
+			clientCfg.Enrollment.CSR.CA = &cfcsr.CAConfig{PathLength: 0, PathLenZero: true}
+		}
+		log.Debugf("Intermediate enrollment request: %+v, CSR: %+v, CA: %+v",
+			clientCfg.Enrollment, clientCfg.Enrollment.CSR, clientCfg.Enrollment.CSR.CA)
 		var resp *EnrollmentResponse
 		resp, err = clientCfg.Enroll(ca.Config.Intermediate.ParentServer.URL, ca.HomeDir)
 		if err != nil {
