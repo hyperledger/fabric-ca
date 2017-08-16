@@ -131,8 +131,6 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 		connStr = fmt.Sprintf("%s sslcert=%s sslkey=%s", connStr, cert, key)
 	}
 
-	log.Debug("Connection String: ", connStr)
-
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		return nil, false, fmt.Errorf("Failed to open Postgres database: %s", err)
@@ -221,7 +219,6 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		mysql.RegisterTLSConfig("custom", tlsConfig)
 	}
 
-	log.Debug("Connection String: ", connStr)
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
 		return nil, false, fmt.Errorf("Failed to open MySQL database: %s", err)
