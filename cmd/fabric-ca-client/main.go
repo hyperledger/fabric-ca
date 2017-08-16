@@ -85,7 +85,8 @@ func init() {
 		&cfgAttrs, "id.attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
 	util.FlagString(pflags, "myhost", "m", host,
 		"Hostname to include in the certificate signing request during enrollment")
-
+	pflags.StringSliceVarP(
+		&cfgCsrNames, "csr.names", "", nil, "A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)")
 	clientCfg = &lib.ClientConfig{}
 	tags := map[string]string{
 		"skip.csr.cn":           "true", // Skip CN on client side as enrollment ID is used as CN

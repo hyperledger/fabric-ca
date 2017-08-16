@@ -19,9 +19,12 @@ package lib
 import (
 	"fmt"
 	"net/url"
+	"path"
 
+	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
@@ -69,4 +72,33 @@ func (c *ClientConfig) Enroll(rawurl, home string) (*EnrollmentResponse, error) 
 	c.Enrollment.CSR = &c.CSR
 	client := &Client{HomeDir: home, Config: c}
 	return client.Enroll(&c.Enrollment)
+}
+
+// GenCSR generates a certificate signing request and writes the CSR to a file.
+func (c *ClientConfig) GenCSR(home string) error {
+
+	client := &Client{HomeDir: home, Config: c}
+	// Generate the CSR
+
+	err := client.Init()
+	if err != nil {
+		return err
+	}
+
+	if c.CSR.CN == "" {
+		return fmt.Errorf("CSR common name not specified; use '--csr.cn' flag")
+	}
+
+	csrPEM, _, err := client.GenCSR(&c.CSR, c.CSR.CN)
+	if err != nil {
+		return err
+	}
+
+	csrFile := path.Join(client.Config.MSPDir, "signcerts", fmt.Sprintf("%s.csr", c.CSR.CN))
+	err = util.WriteFile(csrFile, csrPEM, 0644)
+	if err != nil {
+		return fmt.Errorf("Failed to store the csr: %s", err)
+	}
+	log.Infof("Stored CSR at %s", csrFile)
+	return nil
 }

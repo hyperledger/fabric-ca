@@ -309,6 +309,58 @@ func testEnroll(t *testing.T) {
 	os.Remove(defYaml)
 }
 
+// TestGencsr tests fabric-ca-client gencsr
+func TestGencsr(t *testing.T) {
+	t.Log("Testing gencsr CMD")
+	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
+
+	os.Remove(defYaml) // Clean up any left over config file
+
+	mspDir := filepath.Join(filepath.Dir(defYaml), "msp")
+
+	os.RemoveAll(mspDir)
+
+	defer os.Remove(defYaml)
+
+	err := RunMain([]string{cmdName, "gencsr", "--csr.cn", "identity", "--csr.names", "C=CA,O=Org1,OU=OU1", "-M", mspDir})
+	if err != nil {
+		t.Errorf("client gencsr failed: %s", err)
+	}
+
+	signcerts := path.Join(mspDir, "signcerts")
+	assertOneFileInDir(signcerts, t)
+
+	files, err := ioutil.ReadDir(signcerts)
+	if err != nil {
+		t.Fatalf("Failed to get number of files in directory '%s': %s", signcerts, err)
+	}
+
+	if files[0].Name() != "identity.csr" {
+		t.Fatalf("Failed to find identity.csr in '%s': %s", signcerts, err)
+	}
+
+	cfgCsrNames = []string{}
+	err = RunMain([]string{cmdName, "gencsr", "--csr.cn", "identity", "--csr.names", "C=CA,O=Org1,FOO=BAR", "-M", mspDir})
+	if err == nil {
+		t.Error("Should have failed: Invalid CSR name")
+	}
+
+	cfgCsrNames = []string{}
+	err = RunMain([]string{cmdName, "gencsr", "--csr.cn", "identity", "--csr.names", "C:CA,O=Org1,OU=OU2", "-M", mspDir})
+	if err == nil {
+		t.Error("Should have failed: No '=' for name/value pair")
+	}
+
+	cfgCsrNames = []string{}
+	csrCommonName = ""
+	clientCfg.CSR.CN = ""
+
+	err = RunMain([]string{cmdName, "gencsr", "-c", defYaml, "--csr.names", "C=CA,O=Org1,OU=OU1", "-M", mspDir})
+	if err == nil {
+		t.Error("Should have failed: CSR CN not specified.")
+	}
+}
+
 // TestMOption tests to make sure that the key is stored in the correct
 // directory when the "-M" option is used.
 // This also ensures the intermediatecerts directory structure is populated
