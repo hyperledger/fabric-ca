@@ -55,13 +55,18 @@ func testEndpoint(t *testing.T, method, url string, scode, rcode int) {
 	assert.True(t, resp.StatusCode == scode)
 	buf, err := ioutil.ReadAll(resp.Body)
 	assert.NoError(t, err)
-	var body api.Response
-	err = json.Unmarshal(buf, &body)
-	assert.NoError(t, err)
-	if rcode == 0 {
-		assert.True(t, len(body.Errors) == 0)
+	if method != "HEAD" {
+		var body api.Response
+		err = json.Unmarshal(buf, &body)
+		assert.NoError(t, err)
+		if rcode == 0 {
+			assert.True(t, len(body.Errors) == 0)
+		} else {
+			assert.True(t, body.Errors[0].Code == rcode)
+		}
 	} else {
-		assert.True(t, body.Errors[0].Code == rcode)
+		// No response body
+		assert.True(t, len(buf) == 0)
 	}
 }
 

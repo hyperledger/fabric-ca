@@ -33,7 +33,7 @@ func TestErrorString(t *testing.T) {
 func TestRemoteErrorString(t *testing.T) {
 	lmsg := "local message"
 	rmsg := "remote message"
-	err := newHTTPErr(401, ErrMethodNotAllowed, "%s", lmsg).remote(ErrUnknown, rmsg)
+	err := createHTTPErr(401, ErrMethodNotAllowed, "%s", lmsg).Remote(ErrUnknown, rmsg)
 	errMsg := err.Error()
 	if !strings.HasSuffix(errMsg, rmsg) {
 		t.Errorf("Error message doesn't end with %s: %s", rmsg, errMsg)

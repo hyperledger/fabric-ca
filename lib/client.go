@@ -432,7 +432,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 		}
 		if len(body.Errors) > 0 {
 			msg := body.Errors[0].Message
-			return errors.Errorf("Error response from server was: %s", msg)
+			return errors.Errorf("Response from server: %s", msg)
 		}
 	}
 	scode := resp.StatusCode

@@ -23,6 +23,7 @@ import (
 
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/pkg/errors"
 )
 
 // Error codes
@@ -98,7 +99,7 @@ const (
 )
 
 // Construct a new HTTP error.
-func newHTTPErr(scode, code int, format string, args ...interface{}) *httpErr {
+func createHTTPErr(scode, code int, format string, args ...interface{}) *httpErr {
 	msg := fmt.Sprintf(format, args...)
 	return &httpErr{
 		scode: scode,
@@ -109,11 +110,18 @@ func newHTTPErr(scode, code int, format string, args ...interface{}) *httpErr {
 	}
 }
 
+// Construct a new HTTP error wrappered with pkg/errors error.
+func newHTTPErr(scode, code int, format string, args ...interface{}) error {
+	return errors.Wrap(createHTTPErr(scode, code, format, args...), "")
+}
+
 // Construct an HTTP error specifically indicating an authorization failure.
 // The local code and message is specific, but the remote code and message is generic
 // for security reasons.
-func newAuthErr(code int, format string, args ...interface{}) *httpErr {
-	return newHTTPErr(401, code, format, args).remote(ErrAuthFailure, "Authorization failure")
+func newAuthErr(code int, format string, args ...interface{}) error {
+	he := createHTTPErr(401, code, format, args...)
+	he.Remote(ErrAuthFailure, "Authorization failure")
+	return errors.Wrap(he, "")
 }
 
 // httpErr is an HTTP error.
@@ -145,7 +153,7 @@ func (he *httpErr) String() string {
 }
 
 // Set the remote code and message to something different from that of the local code and message
-func (he *httpErr) remote(code int, format string, args ...interface{}) *httpErr {
+func (he *httpErr) Remote(code int, format string, args ...interface{}) *httpErr {
 	he.rcode = code
 	he.rmsg = fmt.Sprintf(format, args...)
 	return he
