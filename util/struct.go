@@ -17,11 +17,12 @@ limitations under the License.
 package util
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Field is a field of an arbitrary struct

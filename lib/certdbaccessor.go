@@ -17,11 +17,12 @@ limitations under the License.
 package lib
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/certdb"
 	certsql "github.com/cloudflare/cfssl/certdb/sql"
@@ -73,7 +74,7 @@ func NewCertDBAccessor(db *sqlx.DB) *CertDBAccessor {
 
 func (d *CertDBAccessor) checkDB() error {
 	if d.db == nil {
-		return errors.New("Error")
+		return errors.New("Database is not set")
 	}
 	return nil
 }
@@ -118,17 +119,17 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 
 	res, err := d.db.NamedExec(insertSQL, record)
 	if err != nil {
-		return fmt.Errorf("Failed to insert record into database: %s", err)
+		return errors.Wrap(err, "Failed to insert record into database")
 	}
 
 	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
-		return fmt.Errorf("Failed to insert the certificate record")
+		return errors.New("Failed to insert the certificate record; no rows affected")
 	}
 
 	if numRowsAffected != 1 {
-		return fmt.Errorf("Expected to affect 1 entry in certificate database but affected %d",
+		return errors.Errorf("Expected to affect 1 entry in certificate database but affected %d",
 			numRowsAffected)
 	}
 

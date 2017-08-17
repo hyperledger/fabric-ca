@@ -19,10 +19,10 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
@@ -92,11 +92,11 @@ func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, err
 	for _, cacert := range cfg.CertFiles {
 		caCert, err := ioutil.ReadFile(cacert)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read '%s': %s", cacert, err)
+			return nil, errors.Wrapf(err, "Failed to read '%s'", cacert)
 		}
 		ok := rootCAPool.AppendCertsFromPEM(caCert)
 		if !ok {
-			return nil, fmt.Errorf("Failed to process certificate from file %s", cacert)
+			return nil, errors.Errorf("Failed to process certificate from file %s", cacert)
 		}
 	}
 
@@ -162,7 +162,7 @@ func checkCertDates(certFile string) error {
 	log.Debug("Check client TLS certificate for valid dates")
 	certPEM, err := ioutil.ReadFile(certFile)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to read file '%s'", certFile)
 	}
 
 	cert, err := util.GetX509CertificateFromPEM(certPEM)

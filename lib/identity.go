@@ -17,9 +17,10 @@ limitations under the License.
 package lib
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -113,14 +114,14 @@ func (i *Identity) RegisterAndEnroll(req *api.RegistrationRequest) (*Identity, e
 	}
 	rresp, err := i.Register(req)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to register %s: %s", req.Name, err)
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to register %s", req.Name))
 	}
 	eresp, err := i.client.Enroll(&api.EnrollmentRequest{
 		Name:   req.Name,
 		Secret: rresp.Secret,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to enroll %s: %s", req.Name, err)
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to enroll %s", req.Name))
 	}
 	return eresp.Identity, nil
 }
@@ -187,7 +188,7 @@ func (i *Identity) RevokeSelf() error {
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {
-		return fmt.Errorf("An identity with no client may not be stored")
+		return errors.New("An identity with no client may not be stored")
 	}
 	return i.client.StoreMyIdentity(i.ecert.cert)
 }
@@ -214,7 +215,7 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	key := i.ecert.key
 	token, err := util.CreateToken(i.CSP, cert, key, body)
 	if err != nil {
-		return fmt.Errorf("Failed to add token authorization header: %s", err)
+		return errors.WithMessage(err, "Failed to add token authorization header")
 	}
 	req.Header.Set("authorization", token)
 	return nil

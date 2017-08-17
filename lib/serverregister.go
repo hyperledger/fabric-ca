@@ -17,9 +17,10 @@ limitations under the License.
 package lib
 
 import (
-	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 
@@ -79,13 +80,13 @@ func registerUser(req *api.RegistrationRequestNet, registrar string, ca *CA) (st
 
 	err = validateID(req, ca)
 	if err != nil {
-		return "", fmt.Errorf("Registration of '%s' failed in validation: %s", req.Name, err)
+		return "", errors.WithMessage(err, fmt.Sprintf("Registration of '%s' to validate", req.Name))
 	}
 
 	secret, err = registerUserID(req, ca)
 
 	if err != nil {
-		return "", fmt.Errorf("Registration of '%s' failed: %s", req.Name, err)
+		return "", errors.WithMessage(err, fmt.Sprintf("Registration of '%s' failed", req.Name))
 	}
 
 	return secret, nil
@@ -123,7 +124,7 @@ func registerUserID(req *api.RegistrationRequestNet, ca *CA) (string, error) {
 	delegateRoles := GetAttrValue(req.Attributes, attrDelegateRoles)
 	err = util.IsSubsetOf(delegateRoles, roles)
 	if err != nil {
-		return "", fmt.Errorf("delegateRoles is superset of roles: %s", err)
+		return "", errors.WithMessage(err, "The delegateRoles field is a superset of roles")
 	}
 
 	insert := spi.UserInfo{
@@ -139,7 +140,7 @@ func registerUserID(req *api.RegistrationRequestNet, ca *CA) (string, error) {
 
 	_, err = registry.GetUser(req.Name, nil)
 	if err == nil {
-		return "", fmt.Errorf("Identity '%s' is already registered", req.Name)
+		return "", errors.Errorf("Identity '%s' is already registered", req.Name)
 	}
 
 	err = registry.InsertUser(insert)
@@ -155,7 +156,7 @@ func isValidAffiliation(affiliation string, ca *CA) error {
 
 	_, err := ca.registry.GetAffiliation(affiliation)
 	if err != nil {
-		return fmt.Errorf("Failed getting affiliation '%s': %s", affiliation, err)
+		return errors.WithMessage(err, fmt.Sprintf("Failed getting affiliation '%s'", affiliation))
 	}
 
 	return nil
@@ -172,7 +173,7 @@ func canRegister(registrar string, userType string, ca *CA) error {
 
 	user, err := ca.registry.GetUser(registrar, nil)
 	if err != nil {
-		return fmt.Errorf("Registrar does not exist: %s", err)
+		return errors.WithMessage(err, "Registrar does not exist")
 	}
 
 	var roles []string
@@ -184,7 +185,7 @@ func canRegister(registrar string, userType string, ca *CA) error {
 	}
 	if userType != "" {
 		if !util.StrContained(userType, roles) {
-			return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, userType)
+			return errors.Errorf("Identity '%s' may not register type '%s'", registrar, userType)
 		}
 	} else {
 		return errors.New("No identity type provided. Please provide identity type")

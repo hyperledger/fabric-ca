@@ -18,13 +18,14 @@ package main
 
 import (
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -41,7 +42,7 @@ func (c *ClientCmd) newGetCACertCommand() *cobra.Command {
 		// before running the command
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
 			err := c.configInit()
@@ -129,12 +130,12 @@ func storeFile(what, mspDir, subDir, fname string, contents []byte) error {
 	dir := path.Join(mspDir, subDir)
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
-		return fmt.Errorf("Failed to create directory for %s at '%s': %s", what, dir, err)
+		return errors.Wrapf(err, "Failed to create directory for %s at '%s'", what, dir)
 	}
 	fpath := path.Join(dir, fname)
 	err = util.WriteFile(fpath, contents, 0644)
 	if err != nil {
-		return fmt.Errorf("Failed to store %s at '%s': %s", what, fpath, err)
+		return errors.WithMessage(err, fmt.Sprintf("Failed to store %s at '%s'", what, fpath))
 	}
 	log.Infof("Stored %s at %s", what, fpath)
 	return nil

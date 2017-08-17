@@ -25,6 +25,7 @@ import (
 	"github.com/hyperledger/fabric-ca/cmd"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -91,7 +92,7 @@ func (s *ServerCmd) init() {
 	}
 	initCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, initCmd.UsageString())
+			return errors.Errorf(extraArgsError, args, initCmd.UsageString())
 		}
 		err := s.getServer().Init(false)
 		if err != nil {
@@ -110,7 +111,7 @@ func (s *ServerCmd) init() {
 
 	startCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, startCmd.UsageString())
+			return errors.Errorf(extraArgsError, args, startCmd.UsageString())
 		}
 		err := s.getServer().Start()
 		if err != nil {

@@ -17,12 +17,13 @@ limitations under the License.
 package ldap
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/spi"
@@ -65,7 +66,7 @@ func NewClient(cfg *Config, csp bccsp.BCCSP) (*Client, error) {
 	case "ldaps":
 		defaultPort = "636"
 	default:
-		return nil, fmt.Errorf("invalid LDAP scheme: %s", u.Scheme)
+		return nil, errors.Errorf("Invalid LDAP scheme: %s", u.Scheme)
 	}
 	var host, port string
 	if strings.Index(u.Host, ":") < 0 {
@@ -74,12 +75,12 @@ func NewClient(cfg *Config, csp bccsp.BCCSP) (*Client, error) {
 	} else {
 		host, port, err = net.SplitHostPort(u.Host)
 		if err != nil {
-			return nil, fmt.Errorf("invalid LDAP host:port (%s): %s", u.Host, err)
+			return nil, errors.Wrapf(err, "Invalid LDAP host:port (%s)", u.Host)
 		}
 	}
 	portVal, err := strconv.Atoi(port)
 	if err != nil {
-		return nil, fmt.Errorf("invalid LDAP port (%s): %s", port, err)
+		return nil, errors.Wrapf(err, "Invalid LDAP port (%s)", port)
 	}
 	c := new(Client)
 	c.Host = host
@@ -165,7 +166,7 @@ func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error)
 		sresp, err = conn.Search(sreq)
 		if err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("LDAP search failure: %s; search request: %+v", err, sreq)
+			return nil, errors.Wrapf(err, "LDAP search failure; search request: %+v", sreq)
 		}
 		// Cache the connection
 		lc.AdminConn = conn
@@ -173,10 +174,10 @@ func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error)
 
 	// Make sure there was exactly one match found
 	if len(sresp.Entries) < 1 {
-		return nil, fmt.Errorf("User '%s' does not exist in LDAP directory", username)
+		return nil, errors.Errorf("User '%s' does not exist in LDAP directory", username)
 	}
 	if len(sresp.Entries) > 1 {
-		return nil, fmt.Errorf("Multiple users with name '%s' exist in LDAP directory", username)
+		return nil, errors.Errorf("Multiple users with name '%s' exist in LDAP directory", username)
 	}
 
 	DN := sresp.Entries[0].DN
@@ -252,20 +253,20 @@ func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 		log.Debug("Connecting to LDAP server over TCP")
 		conn, err = ldap.Dial("tcp", address)
 		if err != nil {
-			return conn, fmt.Errorf("Failed to connect to LDAP server over TCP at %s: %s", address, err)
+			return conn, errors.Wrapf(err, "Failed to connect to LDAP server over TCP at %s", address)
 		}
 	} else {
 		log.Debug("Connecting to LDAP server over TLS")
 		tlsConfig, err2 := ctls.GetClientTLSConfig(lc.TLS, lc.CSP)
 		if err2 != nil {
-			return nil, fmt.Errorf("Failed to get client TLS config: %s", err2)
+			return nil, errors.WithMessage(err2, "Failed to get client TLS config")
 		}
 
 		tlsConfig.ServerName = lc.Host
 
 		conn, err = ldap.DialTLS("tcp", address, tlsConfig)
 		if err != nil {
-			return conn, fmt.Errorf("Failed to connect to LDAP server over TLS at %s: %s", address, err)
+			return conn, errors.Wrapf(err, "Failed to connect to LDAP server over TLS at %s", address)
 		}
 	}
 	// Bind with a read only user
@@ -273,7 +274,7 @@ func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 		log.Debugf("Binding to the LDAP server as admin user %s", lc.AdminDN)
 		err := conn.Bind(lc.AdminDN, lc.AdminPassword)
 		if err != nil {
-			return nil, fmt.Errorf("LDAP bind failure as %s: %s", lc.AdminDN, err)
+			return nil, errors.Wrapf(err, "LDAP bind failure as %s", lc.AdminDN)
 		}
 	}
 	return conn, nil
@@ -305,7 +306,7 @@ func (u *User) Login(password string, caMaxEnrollment int) error {
 	// Bind calls the LDAP server to check the user's password
 	err = conn.Bind(u.dn, password)
 	if err != nil {
-		return fmt.Errorf("LDAP authentication failure for user '%s' (DN=%s): %s", u.name, u.dn, err)
+		return errors.Wrapf(err, "LDAP authentication failure for user '%s' (DN=%s)", u.name, u.dn)
 	}
 
 	return nil

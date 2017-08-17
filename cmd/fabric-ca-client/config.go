@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"reflect"
 
 	"github.com/cloudflare/cfssl/csr"
@@ -210,7 +212,7 @@ func (c *ClientCmd) configInit() error {
 	if !filepath.IsAbs(c.cfgFileName) {
 		c.cfgFileName, err = filepath.Abs(c.cfgFileName)
 		if err != nil {
-			return fmt.Errorf("Failed to get full path of config file: %s", err)
+			return errors.Wrap(err, "Failed to get full path of config file")
 		}
 	}
 
@@ -232,7 +234,7 @@ func (c *ClientCmd) configInit() error {
 		if !util.FileExists(c.cfgFileName) {
 			err = c.createDefaultConfigFile()
 			if err != nil {
-				return fmt.Errorf("Failed to create default configuration file: %s", err)
+				return errors.WithMessage(err, "Failed to create default configuration file")
 			}
 			log.Infof("Created a default configuration file at %s", c.cfgFileName)
 		}
@@ -246,7 +248,7 @@ func (c *ClientCmd) configInit() error {
 	if util.FileExists(c.cfgFileName) {
 		err = viper.ReadInConfig()
 		if err != nil {
-			return fmt.Errorf("Failed to read config file: %s", err)
+			return errors.Wrap(err, "Failed to read config file")
 		}
 	}
 
@@ -261,12 +263,12 @@ func (c *ClientCmd) configInit() error {
 		}
 		err = util.ViperUnmarshal(c.clientCfg, sliceFields, viper.GetViper())
 		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", c.cfgFileName, err)
+			return errors.WithMessage(err, fmt.Sprintf("Incorrect format in file '%s'", c.cfgFileName))
 		}
 	} else {
 		err = viper.Unmarshal(c.clientCfg)
 		if err != nil {
-			return fmt.Errorf("Incorrect format in file '%s': %s", c.cfgFileName, err)
+			return errors.Wrapf(err, "Incorrect format in file '%s'", c.cfgFileName)
 		}
 	}
 
@@ -302,7 +304,7 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	} else {
 		URL, err := url.Parse(fabricCAServerURL)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Failed to parse URL '%s'", fabricCAServerURL)
 		}
 		fabricCAServerURL = fmt.Sprintf("%s://%s", URL.Scheme, URL.Host)
 	}
@@ -330,7 +332,7 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	cfgDir := filepath.Dir(c.cfgFileName)
 	err = os.MkdirAll(cfgDir, 0755)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to create directory at '%s'", cfgDir)
 	}
 	// Now write the file
 	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0755)
@@ -343,7 +345,7 @@ func processAttributes(cfgAttrs []string, cfg *lib.ClientConfig) error {
 		for idx, attr := range cfgAttrs {
 			sattr := strings.SplitN(attr, "=", 2)
 			if len(sattr) != 2 {
-				return fmt.Errorf("Attribute '%s' is missing '=' ; it must be of the form <name>=<value>", attr)
+				return errors.Errorf("Attribute '%s' is missing '=' ; it must be of the form <name>=<value>", attr)
 			}
 			cfg.ID.Attributes[idx].Name = sattr[0]
 			cfg.ID.Attributes[idx].Value = sattr[1]
@@ -359,13 +361,13 @@ func (c *ClientCmd) processCsrNames() error {
 		for idx, name := range c.cfgCsrNames {
 			sname := strings.SplitN(name, "=", 2)
 			if len(sname) != 2 {
-				return fmt.Errorf("CSR name/value '%s' is missing '=' ; it must be of the form <name>=<value>", name)
+				return errors.Errorf("CSR name/value '%s' is missing '=' ; it must be of the form <name>=<value>", name)
 			}
 			v := reflect.ValueOf(&c.clientCfg.CSR.Names[idx]).Elem().FieldByName(sname[0])
 			if v.IsValid() {
 				v.SetString(sname[1])
 			} else {
-				return fmt.Errorf("Invalid CSR name: '%s'", sname[0])
+				return errors.Errorf("Invalid CSR name: '%s'", sname[0])
 			}
 		}
 	}

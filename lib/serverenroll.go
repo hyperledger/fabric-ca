@@ -20,8 +20,8 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
-	"errors"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
@@ -101,7 +101,7 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 	// Sign the certificate
 	cert, err := ca.enrollSigner.Sign(req.SignRequest)
 	if err != nil {
-		return nil, fmt.Errorf("Signing failure: %s", err)
+		return nil, errors.WithMessage(err, "Certificate signing failure")
 	}
 	// Add server info to the response
 	resp := &enrollmentResponseNet{Cert: util.B64Encode(cert)}
@@ -135,7 +135,7 @@ func csrAuthCheck(id string, req *signer.SignRequest, ca *CA) error {
 	}
 	log.Debugf("csrAuthCheck: id=%s, CommonName=%s, Subject=%+v", id, csrReq.Subject.CommonName, req.Subject)
 	if (req.Subject != nil && req.Subject.CN != id) || csrReq.Subject.CommonName != id {
-		return fmt.Errorf("The CSR subject common name must equal the enrollment ID")
+		return errors.New("The CSR subject common name must equal the enrollment ID")
 	}
 	// Check the CSR for the X.509 BasicConstraints extension (RFC 5280, 4.2.1.9)
 	for _, val := range csrReq.Extensions {
@@ -168,31 +168,31 @@ func csrInputLengthCheck(req *x509.CertificateRequest) error {
 		switch {
 		case n.Type.Equal(commonNameOID):
 			if len(value) > commonNameLength {
-				return fmt.Errorf("The CN '%s' exceeds the maximum character limit of %d", value, commonNameLength)
+				return errors.Errorf("The CN '%s' exceeds the maximum character limit of %d", value, commonNameLength)
 			}
 		case n.Type.Equal(serialNumberOID):
 			if len(value) > serialNumberLength {
-				return fmt.Errorf("The serial number '%s' exceeds the maximum character limit of %d", value, serialNumberLength)
+				return errors.Errorf("The serial number '%s' exceeds the maximum character limit of %d", value, serialNumberLength)
 			}
 		case n.Type.Equal(organizationalUnitOID):
 			if len(value) > organizationalUnitNameLength {
-				return fmt.Errorf("The organizational unit name '%s' exceeds the maximum character limit of %d", value, organizationalUnitNameLength)
+				return errors.Errorf("The organizational unit name '%s' exceeds the maximum character limit of %d", value, organizationalUnitNameLength)
 			}
 		case n.Type.Equal(organizationOID):
 			if len(value) > organizationNameLength {
-				return fmt.Errorf("The organization name '%s' exceeds the maximum character limit of %d", value, organizationNameLength)
+				return errors.Errorf("The organization name '%s' exceeds the maximum character limit of %d", value, organizationNameLength)
 			}
 		case n.Type.Equal(countryOID):
 			if len(value) > countryNameLength {
-				return fmt.Errorf("The country name '%s' exceeds the maximum character limit of %d", value, countryNameLength)
+				return errors.Errorf("The country name '%s' exceeds the maximum character limit of %d", value, countryNameLength)
 			}
 		case n.Type.Equal(localityOID):
 			if len(value) > localityNameLength {
-				return fmt.Errorf("The locality name '%s' exceeds the maximum character limit of %d", value, localityNameLength)
+				return errors.Errorf("The locality name '%s' exceeds the maximum character limit of %d", value, localityNameLength)
 			}
 		case n.Type.Equal(stateOID):
 			if len(value) > stateOrProvinceNameLength {
-				return fmt.Errorf("The state name '%s' exceeds the maximum character limit of %d", value, stateOrProvinceNameLength)
+				return errors.Errorf("The state name '%s' exceeds the maximum character limit of %d", value, stateOrProvinceNameLength)
 			}
 		}
 	}

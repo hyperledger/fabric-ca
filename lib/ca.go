@@ -22,7 +22,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,6 +30,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
@@ -195,7 +196,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			log.Infof("Certificate file location: %s", certFile)
 			err = ca.validateCert(certFile, keyFile)
 			if err != nil {
-				return fmt.Errorf("Validation of certificate and key failed: %s", err)
+				return errors.WithMessage(err, "Validation of certificate and key failed")
 			}
 			// Load CN from existing enrollment information and set CSR accordingly
 			// CN needs to be set, having a multi CA setup requires a unique CN and can't
@@ -236,7 +237,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 	// Store the certificate to file
 	err = writeFile(certFile, cert, 0644)
 	if err != nil {
-		return fmt.Errorf("Failed to store certificate: %s", err)
+		return errors.Wrap(err, "Failed to store certificate")
 	}
 	log.Infof("The CA key and certificate were generated for CA %s", ca.Config.CA.Name)
 	log.Infof("The key was stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
@@ -262,7 +263,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		clientCfg.CSR = ca.Config.CSR
 		clientCfg.CSP = ca.Config.CSP
 		if ca.Config.CSR.CN != "" {
-			return nil, fmt.Errorf("CN '%s' cannot be specified for an intermediate CA. Remove CN from CSR section for enrollment of intermediate CA to be successful", ca.Config.CSR.CN)
+			return nil, errors.Errorf("CN '%s' cannot be specified for an intermediate CA. Remove CN from CSR section for enrollment of intermediate CA to be successful", ca.Config.CSR.CN)
 		}
 		if clientCfg.Enrollment.Profile == "" {
 			clientCfg.Enrollment.Profile = "ca"
@@ -292,18 +293,18 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if chainPath == "" {
 			chainPath, err = util.MakeFileAbs("ca-chain.pem", ca.HomeDir)
 			if err != nil {
-				return nil, fmt.Errorf("Failed to create intermediate chain file path: %s", err)
+				return nil, errors.WithMessage(err, "Failed to create intermediate chain file path")
 			}
 			ca.Config.CA.Chainfile = chainPath
 		}
 		chain := ca.concatChain(resp.ServerInfo.CAChain, cert)
 		err = os.MkdirAll(path.Dir(chainPath), 0755)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to create intermediate chain file directory: %s", err)
+			return nil, errors.Wrap(err, "Failed to create intermediate chain file directory")
 		}
 		err = util.WriteFile(chainPath, chain, 0644)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to create intermediate chain file: %s", err)
+			return nil, errors.WithMessage(err, "Failed to create intermediate chain file")
 		}
 		log.Debugf("Stored intermediate certificate chain at %s", chainPath)
 	} else {
@@ -336,7 +337,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		// Call CFSSL to initialize the CA
 		cert, _, err = initca.NewFromSigner(&req, cspSigner)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to create new CA certificate: %s", err)
+			return nil, errors.WithMessage(err, "Failed to create new CA certificate")
 		}
 	}
 	return cert, nil
@@ -366,7 +367,7 @@ func (ca *CA) getCAChain() (chain []byte, err error) {
 	}
 	// If this is an intermediate CA but the ca.Chainfile doesn't exist,
 	// it is an error.  It should have been created during intermediate CA enrollment.
-	return nil, fmt.Errorf("Chain file does not exist at %s", certAuth.Chainfile)
+	return nil, errors.Errorf("Chain file does not exist at %s", certAuth.Chainfile)
 }
 
 // Initialize the configuration for the CA setting any defaults and making filenames absolute
@@ -375,7 +376,7 @@ func (ca *CA) initConfig() (err error) {
 	if ca.HomeDir == "" {
 		ca.HomeDir, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("Failed to initialize CA's home directory: %s", err)
+			return errors.Wrap(err, "Failed to initialize CA's home directory")
 		}
 	}
 	log.Debugf("CA Home Directory: %s", ca.HomeDir)
@@ -427,11 +428,11 @@ func (ca *CA) initConfig() (err error) {
 func (ca *CA) VerifyCertificate(cert *x509.Certificate) error {
 	opts, err := ca.getVerifyOptions()
 	if err != nil {
-		return fmt.Errorf("Failed to get verify options: %s", err)
+		return errors.WithMessage(err, "Failed to get verify options")
 	}
 	_, err = cert.Verify(*opts)
 	if err != nil {
-		return fmt.Errorf("Failed to verify certificate: %s", err)
+		return errors.WithMessage(err, "Failed to verify certificate")
 	}
 	return nil
 }
@@ -451,7 +452,7 @@ func (ca *CA) getVerifyOptions() (*x509.VerifyOptions, error) {
 	}
 	rootCert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse root certificate: %s", err)
+		return nil, errors.Wrap(err, "Failed to parse root certificate")
 	}
 	rootPool := x509.NewCertPool()
 	rootPool.AddCert(rootCert)
@@ -517,7 +518,7 @@ func (ca *CA) initDB() error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
+		return errors.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
 	}
 
 	// Set the certificate DB accessor
@@ -598,7 +599,7 @@ func (ca *CA) initEnrollmentSigner() (err error) {
 	if parentServerURL != "" {
 		err = policy.OverrideRemotes(parentServerURL)
 		if err != nil {
-			return fmt.Errorf("Failed initializing enrollment signer: %s", err)
+			return errors.Wrap(err, "Failed initializing enrollment signer")
 		}
 	}
 
@@ -687,7 +688,7 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 	user, _ := ca.registry.GetUser(id.Name, nil)
 	if user != nil {
 		if errIfFound {
-			return fmt.Errorf("Identity '%s' is already registered", id.Name)
+			return errors.Errorf("Identity '%s' is already registered", id.Name)
 		}
 		log.Debugf("Loaded identity: %+v", id)
 		return nil
@@ -708,7 +709,7 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 	}
 	err = ca.registry.InsertUser(rec)
 	if err != nil {
-		return fmt.Errorf("Failed to insert identity '%s': %s", id.Name, err)
+		return errors.WithMessage(err, fmt.Sprintf("Failed to insert identity '%s'", id.Name))
 	}
 	log.Debugf("Registered identity: %+v", id)
 	return nil
@@ -785,7 +786,7 @@ func (ca *CA) userHasAttribute(username, attrname string) (string, error) {
 		return "", err
 	}
 	if val == "" {
-		return "", fmt.Errorf("Identity '%s' does not have attribute '%s'", username, attrname)
+		return "", errors.Errorf("Identity '%s' does not have attribute '%s'", username, attrname)
 	}
 	return val, nil
 }
@@ -800,12 +801,12 @@ func (ca *CA) attributeIsTrue(username, attrname string) error {
 	}
 	val2, err := strconv.ParseBool(val)
 	if err != nil {
-		return fmt.Errorf("Invalid value for attribute '%s' of identity '%s': %s", attrname, username, err)
+		return errors.Wrapf(err, "Invalid value for attribute '%s' of identity '%s'", attrname, username)
 	}
 	if val2 {
 		return nil
 	}
-	return fmt.Errorf("Attribute '%s' is not set to true for identity '%s'", attrname, username)
+	return errors.Errorf("Attribute '%s' is not set to true for identity '%s'", attrname, username)
 }
 
 // getUserAttrValue returns a user's value for an attribute
@@ -851,33 +852,33 @@ func (ca *CA) validateCert(certFile string, keyFile string) error {
 
 	certPEM, err = ioutil.ReadFile(certFile)
 	if err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.Wrapf(err, certificateError+" '%s'", certFile)
 	}
 
 	cert, err := util.GetX509CertificateFromPEM(certPEM)
 	if err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 
 	if err = validateDates(cert); err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateUsage(cert); err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateIsCA(cert); err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateKeyType(cert); err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateKeySize(cert); err != nil {
-		return fmt.Errorf(certificateError+" '%s': %s", certFile, err)
+		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateMatchingKeys(cert, keyFile); err != nil {
-		return fmt.Errorf("Invalid certificate and/or key in files '%s' and '%s': %s", certFile, keyFile, err)
+		return errors.WithMessage(err, fmt.Sprintf("Invalid certificate and/or key in files '%s' and '%s'", certFile, keyFile))
 	}
-	log.Debug("Validation of CA certificate and key successfull")
+	log.Debug("Validation of CA certificate and key successful")
 
 	return nil
 }

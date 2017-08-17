@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/cloudflare/cfssl/log"
 	"github.com/mitchellh/mapstructure"
 	"github.com/op/go-logging"
@@ -69,7 +71,7 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 	}
 	// Don't register fields with no address
 	if f.Addr == nil {
-		return fmt.Errorf("Field is not addressable: %s", f.Path)
+		return errors.Errorf("Field is not addressable: %s", f.Path)
 	}
 	skip := fr.getTag(f, TagSkip)
 	if skip != "" {
@@ -81,37 +83,37 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 	switch f.Kind {
 	case reflect.String:
 		if help == "" {
-			return fmt.Errorf("Field is missing a help tag: %s", f.Path)
+			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		fr.flags.StringVarP(f.Addr.(*string), f.Path, opt, def, help)
 	case reflect.Int:
 		if help == "" {
-			return fmt.Errorf("Field is missing a help tag: %s", f.Path)
+			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		var intDef int
 		if def != "" {
 			intDef, err = strconv.Atoi(def)
 			if err != nil {
-				return fmt.Errorf("Invalid integer value in 'def' tag of %s field", f.Path)
+				return errors.Errorf("Invalid integer value in 'def' tag of %s field", f.Path)
 			}
 		}
 		fr.flags.IntVarP(f.Addr.(*int), f.Path, opt, intDef, help)
 	case reflect.Bool:
 		if help == "" {
-			return fmt.Errorf("Field is missing a help tag: %s", f.Path)
+			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		var boolDef bool
 		if def != "" {
 			boolDef, err = strconv.ParseBool(def)
 			if err != nil {
-				return fmt.Errorf("Invalid boolean value in 'def' tag of %s field", f.Path)
+				return errors.Errorf("Invalid boolean value in 'def' tag of %s field", f.Path)
 			}
 		}
 		fr.flags.BoolVarP(f.Addr.(*bool), f.Path, opt, boolDef, help)
 	case reflect.Slice:
 		if f.Type.Elem().Kind() == reflect.String {
 			if help == "" {
-				return fmt.Errorf("Field is missing a help tag: %s", f.Path)
+				return errors.Errorf("Field is missing a help tag: %s", f.Path)
 			}
 			fr.flags.StringSliceVarP(f.Addr.(*[]string), f.Path, opt, nil, help)
 		} else {
@@ -177,7 +179,7 @@ func ViperUnmarshal(cfg interface{}, stringSliceFields []string, vp *viper.Viper
 	}
 	decoder, err := mapstructure.NewDecoder(decoderConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to create decoder: %s", err)
+		return errors.Wrap(err, "Failed to create decoder")
 	}
 	settings := vp.AllSettings()
 	for _, field := range stringSliceFields {

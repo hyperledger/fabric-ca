@@ -20,7 +20,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,6 +32,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
@@ -195,7 +196,7 @@ func (s *Server) initConfig() (err error) {
 	if s.HomeDir == "" {
 		s.HomeDir, err = os.Getwd()
 		if err != nil {
-			return fmt.Errorf("Failed to get server's home directory: %s", err)
+			return errors.Wrap(err, "Failed to get server's home directory")
 		}
 	}
 	// Create config if not set
@@ -227,7 +228,7 @@ func (s *Server) initConfig() (err error) {
 func (s *Server) initMultiCAConfig() (err error) {
 	cfg := s.Config
 	if cfg.CAcount != 0 && len(cfg.CAfiles) > 0 {
-		return fmt.Errorf("The --cacount and --cafiles options are mutually exclusive")
+		return errors.New("The --cacount and --cafiles options are mutually exclusive")
 	}
 	cfg.CAfiles, err = util.NormalizeFileList(cfg.CAfiles, s.HomeDir)
 	if err != nil {
@@ -275,7 +276,7 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 	var err error
 
 	if !util.FileExists(caFile) {
-		return fmt.Errorf("%s file does not exist", caFile)
+		return errors.Errorf("%s file does not exist", caFile)
 	}
 
 	// Creating new Viper instance, to prevent any server level environment variables or
@@ -292,7 +293,7 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 	// the name of default CA cause CA names must be unique
 	caName := cfg.CA.Name
 	if caName == "" {
-		return fmt.Errorf("No CA name provided in CA configuration file. CA name is required in %s", caFile)
+		return errors.Errorf("No CA name provided in CA configuration file. CA name is required in %s", caFile)
 	}
 
 	// Replace missing values in CA configuration values with values from the
@@ -333,7 +334,7 @@ func (s *Server) addCA(ca *CA) error {
 	caName := ca.Config.CA.Name
 	for _, c := range s.caMap {
 		if c.Config.CA.Name == caName {
-			return fmt.Errorf("CA name '%s' is used in '%s' and '%s'",
+			return errors.Errorf("CA name '%s' is used in '%s' and '%s'",
 				caName, ca.ConfigFilePath, c.ConfigFilePath)
 		}
 		err := s.compareDN(c.Config.CA.Certfile, ca.Config.CA.Certfile)
@@ -477,13 +478,13 @@ func (s *Server) listenAndServe() (err error) {
 
 		listener, err = tls.Listen("tcp", addr, config)
 		if err != nil {
-			return fmt.Errorf("TLS listen failed for %s: %s", addrStr, err)
+			return errors.Wrapf(err, "TLS listen failed for %s", addrStr)
 		}
 	} else {
 		addrStr = fmt.Sprintf("http://%s", addr)
 		listener, err = net.Listen("tcp", addr)
 		if err != nil {
-			return fmt.Errorf("TCP listen failed for %s: %s", addrStr, err)
+			return errors.Wrapf(err, "TCP listen failed for %s", addrStr)
 		}
 	}
 	s.listener = listener
@@ -492,7 +493,7 @@ func (s *Server) listenAndServe() (err error) {
 	err = s.checkAndEnableProfiling()
 	if err != nil {
 		s.closeListener()
-		return fmt.Errorf("TCP listen for profiling failed: %s", err)
+		return errors.WithMessage(err, "TCP listen for profiling failed")
 	}
 
 	// Start serving requests, either blocking or non-blocking
@@ -572,7 +573,7 @@ func (s *Server) closeListener() error {
 	if s.listener == nil {
 		msg := fmt.Sprintf("Stop: listener was already closed on port %d", port)
 		log.Debugf(msg)
-		return fmt.Errorf(msg)
+		return errors.New(msg)
 	}
 	err := s.listener.Close()
 	s.listener = nil
@@ -598,7 +599,7 @@ func (s *Server) compareDN(existingCACertFile, newCACertFile string) error {
 
 	err = existingDN.equal(newDN)
 	if err != nil {
-		return fmt.Errorf("Please modify CSR in %s and try adding CA again: %s", newCACertFile, err)
+		return errors.Wrapf(err, "Please modify CSR in %s and try adding CA again", newCACertFile)
 	}
 	return nil
 }
@@ -612,7 +613,7 @@ func (s *Server) fetchCRL(r io.Reader) ([]byte, error) {
 
 	crl, err := util.Read(r, crl)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading CRL with max buffer size of %d: %s", crlSizeLimit, err)
+		return nil, errors.WithMessage(err, fmt.Sprintf("Error reading CRL with max buffer size of %d", crlSizeLimit))
 	}
 
 	return crl, nil

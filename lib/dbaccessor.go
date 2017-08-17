@@ -18,9 +18,9 @@ package lib
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -119,7 +119,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 	pwd := []byte(user.Pass)
 	pwd, err = bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("Failed to hash password: %s", err)
+		return errors.Wrap(err, "Failed to hash password")
 	}
 
 	// Store the user record in the DB
@@ -134,7 +134,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Error adding identity '%s' to the database: %s", user.Name, err)
+		return errors.Wrapf(err, "Error adding identity '%s' to the database", user.Name)
 	}
 
 	numRowsAffected, err := res.RowsAffected()
@@ -143,11 +143,11 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 	}
 
 	if numRowsAffected == 0 {
-		return fmt.Errorf("Failed to add identity %s to the database", user.Name)
+		return errors.Errorf("Failed to add identity %s to the database", user.Name)
 	}
 
 	if numRowsAffected != 1 {
-		return fmt.Errorf("Expected to add one record to the database, but %d records were added", numRowsAffected)
+		return errors.Errorf("Expected to add one record to the database, but %d records were added", numRowsAffected)
 	}
 
 	log.Debugf("Successfully added identity %s to the database", user.Name)
@@ -182,14 +182,14 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 
 	attributes, err := json.Marshal(user.Attributes)
 	if err != nil {
-		return fmt.Errorf("Failed to marshal user attributes: %s", err)
+		return errors.Wrap(err, "Failed to marshal user attributes")
 	}
 
 	// Hash the password before storing it
 	pwd := []byte(user.Pass)
 	pwd, err = bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("Failed to hash password: %s", err)
+		return errors.Wrap(err, "Failed to hash password")
 	}
 
 	// Store the updated user entry
@@ -204,7 +204,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("Failed to update identity record: %s", err)
+		return errors.Wrap(err, "Failed to update identity record")
 	}
 
 	numRowsAffected, err := res.RowsAffected()
@@ -214,7 +214,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 	}
 
 	if numRowsAffected != 1 {
-		return fmt.Errorf("Expected one identity record to be updated, but %d records were updated", numRowsAffected)
+		return errors.Errorf("Expected one identity record to be updated, but %d records were updated", numRowsAffected)
 	}
 
 	return err
@@ -364,15 +364,15 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 	// Check the password by comparing to stored hash
 	err := bcrypt.CompareHashAndPassword(u.pass, []byte(pass))
 	if err != nil {
-		return fmt.Errorf("Password mismatch: %s", err)
+		return errors.Wrap(err, "Password mismatch")
 	}
 
 	if u.MaxEnrollments == 0 {
-		return fmt.Errorf("Zero is an invalid value for maximum enrollments on identity '%s'", u.Name)
+		return errors.Errorf("Zero is an invalid value for maximum enrollments on identity '%s'", u.Name)
 	}
 
 	if u.State == -1 {
-		return fmt.Errorf("User %s is revoked; access denied", u.Name)
+		return errors.Errorf("User %s is revoked; access denied", u.Name)
 	}
 
 	// If max enrollment value of user is greater than allowed by CA, using CA max enrollment value for user
@@ -385,7 +385,7 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 	// If the maxEnrollments is set (i.e. >= 1), make sure we haven't exceeded this number of logins.
 	// The state variable keeps track of the number of previously successful logins.
 	if u.MaxEnrollments != -1 && u.State >= u.MaxEnrollments {
-		return fmt.Errorf("The identity %s has already enrolled %d times, it has reached its maximum enrollment allowance", u.Name, u.MaxEnrollments)
+		return errors.Errorf("The identity %s has already enrolled %d times, it has reached its maximum enrollment allowance", u.Name, u.MaxEnrollments)
 	}
 
 	// Not exceeded, so attempt to increment the count
@@ -401,20 +401,20 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 	}
 	res, err := u.db.Exec(u.db.Rebind(stateUpdateSQL), args...)
 	if err != nil {
-		return fmt.Errorf("Failed to update state of identity %s to %d: %s", u.Name, state, err)
+		return errors.Wrapf(err, "Failed to update state of identity %s to %d", u.Name, state)
 	}
 
 	numRowsAffected, err := res.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("db.RowsAffected failed: %s", err)
+		return errors.Wrap(err, "db.RowsAffected failed")
 	}
 
 	if numRowsAffected == 0 {
-		return fmt.Errorf("No rows were affected when updating the state of identity %s", u.Name)
+		return errors.Errorf("No rows were affected when updating the state of identity %s", u.Name)
 	}
 
 	if numRowsAffected != 1 {
-		return fmt.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, u.Name)
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, u.Name)
 	}
 
 	log.Debugf("Successfully incremented state for identity %s to %d", u.Name, state)
@@ -438,7 +438,7 @@ func (u *DBUser) GetAttribute(name string) string {
 
 func dbGetError(err error, prefix string) error {
 	if err.Error() == "sql: no rows in result set" {
-		return fmt.Errorf("%s not found", prefix)
+		return errors.Errorf("%s not found", prefix)
 	}
 	return err
 }

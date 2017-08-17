@@ -23,6 +23,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ func (c *ClientCmd) newReenrollCommand() *cobra.Command {
 		// information exists before running the command
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
 			err := c.configInit()
@@ -82,7 +83,7 @@ func (c *ClientCmd) runReenroll() error {
 
 	resp, err := id.Reenroll(req)
 	if err != nil {
-		return fmt.Errorf("Failed to store enrollment information: %s", err)
+		return errors.WithMessage(err, fmt.Sprintf("Failed to reenroll '%s'", id.GetName()))
 	}
 
 	err = resp.Identity.Store()

@@ -17,10 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
@@ -37,7 +38,7 @@ func (c *ClientCmd) newEnrollCommand() *cobra.Command {
 		// reading configuration file
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
 			_, _, err := util.GetUser()
@@ -78,19 +79,19 @@ func (c *ClientCmd) runEnroll(cmd *cobra.Command) error {
 
 	cfgFile, err := ioutil.ReadFile(c.cfgFileName)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to read file at '%s'", c.cfgFileName)
 	}
 
 	cfg := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
 
 	err = ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0644)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to write file at '%s'", c.cfgFileName)
 	}
 
 	err = ID.Store()
 	if err != nil {
-		return fmt.Errorf("Failed to store enrollment information: %s", err)
+		return errors.WithMessage(err, "Failed to store enrollment information")
 	}
 
 	err = storeCAChain(c.clientCfg, &resp.ServerInfo)

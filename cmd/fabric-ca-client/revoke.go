@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"errors"
-	"fmt"
 	"path/filepath"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -38,7 +38,7 @@ func (c *ClientCmd) newRevokeCommand() *cobra.Command {
 		// information exists before running the command
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
 			err := c.configInit()
