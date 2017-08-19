@@ -33,53 +33,48 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// getCACertCmd represents the "getcacert" command
-var getCACertCmd = &cobra.Command{
-	Use:   "getcacert -u http://serverAddr:serverPort -M <MSP-directory>",
-	Short: "Get CA certificate chain",
-	// PreRunE block for this command will load client configuration
-	// before running the command
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
-		}
+func (c *ClientCmd) newGetCACertCommand() *cobra.Command {
+	getCACertCmd := &cobra.Command{
+		Use:   "getcacert -u http://serverAddr:serverPort -M <MSP-directory>",
+		Short: "Get CA certificate chain",
+		// PreRunE block for this command will load client configuration
+		// before running the command
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf(extraArgsError, args, cmd.UsageString())
+			}
 
-		err := configInit(cmd.Name())
-		if err != nil {
-			return err
-		}
+			err := c.configInit()
+			if err != nil {
+				return err
+			}
 
-		log.Debugf("Client configuration settings: %+v", clientCfg)
+			log.Debugf("Client configuration settings: %+v", c.clientCfg)
 
-		return nil
-	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 0 {
-			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
-		}
-		err := runGetCACert()
-		if err != nil {
-			return err
-		}
-		return nil
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(getCACertCmd)
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			err := c.runGetCACert()
+			if err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	return getCACertCmd
 }
 
 // The client "getcacert" main logic
-func runGetCACert() error {
+func (c *ClientCmd) runGetCACert() error {
 	log.Debug("Entered runGetCACert")
 
 	client := &lib.Client{
-		HomeDir: filepath.Dir(cfgFileName),
-		Config:  clientCfg,
+		HomeDir: filepath.Dir(c.cfgFileName),
+		Config:  c.clientCfg,
 	}
 
 	req := &api.GetCAInfoRequest{
-		CAName: clientCfg.CAName,
+		CAName: c.clientCfg.CAName,
 	}
 
 	si, err := client.GetCAInfo(req)
