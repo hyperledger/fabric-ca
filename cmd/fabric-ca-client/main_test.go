@@ -57,6 +57,7 @@ const (
 	clientKeyEnvVar      = "FABRIC_CA_CLIENT_TLS_CLIENT_KEYFILE"
 	clientCertEnvVar     = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
 	moptionDir           = "moption-test"
+	clientCMD            = "fabric-ca-client"
 )
 
 const jsonConfig = `{
@@ -977,6 +978,49 @@ func TestMSPDirectoryCreation(t *testing.T) {
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
 	}
+}
+
+func TestHomeDirectory(t *testing.T) {
+	configFilePath := util.GetDefaultConfigFile(clientCMD)
+	defaultClientConfigDir, defaultClientConfigFile := filepath.Split(configFilePath)
+
+	os.RemoveAll("../../testdata/testhome")
+	defer os.RemoveAll("../../testdata/testhome")
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-c", ""})
+	if !util.FileExists(configFilePath) {
+		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config) in the default home directory")
+	}
+
+	os.RemoveAll(defaultClientConfigDir) // Remove default directory before testing another default case
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", ""})
+	if !util.FileExists(configFilePath) {
+		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config) in the default home directory")
+	}
+
+	os.RemoveAll(defaultClientConfigDir) // Remove default directory before testing another default case
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	if !util.FileExists(configFilePath) {
+		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config) in the default home directory")
+	}
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", "../../testdata/testhome/testclientcmd"})
+	if !util.FileExists(filepath.Join("../../testdata/testhome/testclientcmd", defaultClientConfigFile)) {
+		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config.yaml) in the '../../testdata/testhome/testclientcmd' directory")
+	}
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-c", "../../testdata/testhome/testclientcmd2/testconfig2.yaml"})
+	if !util.FileExists("../../testdata/testhome/testclientcmd2/testconfig2.yaml") {
+		t.Errorf("Failed to correctly created the config (testconfig2.yaml) in the '../../testdata/testhome/testclientcmd2' directory")
+	}
+
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-H", "../../testdata/testclientcmd3", "-c", "../../testdata/testhome/testclientcmd3/testconfig3.yaml"})
+	if !util.FileExists("../../testdata/testhome/testclientcmd3/testconfig3.yaml") {
+		t.Errorf("Failed to correctly created the config (testconfig3.yaml) in the '../../testdata/testhome/testclientcmd3' directory")
+	}
+
 }
 
 func TestCleanUp(t *testing.T) {

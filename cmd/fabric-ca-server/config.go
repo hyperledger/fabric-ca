@@ -382,13 +382,13 @@ func (s *ServerCmd) configInit() (err error) {
 	if !s.configRequired() {
 		return nil
 	}
-	// Make the config file name absolute
-	if !filepath.IsAbs(s.cfgFileName) {
-		s.cfgFileName, err = filepath.Abs(s.cfgFileName)
-		if err != nil {
-			return errors.Wrap(err, "Failed to get full path of config file")
-		}
+
+	s.cfgFileName, s.homeDirectory, err = util.ValidateAndReturnAbsConf(s.cfgFileName, s.homeDirectory, cmdName)
+	if err != nil {
+		return err
 	}
+
+	log.Debugf("Home directory: %s", s.homeDirectory)
 
 	// If the config file doesn't exist, create a default one
 	if !util.FileExists(s.cfgFileName) {

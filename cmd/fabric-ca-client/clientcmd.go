@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
@@ -57,6 +58,8 @@ type ClientCmd struct {
 	myViper *viper.Viper
 	// cfgFileName is the name of the configuration file
 	cfgFileName string
+	// homeDirectory is the location of the client's home directory
+	homeDirectory string
 	// clientCfg is the client's configuration
 	clientCfg *lib.ClientConfig
 	// cfgAttrs are the attributes specified via flags or env variables
@@ -145,7 +148,10 @@ func (c *ClientCmd) registerFlags() {
 
 	// Set global flags used by all commands
 	pflags := c.rootCmd.PersistentFlags()
-	pflags.StringVarP(&c.cfgFileName, "config", "c", cfg, "Configuration file")
+	pflags.StringVarP(&c.cfgFileName, "config", "c", "", "Configuration file")
+	pflags.MarkHidden("config")
+	// Don't want to use the default parameter for StringVarP. Need to be able to identify if home directory was explicitly set
+	pflags.StringVarP(&c.homeDirectory, "home", "H", "", fmt.Sprintf("Client's home directory (default \"%s\")", filepath.Dir(cfg)))
 	pflags.StringSliceVarP(
 		&c.cfgAttrs, "id.attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
 	util.FlagString(c.myViper, pflags, "myhost", "m", host,

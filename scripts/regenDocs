@@ -39,8 +39,9 @@ fabric-ca-server > servercli_temp.rst
 fabric-ca-client > clientcli_temp.rst
 
 # Sanitize the CLI file to remove any machine specific information and provide a generic CLI
-sed -i -e 's/file (default.*/file (default "<CLIENT_HOME>\/fabric-ca-client-config.yaml")/' clientcli_temp.rst
-sed -i -e 's/enrollment (default.*/enrollment (default "<HOSTNAME>")/' clientcli_temp.rst
+sed -i -e 's/home directory (default.*/home directory (default "$HOME\/.fabric-ca-client")/' clientcli_temp.rst
+sed -i -e 's/enrollment (default.*/enrollment (default "$HOSTNAME")/' clientcli_temp.rst
+sed -i -e 's/home directory (default.*/home directory (default "\/etc\/hyperledger\/fabric-ca")/' servercli_temp.rst
 
 # Insert a few spaces in front of all the lines in temp files created above (RST formatting purposes)
 sed -i -e 's/^/    /' servercli_temp.rst

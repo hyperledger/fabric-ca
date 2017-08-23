@@ -203,17 +203,12 @@ bccsp:
 func (c *ClientCmd) configInit() error {
 	var err error
 
-	if c.cfgFileName != "" {
-		log.Infof("User provided config file: %s\n", c.cfgFileName)
+	c.cfgFileName, c.homeDirectory, err = util.ValidateAndReturnAbsConf(c.cfgFileName, c.homeDirectory, cmdName)
+	if err != nil {
+		return err
 	}
 
-	// Make the config file name absolute
-	if !filepath.IsAbs(c.cfgFileName) {
-		c.cfgFileName, err = filepath.Abs(c.cfgFileName)
-		if err != nil {
-			return errors.Wrap(err, "Failed to get full path of config file")
-		}
-	}
+	log.Debugf("Home directory: %s", c.homeDirectory)
 
 	// Commands other than 'enroll' and 'getcacert' require that client already
 	// be enrolled
@@ -325,11 +320,11 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
 	// Create the directory if necessary
-	cfgDir := filepath.Dir(c.cfgFileName)
-	err = os.MkdirAll(cfgDir, 0755)
+	err = os.MkdirAll(c.homeDirectory, 0755)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to create directory at '%s'", cfgDir)
+		return errors.Wrapf(err, "Failed to create directory at '%s'", c.homeDirectory)
 	}
+
 	// Now write the file
 	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0755)
 }

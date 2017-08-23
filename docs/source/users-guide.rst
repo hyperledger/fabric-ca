@@ -344,7 +344,8 @@ opportunity for you to generate a default configuration file that can be
 reviewed and customized before starting the server.
 
 The Fabric CA server's home directory is determined as follows:
-  - if the ``FABRIC_CA_SERVER_HOME`` environment variable is set, use
+  - if the --home command line option is set, use its value
+  - otherwise, if the ``FABRIC_CA_SERVER_HOME`` environment variable is set, use
     its value
   - otherwise, if ``FABRIC_CA_HOME`` environment variable is set, use
     its value
@@ -927,15 +928,14 @@ Fabric CA Client
 This section describes how to use the fabric-ca-client command.
 
 The Fabric CA client's home directory is determined as follows:
-
-  - if the ``FABRIC_CA_CLIENT_HOME`` environment variable is set, use
+  - if the --home command line option is set, use its value
+  - otherwise, if the ``FABRIC_CA_CLIENT_HOME`` environment variable is set, use
     its value
   - otherwise, if the ``FABRIC_CA_HOME`` environment variable is set,
     use its value
   - otherwise, if the ``CA_CFG_PATH`` environment variable is set, use
     its value
   - otherwise, use ``$HOME/.fabric-ca-client``
-
 
 The instructions below assume that the client configuration file exists
 in the client's home directory.
