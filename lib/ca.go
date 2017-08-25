@@ -29,6 +29,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -485,7 +486,12 @@ func (ca *CA) initDB() error {
 		}
 	}
 
-	log.Debugf("Initializing '%s' database at '%s'", db.Type, db.Datasource)
+	// Strip out user:pass from datasource for logging
+	ds := db.Datasource
+	dsParts := strings.Split(ds, "@")
+	if len(dsParts) > 1 {
+		ds = fmt.Sprintf("*****:*****@%s", dsParts[len(dsParts)-1])
+	}
 
 	switch db.Type {
 	case defaultDatabaseType:
