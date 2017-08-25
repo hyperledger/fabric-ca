@@ -448,7 +448,6 @@
               },
               "required": [
                 "id",
-                "type",
                 "affiliation_path",
                 "attrs"
               ]

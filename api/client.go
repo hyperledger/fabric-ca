@@ -28,7 +28,7 @@ type RegistrationRequest struct {
 	// Name is the unique name of the identity
 	Name string `json:"id" help:"Unique name of the identity"`
 	// Type of identity being registered (e.g. "peer, app, user")
-	Type string `json:"type" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Type string `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
 	// Secret is an optional password.  If not specified,
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.

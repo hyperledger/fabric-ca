@@ -71,7 +71,7 @@ func registerUser(req *api.RegistrationRequestNet, registrar string, ca *CA) (st
 
 	if registrar != "" {
 		// Check the permissions of member named 'registrar' to perform this registration
-		err = canRegister(registrar, req.Type, ca)
+		err = canRegister(registrar, req, ca)
 		if err != nil {
 			log.Debugf("Registration of '%s' failed: %s", req.Name, err)
 			return "", err
@@ -168,7 +168,7 @@ func requireAffiliation(idType string) bool {
 	return true
 }
 
-func canRegister(registrar string, userType string, ca *CA) error {
+func canRegister(registrar string, req *api.RegistrationRequestNet, ca *CA) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
 	user, err := ca.registry.GetUser(registrar, nil)
@@ -183,13 +183,11 @@ func canRegister(registrar string, userType string, ca *CA) error {
 	} else {
 		roles = make([]string, 0)
 	}
-	if userType != "" {
-		if !util.StrContained(userType, roles) {
-			return errors.Errorf("Identity '%s' may not register type '%s'", registrar, userType)
-		}
-	} else {
-		return errors.New("No identity type provided. Please provide identity type")
+	if req.Type == "" {
+		req.Type = "user"
 	}
-
+	if !util.StrContained(req.Type, roles) {
+		return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, req.Type)
+	}
 	return nil
 }

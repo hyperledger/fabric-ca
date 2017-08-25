@@ -319,7 +319,7 @@ The following shows the Fabric CA client usage message:
       --id.maxenrollments int        The maximum number of times the secret can be reused to enroll.
       --id.name string               Unique name of the identity
       --id.secret string             The enrollment secret for the identity being registered
-      --id.type string               Type of identity being registered (e.g. 'peer, app, user')
+      --id.type string               Type of identity being registered (e.g. 'peer, app, user') (default "user")
   -M, --mspdir string                Membership Service Provider directory (default "msp")
   -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "saads-mbp.raleigh.ibm.com")
   -a, --revoke.aki string            AKI (Authority Key Identifier) of the certificate to be revoked
@@ -1461,14 +1461,14 @@ during registration as follows:
     of "a.b.c" but may not register an identity with an affiliation of "a.c".
 
 The following command uses the **admin** identity's credentials to register a new
-identity with an enrollment id of "admin2", a type of "user", an affiliation of
+user with an enrollment id of "admin2", an affiliation of
 "org1.department1", an attribute named "hf.Revoker" with a value of "true", and
 an attribute named "foo" with a value of "bar".
 
 .. code:: bash
 
     export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
-    fabric-ca-client register --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs 'hf.Revoker=true,foo=bar'
+    fabric-ca-client register --id.name admin2 --id.affiliation org1.department1 --id.attrs 'hf.Revoker=true,foo=bar'
 
 The password, also known as the enrollment secret, is printed.
 This password is required to enroll the identity.
@@ -1481,13 +1481,13 @@ the attribute must be encapsulated in double quotes. See example below.
 
 .. code:: bash
 
-    fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
+    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
 
 or
 
 .. code:: bash
 
-    fabric-ca-client register -d --id.name admin2 --id.type user --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true
+    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true
 
 You may set default values for any of the fields used in the register command
 by editing the client's configuration file.  For example, suppose the configuration

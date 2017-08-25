@@ -508,6 +508,16 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 		t.Errorf("client register failed: %s", err)
 	}
 
+	// Register an identity without identity type parameter (--id.type). It should succeed.
+	// The identity type is set to default type "user"
+	userName := "testRegister5"
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
+		"--id.affiliation", "company2"})
+	assert.NoError(t, err, "Failed to register identity "+userName)
+	user, err = db.GetUserInfo(userName)
+	assert.NoError(t, err)
+	assert.Equal(t, "user", user.Type, "Identity type for '%s' should have been 'user'", userName)
+
 	os.Remove(defYaml) // Delete default config file
 
 	err = RunMain([]string{cmdName, "register", "-u", "http://localhost:7091"})
