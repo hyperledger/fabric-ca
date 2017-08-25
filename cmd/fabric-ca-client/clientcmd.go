@@ -53,6 +53,8 @@ type ClientCmd struct {
 	name string
 	// rootCmd is the base command for the Hyerledger Fabric CA client
 	rootCmd *cobra.Command
+	// My viper instance
+	myViper *viper.Viper
 	// cfgFileName is the name of the configuration file
 	cfgFileName string
 	// clientCfg is the client's configuration
@@ -75,7 +77,9 @@ type ClientCmd struct {
 
 // NewCommand returns new ClientCmd ready for running
 func NewCommand(name string) *ClientCmd {
-	c := &ClientCmd{}
+	c := &ClientCmd{
+		myViper: viper.New(),
+	}
 	c.name = strings.ToLower(name)
 	c.init()
 	return c
@@ -98,7 +102,7 @@ func (c *ClientCmd) init() {
 			if err != nil {
 				return err
 			}
-			util.CmdRunBegin()
+			util.CmdRunBegin(c.myViper)
 			cmd.SilenceUsage = true
 			return nil
 		},
@@ -131,8 +135,8 @@ func (c *ClientCmd) registerFlags() {
 	cfg := util.GetDefaultConfigFile(cmdName)
 
 	// All env variables must be prefixed
-	viper.SetEnvPrefix(envVarPrefix)
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	c.myViper.SetEnvPrefix(envVarPrefix)
+	c.myViper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	host, err := os.Hostname()
 	if err != nil {
@@ -144,7 +148,7 @@ func (c *ClientCmd) registerFlags() {
 	pflags.StringVarP(&c.cfgFileName, "config", "c", cfg, "Configuration file")
 	pflags.StringSliceVarP(
 		&c.cfgAttrs, "id.attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
-	util.FlagString(pflags, "myhost", "m", host,
+	util.FlagString(c.myViper, pflags, "myhost", "m", host,
 		"Hostname to include in the certificate signing request during enrollment")
 	pflags.StringSliceVarP(
 		&c.cfgCsrNames, "csr.names", "", nil, "A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)")
@@ -155,7 +159,7 @@ func (c *ClientCmd) registerFlags() {
 		"help.csr.serialnumber": "The serial number in a certificate signing request",
 		"help.csr.hosts":        "A list of space-separated host names in a certificate signing request",
 	}
-	err = util.RegisterFlags(pflags, c.clientCfg, tags)
+	err = util.RegisterFlags(c.myViper, pflags, c.clientCfg, tags)
 	if err != nil {
 		panic(err)
 	}

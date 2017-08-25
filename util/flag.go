@@ -54,14 +54,16 @@ const (
 // "opt" - the optional one character short name to use on the command line;
 // "help" - the help message to display on the command line;
 // "skip" - to skip the field.
-func RegisterFlags(flags *pflag.FlagSet, config interface{}, tags map[string]string) error {
-	fr := &flagRegistrar{flags: flags, tags: tags}
+func RegisterFlags(v *viper.Viper, flags *pflag.FlagSet, config interface{},
+	tags map[string]string) error {
+	fr := &flagRegistrar{flags: flags, tags: tags, viper: v}
 	return ParseObj(config, fr.Register)
 }
 
 type flagRegistrar struct {
 	flags *pflag.FlagSet
 	tags  map[string]string
+	viper *viper.Viper
 }
 
 func (fr *flagRegistrar) Register(f *Field) (err error) {
@@ -124,7 +126,7 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 			f.Path, f.Kind)
 		return nil
 	}
-	bindFlag(fr.flags, f.Path)
+	bindFlag(fr.viper, fr.flags, f.Path)
 	return nil
 }
 
@@ -141,9 +143,9 @@ func (fr *flagRegistrar) getTag(f *Field, tagName string) string {
 }
 
 // CmdRunBegin is called at the beginning of each cobra run function
-func CmdRunBegin() {
+func CmdRunBegin(v *viper.Viper) {
 	// If -d or --debug, set debug logging level
-	if viper.GetBool("debug") {
+	if v.GetBool("debug") {
 		log.Level = log.LevelDebug
 
 		logging.SetLevel(logging.INFO, "bccsp")
@@ -153,18 +155,18 @@ func CmdRunBegin() {
 }
 
 // FlagString sets up a flag for a string, binding it to its name
-func FlagString(flags *pflag.FlagSet, name, short string, def string, desc string) {
+func FlagString(v *viper.Viper, flags *pflag.FlagSet, name, short string, def string, desc string) {
 	flags.StringP(name, short, def, desc)
-	bindFlag(flags, name)
+	bindFlag(v, flags, name)
 }
 
 // common binding function
-func bindFlag(flags *pflag.FlagSet, name string) {
+func bindFlag(v *viper.Viper, flags *pflag.FlagSet, name string) {
 	flag := flags.Lookup(name)
 	if flag == nil {
 		panic(fmt.Errorf("failed to lookup '%s'", name))
 	}
-	viper.BindPFlag(name, flag)
+	v.BindPFlag(name, flag)
 }
 
 // ViperUnmarshal is a work around for a bug in viper.Unmarshal

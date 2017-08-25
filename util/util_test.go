@@ -419,20 +419,20 @@ func TestGetUser(t *testing.T) {
 	os.Unsetenv("FABRIC_CA_CLIENT_URL")
 	viper.BindEnv("url", "FABRIC_CA_CLIENT_URL")
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://localhost:7054")
-	_, _, err := GetUser()
+	_, _, err := GetUser(viper.GetViper())
 	assert.Error(t, err, "Should have failed no username and password provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://:pass@localhost:7054")
-	_, _, err = GetUser()
+	_, _, err = GetUser(viper.GetViper())
 	assert.Error(t, err, "Should have failed no username provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://user:@localhost:7054")
-	_, _, err = GetUser()
+	_, _, err = GetUser(viper.GetViper())
 	assert.Error(t, err, "Should have failed no password provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://foo:bar@localhost:7054")
 
-	user, pass, err := GetUser()
+	user, pass, err := GetUser(viper.GetViper())
 	assert.NoError(t, err)
 
 	if user != "foo" {
