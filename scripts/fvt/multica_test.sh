@@ -44,7 +44,7 @@ function enrollUser() {
                    --id.maxenrollments $MAXENROLL \
                    -u ${PROTO}$user:$pswd@$ROOT_CA_ADDR:$CA_PORT \
                    -c $TDIR/$caname/enroll.yaml \
-                   --tls.certfiles $TLSDIR/root.pem \
+                   $TLSOPT \
                    --csr.hosts $user@fab-client.raleigh.ibm.com,${user}.fabric.raleigh.ibm.com,127.42.42.$i
    return $?
 }
@@ -62,7 +62,7 @@ function registerAndEnrollUser() {
                         --id.type user \
                         --id.maxenrollments $MAXENROLL \
                         --id.affiliation bank_a \
-                        --tls.certfiles $TLSDIR/root.pem \
+                        $TLSOPT \
                         -c $TDIR/$caname/register.yaml|tail -n1 | awk '{print $NF}')
    /usr/local/bin/fabric-ca-client enroll \
                    --caname $caname \
@@ -70,7 +70,7 @@ function registerAndEnrollUser() {
                    --id.maxenrollments $MAXENROLL \
                    -u ${PROTO}$user:$pswd@$ROOT_CA_ADDR:$CA_PORT \
                    -c $TDIR/$caname/$user/enroll.yaml \
-                   --tls.certfiles $TLSDIR/root.pem \
+                   $TLSOPT \
                    --csr.hosts $user@fab-client.raleigh.ibm.com,$user.fabric.raleigh.ibm.com,127.37.37.$i
    return $?
 }
@@ -85,7 +85,7 @@ function reenrollUser() {
                       --id.maxenrollments $MAXENROLL \
                       -u ${PROTO}@$ROOT_CA_ADDR:$CA_PORT \
                       -c $TDIR/$caname/$user/enroll.yaml \
-                      --tls.certfiles $TLSDIR/root.pem \
+                      $TLSOPT \
                       --csr.hosts ${user}@fab-client.raleigh.ibm.com,${user}.fabric.raleigh.ibm.com,127.42.42.$i
    return $?
 }
@@ -103,16 +103,16 @@ function revokeUser() {
    /usr/local/bin/fabric-ca-client revoke --caname $caname \
                --mspdir $TDIR/$caname/$revoker/${revoker}msp \
                -u ${PROTO}$ROOT_CA_ADDR:$CA_PORT \
-               --revoke.name $user $serial $index --tls.certfiles $TLSDIR/root.pem
+               --revoke.name $user $serial $index $TLSOPT
    return $?
 }
 
-function setTLS() {
-: ${FABRIC_TLS:="false"}
-if $($FABRIC_TLS); then
-   PROTO="https://"
-fi
-}
+#function setTLS() {
+#: ${FABRIC_TLS:="false"}
+#if $($FABRIC_TLS); then
+#   PROTO="https://"
+#fi
+#}
 
 ### Start Test ###
 for driver in sqlite3 postgres mysql; do

@@ -29,16 +29,15 @@ db:
   type: $DRIVER
   datasource: $DATASRC
   tls:
-     enabled: $FABRIC_TLS
-     certfiles:
-       - $TESTDATA/tls_server-cert.pem
-     client:
-       certfile: $TESTDATA/tls_server-cert.pem
-       keyfile: $TESTDATA/tls_server-key.pem
+    certfiles:
+      - $TLS_ROOTCERT
+    client:
+      certfile: $TLS_CLIENTCERT
+      keyfile: $TLS_CLIENTKEY
 tls:
   enabled: $FABRIC_TLS
-  certfile: $TESTDATA/tls_server-cert.pem
-  keyfile: $TESTDATA/tls_server-key.pem
+  certfile: $TLS_SERVERCERT
+  keyfile: $TLS_SERVERKEY
 ca:
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
@@ -53,14 +52,14 @@ registry:
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
 ldap:
-   enabled: false
-   url: ldap://admin:adminpw@localhost:$LDAP_PORT/base
-   tls:
-      certfiles:
-        - ldap-server-cert.pem
-      client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
+  enabled: false
+  url: ${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
+  tls:
+     certfiles:
+       - $TLS_ROOTCERT
+     client:
+       certfile: $TLS_CLIENTCERT
+       keyfile: $TLS_CLIENTKEY
 affiliations:
    bank_a:
 signing:
@@ -97,16 +96,15 @@ db:
   type: $DRIVER
   datasource: $DATASRC
   tls:
-     enabled: $FABRIC_TLS
-     certfiles:
-       - $TESTDATA/tls_server-cert.pem
-     client:
-       certfile: $TESTDATA/tls_server-cert.pem
-       keyfile: $TESTDATA/tls_server-key.pem
+    certfiles:
+      - $TLS_ROOTCERT
+    client:
+      certfile: $TLS_CLIENTCERT
+      keyfile: $TLS_CLIENTKEY
 tls:
   enabled: $FABRIC_TLS
-  certfile: $TESTDATA/tls_server-cert.pem
-  keyfile: $TESTDATA/tls_server-key.pem
+  certfile: $TLS_SERVERCERT
+  keyfile: $TLS_SERVERKEY
 ca:
   certfile: $CA_CFG_PATH/fabric-ca-key.pem
   keyfile: $CA_CFG_PATH/fabric-ca-cert.pem
@@ -123,14 +121,14 @@ registry:
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
 ldap:
-   enabled: false
-   url: ldap://admin:adminpw@localhost:$LDAP_PORT/base
-   tls:
-      certfiles:
-        - ldap-server-cert.pem
-      client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
+  enabled: false
+  url: ${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
+  tls:
+    certfiles:
+      - $TLS_ROOTCERT
+    client:
+      certfile: $TLS_CLIENTCERT
+      keyfile: $TLS_CLIENTKEY
 affiliations:
    bank_a:
 signing:
