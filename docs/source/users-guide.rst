@@ -9,9 +9,6 @@ It provides features such as:
   * registration of identities, or connects to LDAP as the user
     registry
   * issuance of Enrollment Certificates (ECerts)
-  * issuance of Transaction Certificates (TCerts), providing both
-    anonymity and unlinkability when transacting on a Hyperledger Fabric
-    blockchain
   * certificate renewal and revocation
 
 Hyperledger Fabric CA consists of both a server and a client component as
@@ -790,19 +787,6 @@ When LDAP is configured, enrollment works as follows:
    configuration file, and then attempts an LDAP bind with the identity's
    password. If the LDAP bind is successful, the enrollment processing is
    authorized and can proceed.
-
-When LDAP is configured, attribute retrieval works as follows:
-
-
--  A client SDK sends a request for a batch of tcerts **with one or more
-   attributes** to the Fabric CA server.
--  The Fabric CA server receives the tcert request and does as follows:
-
-   -  extracts the enrollment ID from the token in the authorization
-      header (after validating the token);
-   -  does an LDAP search/query to the LDAP server, requesting all of
-      the attribute names received in the tcert request;
-   -  the attribute values are placed in the tcert as normal.
 
 Setting up a cluster
 ~~~~~~~~~~~~~~~~~~~~
