@@ -55,23 +55,43 @@ const (
 func TestCLIClientConfigStat(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("failed to get cwd")
+		t.Fatalf("failed to get cwd: %s", err)
 	}
-	td, err := ioutil.TempDir(tdDir, "ClientConfigStat")
+	td, err := ioutil.TempDir("", "ClientConfigStat")
 	if err != nil {
-		t.Fatalf("failed to get tmp dir")
+		t.Fatalf("failed to get tmp dir: %s", err)
 	}
-	os.Chdir(td)
+	defer func() {
+		err = os.RemoveAll(td)
+		if err != nil {
+			t.Fatalf("RemoveAll failed: %s", err)
+		}
+	}()
+	err = os.Chdir(td)
+	if err != nil {
+		t.Fatalf("failed to cd to %v: %s", td, err)
+	}
+	defer func() {
+		err = os.Chdir(wd)
+		if err != nil {
+			t.Fatalf("failed to cd to %v: %s", wd, err)
+		}
+	}()
 	fileInfo, err := os.Stat(".")
 	if err != nil {
-		t.Fatalf("os.Stat failed on current dir")
+		t.Fatalf("os.Stat failed on current dir: %s", err)
 	}
 	oldmode := fileInfo.Mode()
 	err = os.Chmod(".", 0000)
 	if err != nil {
-		t.Fatalf("Chmod on %s failed", tdDir)
+		t.Fatalf("Chmod on %s failed: %s", td, err)
 	}
-
+	defer func() {
+		err = os.Chmod(td, oldmode)
+		if err != nil {
+			t.Fatalf("Chmod on %s failed: %s", td, err)
+		}
+	}()
 	c := new(Client)
 	c.Config = new(ClientConfig)
 	err = c.Init()
@@ -79,10 +99,6 @@ func TestCLIClientConfigStat(t *testing.T) {
 	if err == nil {
 		t.Errorf("initDB should have failed (getcwd failure)")
 	}
-	_ = os.Chmod(".", oldmode)
-
-	os.RemoveAll(td)
-	os.Chdir(wd)
 }
 
 func TestCLIClientInit(t *testing.T) {

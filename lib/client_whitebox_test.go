@@ -546,26 +546,47 @@ func TestCWBNewCertificateRequest(t *testing.T) {
 func TestCWBCAConfigStat(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("failed to get cwd")
+		t.Fatalf("failed to get cwd: %s", err)
 	}
-	td, err := ioutil.TempDir(testdataDir, "CAConfigStat")
+	td, err := ioutil.TempDir("", "CAConfigStat")
 	if err != nil {
-		t.Fatalf("failed to get tmp dir")
+		t.Fatalf("failed to get tmp dir: %s", err)
 	}
-	os.Chdir(td)
+	defer func() {
+		err = os.RemoveAll(td)
+		if err != nil {
+			t.Fatalf("RemoveAll failed: %s", err)
+		}
+	}()
+	err = os.Chdir(td)
+	if err != nil {
+		t.Fatalf("failed to cd to %v: %s", td, err)
+	}
+	defer func() {
+		err = os.Chdir(wd)
+		if err != nil {
+			t.Fatalf("failed to cd to %v: %s", wd, err)
+		}
+	}()
 
 	ca := &CA{}
 	ca.Config = &CAConfig{}
 	ca.HomeDir = "."
 	fileInfo, err := os.Stat(".")
 	if err != nil {
-		t.Fatalf("os.Stat failed on current dir")
+		t.Fatalf("os.Stat failed on current dir: %s", err)
 	}
 	oldmode := fileInfo.Mode()
 	err = os.Chmod(".", 0000)
 	if err != nil {
-		t.Fatalf("Chmod on %s failed", testdataDir)
+		t.Fatalf("Chmod on %s failed: %s", fileInfo.Name(), err)
 	}
+	defer func() {
+		err = os.Chmod(td, oldmode)
+		if err != nil {
+			t.Fatalf("Chmod on %s failed: %s", td, err)
+		}
+	}()
 
 	ca.Config.DB.Type = ""
 	err = ca.initDB()
@@ -573,12 +594,8 @@ func TestCWBCAConfigStat(t *testing.T) {
 	if err == nil {
 		t.Errorf("initDB should have failed (getcwd failure)")
 	}
-	_ = os.Chmod(".", oldmode)
 	ca.Config.DB.Datasource = ""
 	ca.HomeDir = ""
-
-	defer os.RemoveAll(td)
-	os.Chdir(wd)
 }
 
 func TestCLIClientClean(t *testing.T) {

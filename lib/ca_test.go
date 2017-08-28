@@ -192,17 +192,35 @@ func TestCAInit(t *testing.T) {
 	var caCert = "ca-cert.pem"
 	var caKey = "ca-key.pem"
 
-	wd, err := os.Getwd()
+	orgwd, err := os.Getwd()
 	if err != nil {
-		t.Fatalf("failed to get cwd")
+		t.Fatalf("failed to get cwd: %s", err)
 	}
-	t.Logf("====== wd %v", wd)
+	t.Logf("====== orgwd %v", orgwd)
 	confDir, err := cdTmpTestDir("TestCAInit")
 	if err != nil {
-		t.Fatalf("failed to cd to tmp dir")
+		t.Fatalf("failed to cd to tmp dir: %s", err)
 	}
+	defer func() {
+		err = os.Chdir(orgwd)
+		if err != nil {
+			t.Fatalf("failed to cd to %v: %s", orgwd, err)
+		}
+	}()
 	t.Logf("confDir: %v", confDir)
-
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %s", err)
+	}
+	t.Log("Working dir", wd)
+	defer func() {
+		err = os.RemoveAll(wd)
+		if err != nil {
+			t.Fatalf("RemoveAll failed: %s", err)
+		} else {
+			t.Logf("Removed all: %s", wd)
+		}
+	}()
 	ca, err := NewCA(confDir, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("NewCA FAILED")
@@ -222,12 +240,24 @@ func TestCAInit(t *testing.T) {
 	// delete everything and start over
 	// initKeyMaterial error
 	os.Chdir("..")
-	confDir1 := confDir
-	confDir, err = cdTmpTestDir("TestCAInit")
+
+	confDir, err = cdTmpTestDir("TestCaInit")
 	if err != nil {
-		t.Fatalf("failed to cd to tmp dir")
+		t.Fatalf("failed to cd to tmp dir: %s", err)
 	}
-	t.Logf("confDir: %v", confDir)
+	wd2, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %s", err)
+	}
+	t.Log("changed to ", wd2)
+	defer func() {
+		err = os.RemoveAll(wd2)
+		if err != nil {
+			t.Fatalf("RemoveAll failed: %s", err)
+		} else {
+			t.Logf("Removed all: %s", wd2)
+		}
+	}()
 
 	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
 	ca, err = NewCA(confDir, &cfg, &srv, true)
@@ -302,31 +332,6 @@ func TestCAInit(t *testing.T) {
 	if err == nil {
 		t.Fatal("Should have failed")
 	}
-
-	os.Chdir("..")
-	wd, err = os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get cwd")
-	}
-	t.Logf("changed to ====== wd %v", wd)
-	t.Logf("Removing %s", confDir)
-	err = os.RemoveAll(confDir)
-	if err != nil {
-		t.Fatalf("os.RemoveAll failed: %v", err)
-	}
-	t.Logf("Removing %s", confDir1)
-	err = os.RemoveAll(confDir1)
-	if err != nil {
-		t.Fatalf("os.RemoveAll failed: %v", err)
-	}
-
-	t.Logf(" changing to ====== wd %v", wd)
-	os.Chdir(wd)
-	wd, err = os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get cwd")
-	}
-	t.Logf("changed to ====== wd %v", wd)
 }
 
 func getTestDir(d string) (string, error) {
