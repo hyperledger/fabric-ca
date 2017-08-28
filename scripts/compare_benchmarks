@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# This script compares benchmarks results of the current and previous release.
+# It assumes that the bench.results file containing current release's benchmark results
+# already exists. It checks out the specified previous release, runs the benchmarks
+# and compares the benchmark results of the current and previous release. It prints a message
+# if the performance deteriorated by more than 10%
+
+if test -z "$1"; then
+  echo "ERROR: git label for the previous release must be specifed. Usage: compare_benchmarks <git label of previous release>"
+  exit 1
+else
+  prev_release=$1
+fi
+
+function compareBenchmarks() {
+   go get golang.org/x/tools/cmd/benchcmp
+   benchcmp $BENCHMARK_FILE_NAME $NEW_BENCH_FILE_NAME | tee /tmp/bench-cmp.out
+   vals=`cat /tmp/bench-cmp.out | while read line; do echo $line | grep -e "^Benchmark" | tr -s " " | cut -d " " -f 4 | grep -e "^+"| awk '{print substr($0,2,length($0)-5)}'; done`
+   for val in $vals
+   do
+     delta=$(($val + 0))
+     if test $delta -gt 10; then
+        echo "Performance of some of the benchmarks deteriorated by more than 10%"
+        return 1
+     fi
+   done
+   return 0
+}
+
+BENCHMARK_FILE_NAME=bench.results
+NEW_BENCH_FILE_NAME=bench.new
+if test -f $BENCHMARK_FILE_NAME; then
+  cp $BENCHMARK_FILE_NAME $NEW_BENCH_FILE_NAME
+else
+  echo "ERROR: Benchmark results file $BENCHMARK_FILE_NAME for current release is not found"
+  exit 1
+fi
+
+cur_branch=`git branch | grep -e "^*" | awk '{print substr($0,3,length($0))}'`
+if test -z "$cur_branch"; then
+  echo "ERROR: Failed to determine current git branch name"
+  exit 1
+fi
+
+git fetch --all --tags --prune
+git checkout $prev_release -b branch-$prev_release
+if test $? -gt 0; then
+   echo "ERROR: Failed to switch to previous release $prev_release"
+   exit 1
+fi
+
+$GOPATH/src/github.com/hyperledger/fabric-ca/scripts/run_benchmarks
+if test $? -eq 0; then
+   compareBenchmarks
+   exit $?
+else
+   echo "ERROR: failure running benchmarks for release $prev_release"
+   exit 1
+fi
+git checkout $cur_branch
+git branch -D branch-$prev_release

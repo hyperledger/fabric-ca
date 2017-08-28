@@ -408,26 +408,16 @@ func (s *Server) GetCA(name string) (*CA, error) {
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
 	s.mux = http.NewServeMux()
-	post := []string{"POST"}
-	getPostHead := []string{"GET", "POST", "HEAD"}
-	s.registerHandler("cainfo", getPostHead, cainfoHandler)
-	s.registerHandler("register", post, registerHandler)
-	s.registerHandler("enroll", post, enrollHandler)
-	s.registerHandler("reenroll", post, reenrollHandler)
-	s.registerHandler("revoke", post, revokeHandler)
-	s.registerHandler("tcert", post, tcertHandler)
+	s.registerHandler("cainfo", newCAInfoEndpoint(s))
+	s.registerHandler("register", newRegisterEndpoint(s))
+	s.registerHandler("enroll", newEnrollEndpoint(s))
+	s.registerHandler("reenroll", newReenrollEndpoint(s))
+	s.registerHandler("revoke", newRevokeEndpoint(s))
+	s.registerHandler("tcert", newTCertEndpoint(s))
 }
 
 // Register a handler
-func (s *Server) registerHandler(
-	path string,
-	methods []string,
-	handler func(ctx *serverRequestContext) (interface{}, error)) {
-	se := &serverEndpoint{
-		Methods: methods,
-		Handler: handler,
-		Server:  s,
-	}
+func (s *Server) registerHandler(path string, se *serverEndpoint) {
 	s.mux.Handle("/"+path, se)
 	s.mux.Handle("/api/v1/"+path, se)
 }

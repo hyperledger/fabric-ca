@@ -22,6 +22,14 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 )
 
+func newTCertEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"POST"},
+		Handler: tcertHandler,
+		Server:  s,
+	}
+}
+
 // Handle a tcert request
 func tcertHandler(ctx *serverRequestContext) (interface{}, error) {
 	// Authenticate caller

@@ -24,6 +24,14 @@ type serverInfoResponseNet struct {
 	CAChain string
 }
 
+func newCAInfoEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"GET", "POST", "HEAD"},
+		Handler: cainfoHandler,
+		Server:  s,
+	}
+}
+
 // Handle is the handler for the GET or POST /info request
 func cainfoHandler(ctx *serverRequestContext) (interface{}, error) {
 	ca, err := ctx.GetCA()

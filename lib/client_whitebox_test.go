@@ -378,6 +378,24 @@ func getEnrollmentPayload(t *testing.T, c *Client) ([]byte, error) {
 }
 
 func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
+	srv, err := createServer(port, home, parentURL, maxEnroll)
+	if err != nil {
+		t.Errorf("failed to register bootstrap user: %s", err)
+		return nil
+	}
+	return srv
+}
+
+func getServerForBenchmark(port int, home, parentURL string, maxEnroll int, b *testing.B) *Server {
+	srv, err := createServer(port, home, parentURL, maxEnroll)
+	if err != nil {
+		b.Errorf("failed to register bootstrap user: %s", err)
+		return nil
+	}
+	return srv
+}
+
+func createServer(port int, home, parentURL string, maxEnroll int) (*Server, error) {
 	if home != testdataDir {
 		os.RemoveAll(home)
 	}
@@ -417,10 +435,9 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 	// means the user is at the affiliation root
 	err := srv.RegisterBootstrapUser(user, pass, "")
 	if err != nil {
-		t.Errorf("Failed to register bootstrap user: %s", err)
-		return nil
+		return nil, err
 	}
-	return srv
+	return srv, nil
 }
 
 func getTestClient(port int) *Client {

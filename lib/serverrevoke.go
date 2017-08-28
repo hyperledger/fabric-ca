@@ -26,6 +26,14 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 )
 
+func newRevokeEndpoint(s *Server) *serverEndpoint {
+	return &serverEndpoint{
+		Methods: []string{"POST"},
+		Handler: revokeHandler,
+		Server:  s,
+	}
+}
+
 // Handle an revoke request
 func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 	// Parse revoke request body

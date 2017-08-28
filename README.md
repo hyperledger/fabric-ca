@@ -70,14 +70,54 @@ The following are guidelines to follow when contributing:
 
 ## Additional info
 
-### Profiling Fabric CA server
+## Profiling
+Fabric CA server can be profiled two ways, namely, using benchmarks and by retrieving profiling data from the server (at /debug/pprof/ endpoint) while running load.
+
+### Benchmarks
+You can profile the benchmarks by running `make bench-cpu` or `make bench-mem` commands. You can profile benchmarks in one package or all the packages using these make targets. For example, to profile benchmarks in the *lib* package, run: `make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib`. This will create **bench-cpu.prof**, **lib.test** and **bench** files in the *lib* folder. The **bench** file will contain benchmark stats: bytes/operation, allocations/operation and nanoseconds/operation. **lib.test** file is the executable and **bench-cpu.prof** contains cpu profile information. To analyze the profile, run: `go tool pprof lib.test bench-cpu.prof`. Similarly, you can run `make bench-mem pkg=github.com/hyperledger/fabric-ca/lib` to perform memory profiling of the benchmarks in the *lib* package. The **bench-mem.prof** file contains memory profile information.
+
+If you run `make bench-cpu` or `make bench-mem` without *pkg* variable, benchmarks in each package are run with cpu or memory profiling. So, executable, benchmark output, and profile info files are created in each package folder. You need to analyze these profiles separately.
+
+### Whole server
 To enable profiling on the server, set the FABRIC_CA_SERVER_PROFILE_PORT environment
-variable to a valid, available port number and start the server. The server will start listening for profile requests at the specified port. Then run `go tool pprof` with server's profiling URL (http://<server host>:<profiling port>/debug/pprof/<profile|heap|block>) as an argument, it will download and examine a live profile.
+variable to a valid, available port number and start the server. The server will start listening for profile requests at the */debug/pprof/* HTTP endpoint and the specified port. Then run `go tool pprof` with server's profiling URL (http://<server host>:<profiling port>/debug/pprof/<profile|heap|block>) as an argument, it will download and examine a live profile.
+
+You can start the server in the FVT image by running following docker command from the fabric-ca root directory:
+
+`docker run -p 8888:8888 -p 8054:8054 -v $PWD:/opt/gopath/src/github.com/hyperledger/fabric-ca -e FABRIC_CA_SERVER_PROFILE_PORT=8054 --name loadTest -td hyperledger/fabric-ca-fvt test/fabric-ca-load-tester/launchServer.sh 1`
+
+Then start the load by running `/test/fabric-ca-load-tester/runLoad.sh -B`
+
+In other window, you can start profiling by running (assuming load test takes about a minute to complete):
+
+`curl http://localhost:8054/debug/pprof/profile?seconds=60 > load-cpu.prof`
+
+then analyze the profile:
+
+`go tool pprof bin/fabric-ca-server load-cpu.prof`
+ 
+OR simply run:
+
+`go tool pprof -seconds=60 -output=load-cpu.prof http://localhost:8054/debug/pprof/profile`
+
+You can use commands like *top*, *top -cum*, *list* and *web* to look at the top consumers, list the code to see the hotspots and to view the graph in a browser. You can run `go tool pprof -h` to view all the options supported by the pprof tool
+
+You can also use [**go-torch**](https://github.com/uber/go-torch) tool to analyze the profile:
+
+`go-torch bin/fabric-ca-server load-cpu.prof`
 
 ### Profiling Fabric CA client
 To enable profiling on the client, set the FABRIC_CA_CLIENT_PROFILE_MODE environment variable to either "heap" or "cpu" to enable heap, cpu profiling respectively. A file containing profiling data is created in the present working directory of the client. Heap profiling data is written to **mem.pprof** and cpu profiling data is written to **cpu.pprof**. You can run `go tool pprof <client executable> <profiling file>` to analyze the profiling data.
 
-Run `go tool pprof -h` to view the options supported by the pprof tool. For more information on profiling, see https://blog.golang.org/profiling-go-programs
+### Profiling links
+https://blog.golang.org/profiling-go-programs
+https://medium.com/@hackintoshrao/daily-code-optimization-using-benchmarks-and-profiling-in-golang-gophercon-india-2016-talk-874c8b4dc3c5
+https://www.youtube.com/watch?v=2h_NFBFrciI
+https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs
+http://www.soroushjp.com/2015/01/27/beautifully-simple-benchmarking-with-go/
+https://vinceyuan.github.io/profiling-memory-usage-of-a-go-app/
+https://www.youtube.com/watch?v=N3PWzBeLX2M&feature=youtu.be
+https://www.youtube.com/watch?v=oorX84tBMqo&feature=youtu.be
 
 ### FVT
 

@@ -1,0 +1,117 @@
+#!/bin/bash
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# This scripts runs benchmarks in the specified package or in all the fabric-ca
+# packages except vendor, api, mocks, dbutil, ldap, test/fabric-ca-load-tester.
+# It also allows you to create memory or cpu profiles of the benchmarks in each
+# package.
+#
+# If the script is invoked without -C or -M option, the bench.results file containing
+# benchmarks results is created in the current working directory.
+#
+# If -C or -M option is specified, bench.results, profile file (bench-cpu.prof
+# bench-mem.prof) and the binary file are created in the specified packages
+# (if -P option is specified) or in all the packages (if -P option is not specified)
+# Refer to the Profiling section in the README.md file for more information on analyzing
+# profile files.
+#
+# Run the script with -h option to print all the valid arguments.
+
+
+function pushd() {
+    command pushd "$@" > /dev/null
+}
+
+function popd() {
+    command popd "$@" > /dev/null
+}
+
+function usage() {
+   echo "ARGS:"
+   echo "  -C -- Create CPU profile"
+   echo "  -M -- Create memory profile"
+   echo "  -P <package name> -- Run benchmark for the specified package. Default benchmarks are run on all the packages"
+   echo "  -R -- Remove benchmark files"
+   echo "  -h -- Print help"
+}
+
+function exitrc() {
+  if test $1 -ne 0; then
+    echo "ERROR: Failure occurred while running benchmarks"
+    exit $1
+  else
+    echo "Finished running all benchmarks"
+    exit 0
+  fi
+}
+
+# Removes all benchmark related files
+function removefiles() {
+  for pkg in $PKGS
+  do
+    pushd $GOPATH/src/$pkg
+    rm -f $BENCHMARK_FILE_NAME
+    rm -f bench-cpu.prof
+    rm -f bench-mem.prof
+    rm -f ${PWD##*/}".test"
+    popd
+  done
+}
+
+while getopts "hRCMP:" option; do
+  case "$option" in
+    C)   CPU_PROFILE="true" ;;
+    M)   MEM_PROFILE="true" ;;
+    P)   PACKAGE_NAME="$OPTARG" ;;
+    R)   REMOVE_BENCHMARKS="true" ;;
+    \?|h)  usage
+      exit 1
+      ;;
+  esac
+done
+
+BENCHMARK_FILE_NAME=bench.results
+FCA=$GOPATH/src/github.com/hyperledger/fabric-ca
+export PATH=$PATH:$GOPATH/bin
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/mocks|/dbutil|/ldap|/test/fabric-ca-load-tester'`
+if test -n "$PACKAGE_NAME"; then
+  PKGS=$PACKAGE_NAME
+fi
+
+if test -n "$REMOVE_BENCHMARKS"; then
+  removefiles
+  exit
+fi
+
+if test -n "$CPU_PROFILE"; then
+   CPU_PROFILE_OPT="-cpuprofile=bench-cpu.prof"
+   CREATE_PROFILE="true"
+else
+   CPU_PROFILE_OPT=""
+fi
+
+if test -n "$MEM_PROFILE"; then
+   MEM_PROFILE_OPT="-memprofile=bench-mem.prof"
+   CREATE_PROFILE="true"
+else
+   MEM_PROFILE_OPT=""
+fi
+
+echo "Running all benchmarks ..."
+if test -n "$CREATE_PROFILE"; then
+  # go test does not allow to specify multiple packages when benchmarks are profiled
+  # so, run go test in each package with profiling options. This will create benchmark 
+  # and profile files in each package
+  for pkg in $PKGS
+  do
+    pushd $GOPATH/src/$pkg
+    go test -run=^$ -bench=. -benchmem -timeout=20m $CPU_PROFILE_OPT $MEM_PROFILE_OPT | tee $BENCHMARK_FILE_NAME
+    exitrc ${PIPESTATUS[0]}
+    popd
+  done
+else
+  go test -run=^$ -bench=. -benchmem -timeout=20m $PKGS | tee $BENCHMARK_FILE_NAME
+  exitrc ${PIPESTATUS[0]}
+fi
