@@ -85,7 +85,7 @@ function push {
    return 1
  fi
  echo "Running make before pushing ..."
- make unit-tests
+ make unit-tests docs
  if [ $? -ne 0 ]; then
    echo "Not pushing because make failed"
    return 1
