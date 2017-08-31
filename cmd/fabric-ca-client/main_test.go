@@ -183,14 +183,19 @@ func TestClientCommandsNoTLS(t *testing.T) {
 		t.Errorf("Failed to register bootstrap user: %s", err)
 	}
 
-	err = srv.RegisterBootstrapUser("admin2", "adminpw2", "company1")
+	err = srv.RegisterBootstrapUser("admin2", "adminpw2", "hyperledger")
+	if err != nil {
+		t.Errorf("Failed to register bootstrap user: %s", err)
+	}
+
+	err = srv.RegisterBootstrapUser("admin3", "adminpw3", "company1")
 	if err != nil {
 		t.Errorf("Failed to register bootstrap user: %s", err)
 	}
 
 	aff := make(map[string]interface{})
 	aff["hyperledger"] = []string{"org1", "org2", "org3"}
-	aff["company1"] = []string{}
+	aff["company1"] = []string{"dept1"}
 	aff["company2"] = []string{}
 
 	srv.CA.Config.Affiliations = aff
@@ -209,6 +214,7 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	testRegisterCommandLine(t, srv)
 	testRevoke(t)
 	testBogus(t)
+	testAffiliation(t)
 
 	err = srv.Stop()
 	if err != nil {
@@ -451,7 +457,7 @@ func testRegisterEnvVar(t *testing.T) {
 
 	os.Setenv("FABRIC_CA_CLIENT_HOME", "../../testdata/")
 	os.Setenv("FABRIC_CA_CLIENT_ID_NAME", "testRegister2")
-	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "company1")
+	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "hyperledger")
 	os.Setenv("FABRIC_CA_CLIENT_ID_TYPE", "client")
 	defer func() {
 		os.Unsetenv("FABRIC_CA_CLIENT_HOME")
@@ -503,7 +509,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	}
 
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister4",
-		"--id.affiliation", "company2", "--id.type", "client"})
+		"--id.affiliation", "hyperledger.org2", "--id.type", "client"})
 	if err != nil {
 		t.Errorf("client register failed: %s", err)
 	}
@@ -512,7 +518,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	// The identity type is set to default type "user"
 	userName := "testRegister5"
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
-		"--id.affiliation", "company2"})
+		"--id.affiliation", "hyperledger.org1"})
 	assert.NoError(t, err, "Failed to register identity "+userName)
 	user, err = db.GetUserInfo(userName)
 	assert.NoError(t, err)
@@ -547,7 +553,7 @@ func testRevoke(t *testing.T) {
 		t.Error(err)
 	}
 
-	// Revoker's affiliation: company1
+	// Revoker's affiliation: hyperledger
 	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
 		"--revoke.name", "nonexistinguser"})
 	if err == nil {
@@ -566,7 +572,7 @@ func testRevoke(t *testing.T) {
 		t.Errorf("Only aki specified, should have failed")
 	}
 
-	// revoker's affiliation: company1, revoking affiliation: ""
+	// revoker's affiliation: hyperledger, revoking affiliation: ""
 	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
 		"--revoke.serial", serial, "--revoke.aki", aki})
 	if err == nil {
@@ -582,18 +588,33 @@ func testRevoke(t *testing.T) {
 		t.Errorf("The Serial and AKI are not associated with the enrollment ID: %s", err)
 	}
 
-	// Revoked user's affiliation: hyperledger.org3
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
-		"--revoke.name", "testRegister3"})
-	if err == nil {
-		t.Error("Should have failed, admin2 does not have authority revoke")
+	// Enroll admin with root affiliation and test revoking with root
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	if err != nil {
+		t.Errorf("client enroll -u failed: %s", err)
 	}
 
-	// testRegister2's affiliation: company1, revoker's affiliation: company1
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
-		"--revoke.name", "testRegister2"})
+	// testRegister4's affiliation: company2, revoker's affiliation: "" (root)
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister4", "--revoke.serial", "", "--revoke.aki", ""})
+	if err != nil {
+		t.Errorf("User with root affiliation failed to revoke, error: %s", err)
+	}
+
+	// testRegister2's affiliation: hyperledger, revoker's affiliation: ""
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister2", "--revoke.serial", "", "--revoke.aki", ""})
 	if err != nil {
 		t.Errorf("Failed to revoke proper affiliation hierarchy, error: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", "http://admin3:adminpw3@localhost:7090"})
+	if err != nil {
+		t.Errorf("client enroll -u failed: %s", err)
+	}
+
+	// Revoked user's affiliation: hyperledger.org3
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister3", "--revoke.serial", "", "--revoke.aki", ""})
+	if err == nil {
+		t.Error("Should have failed, admin3 does not have authority revoke")
 	}
 
 	// testRegister4's affiliation: company2, revoker's affiliation: company1
@@ -603,31 +624,61 @@ func testRevoke(t *testing.T) {
 		t.Error("Should have failed have different affiliation path")
 	}
 
-	// Enroll admin with root affiliation and test revoking with root
-	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
-	if err != nil {
-		t.Errorf("client enroll -u failed: %s", err)
-	}
-
-	// testRegister4's affiliation: company2, revoker's affiliation: "" (root)
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
-		"--revoke.name", "testRegister4"})
-	if err != nil {
-		t.Errorf("User with root affiliation failed to revoke, error: %s", err)
-	}
-
 	os.Remove(defYaml) // Delete default config file
 
 	err = RunMain([]string{cmdName, "revoke", "-u", "http://localhost:7091"})
 	if err == nil {
 		t.Error("Should have failed, client config file should have incorrect port (7091) for server")
 	}
-
 	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "U"})
 	if err == nil {
 		t.Error("revoke called with bogus argument, should have failed")
-
 	}
+
+	os.RemoveAll(filepath.Dir(defYaml))
+
+}
+
+// Test that affiliations get correctly set when registering a user with affiliation specified
+func testAffiliation(t *testing.T) {
+	var err error
+
+	// admin2 has affiliation of 'hyperledger'
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL1})
+	if err != nil {
+		t.Errorf("client enroll -u failed: %s", err)
+	}
+
+	// Registering with affiliation of "", should result in error. Registrar does not have absolute root affiliaton
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister5", "--id.type", "client", "--id.affiliation", "."})
+	if err == nil {
+		t.Error("Registering with affiliation of '', should result in error. Registrar does not have absolute root affiliaton")
+	}
+
+	// admin has affiliation of ""
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL})
+	if err != nil {
+		t.Errorf("client enroll -u failed: %s", err)
+	}
+
+	// Registering with affiliation of "hyperledger", valid scenario
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister6", "--id.type", "client", "--id.affiliation", "hyperledger"})
+	if err != nil {
+		t.Errorf("client register failed: %s", err)
+	}
+
+	sqliteDB, _, err := dbutil.NewUserRegistrySQLLite3(srv.CA.Config.DB.Datasource)
+	assert.NoError(t, err)
+
+	db := lib.NewDBAccessor()
+	db.SetDB(sqliteDB)
+	user, err := db.GetUserInfo("testRegister6")
+	assert.NoError(t, err)
+
+	if user.Affiliation != "hyperledger" {
+		t.Errorf("Incorrectly set affiliation for user being registered when no affiliation was specified, expected 'hyperledger' got %s", user.Affiliation)
+	}
+
 	os.RemoveAll(filepath.Dir(defYaml))
 }
 

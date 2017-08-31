@@ -41,10 +41,6 @@ test $? -eq 0 && ErrorMsg "Failed to register user7:validator:bank_a with 'bogus
 register admin user8 auditor bogus
 test $? -eq 0 && ErrorMsg "Failed to register user8:auditor with 'bogus' group"
 
-# one is always expected to at least sumbit a group with request
-register admin user9 auditor '[]'
-test "$?" -eq 0 && ErrorMsg "Improperly registered user9:auditor with null group"
-
 $SCRIPTDIR/fabric-ca_setup.sh -L -d mysql
 $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d mysql
 rm -rf $FABRIC_CA_CLIENT_HOME
