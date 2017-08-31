@@ -1,3 +1,9 @@
+## v1.0.2
+Thu Aug 31 04:22:27 EDT 2017
+
+* [3066136](https://github.com/hyperledger/fabric-ca/commit/3066136) FAB-5794 Mask credentials in debug messages
+* [00700da](https://github.com/hyperledger/fabric-ca/commit/00700da) FAB-5653 Prepare fabric-ca for v1.0.2 release
+
 ## v1.0.1
 Mon Jul 31 05:57:59 EDT 2017
 
