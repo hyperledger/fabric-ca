@@ -60,6 +60,7 @@ const (
 	attrRevoker        = "hf.Revoker"
 	attrIntermediateCA = "hf.IntermediateCA"
 	attrGenCRL         = "hf.GenCRL"
+	attrRegistrarAttr  = "hf.Registrar.Attributes"
 )
 
 // Server is the fabric-ca server
@@ -209,6 +210,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 			attrRevoker:        "true",
 			attrIntermediateCA: "true",
 			attrGenCRL:         "true",
+			attrRegistrarAttr:  "*",
 		},
 	}
 

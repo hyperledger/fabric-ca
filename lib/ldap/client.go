@@ -28,6 +28,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
 	ctls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -336,6 +337,16 @@ func (u *User) GetAffiliationPath() []string {
 // GetAttribute returns the value of an attribute, or "" if not found
 func (u *User) GetAttribute(name string) string {
 	return u.attrs[name]
+}
+
+// GetAttributes returns the requested attributes
+func (u *User) GetAttributes(attrNames []string) []tcert.Attribute {
+	var attrs []tcert.Attribute
+	for _, name := range attrNames {
+		value := u.attrs[name]
+		attrs = append(attrs, tcert.Attribute{Name: name, Value: value})
+	}
+	return attrs
 }
 
 // Returns a slice with the elements reversed

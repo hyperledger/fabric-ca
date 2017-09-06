@@ -591,6 +591,7 @@ done)
         hf.Registrar.DelegateRoles: \"client,user,validator,auditor\"
         hf.Revoker: true
         hf.IntermediateCA: true
+        hf.Registrar.Attributes: \"*\"
     - name: admin2
       pass: adminpw2
       type: client

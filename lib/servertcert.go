@@ -49,10 +49,12 @@ func tcertHandler(ctx *serverRequestContext) (interface{}, error) {
 		return nil, err
 	}
 	// Get requested attribute values for caller and affiliation path
-	attrs, affiliationPath, err := ctx.GetUserInfo(req.AttrNames)
+	caller, err := ctx.GetCaller()
 	if err != nil {
 		return nil, err
 	}
+	attrs := caller.GetAttributes(req.AttrNames)
+	affiliationPath := caller.GetAffiliationPath()
 	// Get the prekey associated with the affiliation path
 	prekey, err := ca.keyTree.GetKey(affiliationPath)
 	if err != nil {

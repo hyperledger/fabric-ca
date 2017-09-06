@@ -20,7 +20,10 @@ limitations under the License.
 
 package spi
 
-import "github.com/hyperledger/fabric-ca/api"
+import (
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
+)
 
 // UserInfo contains information about a user
 type UserInfo struct {
@@ -43,6 +46,8 @@ type User interface {
 	GetAffiliationPath() []string
 	// GetAttribute returns the value for an attribute name
 	GetAttribute(name string) string
+	// GetAttributes returns the requested attributes
+	GetAttributes(attrNames []string) []tcert.Attribute
 	// LoginComplete completes the login process by incrementing the state of the user
 	LoginComplete() error
 }

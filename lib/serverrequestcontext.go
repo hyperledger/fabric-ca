@@ -31,7 +31,6 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/pkg/errors"
@@ -46,6 +45,7 @@ type serverRequestContext struct {
 	enrollmentID   string
 	enrollmentCert *x509.Certificate
 	ui             spi.User
+	caller         spi.User
 	body           struct {
 		read bool   // true after body is read
 		buf  []byte // the body itself
@@ -205,30 +205,6 @@ func (ctx *serverRequestContext) getCA() (*CA, error) {
 	return ctx.ca, nil
 }
 
-// GetUserinfo returns the caller's requested attribute values and affiliation path
-func (ctx *serverRequestContext) GetUserInfo(attrNames []string) ([]tcert.Attribute, []string, error) {
-	id := ctx.enrollmentID
-	if id == "" {
-		return nil, nil, newHTTPErr(500, ErrCallerIsNotAuthenticated, "Caller is not authenticated")
-	}
-	ca, err := ctx.GetCA()
-	if err != nil {
-		return nil, nil, err
-	}
-	user, err := ca.registry.GetUser(id, attrNames)
-	if err != nil {
-		return nil, nil, err
-	}
-	var attrs []tcert.Attribute
-	for _, name := range attrNames {
-		value := user.GetAttribute(name)
-		if value != "" {
-			attrs = append(attrs, tcert.Attribute{Name: name, Value: value})
-		}
-	}
-	return attrs, user.GetAffiliationPath(), nil
-}
-
 // GetAttrExtension returns an attribute extension to place into a signing request
 func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeRequest, profile string) (*signer.Extension, error) {
 	ca, err := ctx.GetCA()
@@ -342,6 +318,29 @@ func (ctx *serverRequestContext) ReadBodyBytes() ([]byte, error) {
 		return nil, newHTTPErr(400, ErrReadingReqBody, "Failed reading request body: %s", err)
 	}
 	return ctx.body.buf, nil
+}
+
+// GetCaller gets the user who is making this server request
+func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
+	if ctx.caller != nil {
+		return ctx.caller, nil
+	}
+
+	var err error
+	id := ctx.enrollmentID
+	if id == "" {
+		return nil, newHTTPErr(500, ErrCallerIsNotAuthenticated, "Caller is not authenticated")
+	}
+	ca, err := ctx.GetCA()
+	if err != nil {
+		return nil, err
+	}
+	// Get the user info object for this user
+	ctx.caller, err = ca.registry.GetUser(id, nil)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to get user")
+	}
+	return ctx.caller, nil
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {

@@ -126,8 +126,8 @@ Fabric-CA Client's Configuration File
       affiliation:
       maxenrollments: -1
       attributes:
-        - name:
-          value:
+       # - name:
+       #   value:
     
     #############################################################################
     #  Enrollment section used to enroll an identity with fabric-ca server

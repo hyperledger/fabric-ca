@@ -25,6 +25,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jmoiron/sqlx"
@@ -457,6 +458,16 @@ func (u *DBUser) GetAffiliationPath() []string {
 // GetAttribute returns the value for an attribute name
 func (u *DBUser) GetAttribute(name string) string {
 	return u.attrs[name]
+}
+
+// GetAttributes returns the requested attributes
+func (u *DBUser) GetAttributes(attrNames []string) []tcert.Attribute {
+	var attrs []tcert.Attribute
+	for _, name := range attrNames {
+		value := u.attrs[name]
+		attrs = append(attrs, tcert.Attribute{Name: name, Value: value})
+	}
+	return attrs
 }
 
 func dbGetError(err error, prefix string) error {

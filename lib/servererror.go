@@ -113,6 +113,10 @@ const (
 	ErrGetCASigner = 40
 	// Failed to generate CRL
 	ErrGenCRL = 41
+	// Registrar does not have the authority to register an attribute
+	ErrRegAttrAuth = 42
+	// Registrar does not own 'hf.Registrar.Attributes'
+	ErrMissingRegAttr = 43
 )
 
 // Construct a new HTTP error.
