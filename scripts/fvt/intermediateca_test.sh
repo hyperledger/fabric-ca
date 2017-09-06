@@ -43,7 +43,7 @@ function setupTLScerts() {
                         -E "serverAuth,clientAuth,codeSigning,emailProtection,timeStamping" \
                         -e 20370101000000Z -s 20160101000000Z -p subTlsCa- >/dev/null 2>&1
    # EE TLS certs
-   i=0;while test $((i++)) -lt $NUMINTCAS; do
+   i=0;while test $((i++)) -lt $((NUMINTCAS+1)); do
    rm -rf $TLSDIR/intFabCaTls${i}*
    $SCRIPTDIR/utils/pki -f newcert -a subTlsCa -t ec -l 256 -d sha512 \
                         -n "/C=US/ST=NC/L=RTP/O=IBM/O=Hyperledger/OU=FVT/CN=intFabCaTls${i}/" -S "IP:127.0.${i}.1" \
@@ -60,12 +60,14 @@ EOF
 
 function createRootCA() {
    # Start RootCA
-   $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/rootTlsCa-cert.pem \
-                              --tls.keyfile $TLSDIR/rootTlsCa-key.pem"
+   $($FABRIC_TLS) && tlsopts="--tls.enabled \
+                              --tls.certfile $TLSDIR/rootTlsCa-cert.pem \
+                              --tls.keyfile $TLSDIR/rootTlsCa-key.pem \
+                              --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
+                              --db.tls.client.certfile $PGSSLCERT \
+                              --db.tls.client.keyfile $PGSSLKEY"
    mkdir -p "$TDIR/root"
    $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/root" -d $driver -m $MAXENROLL
-   sed -i "s@\(^[[:blank:]]*certfile:\).*.pem@\1 $TLSDIR/rootTlsCa-cert.pem@" $TDIR/root/runFabricCaFvt.yaml
-   sed -i "s@\(^[[:blank:]]*keyfile:\).*.pem@\1 $TLSDIR/rootTlsCa-key.pem@" $TDIR/root/runFabricCaFvt.yaml
    FABRIC_CA_SERVER_HOME="$TDIR/root" fabric-ca-server start \
                                       --csr.hosts $ROOT_CA_ADDR --address $ROOT_CA_ADDR \
                                       $tlsopts -c $TDIR/root/runFabricCaFvt.yaml -d 2>&1 |
@@ -80,7 +82,12 @@ function createIntCA() {
       cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${i}/runFabricCaFvt.yaml"
       $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
                                  --tls.keyfile $TLSDIR/intFabCaTls${i}-key.pem \
-                                 --intermediate.tls.certfiles $TLSDIR/tlsroots.pem"
+                                 --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
+                                 --db.tls.client.certfile $PGSSLCERT \
+                                 --db.tls.client.keyfile $PGSSLKEY \
+                                 --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
+                                 --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
+                                 --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${i}-key.pem"
       ADDR=127.0.${i}.1
       FABRIC_CA_SERVER_HOME="$TDIR/int${i}" fabric-ca-server start --csr.hosts $ADDR -c $TDIR/int${i}/runFabricCaFvt.yaml \
                                            --address $ADDR $tlsopts -b admin:adminpw \
@@ -99,7 +106,12 @@ function createFailingCA {
    cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${last}/runFabricCaFvt.yaml"
    $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
                               --tls.keyfile $TLSDIR/intFabCaTls${last}-key.pem \
-                              --intermediate.tls.certfiles $TLSDIR/tlsroots.pem"
+                              --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
+                              --db.tls.client.certfile $PGSSLCERT \
+                              --db.tls.client.keyfile $PGSSLKEY \
+                              --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
+                              --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
+                              --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${last}-key.pem"
    FABRIC_CA_SERVER_HOME="$TDIR/int${last}" fabric-ca-server init --csr.hosts 127.0.${last}.1 -c "$TDIR/int${last}/runFabricCaFvt.yaml" \
                                            --address 127.0.${last}.1 $tlsopts -b admin:adminpw \
                                            -u ${PROTO}intermediateCa${last}:intermediateCa${last}pw@$ADDR:$CA_DEFAULT_PORT -d 2>&1 | tee $TDIR/int${last}/server.log

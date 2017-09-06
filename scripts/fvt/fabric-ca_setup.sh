@@ -338,6 +338,7 @@ export CA_CFG_PATH
 #    honor the command-line setting to turn on TLS
 #      else honor the envvar
 #        else (default) turn off tls
+sslmode=disable
 if test -n "$TLS_ON"; then
    TLS_DISABLE='false'; LDAP_PORT=636; LDAP_PROTO="ldaps://";sslmode="require";mysqlTls='&tls=custom'
 else
@@ -356,7 +357,7 @@ test -n "$SRC_KEY" && cp "$SRC_KEY" $DST_KEY
 RUNCONFIG="$DATADIR/runFabricCaFvt.yaml"
 
 case $DRIVER in
-   postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
+   postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=$sslmode" ;;
    sqlite3)  DATASRC="$DATADIR/$DBNAME" ;;
    mysql)    DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME?parseTime=true$mysqlTls" ;;
 esac
