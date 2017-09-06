@@ -1,0 +1,8 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+FROM hyperledger/fabric-peer:_FABRIC_TAG_
+COPY payload/fabric-ca-client /usr/local/bin
+RUN chmod +x /usr/local/bin/fabric-ca-client
