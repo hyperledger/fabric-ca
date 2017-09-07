@@ -264,10 +264,9 @@ func TestCAInit(t *testing.T) {
 	if err != nil {
 		t.Fatal("ca init failed", err)
 	}
-
-	// initDB error
+	// initUserRegistry error
 	ca.Config.LDAP.Enabled = true
-	err = ca.init(false)
+	err = ca.initUserRegistry()
 	t.Logf("init err: %v", err)
 	if err == nil {
 		t.Fatal("Should have failed: ")

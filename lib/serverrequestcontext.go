@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -28,6 +29,7 @@ import (
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 )
 
 // serverRequestContext represents an HTTP request/response context in the server
@@ -165,8 +167,23 @@ func (ctx *serverRequestContext) GetECert() *x509.Certificate {
 	return ctx.enrollmentCert
 }
 
-// GetCA returns the CA to which this request is targeted
+// GetCA returns the CA to which this request is targeted and checks to make sure the database has been initialized
 func (ctx *serverRequestContext) GetCA() (*CA, error) {
+	_, err := ctx.getCA()
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to get CA instance")
+	}
+	if !ctx.ca.dbInitialized {
+		err := ctx.ca.initDB()
+		if err != nil {
+			return nil, errors.WithMessage(err, fmt.Sprintf("%s handler failed to initialize DB", strings.TrimLeft(ctx.req.URL.String(), "/")))
+		}
+	}
+	return ctx.ca, nil
+}
+
+// GetCA returns the CA to which this request is targeted
+func (ctx *serverRequestContext) getCA() (*CA, error) {
 	if ctx.ca == nil {
 		// Get the CA name
 		name, err := ctx.getCAName()

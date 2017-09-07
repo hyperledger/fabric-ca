@@ -17,10 +17,7 @@ limitations under the License.
 package dbutil
 
 import (
-	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -34,34 +31,17 @@ import (
 )
 
 // NewUserRegistrySQLLite3 returns a pointer to a sqlite database
-func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, bool, error) {
+func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, error) {
 	log.Debugf("Using sqlite database, connect to database in home (%s) directory", datasource)
 
-	datasource = filepath.Join(datasource)
-	exists := false
-
-	if datasource != "" {
-		// Check if database exists if not create it and bootstrap it based
-		// on the config file
-		_, err := os.Stat(datasource)
-		if err != nil && os.IsNotExist(err) {
-			log.Debugf("Database (%s) does not exist", datasource)
-			err2 := createSQLiteDBTables(datasource)
-			if err2 != nil {
-				return nil, false, errors.WithMessage(err2, "Failed to create SQLite3 database")
-			}
-		} else {
-			// database file exists. If os.Stat returned an error
-			// other than IsNotExist error, which still means
-			// file exists
-			log.Debugf("Database (%s) exists", datasource)
-			exists = true
-		}
+	err := createSQLiteDBTables(datasource)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to create SQLite3 database")
 	}
 
 	db, err := sqlx.Open("sqlite3", datasource+"?_busy_timeout=5000")
 	if err != nil {
-		return nil, false, err
+		return nil, errors.Wrap(err, "Failed to open sqlite3 DB")
 	}
 
 	// Set maximum open connections to one. This is to share one connection
@@ -77,135 +57,122 @@ func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, bool, error) {
 	db.SetMaxOpenConns(1)
 	log.Debug("Successfully opened sqlite3 DB")
 
-	return db, exists, nil
+	return db, nil
 }
 
 func createSQLiteDBTables(datasource string) error {
-	log.Debug("Creating SQLite Database...")
-	log.Debug("Database location: ", datasource)
+	log.Debug("Creating SQLite database (%s) if it does not exist...", datasource)
 	db, err := sqlx.Open("sqlite3", datasource)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open SQLite database")
 	}
 	defer db.Close()
 
-	log.Debug("Creating tables...")
+	log.Debug("Creating users table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
-	log.Debug("Created users table")
-
+	log.Debug("Creating affiliations table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
-	log.Debug("Created affiliation table")
-
+	log.Debug("Creating certificates table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
-	log.Debug("Created certificates table")
 
 	return nil
 }
 
 // NewUserRegistryPostgres opens a connecton to a postgres database
-func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, bool, error) {
+func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, error) {
 	log.Debugf("Using postgres database, connecting to database...")
 
-	var exists bool
 	dbName := getDBName(datasource)
 	log.Debug("Database Name: ", dbName)
 
 	if strings.Contains(dbName, "-") || strings.HasSuffix(dbName, ".db") {
-		return nil, false, errors.Errorf("Database name %s cannot contain any '-' or end with '.db'", dbName)
+		return nil, errors.Errorf("Database name '%s' cannot contain any '-' or end with '.db'", dbName)
 	}
-
-	connStr := getConnStr(datasource)
 
 	if clientTLSConfig.Enabled {
 		if len(clientTLSConfig.CertFiles) > 0 {
 			root := clientTLSConfig.CertFiles[0]
-			connStr = fmt.Sprintf("%s sslrootcert=%s", connStr, root)
+			datasource = fmt.Sprintf("%s sslrootcert=%s", datasource, root)
 		}
 
 		cert := clientTLSConfig.Client.CertFile
 		key := clientTLSConfig.Client.KeyFile
-		connStr = fmt.Sprintf("%s sslcert=%s sslkey=%s", connStr, cert, key)
+		datasource = fmt.Sprintf("%s sslcert=%s sslkey=%s", datasource, cert, key)
 	}
 
+	connStr := getConnStr(datasource)
+
+	log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr, "postgres"))
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to open Postgres database")
+		return nil, errors.Wrap(err, "Failed to open Postgres database")
 	}
 
 	err = db.Ping()
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to connect to Postgres database")
+		return nil, errors.Wrap(err, "Failed to connect to Postgres database")
 	}
 
-	// Check if database exists
-	r, err2 := db.Exec("SELECT * FROM pg_catalog.pg_database where datname=$1", dbName)
-	if err2 != nil {
-		return nil, false, errors.Wrap(err2, "Failed to query 'pg_database' table")
+	err = createPostgresDatabase(dbName, db)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Postgres database: %s")
 	}
 
-	found, _ := r.RowsAffected()
-	if found == 0 {
-		log.Debugf("Database (%s) does not exist", dbName)
-		exists = false
-		connStr = connStr + " dbname=" + dbName
-		err = createPostgresDBTables(connStr, dbName, db)
-		if err != nil {
-			return nil, false, errors.WithMessage(err, "Failed to create Postgres database")
-		}
-	} else {
-		log.Debugf("Database (%s) exists", dbName)
-		exists = true
-	}
-
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource, "postgres"))
 	db, err = sqlx.Open("postgres", datasource)
 	if err != nil {
-		return nil, false, err
+		return nil, errors.Wrapf(err, "Failed to open database '%s' in Postgres server", dbName)
 	}
 
-	return db, exists, nil
+	err = createPostgresTables(dbName, db)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create Postgres tables")
+	}
+
+	return db, nil
 }
 
-// createPostgresDB creates postgres database
-func createPostgresDBTables(datasource string, dbName string, db *sqlx.DB) error {
-	log.Debugf("Creating Postgres Database (%s)...", dbName)
+func createPostgresDatabase(dbName string, db *sqlx.DB) error {
+	log.Debugf("Creating Postgres Database (%s) if it does not exist...", dbName)
+
 	query := "CREATE DATABASE " + dbName
 	_, err := db.Exec(query)
 	if err != nil {
-		return errors.Wrap(err, "Failed to execute create database query")
+		if !strings.Contains(err.Error(), fmt.Sprintf("database \"%s\" already exists", dbName)) {
+			return errors.Wrap(err, "Failed to execute create database query")
+		}
 	}
 
-	database, err := sqlx.Open("postgres", datasource)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to open database (%s) in Postgres server", dbName)
-	}
-
-	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
-		return errors.Wrap(err, "Error creating users table")
-	}
-	log.Debug("Created users table")
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
-		return errors.Wrap(err, "Error creating affiliations table")
-	}
-	log.Debug("Created affiliations table")
-	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
-		return errors.Wrap(err, "Error creating certificates table")
-	}
-	log.Debug("Created certificates table")
 	return nil
 }
 
-// NewUserRegistryMySQL opens a connecton to a postgres database
-func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP) (*sqlx.DB, bool, error) {
+// createPostgresDB creates postgres database
+func createPostgresTables(dbName string, db *sqlx.DB) error {
+	log.Debug("Creating users table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
+		return errors.Wrap(err, "Error creating users table")
+	}
+	log.Debug("Creating affiliations table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
+		return errors.Wrap(err, "Error creating affiliations table")
+	}
+	log.Debug("Creating certificates table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+		return errors.Wrap(err, "Error creating certificates table")
+	}
+	return nil
+}
+
+// NewUserRegistryMySQL opens a connection to a postgres database
+func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP) (*sqlx.DB, error) {
 	log.Debugf("Using MySQL database, connecting to database...")
 
-	var exists bool
 	dbName := getDBName(datasource)
 	log.Debug("Database Name: ", dbName)
 
@@ -215,77 +182,68 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 	if clientTLSConfig.Enabled {
 		tlsConfig, err := tls.GetClientTLSConfig(clientTLSConfig, csp)
 		if err != nil {
-			return nil, false, errors.WithMessage(err, "Failed to get client TLS for MySQL")
+			return nil, errors.WithMessage(err, "Failed to get client TLS for MySQL")
 		}
 
 		mysql.RegisterTLSConfig("custom", tlsConfig)
 	}
 
+	log.Debug("Connecting to MySQL server, using connection string: ", MaskDBCred(connStr, "mysql"))
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to open MySQL database")
+		return nil, errors.Wrap(err, "Failed to open MySQL database")
 	}
 
 	err = db.Ping()
 	if err != nil {
-		return nil, false, errors.Wrap(err, "Failed to connect to MySQL database")
+		return nil, errors.Wrap(err, "Failed to connect to MySQL database")
 	}
 
-	// Check if database exists
-	var name string
-	err = db.QueryRow("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", dbName).Scan(&name)
+	err = createMySQLDatabase(dbName, db)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Debugf("Database (%s) does not exist", dbName)
-			exists = false
-		} else {
-			return nil, false, errors.Wrap(err, "Failed to query 'INFORMATION_SCHEMA.SCHEMATA table")
-		}
+		return nil, errors.Wrap(err, "Failed to create MySQL database")
 	}
 
-	if name == "" {
-		err := createMySQLTables(datasource, dbName, db)
-		if err != nil {
-			return nil, false, errors.WithMessage(err, "Failed to create MySQL database")
-		}
-	} else {
-		log.Debugf("Database (%s) exists", dbName)
-		exists = true
-	}
-
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource, "mysql"))
 	db, err = sqlx.Open("mysql", datasource)
 	if err != nil {
-		return nil, false, err
+		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
 	}
 
-	return db, exists, nil
+	err = createMySQLTables(dbName, db)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create MySQL tables")
+	}
+
+	return db, nil
 }
 
-func createMySQLTables(datasource string, dbName string, db *sqlx.DB) error {
-	log.Debugf("Creating MySQL Database (%s)...", dbName)
+func createMySQLDatabase(dbName string, db *sqlx.DB) error {
+	log.Debugf("Creating MySQL Database (%s) if it does not exist...", dbName)
 
-	_, err := db.Exec("CREATE DATABASE " + dbName)
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS " + dbName)
 	if err != nil {
 		return errors.Wrap(err, "Failed to execute create database query")
 	}
 
-	database, err := sqlx.Open("mysql", datasource)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
-	}
-	log.Debug("Creating Tables...")
-	if _, err := database.Exec("CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+	return nil
+}
+
+func createMySQLTables(dbName string, db *sqlx.DB) error {
+	log.Debug("Creating users table if it doesn't exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
-	log.Debug("Created users table")
-	if _, err := database.Exec("CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
+
+	log.Debug("Creating affiliations table if it doesn't exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
-	log.Debug("Created affiliations table")
-	if _, err := database.Exec("CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+
+	log.Debug("Creating certificates table if it doesn't exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
-	log.Debug("Created certificates table")
 
 	return nil
 }
@@ -311,5 +269,22 @@ func getDBName(datasource string) string {
 func getConnStr(datasource string) string {
 	re := regexp.MustCompile(`(dbname=)([^\s]+)`)
 	connStr := re.ReplaceAllString(datasource, "")
+	return connStr
+}
+
+// MaskDBCred hides DB credentials in connection string
+func MaskDBCred(connStr, dbType string) string {
+	switch dbType {
+	case "mysql":
+		dsParts := strings.Split(connStr, "@")
+		if len(dsParts) > 1 {
+			connStr = fmt.Sprintf("*****:*****@%s", dsParts[len(dsParts)-1])
+		}
+	case "postgres":
+		re := regexp.MustCompile("((?i)user=\\S*)")
+		connStr = re.ReplaceAllLiteralString(connStr, "user=****")
+		re = regexp.MustCompile("((?i)password=\\S*)")
+		connStr = re.ReplaceAllLiteralString(connStr, "password=****")
+	}
 	return connStr
 }
