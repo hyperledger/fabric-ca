@@ -356,9 +356,6 @@ func (u *DBUser) GetName() string {
 
 // Login the user with a password
 func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
-	var stateUpdateSQL string
-	var args []interface{}
-
 	log.Debugf("DB: Login user %s with max enrollments of %d and state of %d", u.Name, u.MaxEnrollments, u.State)
 
 	// Check the password by comparing to stored hash
@@ -388,7 +385,18 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 		return errors.Errorf("The identity %s has already enrolled %d times, it has reached its maximum enrollment allowance", u.Name, u.MaxEnrollments)
 	}
 
-	// Not exceeded, so attempt to increment the count
+	log.Debugf("DB: identity %s successfully logged in", u.Name)
+
+	return nil
+
+}
+
+// LoginComplete completes the login process by incrementing the state of the user
+func (u *DBUser) LoginComplete() error {
+	var stateUpdateSQL string
+	var args []interface{}
+	var err error
+
 	state := u.State + 1
 	args = append(args, u.Name)
 	if u.MaxEnrollments == -1 {
@@ -418,9 +426,6 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 	}
 
 	log.Debugf("Successfully incremented state for identity %s to %d", u.Name, state)
-
-	log.Debugf("DB: identity %s successfully logged in", u.Name)
-
 	return nil
 
 }

@@ -313,6 +313,11 @@ func (u *User) Login(password string, caMaxEnrollment int) error {
 
 }
 
+// LoginComplete requires no action on LDAP
+func (u *User) LoginComplete() error {
+	return nil
+}
+
 // GetAffiliationPath returns the affiliation path for this user
 func (u *User) GetAffiliationPath() []string {
 	return reverse(strings.Split(u.dn, ","))

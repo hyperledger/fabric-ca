@@ -83,7 +83,15 @@ func enrollHandler(ctx *serverRequestContext) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return handleEnroll(ctx, id)
+	resp, err := handleEnroll(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	err = ctx.ui.LoginComplete()
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 // Handle a reenroll request, guarded by token authentication

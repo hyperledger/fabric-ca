@@ -30,6 +30,7 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/attrmgr"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -43,6 +44,7 @@ type serverRequestContext struct {
 	ca             *CA
 	enrollmentID   string
 	enrollmentCert *x509.Certificate
+	ui             spi.User
 	body           struct {
 		read bool   // true after body is read
 		buf  []byte // the body itself
@@ -85,12 +87,12 @@ func (ctx *serverRequestContext) BasicAuthentication() (string, error) {
 		return "", newAuthErr(ErrEnrollDisabled, "Enroll is disabled")
 	}
 	// Get the user info object for this user
-	ui, err := ca.registry.GetUser(username, nil)
+	ctx.ui, err = ca.registry.GetUser(username, nil)
 	if err != nil {
 		return "", newAuthErr(ErrInvalidUser, "Failed to get user: %s", err)
 	}
 	// Check the user's password and max enrollments if supported by registry
-	err = ui.Login(password, caMaxEnrollments)
+	err = ctx.ui.Login(password, caMaxEnrollments)
 	if err != nil {
 		return "", newAuthErr(ErrInvalidPass, "Login failure: %s", err)
 	}
