@@ -92,7 +92,7 @@ Getting Started
 Prerequisites
 ~~~~~~~~~~~~~~~
 
--  Go 1.7.x installation
+-  Go 1.9+ installation
 -  ``GOPATH`` environment variable is set correctly
 - libtool and libtdhl-dev packages are installed
 
