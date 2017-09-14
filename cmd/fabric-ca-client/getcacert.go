@@ -111,17 +111,31 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 	dirPrefix := dirPrefixByProfile(config.Enrollment.Profile)
 	// Store the root certificate in "cacerts"
 	certsDir := fmt.Sprintf("%scacerts", dirPrefix)
-	err = storeFile("CA root certificate", mspDir, certsDir, fname, rootCert)
+	err = storeCerts("root certificate", mspDir, certsDir, fname, rootCert)
 	if err != nil {
 		return err
 	}
 	// Store the intermediate certs if there are any
 	if len(intermediateCerts) > 0 {
 		certsDir = fmt.Sprintf("%sintermediatecerts", dirPrefix)
-		err = storeFile("CA intermediate certificates", mspDir, certsDir, fname, intermediateCerts)
+		err = storeCerts("intermediate certificates", mspDir, certsDir, fname, intermediateCerts)
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func storeCerts(what, mspDir, subDir, fname string, cert []byte) error {
+	err := storeFile(fmt.Sprintf("CA %s", what), mspDir, subDir, fname, cert)
+	if err != nil {
+		return err
+	}
+	tlsfname := fmt.Sprintf("tls-%s", fname)
+	tlsCertsDir := fmt.Sprintf("tls%s", subDir)
+	err = storeFile(fmt.Sprintf("TLS %s", what), mspDir, tlsCertsDir, tlsfname, cert)
+	if err != nil {
+		return err
 	}
 	return nil
 }
