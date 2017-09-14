@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -1619,6 +1620,32 @@ func TestSRVSqliteLocking(t *testing.T) {
 	}
 }
 
+func copyFile(src, dst string, t *testing.T) {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		t.Fatalf("Failed to open file %s %s", src, err)
+	}
+
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		t.Fatalf("Failed to create file %s %s", dst, err)
+	}
+
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	if err != nil {
+		t.Fatalf("Failed to copy file %s to %s: %s", src, dst, err)
+	}
+
+	err = destFile.Sync()
+	if err != nil {
+		t.Fatalf("Failed to copy file %s to %s: %s", src, dst, err)
+	}
+}
+
 func TestSRVNewUserRegistryMySQL(t *testing.T) {
 	datasource := ""
 
@@ -1650,14 +1677,16 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to process certificate from file")
 
 	// Test with a file that does not have read permissions
-	err = os.Chmod("../testdata/root.pem", 0000)
+	tmpFile := filepath.Join(os.TempDir(), "root.pem")
+	copyFile("../testdata/root.pem", tmpFile, t)
+	err = os.Chmod(tmpFile, 0000)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatalf("Failed to change file mode: %s", err)
 	}
 
 	tlsConfig = &libtls.ClientTLSConfig{
 		Enabled:   true,
-		CertFiles: []string{"../testdata/root.pem"},
+		CertFiles: []string{tmpFile},
 	}
 	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
@@ -1666,9 +1695,9 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 	}
 	assert.Contains(t, err.Error(), "denied")
 
-	err = os.Chmod("../testdata/root.pem", 0644)
+	err = os.RemoveAll(tmpFile)
 	if err != nil {
-		fmt.Println(err)
+		t.Logf("%s", err.Error())
 	}
 }
 
