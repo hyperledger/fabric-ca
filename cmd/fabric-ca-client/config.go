@@ -278,6 +278,11 @@ func (c *ClientCmd) configInit() error {
 		return err
 	}
 
+	err = processAttributeRequests(c.cfgAttrReqs, c.clientCfg)
+	if err != nil {
+		return err
+	}
+
 	err = c.processCsrNames()
 	if err != nil {
 		return err
@@ -359,6 +364,35 @@ func processAttributes(cfgAttrs []string, cfg *lib.ClientConfig) error {
 			cfg.ID.Attributes[idx].ECert = ecert
 		}
 	}
+	return nil
+}
+
+// processAttributeRequests parses attribute requests from command line or env variable
+// Each string is of the form: <attrName>[:opt] where "opt" means the attribute is
+// optional and will not return an error if the identity does not possess the attribute.
+// The default is that each attribute name listed is required and so the identity must
+// possess the attribute.
+func processAttributeRequests(cfgAttrReqs []string, cfg *lib.ClientConfig) error {
+	if len(cfgAttrReqs) == 0 {
+		return nil
+	}
+	reqs := make([]*api.AttributeRequest, len(cfgAttrReqs))
+	for idx, req := range cfgAttrReqs {
+		sreq := strings.Split(req, ":")
+		name := sreq[0]
+		switch len(sreq) {
+		case 1:
+			reqs[idx] = &api.AttributeRequest{Name: name, Require: true}
+		case 2:
+			if sreq[1] != "opt" {
+				return errors.Errorf("Invalid option in attribute request specification at '%s'; the value after the colon must be 'opt'", req)
+			}
+			reqs[idx] = &api.AttributeRequest{Name: name, Require: false}
+		default:
+			return errors.Errorf("Multiple ':' characters not allowed in attribute request specification; error at '%s'", req)
+		}
+	}
+	cfg.Enrollment.AttrReqs = reqs
 	return nil
 }
 
