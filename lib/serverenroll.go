@@ -114,13 +114,25 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Get an attribute extension if one is being requested
+	ext, err := ctx.GetAttrExtension(req.AttrReqs, req.Profile)
+	if err != nil {
+		return nil, err
+	}
+	// If there is an extension requested, add it to the request
+	if ext != nil {
+		log.Debugf("Adding attribute extension to CSR: %+v", ext)
+		req.Extensions = append(req.Extensions, *ext)
+	}
 	// Sign the certificate
 	cert, err := ca.enrollSigner.Sign(req.SignRequest)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Certificate signing failure")
 	}
 	// Add server info to the response
-	resp := &enrollmentResponseNet{Cert: util.B64Encode(cert)}
+	resp := &enrollmentResponseNet{
+		Cert: util.B64Encode(cert),
+	}
 	err = ca.fillCAInfo(&resp.ServerInfo)
 	if err != nil {
 		return nil, err

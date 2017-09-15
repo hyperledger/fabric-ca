@@ -39,6 +39,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/spi"
@@ -88,6 +89,8 @@ type CA struct {
 	enrollSigner signer.Signer
 	// The options to use in verifying a signature in token-based authentication
 	verifyOptions *x509.VerifyOptions
+	// The attribute manager
+	attrMgr *attrmgr.Mgr
 	// The tcert manager for this CA
 	tcertMgr *tcert.Mgr
 	// The key tree
@@ -154,6 +157,8 @@ func (ca *CA) init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
+	// Create the attribute manager
+	ca.attrMgr = attrmgr.New()
 	// Initialize TCert handling
 	keyfile := ca.Config.CA.Keyfile
 	certfile := ca.Config.CA.Certfile
@@ -1039,4 +1044,9 @@ func initSigningProfile(spp **config.SigningProfile, expiry time.Duration, isCA 
 	if sp.Expiry == 0 {
 		sp.Expiry = expiry
 	}
+	if sp.ExtensionWhitelist == nil {
+		sp.ExtensionWhitelist = map[string]bool{}
+	}
+	// This is set so that all profiles permit an attribute extension in CFSSL
+	sp.ExtensionWhitelist[attrmgr.AttrOIDString] = true
 }
