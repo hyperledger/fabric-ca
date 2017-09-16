@@ -19,7 +19,6 @@ Fabric-CA Client's CLI
     
     Flags:
           --caname string                Name of CA
-      -c, --config string                Configuration file (default "<CLIENT_HOME>/fabric-ca-client-config.yaml")
           --csr.cn string                The common name field of the certificate signing request
           --csr.hosts stringSlice        A list of space-separated host names in a certificate signing request
           --csr.names stringSlice        A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)
@@ -27,14 +26,15 @@ Fabric-CA Client's CLI
       -d, --debug                        Enable debug level logging
           --enrollment.label string      Label to use in HSM operations
           --enrollment.profile string    Name of the signing profile to use in issuing the certificate
+      -H, --home string                  Client's home directory (default "$HOME/.fabric-ca-client")
           --id.affiliation string        The identity's affiliation
           --id.attrs stringSlice         A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
           --id.maxenrollments int        The maximum number of times the secret can be reused to enroll. (default -1)
           --id.name string               Unique name of the identity
           --id.secret string             The enrollment secret for the identity being registered
-          --id.type string               Type of identity being registered (e.g. 'peer, app, user')
+          --id.type string               Type of identity being registered (e.g. 'peer, app, user') (default "user")
       -M, --mspdir string                Membership Service Provider directory (default "msp")
-      -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "<HOSTNAME>")
+      -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
       -a, --revoke.aki string            AKI (Authority Key Identifier) of the certificate to be revoked
       -e, --revoke.name string           Identity whose certificates should be revoked
       -r, --revoke.reason string         Reason for revocation

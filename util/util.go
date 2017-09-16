@@ -699,3 +699,48 @@ func Hostname() string {
 	}
 	return hostname
 }
+
+// ValidateAndReturnAbsConf checks to see that there are no conflicts between the
+// configuration file path and home directory. If no conflicts, returns back the absolute
+// path for the configuration file and home directory.
+func ValidateAndReturnAbsConf(configFilePath, homeDir, cmdName string) (string, string, error) {
+	var err error
+	var homeDirSet bool
+	var configFileSet bool
+
+	defaultConfig := GetDefaultConfigFile(cmdName) // Get the default configuration
+
+	if configFilePath == "" {
+		configFilePath = defaultConfig // If no config file path specified, use the default configuration file
+	} else {
+		configFileSet = true
+	}
+
+	if homeDir == "" {
+		homeDir = filepath.Dir(defaultConfig) // If no home directory specified, use the default directory
+	} else {
+		homeDirSet = true
+	}
+
+	// Make the home directory absolute
+	homeDir, err = filepath.Abs(homeDir)
+	if err != nil {
+		return "", "", errors.Wrap(err, "Failed to get full path of config file")
+	}
+	homeDir = strings.TrimRight(homeDir, "/")
+
+	if configFileSet && homeDirSet {
+		log.Warning("Using both --config and --home CLI flags; --config will take precedence")
+	}
+
+	if configFileSet {
+		configFilePath, err = filepath.Abs(configFilePath)
+		if err != nil {
+			return "", "", errors.Wrap(err, "Failed to get full path of configuration file")
+		}
+		return configFilePath, filepath.Dir(configFilePath), nil
+	}
+
+	configFile := filepath.Join(homeDir, filepath.Base(defaultConfig)) // Join specified home directory with default config file name
+	return configFile, homeDir, nil
+}

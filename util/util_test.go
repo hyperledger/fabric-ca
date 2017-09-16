@@ -708,3 +708,55 @@ func TestHTTPRequestToString(t *testing.T) {
 		assert.Contains(t, reqStr, reqBody)
 	}
 }
+
+func TestValidateAndReturnAbsConf(t *testing.T) {
+	var err error
+	var filename, homeDir string
+
+	filename, _, err = ValidateAndReturnAbsConf("/tmp/test.yaml", "/tmp/homeDir", "fabric-ca-client")
+	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
+
+	if filename != "/tmp/test.yaml" {
+		t.Error("Failed to get correct path for configuration file")
+	}
+
+	filename, homeDir, err = ValidateAndReturnAbsConf("", "../testdata/tmp", "fabric-ca-client")
+	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
+
+	homeDirAbs, err := filepath.Abs("../testdata/tmp")
+	if err != nil {
+		t.Fatal("Error occured getting absolute path: ", err)
+	}
+
+	if homeDir != homeDirAbs {
+		t.Error("Failed to get correct path for home directory")
+	}
+
+	if filename != filepath.Join(homeDirAbs, "fabric-ca-client-config.yaml") {
+		t.Error("Failed to get correct path for configuration file")
+	}
+
+	// Test with no home directory set
+	filename, _, err = ValidateAndReturnAbsConf("/tmp/test.yaml", "", "fabric-ca-client")
+	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
+
+	if filename != "/tmp/test.yaml" {
+		t.Error("Failed to get correct path for configuration file")
+	}
+
+	filename, homeDir, err = ValidateAndReturnAbsConf("../testdata/tmp/test.yaml", "", "fabric-ca-client")
+	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
+
+	homeDirAbs, err = filepath.Abs("../testdata/tmp")
+	if err != nil {
+		t.Fatal("Error occured getting absolute path: ", err)
+	}
+
+	if homeDir != homeDirAbs {
+		t.Error("Failed to get correct path for home directory")
+	}
+
+	if filename != filepath.Join(homeDirAbs, "test.yaml") {
+		t.Error("Failed to get correct path for configuration file")
+	}
+}

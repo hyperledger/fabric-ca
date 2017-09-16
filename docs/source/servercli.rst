@@ -22,7 +22,6 @@ Fabric-CA Server's CLI
       -n, --ca.name string                            Certificate Authority name
           --cacount int                               Number of non-default CA instances
           --cafiles stringSlice                       A list of comma-separated CA configuration files
-      -c, --config string                             Configuration file (default "fabric-ca-server-config.yaml")
           --crlsizelimit int                          Size limit of an acceptable CRL in bytes (default 512000)
           --csr.cn string                             The common name field of the certificate signing request to a parent fabric-ca-server
           --csr.hosts stringSlice                     A list of space-separated host names in a certificate signing request to a parent fabric-ca-server
@@ -33,6 +32,7 @@ Fabric-CA Server's CLI
           --db.tls.client.keyfile string              PEM-encoded key file when mutual authentication is enabled
           --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
       -d, --debug                                     Enable debug level logging
+      -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
           --intermediate.enrollment.label string      Label to use in HSM operations
           --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
           --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-server
