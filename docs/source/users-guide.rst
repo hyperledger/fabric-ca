@@ -59,6 +59,8 @@ Table of Contents
    6. `Enabling TLS`_
    7. `Contact specific CA instance`_
 
+7. `Troubleshooting`_
+
 Overview
 --------
 
@@ -1241,3 +1243,14 @@ can be specified on the command line of a client command as follows:
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
+
+Troubleshooting
+---------------
+
+1. If you see a ``Killed: 9`` error on OSX when trying to execute
+   ``fabric-ca-client`` or ``fabric-ca-server``, there is a long thread
+   describing this problem at https://github.com/golang/go/issues/19734.
+   The short answer is that to work around this issue, you can run the
+   following command::
+
+    # sudo ln -s /usr/bin/true /usr/local/bin/dsymutil
