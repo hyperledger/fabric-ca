@@ -105,6 +105,8 @@ pollServer() {
    local port="$3"
    local timeout="$4"
    : ${timeout:="10"}
+   local action="$5"
+   : ${action:="start"}
    local rc=1
    local starttime=$(date +%s)
 
@@ -112,10 +114,12 @@ pollServer() {
    # we either get a response, or reach timeout
    while test "$(($(date +%s)-starttime))" -lt "$((timeout*2))" -a $rc -ne 0
    do
-      printf "\r%s%03d" "Waiting for $app start on $host:$port ..." "$(($(date +%s)-starttime))"
+      printf "\r%s%03d" "Waiting for $app to $action on $host:$port ..." "$(($(date +%s)-starttime))"
       ss -lpnt "src $host:$port"
       isReachable "$host" "$port"
       rc=$?
+      test "$action" == "stop" -a $rc -ne 0 && break
+      test "$action" == "stop" -a $rc -eq 0 && rc=1
       test $rc -eq 0 && break
       sleep .1
    done

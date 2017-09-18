@@ -91,7 +91,7 @@ func NewDBAccessor() *Accessor {
 
 func (d *Accessor) checkDB() error {
 	if d.db == nil {
-		return errors.New("unknown db object, please check SetDB method")
+		return errors.New("Failed to correctly setup database connection")
 	}
 	return nil
 }
@@ -278,8 +278,15 @@ func (d *Accessor) InsertAffiliation(name string, prekey string) error {
 	}
 	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, prekey)
 	if err != nil {
-		return err
+		errStr := err.Error()
+		dbType := d.db.DriverName()
+		if (!strings.Contains(errStr, "Duplicate entry") && dbType == "mysql") || (!strings.Contains(err.Error(), "duplicate key value") && dbType == "postgres") {
+			return err
+		}
+		log.Debugf("Affiliation '%s' already exists", name)
+		return nil
 	}
+	log.Debugf("Affiliation '%s' added", name)
 
 	return nil
 }

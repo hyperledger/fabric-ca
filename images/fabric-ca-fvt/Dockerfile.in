@@ -20,6 +20,8 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_BUNDLE=FabricTlsPkiBundle.pem \
     TLS_SERVER_CERT=FabricTlsServerEEcert.pem \
     TLS_SERVER_KEY=FabricTlsServerEEkey.pem \
+    TLS_CLIENT_CERT=FabricTlsClientEEcert.pem \
+    TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
     MYSQLDATA=/var/lib/mysql
 
 # setup scripts for slapd, postgres, mysql, and openssl
@@ -27,6 +29,8 @@ ADD payload/fabric-ca-fvt.tar.bz2 $FABRIC_CA_DATA
 RUN chmod +x $FABRIC_CA_DATA/*sh
 RUN cd $FABRIC_CA_DATA
 RUN $FABRIC_CA_DATA/tls_pki.sh
+RUN chmod 600 $FABRIC_CA_DATA/$TLS_SERVER_KEY
+RUN chmod 600 $FABRIC_CA_DATA/$TLS_CLIENT_KEY
 
 # Avoid ERROR:
 #   invoke-rc.d: policy-rc.d denied execution of start.

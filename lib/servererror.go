@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
@@ -96,6 +97,8 @@ const (
 	ErrNoPreKey = 32
 	// The caller was not authenticated
 	ErrCallerIsNotAuthenticated = 33
+	// Invalid configuration setting
+	ErrConfig = 34
 )
 
 // Construct a new HTTP error.
@@ -170,4 +173,39 @@ func (he *httpErr) writeResponse(w http.ResponseWriter) error {
 	msg := string(jsonMessage)
 	http.Error(w, msg, he.scode)
 	return nil
+}
+
+type fatalErr struct {
+	code int
+	msg  string
+}
+
+func newFatalError(code int, format string, args ...interface{}) *fatalErr {
+	msg := fmt.Sprintf(format, args...)
+	return &fatalErr{
+		code: code,
+		msg:  msg,
+	}
+}
+
+func (fe *fatalErr) Error() string {
+	return fe.String()
+}
+
+func (fe *fatalErr) String() string {
+	return fmt.Sprintf("Code: %d - %s", fe.code, fe.msg)
+}
+
+func isFatalError(err error) bool {
+	causeErr := errors.Cause(err)
+	typ := reflect.TypeOf(causeErr)
+	// If a pointer to a struct is passe, get the type of the dereferenced object
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	if typ == reflect.TypeOf(fatalErr{}) {
+		return true
+	}
+	return false
 }
