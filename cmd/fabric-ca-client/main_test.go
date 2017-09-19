@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -410,6 +411,32 @@ func TestMOption(t *testing.T) {
 	assertOneFileInDir(path.Join(homedir, mspdir, "keystore"), t)
 	assertOneFileInDir(path.Join(homedir, mspdir, "cacerts"), t)
 	assertOneFileInDir(path.Join(homedir, mspdir, "intermediatecerts"), t)
+	assertOneFileInDir(path.Join(homedir, mspdir, "tlscacerts"), t)
+	assertOneFileInDir(path.Join(homedir, mspdir, "tlsintermediatecerts"), t)
+
+	validCertsInDir(path.Join(homedir, mspdir, "cacerts"), path.Join(homedir, mspdir, "intermediatecerts"), t)
+	validCertsInDir(path.Join(homedir, mspdir, "tlscacerts"), path.Join(homedir, mspdir, "tlsintermediatecerts"), t)
+}
+
+// Checks to see if root and intermediate certificate are correctly getting stored in their respective directories
+func validCertsInDir(rootCertDir, interCertsDir string, t *testing.T) {
+	files, err := ioutil.ReadDir(rootCertDir)
+	file := files[0].Name()
+	rootCertPath := filepath.Join(rootCertDir, file)
+	rootcert, err := util.GetX509CertificateFromPEMFile(rootCertPath)
+	assert.NoError(t, err, "Failed to read cert file")
+
+	if !reflect.DeepEqual(rootcert.Subject, rootcert.Issuer) {
+		t.Errorf("Not a valid root certificate '%s' stored in the '%s' directory", rootCertPath, filepath.Base(rootCertDir))
+	}
+
+	interCertPath := filepath.Join(interCertsDir, file)
+	intercert, err := util.GetX509CertificateFromPEMFile(interCertPath)
+	assert.NoError(t, err, "Failed to read intermediate cert file")
+
+	if reflect.DeepEqual(intercert.Issuer, rootcert.Subject) && reflect.DeepEqual(intercert.Subject, intercert.Issuer) {
+		t.Errorf("Not a valid intermediate certificate '%s' stored in '%s' directory", interCertPath, filepath.Base(interCertsDir))
+	}
 }
 
 // TestReenroll tests fabric-ca-client reenroll
