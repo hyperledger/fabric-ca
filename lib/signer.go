@@ -22,9 +22,9 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/attrmgr"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/common/attrmgr"
 )
 
 func newSigner(key bccsp.Key, cert []byte, id *Identity) *Signer {
