@@ -171,10 +171,30 @@
                     "null"
                   ],
                   "description": "Name of the CA to direct traffic to within server."
+                },
+                "attr_reqs": {
+                  "type": "array",
+                  "description": "An array of attribute requests to be placed into the enrollment certificate",
+                  "items": {
+                  "type": "object",
+                    "properties": {
+                       "name": {
+                          "type": "string",
+                          "description": "The name of the attribute being requested to put into the enrollment certificate."
+                       },
+                       "require": {
+                          "type": "boolean",
+                          "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
+                       },
+                    },
+                    "required": [
+                       "name"
+                    ]
+                  }
                 }
               },
               "required": [
-                "request"
+                 "request"
               ]
             }
           }
@@ -190,8 +210,13 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "string",
-                  "description": "The enrollment certificate in base 64 encoded format."
+                  "type": "object",
+                  "properties": {
+                     "cert": {
+                        "type": "string",
+                        "description": "The enrollment certificate in base 64 encoded format."
+                      },
+                   }
                 },
                 "Errors": {
                   "type": "array",
@@ -293,6 +318,26 @@
                     "null"
                   ],
                   "description": "Name of the CA to direct traffic to within server."
+                },
+                "attr_reqs": {
+                  "type": "array",
+                  "description": "An array of attribute requests to be placed into the enrollment certificate",
+                  "items": {
+                  "type": "object",
+                    "properties": {
+                       "name": {
+                          "type": "string",
+                          "description": "The name of the attribute being requested to put into the enrollment certificate."
+                       },
+                       "require": {
+                          "type": "boolean",
+                          "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
+                       },
+                    },
+                    "required": [
+                       "name"
+                    ]
+                  }
                 }
               },
               "required": [
@@ -312,8 +357,13 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "string",
-                  "description": "The enrollment certificate in base 64 encoded format."
+                  "type": "object",
+                  "properties": {
+                     "cert": {
+                        "type": "string",
+                        "description": "The enrollment certificate in base 64 encoded format."
+                      },
+                   }
                 },
                 "Errors": {
                   "type": "array",
