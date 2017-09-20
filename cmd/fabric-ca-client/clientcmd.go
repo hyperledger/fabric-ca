@@ -65,6 +65,9 @@ type ClientCmd struct {
 	// cfgAttrs are the attributes specified via flags or env variables
 	// and translated to Attributes field in registration
 	cfgAttrs []string
+	// cfgAttrReqs are the attribute requests specified via flags or env variables
+	// and translated to the AttrReqs field in enrollment
+	cfgAttrReqs []string
 	// cfgCsrNames are the certificate signing request names specified via flags
 	// or env variables
 	cfgCsrNames []string
@@ -154,6 +157,8 @@ func (c *ClientCmd) registerFlags() {
 	pflags.StringVarP(&c.homeDirectory, "home", "H", "", fmt.Sprintf("Client's home directory (default \"%s\")", filepath.Dir(cfg)))
 	pflags.StringSliceVarP(
 		&c.cfgAttrs, "id.attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
+	pflags.StringSliceVarP(
+		&c.cfgAttrReqs, "enrollment.attrs", "", nil, "A list of comma-separated attribute requests of the form <name>[:opt] (e.g. foo,bar:opt)")
 	util.FlagString(c.myViper, pflags, "myhost", "m", host,
 		"Hostname to include in the certificate signing request during enrollment")
 	pflags.StringSliceVarP(

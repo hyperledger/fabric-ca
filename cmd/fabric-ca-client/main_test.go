@@ -248,6 +248,16 @@ func TestRBAC(t *testing.T) {
 	server := startServer(testDir, 7054, "", t)
 	defer server.Stop()
 
+	// Negative test case to try to enroll with an badly formatted attribute request
+	err = RunMain([]string{
+		cmdName, "enroll",
+		"--enrollment.attrs", "foo,bar:zoo",
+		"-c", adminUserConfig,
+		"-u", "http://admin:adminpw@localhost:7054"})
+	if err == nil {
+		t.Error("enrollment with badly formatted attribute requests should fail")
+	}
+
 	// Enroll the admin
 	err = RunMain([]string{
 		cmdName, "enroll",
@@ -283,7 +293,8 @@ func TestRBAC(t *testing.T) {
 		t.Errorf("client register failed: %s", err)
 	}
 
-	// Enroll the test user
+	// Enroll the test user with no attribute requests and make sure the
+	// resulting ecert has the default attributes and no extra
 	err = RunMain([]string{
 		cmdName, "enroll", "-d",
 		"-c", testUserConfig,
@@ -291,9 +302,43 @@ func TestRBAC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("client enroll of test user failed: %s", err)
 	}
+	checkAttrsInCert(t, testUserHome, "admin", "true", "foo")
+
+	// Enroll the test user with attribute requests and make sure the
+	// resulting ecert has the requested attributes only
+	err = RunMain([]string{
+		cmdName, "enroll", "-d",
+		"--enrollment.attrs", "foo,unknown:opt",
+		"-c", testUserConfig,
+		"-u", fmt.Sprintf("http://%s:%s@localhost:7054", testUser, testPass)})
+	if err != nil {
+		t.Fatalf("client enroll of test user failed: %s", err)
+	}
+	checkAttrsInCert(t, testUserHome, "foo", "bar", "admin")
+
+	// Negative test case to request an attribute that the identity doesn't have
+	err = RunMain([]string{
+		cmdName, "enroll", "-d",
+		"--enrollment.attrs", "unknown",
+		"-c", testUserConfig,
+		"-u", fmt.Sprintf("http://%s:%s@localhost:7054", testUser, testPass)})
+	if err == nil {
+		t.Error("enrollment request with unknown required attribute should fail")
+	}
+
+	// Stop the server
+	err = server.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
+// Verify the certificate has attribute 'name' with a value of 'val'
+// and does not have the 'missing' attribute.
+func checkAttrsInCert(t *testing.T, home, name, val, missing string) {
 
 	// Load the user's ecert
-	cert, err := util.GetX509CertificateFromPEMFile(path.Join(testUserHome, "msp", "signcerts", "cert.pem"))
+	cert, err := util.GetX509CertificateFromPEMFile(path.Join(home, "msp", "signcerts", "cert.pem"))
 	if err != nil {
 		t.Fatalf("Failed to load test user's cert: %s", err)
 	}
@@ -304,34 +349,29 @@ func TestRBAC(t *testing.T) {
 		t.Fatalf("Failed to get attributes from certificate: %s", err)
 	}
 
-	// Make sure the admin attribute is in the cert
-	val, ok, err := attrs.Value("admin")
+	// Make sure the attribute is in the cert
+	v, ok, err := attrs.Value(name)
 	if err != nil {
-		t.Fatalf("Failed to get admin attribute from cert: %s", err)
+		t.Fatalf("Failed to get '%s' attribute from cert: %s", name, err)
 	}
 	if !ok {
-		t.Fatal("The admin attribute was not found in the cert")
+		t.Fatalf("The '%s' attribute was not found in the cert", name)
 	}
 
-	// Make sure the value of the admin attribute is true
-	if val != "true" {
-		t.Fatalf("The value of the admin attribute is '%s' rather than true", val)
+	// Make sure the value of the attribute is as expected
+	if v != val {
+		t.Fatalf("The value of the '%s' attribute is '%s' rather than '%s'", name, v, val)
 	}
 
-	// Make sure the foo attribute was NOT added by default
-	_, ok, err = attrs.Value("foo")
+	// Make sure the missing attribute was NOT found
+	_, ok, err = attrs.Value(missing)
 	if err != nil {
-		t.Fatalf("Failed to get foo attribute from cert: %s", err)
+		t.Fatalf("Failed to get '%s' attribute from cert: %s", missing, err)
 	}
 	if ok {
-		t.Fatal("The foo attribute was found in the cert but should not be")
+		t.Fatalf("The '%s' attribute was found in the cert but should not be", missing)
 	}
 
-	// Stop the server
-	err = server.Stop()
-	if err != nil {
-		t.Errorf("Server stop failed: %s", err)
-	}
 }
 
 func testConfigFileTypes(t *testing.T) {
