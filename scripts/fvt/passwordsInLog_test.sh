@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #
 # Copyright IBM Corp. All Rights Reserved.
 #
@@ -7,9 +7,17 @@
 
 function checkPasswd() {
    local pswd="$1"
+   local Type="$2"
+   : ${Type:="user"}
+
    set -f
    # Extract password value(s) from logfile
-   passwd=$(egrep -o "Pass:[^[:space:]]+" $LOGFILE| awk -F':' '{print $2}')
+   case "$Type" in
+          user) passwd=$(egrep -o "Pass:[^[:space:]]+" $LOGFILE| awk -F':' '{print $2}') ;;
+          ldap) passwd=$(egrep -io "ldap.*@" $LOGFILE| awk -v FS=[:@] '{print $(NF-1)}') ;;
+         mysql) passwd=$(egrep -o "[a-z0-9*]+@tcp" $LOGFILE| awk -v FS=@ '{print $(NF-1)}') ;;
+      postgres) passwd=$(egrep -o "password=[^ ]+ " $LOGFILE| awk -F '=' '{print $2}') ;;
+   esac
 
    # Fail if password is empty
    if [[ -z "$passwd" ]] ; then
@@ -17,7 +25,7 @@ function checkPasswd() {
    fi
 
    # Fail if password matches anything other than '*'
-   for p in $passwd; do 
+   for p in $passwd; do
       if ! [[ "$p" =~ \*+ ]]; then
          ErrorMsg "Passwords were not masked in the log"
       fi
@@ -28,6 +36,12 @@ function checkPasswd() {
       grep "$pswd" "$LOGFILE" && ErrorMsg "$pswd was not masked in the log"
    fi
    set +f
+}
+
+function passWordSub() {
+   sed -i "/datasource:/ s/\(password=\)[[:alnum:]]\+\(.*\)/\1$PSWD\2/
+          s/dc=com:$LDAP_PASSWD/dc=com:$PSWD/
+          s/datasource:\(.*\)mysql@/datasource:\1$PSWD@/" $TESTDIR/runFabricCaFvt.yaml
 }
 
 RC=0
@@ -51,10 +65,20 @@ fabric-ca-server init -b $USER:$PSWD -d 2>&1 | tee $LOGFILE
 test ${PIPESTATUS[0]} -eq 0 && checkPasswd "$PSWD" || ErrorMsg "Init of CA failed"
 
 # Test using multiple IDs from pre-supplied config file
-$SCRIPTDIR/fabric-ca_setup.sh -R
-mkdir -p $TESTDIR
-$SCRIPTDIR/fabric-ca_setup.sh -I -X -n1 -D 2>&1 | tee $LOGFILE 
+$SCRIPTDIR/fabric-ca_setup.sh -R;  mkdir -p $TESTDIR
+$SCRIPTDIR/fabric-ca_setup.sh -I -X -n1 -D 2>&1 | tee $LOGFILE
 test ${PIPESTATUS[0]} -eq 0 && checkPasswd "$PSWD" || ErrorMsg "Init of CA failed"
+
+for server in ldap mysql postgres; do
+   $SCRIPTDIR/fabric-ca_setup.sh -R; mkdir -p $TESTDIR
+   case $server in
+      ldap) $SCRIPTDIR/fabric-ca_setup.sh -a -I -D > $LOGFILE 2>&1 ;;
+         *) $SCRIPTDIR/fabric-ca_setup.sh -I -D -d $server 2>&1 > $LOGFILE ;;
+   esac
+   passWordSub
+   $SCRIPTDIR/fabric-ca_setup.sh -S >> $LOGFILE 2>&1
+   test ${PIPESTATUS[0]} -eq 0 && checkPasswd "$PSWD" $server || ErrorMsg "Init of CA failed"
+done
 
 CleanUp $RC
 exit $RC
