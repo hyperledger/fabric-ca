@@ -33,6 +33,11 @@ function cleanup {
     rm $SERVERLOG
 }
 
+function killserver {
+    echo "killing server $1"
+    kill -9 $1
+}
+
 function existingIdentity {
     grep "Identity '$1' already registered, loaded identity" $2 &> /dev/null
     if [ $? != 0 ]; then
@@ -161,12 +166,16 @@ mysql --host=localhost --user=root --password=mysql -e "drop database $DBNAME;" 
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"  &> /dev/null
 
 # Starting server first time with one bootstrap user
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG 2>&1 > $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 # Starting server second time with a second bootstrap user
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 >> $SERVERLOG 
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 existingIdentity "a" $SERVERLOG # Check to see that appropriate error message was seen for an already registered user
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
@@ -182,8 +191,10 @@ echo "Test2: Fabric-ca should create the tables and bootstrap"
 echo "Dropping and creating an empty '$DBNAME' database"
 mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca;" -e "create database fabric_ca;" &> /dev/null
 
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 > $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
@@ -196,8 +207,10 @@ echo "Test3: Fabric-ca should create the database and tables, and bootstrap"
 echo "Dropping '$DBNAME' database"
 mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca;" &> /dev/null
 
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 > $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
@@ -216,12 +229,18 @@ psql -c "create database $DBNAME"
 psql -d fabric_ca -c "CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"
 
 # Starting server first time with one bootstrap user
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 > $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
 
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
+
+sleep 1
 # Starting server second time with a second bootstrap user
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 >> $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 existingIdentity "a" $SERVERLOG # Check to see that appropriate error message was seen for an already registered user
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
@@ -237,8 +256,10 @@ echo "Test2: Fabric-ca should create the tables and bootstrap"
 psql -c "drop database $DBNAME"
 psql -c "create database $DBNAME"
 
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 > $SERVERLOG
-$SCRIPTDIR/fabric-ca_setup.sh -K
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
@@ -250,9 +271,11 @@ echo "Test3: Database does not exist"
 echo "Test3: Fabric-ca should create the database and tables, and bootstrap"
 psql -c "drop database $DBNAME"
 
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 > $SERVERLOG
+$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 sleep 6 # Need to allow for Postgres to complete database and table creation
-$SCRIPTDIR/fabric-ca_setup.sh -K
+pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pid=$(pidof fabric-ca-server)
+killserver $pid
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
