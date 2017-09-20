@@ -156,6 +156,7 @@ type CSRInfo struct {
 type Attribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+	ECert bool   `json:"ecert,omitempty"`
 }
 
 // GetName returns the name of the attribute

@@ -32,6 +32,7 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
@@ -219,6 +220,115 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	testAffiliation(t)
 
 	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
+// Test role based access control
+func TestRBAC(t *testing.T) {
+	// Variable initialization
+	curDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %s", err)
+	}
+	testDir := path.Join(curDir, "testDir")
+	testUser := "testUser"
+	testPass := "testUserpw"
+	adminUserHome := path.Join(testDir, "adminUser")
+	adminUserConfig := path.Join(adminUserHome, "config.yaml")
+	testUserHome := path.Join(testDir, "testUser")
+	testUserConfig := path.Join(testUserHome, "config.yaml")
+
+	// Start with a clean test dir
+	os.RemoveAll(testDir)
+	defer os.RemoveAll(testDir)
+
+	// Start the server
+	server := startServer(testDir, 7054, "", t)
+	defer server.Stop()
+
+	// Enroll the admin
+	err = RunMain([]string{
+		cmdName, "enroll",
+		"-c", adminUserConfig,
+		"-u", "http://admin:adminpw@localhost:7054"})
+	if err != nil {
+		t.Fatalf("client enroll -u failed: %s", err)
+	}
+
+	// Negative test to add attribute with invalid flag (foo)
+	err = RunMain([]string{
+		cmdName, "register", "-d",
+		"-c", adminUserConfig,
+		"--id.name", testUser,
+		"--id.secret", testPass,
+		"--id.type", "user",
+		"--id.affiliation", "org1",
+		"--id.attrs", "admin=true:foo"})
+	if err == nil {
+		t.Error("client register should have failed because of invalid attribute flag")
+	}
+
+	// Register test user with an attribute to be inserted in ecert by default
+	err = RunMain([]string{
+		cmdName, "register", "-d",
+		"-c", adminUserConfig,
+		"--id.name", testUser,
+		"--id.secret", testPass,
+		"--id.type", "user",
+		"--id.affiliation", "org1",
+		"--id.attrs", "admin=true:ecert,foo=bar"})
+	if err != nil {
+		t.Errorf("client register failed: %s", err)
+	}
+
+	// Enroll the test user
+	err = RunMain([]string{
+		cmdName, "enroll", "-d",
+		"-c", testUserConfig,
+		"-u", fmt.Sprintf("http://%s:%s@localhost:7054", testUser, testPass)})
+	if err != nil {
+		t.Fatalf("client enroll of test user failed: %s", err)
+	}
+
+	// Load the user's ecert
+	cert, err := util.GetX509CertificateFromPEMFile(path.Join(testUserHome, "msp", "signcerts", "cert.pem"))
+	if err != nil {
+		t.Fatalf("Failed to load test user's cert: %s", err)
+	}
+
+	// Get the attributes from the cert
+	attrs, err := attrmgr.New().GetAttributesFromCert(cert)
+	if err != nil {
+		t.Fatalf("Failed to get attributes from certificate: %s", err)
+	}
+
+	// Make sure the admin attribute is in the cert
+	val, ok, err := attrs.Value("admin")
+	if err != nil {
+		t.Fatalf("Failed to get admin attribute from cert: %s", err)
+	}
+	if !ok {
+		t.Fatal("The admin attribute was not found in the cert")
+	}
+
+	// Make sure the value of the admin attribute is true
+	if val != "true" {
+		t.Fatalf("The value of the admin attribute is '%s' rather than true", val)
+	}
+
+	// Make sure the foo attribute was NOT added by default
+	_, ok, err = attrs.Value("foo")
+	if err != nil {
+		t.Fatalf("Failed to get foo attribute from cert: %s", err)
+	}
+	if ok {
+		t.Fatal("The foo attribute was found in the cert but should not be")
+	}
+
+	// Stop the server
+	err = server.Stop()
 	if err != nil {
 		t.Errorf("Server stop failed: %s", err)
 	}
