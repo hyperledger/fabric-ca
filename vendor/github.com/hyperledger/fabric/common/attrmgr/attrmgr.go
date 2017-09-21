@@ -26,6 +26,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/json"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -157,6 +158,22 @@ func (a *Attributes) Contains(name string) bool {
 func (a *Attributes) Value(name string) (string, bool, error) {
 	attr, ok := a.Attrs[name]
 	return attr, ok, nil
+}
+
+// True returns nil if the value of attribute 'name' is true;
+// otherwise, an appropriate error is returned.
+func (a *Attributes) True(name string) error {
+	val, ok, err := a.Value(name)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("Attribute '%s' was not found", name)
+	}
+	if val != "true" {
+		return fmt.Errorf("Attribute '%s' is not true", name)
+	}
+	return nil
 }
 
 // Get the attribute info from a certificate extension, or return nil if not found

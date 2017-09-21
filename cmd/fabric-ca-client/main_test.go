@@ -32,10 +32,10 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/stretchr/testify/assert"
 )
 
