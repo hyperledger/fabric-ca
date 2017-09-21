@@ -539,7 +539,7 @@ func (ca *CA) initDB() error {
 			return err
 		}
 	}
-	log.Infof("Initialized %s database at %s", db.Type, db.Datasource)
+	log.Infof("Initialized %s database", db.Type)
 	return nil
 }
 

@@ -17,6 +17,7 @@ package lib
 
 import (
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -178,4 +179,37 @@ func testValidMatchingKeys(cert *x509.Certificate, t *testing.T) {
 	if err == nil {
 		t.Error("Should have failed, public key and private key do not match")
 	}
+}
+
+// Tests String method of CAConfigDB
+func TestCAConfigDBStringer(t *testing.T) {
+	dbconfig := CAConfigDB{
+		Type:       "postgres",
+		Datasource: "dbname=mypostgres host=127.0.0.1 port=8888 user=admin password=admin sslmode=disable",
+	}
+	str := fmt.Sprintf("%+v", dbconfig) // String method of CAConfigDB is called here
+	t.Logf("Stringified postgres CAConfigDB: %s", str)
+	assert.Contains(t, str, "user=****", "Username is not masked in the datasource URL")
+	assert.Contains(t, str, "password=****", "Password is not masked in the datasource URL")
+
+	dbconfig.Datasource = "dbname=mypostgres host=127.0.0.1 port=8888 password=admin sslmode=disable user=admin"
+	str = fmt.Sprintf("%+v", dbconfig) // String method of CAConfigDB is called here
+	t.Logf("Stringified postgres CAConfigDB: %s", str)
+	assert.Contains(t, str, "user=****", "Username is not masked in the datasource URL")
+	assert.Contains(t, str, "password=****", "Password is not masked in the datasource URL")
+
+	dbconfig.Datasource = "dbname=cadb password=adminpwd host=127.0.0.1 port=8888 user=cadb sslmode=disable"
+	str = fmt.Sprintf("%+v", dbconfig) // String method of CAConfigDB is called here
+	t.Logf("Stringified postgres CAConfigDB: %s", str)
+	assert.Contains(t, str, "user=****", "Username is not masked in the datasource URL")
+	assert.Contains(t, str, "password=****", "Password is not masked in the datasource URL")
+
+	dbconfig = CAConfigDB{
+		Type:       "mysql",
+		Datasource: "root:rootpw@tcp(localhost:8888)/mysqldb?parseTime=true",
+	}
+	str = fmt.Sprintf("%+v", dbconfig)
+	t.Logf("Stringified mysql CAConfigDB: %s", str)
+	assert.NotContains(t, str, "root", "Username is not masked in the datasource URL")
+	assert.NotContains(t, str, "rootpw", "Password is not masked in the datasource URL")
 }

@@ -17,6 +17,9 @@ limitations under the License.
 package lib
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/cloudflare/cfssl/config"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
@@ -60,6 +63,10 @@ csr:
 `
 )
 
+var (
+	dbURLRegex = regexp.MustCompile("Datasource:\\s*(\\S+):(\\S+)@|Datasource:.*\\s(user=\\S+).*\\s(password=\\S+)|Datasource:.*\\s(password=\\S+).*\\s(user=\\S+)")
+)
+
 // CAConfig is the CA instance's config
 // The tags are recognized by the RegisterFlags function in fabric-ca/lib/util.go
 // and are as follows:
@@ -97,6 +104,35 @@ type CAConfigDB struct {
 	TLS        tls.ClientTLSConfig
 }
 
+// Implements Stringer interface for CAConfigDB
+// Calls util.StructToString to convert the CAConfigDB struct to
+// string and masks the password from the database URL. Returns
+// resulting string.
+func (c CAConfigDB) String() string {
+	str := util.StructToString(&c)
+	matches := dbURLRegex.FindStringSubmatch(str)
+
+	// If there is a match, there should be three entries: 1 for
+	// the match and 6 for submatches (see dbURLRegex regular expression)
+	if len(matches) == 7 {
+		matchIdxs := dbURLRegex.FindStringSubmatchIndex(str)
+		substr := str[matchIdxs[0]:matchIdxs[1]]
+		for idx := 1; idx < len(matches); idx++ {
+			if matches[idx] != "" {
+				if strings.Index(matches[idx], "user=") == 0 {
+					substr = strings.Replace(substr, matches[idx], "user=****", 1)
+				} else if strings.Index(matches[idx], "password=") == 0 {
+					substr = strings.Replace(substr, matches[idx], "password=****", 1)
+				} else {
+					substr = strings.Replace(substr, matches[idx], "****", 1)
+				}
+			}
+		}
+		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:len(str)]
+	}
+	return str
+}
+
 // CAConfigRegistry is the registry part of the server's config
 type CAConfigRegistry struct {
 	MaxEnrollments int `def:"-1" help:"Maximum number of enrollments; valid if LDAP not enabled"`
@@ -105,7 +141,7 @@ type CAConfigRegistry struct {
 
 // CAConfigIdentity is identity information in the server's config
 type CAConfigIdentity struct {
-	Name           string
+	Name           string `secret:"password"`
 	Pass           string `secret:"password"`
 	Type           string
 	Affiliation    string
