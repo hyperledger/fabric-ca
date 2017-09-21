@@ -201,7 +201,7 @@ load-test: docker-clean docker-fvt
 fvt-tests:
 	@scripts/run_fvt_tests
 
-ci-tests: docker-clean docker-fvt unit-tests
+ci-tests: docker-clean docker-fvt unit-tests docs
 	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
 
 %-docker-clean:
