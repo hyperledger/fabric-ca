@@ -1363,7 +1363,21 @@ Troubleshooting
 
     # sudo ln -s /usr/bin/true /usr/local/bin/dsymutil
 
-`Back to Top`_
+2. The error ``[ERROR] No certificates found for provided serial and aki`` will occur
+   if the following sequence of events occurs:
+ 
+   a. You issue a `fabric-ca-client enroll` command, creating an enrollment certificate (i.e. an ECert).
+      This stores a copy of the ECert in the fabric-ca-server's database.
+   b. The fabric-ca-server's database is deleted and recreated, thus losing the ECert from step 'a'.
+      For example, this may happen if you stop and restart a docker container hosting the fabric-ca-server,
+      but your fabric-ca-server is using the default sqlite database and the database file is not stored
+      on a volume and is therefore not persistent.
+   c. You issue a `fabric-ca-client register` command or any other command which tries to use the ECert from
+      step 'a'.  In this case, since the database no longer contains the ECert, the
+      ``[ERROR] No certificates found for provided serial and aki`` will occur.
+
+   To resolve this error, you must enroll again by repeating step 'a'.  This will issue a new ECert
+   which will be stored in the current database.
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
