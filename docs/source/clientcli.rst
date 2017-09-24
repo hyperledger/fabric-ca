@@ -10,6 +10,7 @@ Fabric-CA Client's CLI
     
     Available Commands:
       enroll      Enroll an identity
+      gencrl      Generate a CRL
       gencsr      Generate a CSR
       getcacert   Get CA certificate chain
       reenroll    Reenroll an identity

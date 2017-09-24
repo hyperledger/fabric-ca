@@ -47,6 +47,17 @@ const (
 	gencsr    = "gencsr"
 )
 
+type crlArgs struct {
+	// Genenerate CRL with all the certificates that were revoked after this timestamp
+	RevokedAfter string `help:"Generate CRL with certificates that were revoked after this UTC timestamp (in RFC3339 format)"`
+	// Genenerate CRL with all the certificates that were revoked before this timestamp
+	RevokedBefore string `help:"Generate CRL with certificates that were revoked before this UTC timestamp (in RFC3339 format)"`
+	// Genenerate CRL with all the certificates that expire after this timestamp
+	ExpireAfter string `help:"Generate CRL with certificates that expire after this UTC timestamp (in RFC3339 format)"`
+	// Genenerate CRL with all the certificates that expire before this timestamp
+	ExpireBefore string `help:"Generate CRL with certificates that expire before this UTC timestamp (in RFC3339 format)"`
+}
+
 // ClientCmd encapsulates cobra command that provides command line interface
 // for the Fabric CA client and the configuration used by the Fabric CA client
 type ClientCmd struct {
@@ -73,6 +84,7 @@ type ClientCmd struct {
 	cfgCsrNames []string
 	// csrCommonName is the certificate signing request common name specified via the flag
 	csrCommonName string
+	crlParams     crlArgs
 	// profileMode is the profiling mode, cpu or mem or empty
 	profileMode string
 	// profileInst is the profiling instance object
@@ -124,7 +136,8 @@ func (c *ClientCmd) init() {
 		c.newReenrollCommand(),
 		c.newRevokeCommand(),
 		c.newGetCACertCommand(),
-		c.newGenCsrCommand())
+		c.newGenCsrCommand(),
+		c.newGenCRLCommand())
 	c.rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Prints Fabric CA Client version",
@@ -207,7 +220,7 @@ func (c *ClientCmd) requiresEnrollment() bool {
 	return c.name != enroll && c.name != getcacert && c.name != gencsr
 }
 
-// Create default client configuration file only during an enroll command
+// Create default client configuration file only during an enroll or gencsr command
 func (c *ClientCmd) shouldCreateDefaultConfig() bool {
 	return c.name == enroll || c.name == gencsr
 }

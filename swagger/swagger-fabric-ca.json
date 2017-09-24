@@ -61,14 +61,14 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                     "caname": {
-                        "type": "string",
-                        "description": "The name of the root CA associated with this server."
-                     },
-                     "cachain": {
-                        "type": "string",
-                        "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate."
-                     }
+                    "caname": {
+                      "type": "string",
+                      "description": "The name of the root CA associated with this server."
+                    },
+                    "cachain": {
+                      "type": "string",
+                      "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate."
+                    }
                   }
                 },
                 "Errors": {
@@ -176,25 +176,25 @@
                   "type": "array",
                   "description": "An array of attribute requests to be placed into the enrollment certificate",
                   "items": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
-                       "name": {
-                          "type": "string",
-                          "description": "The name of the attribute being requested to put into the enrollment certificate."
-                       },
-                       "require": {
-                          "type": "boolean",
-                          "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
-                       },
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the attribute being requested to put into the enrollment certificate."
+                      },
+                      "require": {
+                        "type": "boolean",
+                        "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
+                      },
                     },
                     "required": [
-                       "name"
+                      "name"
                     ]
                   }
                 }
               },
               "required": [
-                 "request"
+                "request"
               ]
             }
           }
@@ -212,11 +212,11 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                     "cert": {
-                        "type": "string",
-                        "description": "The enrollment certificate in base 64 encoded format."
-                      },
-                   }
+                    "cert": {
+                      "type": "string",
+                      "description": "The enrollment certificate in base 64 encoded format."
+                    },
+                  }
                 },
                 "Errors": {
                   "type": "array",
@@ -323,19 +323,19 @@
                   "type": "array",
                   "description": "An array of attribute requests to be placed into the enrollment certificate",
                   "items": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
-                       "name": {
-                          "type": "string",
-                          "description": "The name of the attribute being requested to put into the enrollment certificate."
-                       },
-                       "require": {
-                          "type": "boolean",
-                          "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
-                       },
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the attribute being requested to put into the enrollment certificate."
+                      },
+                      "require": {
+                        "type": "boolean",
+                        "description": "Boolean indicating whether the attribute is required and thus return an error if not found; the default value is false."
+                      },
                     },
                     "required": [
-                       "name"
+                      "name"
                     ]
                   }
                 }
@@ -359,11 +359,11 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                     "cert": {
-                        "type": "string",
-                        "description": "The enrollment certificate in base 64 encoded format."
-                      },
-                   }
+                    "cert": {
+                      "type": "string",
+                      "description": "The enrollment certificate in base 64 encoded format."
+                    },
+                  }
                 },
                 "Errors": {
                   "type": "array",
@@ -654,6 +654,135 @@
                 "Result": {
                   "type": "string",
                   "description": "Message related to revocation"
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of information messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "/gencrl": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Generates a Certifcate Revocation List (CRL)",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "revokedafter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Include certificates that were revoked after this UTC timestamp (in RFC3339 format) in the CRL"
+                },
+                "revokedbefore": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Include certificates that were revoked before this UTC timestamp (in RFC3339 format) in the CRL"
+                },
+                "expireafter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Include revoked certificates that expire after this UTC timestamp (in RFC3339 format) in the CRL"
+                },
+                "expirebefore": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Include revoked certificates that expire before this UTC timestamp (in RFC3339 format) in the CRL"
+                },
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to send the request to within the Fabric CA server."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully generated the CRL",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "string",
+                  "crl": "base64 encoded DER bytes of the CRL"
                 },
                 "Errors": {
                   "type": "array",

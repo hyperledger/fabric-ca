@@ -59,6 +59,7 @@ const (
 	attrDelegateRoles  = "hf.Registrar.DelegateRoles"
 	attrRevoker        = "hf.Revoker"
 	attrIntermediateCA = "hf.IntermediateCA"
+	attrGenCRL         = "hf.GenCRL"
 )
 
 // Server is the fabric-ca server
@@ -181,6 +182,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 			attrDelegateRoles:  allRoles,
 			attrRevoker:        "true",
 			attrIntermediateCA: "true",
+			attrGenCRL:         "true",
 		},
 	}
 
@@ -414,6 +416,7 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("reenroll", newReenrollEndpoint(s))
 	s.registerHandler("revoke", newRevokeEndpoint(s))
 	s.registerHandler("tcert", newTCertEndpoint(s))
+	s.registerHandler("gencrl", newGenCRLEndpoint(s))
 }
 
 // Register a handler

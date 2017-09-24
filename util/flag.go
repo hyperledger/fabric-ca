@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -79,10 +80,12 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 	if skip != "" {
 		return nil
 	}
+
 	help := fr.getTag(f, TagHelp)
 	opt := fr.getTag(f, TagOpt)
 	def := fr.getTag(f, TagDefault)
 	switch f.Kind {
+
 	case reflect.String:
 		if help == "" {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)
@@ -100,6 +103,30 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 			}
 		}
 		fr.flags.IntVarP(f.Addr.(*int), f.Path, opt, intDef, help)
+	case reflect.Int64:
+		if help == "" {
+			return errors.Errorf("Field is missing a help tag: %s", f.Path)
+		}
+		d, ok := f.Addr.(*time.Duration)
+		if !ok {
+			var intDef int64
+			if def != "" {
+				intDef, err = strconv.ParseInt(def, 10, 64)
+				if err != nil {
+					return errors.Errorf("Invalid int64 value in 'def' tag of %s field", f.Path)
+				}
+			}
+			fr.flags.Int64VarP(f.Addr.(*int64), f.Path, opt, intDef, help)
+		} else {
+			var intDef time.Duration
+			if def != "" {
+				intDef, err = time.ParseDuration(def)
+				if err != nil {
+					return errors.Errorf("Invalid duration value in 'def' tag of %s field", f.Path)
+				}
+			}
+			fr.flags.DurationVarP(d, f.Path, opt, intDef, help)
+		}
 	case reflect.Bool:
 		if help == "" {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)

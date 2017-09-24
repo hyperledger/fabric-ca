@@ -50,6 +50,14 @@ WHERE (serial_number = ? AND authority_key_identifier = ?);`
 UPDATE certificates
 SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=:reason
 WHERE (id = :id AND status != 'revoked');`
+
+	selectRevokedSQL = `
+SELECT %s FROM certificates
+	WHERE (expiry > ? AND status='revoked' AND revoked_at > ? AND revoked_at < ?);`
+
+	selectRevokedSQL1 = `
+SELECT %s FROM certificates
+	WHERE (expiry > ? AND expiry < ? AND status='revoked' AND revoked_at > ? AND revoked_at < ?);`
 )
 
 // CertRecord extends CFSSL CertificateRecord by adding an enrollment ID to the record
@@ -189,7 +197,33 @@ func (d *CertDBAccessor) GetUnexpiredCertificates() (crs []certdb.CertificateRec
 	return crs, err
 }
 
-// GetRevokedAndUnexpiredCertificates returns all revoked and unexpired certificates
+// GetRevokedCertificates returns revoked certificates
+func (d *CertDBAccessor) GetRevokedCertificates(expiredAfter, expiredBefore, revokedAfter, revokedBefore time.Time) ([]certdb.CertificateRecord, error) {
+	log.Debugf("DB: Get revoked certificates that were revoked after %s and before %s that are expired after %s and before %s",
+		revokedAfter, revokedBefore, expiredAfter, expiredBefore)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+	var crs []certdb.CertificateRecord
+	if expiredBefore.IsZero() {
+		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL),
+			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, revokedAfter, revokedBefore)
+		if err != nil {
+			return crs, dbGetError(err, "Certificate")
+		}
+	} else {
+		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL1),
+			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, expiredBefore, revokedAfter, revokedBefore)
+		if err != nil {
+			return crs, dbGetError(err, "Certificate")
+		}
+	}
+
+	return crs, nil
+}
+
+// GetRevokedAndUnexpiredCertificates returns revoked and unexpired certificates
 func (d *CertDBAccessor) GetRevokedAndUnexpiredCertificates() ([]certdb.CertificateRecord, error) {
 	crs, err := d.accessor.GetRevokedAndUnexpiredCertificates()
 	if err != nil {
