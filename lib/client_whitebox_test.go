@@ -174,6 +174,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 		server.Stop()
 		t.Fatalf("Failed to store identity: %s", err)
 	}
+
 	// Stop server
 	err = server.Stop()
 	if err != nil {
@@ -203,7 +204,6 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	err = client.initHTTPClient()
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
-		server.Stop()
 		t.Errorf("Client reenroll with client auth failed: %s", err)
 	}
 	// Stop server
