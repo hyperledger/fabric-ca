@@ -32,14 +32,11 @@ Table of Contents
    2. `Install`_
    3. `Explore the Fabric CA CLI`_
 
-3. `File Formats`_
+3. `Configuration Settings`_
 
-   1. `Fabric CA server's configuration file format`_
-   2. `Fabric CA client's configuration file format`_
+   1. `A word on file paths`_
 
-4. `Configuration Settings Precedence`_
-
-5. `Fabric CA Server`_
+4. `Fabric CA Server`_
 
    1. `Initializing the server`_
    2. `Starting the server`_
@@ -49,7 +46,7 @@ Table of Contents
    6. `Setting up multiple CAs`_
    7. `Enrolling an intermediate CA`_
 
-6. `Fabric CA Client`_
+5. `Fabric CA Client`_
 
    1. `Enrolling the bootstrap identity`_
    2. `Registering a new identity`_
@@ -59,7 +56,16 @@ Table of Contents
    6. `Enabling TLS`_
    7. `Contact specific CA instance`_
 
-7. `Troubleshooting`_
+6. `HSM`_
+
+   1. `Configuring Fabric CA server to use softhsm2`_
+
+7. `File Formats`_
+
+   1. `Fabric CA server's configuration file format`_
+   2. `Fabric CA client's configuration file format`_
+
+8. `Troubleshooting`_
 
 Overview
 --------
@@ -246,27 +252,8 @@ The following links shows the :doc:`Server Command Line <servercli>` and
 
 `Back to Top`_
 
-File Formats
-------------
-
-Fabric CA server's configuration file format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A default configuration file is created in the server's home directory
-(see `Fabric CA Server <#server>`__ section for more info). The following
-link shows a sample :doc:`Server configuration file <serverconfig>`.
-
-Fabric CA client's configuration file format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A default configuration file is created in the client's home directory
-(see `Fabric CA Client <#client>`__ section for more info). The following
-link shows a sample :doc:`Client configuration file <clientconfig>`.
-
-`Back to Top`_
-
-Configuration Settings Precedence
----------------------------------
+Configuration Settings
+~~~~~~~~~~~~~~~~~~~~~~
 
 The Fabric CA provides 3 ways to configure settings on the Fabric CA server
 and client. The precedence order is:
@@ -313,9 +300,8 @@ The same approach applies to fabric-ca-server, except instead of using
 
 .. _server:
 
-
 A word on file paths
---------------------
+^^^^^^^^^^^^^^^^^^^^^
 All the properties in the Fabric CA server and client configuration file
 that specify file names support both relative and absolute paths.
 Relative paths are relative to the config directory, where the
@@ -335,7 +321,7 @@ directory, ``cert.pem`` file in the ``~/config/certs`` directory and the
         certfile: certs/cert.pem
         keyfile: /abs/path/key.pem
 
-
+`Back to Top`_
 
 Fabric CA Server
 ----------------
@@ -1300,8 +1286,71 @@ can be specified on the command line of a client command as follows:
 
 `Back to Top`_
 
-.. Licensed under Creative Commons Attribution 4.0 International License
-   https://creativecommons.org/licenses/by/4.0/
+HSM
+---
+By default, the Fabric CA server and client store private keys in a PEM-encoded file,
+but they can also be configured to store private keys in an HSM (Hardware Security Module)
+via PKCS11 APIs. This behavior is configured in the BCCSP (BlockChain Crypto Service Provider)
+section of the server’s or client’s configuration file.
+
+Configuring Fabric CA server to use softhsm2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This section shows how to configure the Fabric CA server or client to use a software version
+of PKCS11 called softhsm (see https://github.com/opendnssec/SoftHSMv2).
+
+After installing softhsm, create a token, label it “ForFabric”, set the pin to ‘98765432’
+(refer to softhsm documentation).
+
+You can use both the config file and environment variables to configure BCCSP
+For example, set the bccsp section of Fabric CA server configuration file as follows.
+Note that the default field’s value is PKCS11.
+
+.. code:: yaml
+
+  #############################################################################
+  # BCCSP (BlockChain Crypto Service Provider) section is used to select which
+  # crypto library implementation to use
+  #############################################################################
+  bccsp:
+    default: PKCS11
+    pkcs11:
+      Library: /usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
+      Pin: 98765432
+      Label: ForFabric
+      hash: SHA2
+      security: 256
+      filekeystore:
+        # The directory used for the software file-based keystore
+        keystore: msp/keystore
+
+And you can override relevant fields via environment variables as follows:
+
+FABRIC_CA_SERVER_BCCSP_DEFAULT=PKCS11
+FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
+FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
+FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
+
+`Back to Top`_
+
+File Formats
+------------
+
+Fabric CA server's configuration file format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A default configuration file is created in the server's home directory
+(see `Fabric CA Server <#server>`__ section for more info). The following
+link shows a sample :doc:`Server configuration file <serverconfig>`.
+
+Fabric CA client's configuration file format
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A default configuration file is created in the client's home directory
+(see `Fabric CA Client <#client>`__ section for more info). The following
+link shows a sample :doc:`Client configuration file <clientconfig>`.
+
+`Back to Top`_
 
 Troubleshooting
 ---------------
@@ -1313,3 +1362,8 @@ Troubleshooting
    following command::
 
     # sudo ln -s /usr/bin/true /usr/local/bin/dsymutil
+
+`Back to Top`_
+
+.. Licensed under Creative Commons Attribution 4.0 International License
+   https://creativecommons.org/licenses/by/4.0/
