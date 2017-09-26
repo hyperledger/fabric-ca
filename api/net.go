@@ -41,7 +41,7 @@ type RegistrationResponseNet struct {
 type EnrollmentRequestNet struct {
 	signer.SignRequest
 	CAName   string
-	AttrReqs []*AttributeRequest
+	AttrReqs []*AttributeRequest `json:"attr_reqs,omitempty"`
 }
 
 // ReenrollmentRequestNet is a request to reenroll an identity.
@@ -49,7 +49,7 @@ type EnrollmentRequestNet struct {
 type ReenrollmentRequestNet struct {
 	signer.SignRequest
 	CAName   string
-	AttrReqs []*AttributeRequest
+	AttrReqs []*AttributeRequest `json:"attr_reqs,omitempty"`
 }
 
 // RevocationRequestNet is a revocation request which flows over the network
