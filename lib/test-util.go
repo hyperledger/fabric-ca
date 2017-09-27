@@ -18,6 +18,7 @@ package lib
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -122,4 +123,32 @@ func TestGetServer2(deleteHome bool, port int, home, parentURL string, maxEnroll
 		return nil
 	}
 	return srv
+}
+
+// CopyFile copies a file
+func CopyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+
+	defer srcFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	if err != nil {
+		return err
+	}
+
+	err = destFile.Sync()
+	if err != nil {
+		return err
+	}
+	return nil
 }
