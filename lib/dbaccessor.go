@@ -276,11 +276,22 @@ func (d *Accessor) InsertAffiliation(name string, prekey string) error {
 	if err != nil {
 		return err
 	}
+	dbType := d.db.DriverName()
+	// InnoDB store engine for MySQL does not allow more than 767 bytes
+	// in a 'UNIQUE' column. To work around this, the UNIQUE constraint was removed
+	// from the 'name' column in the affiliations table for MySQL to allow for up to 1024
+	// characters to be stored. In doing this, a check is needed on MySQL to check
+	// if the affiliation exists before adding it to prevent duplicate entries.
+	if dbType == "mysql" {
+		aff, _ := d.GetAffiliation(name)
+		if aff != nil {
+			log.Debugf("Affiliation '%s' already exists", name)
+			return nil
+		}
+	}
 	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, prekey)
 	if err != nil {
-		errStr := err.Error()
-		dbType := d.db.DriverName()
-		if (!strings.Contains(errStr, "Duplicate entry") && dbType == "mysql") || (!strings.Contains(err.Error(), "duplicate key value") && dbType == "postgres") {
+		if (!strings.Contains(err.Error(), "UNIQUE constraint failed") && dbType == "sqlite3") || (!strings.Contains(err.Error(), "duplicate key value") && dbType == "postgres") {
 			return err
 		}
 		log.Debugf("Affiliation '%s' already exists", name)

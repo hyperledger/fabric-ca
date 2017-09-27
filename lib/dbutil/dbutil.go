@@ -69,15 +69,15 @@ func createSQLiteDBTables(datasource string) error {
 	defer db.Close()
 
 	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	log.Debug("Creating certificates table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 
@@ -155,15 +155,15 @@ func createPostgresDatabase(dbName string, db *sqlx.DB) error {
 // createPostgresDB creates postgres database
 func createPostgresTables(dbName string, db *sqlx.DB) error {
 	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	log.Debug("Creating certificates table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 	return nil
@@ -231,17 +231,24 @@ func createMySQLDatabase(dbName string, db *sqlx.DB) error {
 
 func createMySQLTables(dbName string, db *sqlx.DB) error {
 	log.Debug("Creating users table if it doesn't exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 
 	log.Debug("Creating affiliations table if it doesn't exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL, prekey VARCHAR(1024))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 
+	log.Debug("Creating index on 'name' in the affiliations table")
+	if _, err := db.Exec("CREATE INDEX name_index on affiliations (name)"); err != nil {
+		if !strings.Contains(err.Error(), "Error 1061") { // Error 1061: Duplicate key name, index already exists
+			return errors.Wrap(err, "Error creating index on affiliations table")
+		}
+	}
+
 	log.Debug("Creating certificates table if it doesn't exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 
@@ -287,4 +294,80 @@ func MaskDBCred(connStr, dbType string) string {
 		connStr = re.ReplaceAllLiteralString(connStr, "password=****")
 	}
 	return connStr
+}
+
+// UpdateSchema updates the database tables to use the latest schema
+func UpdateSchema(db *sqlx.DB) error {
+	log.Debug("Checking database schema...")
+
+	switch db.DriverName() {
+	case "sqlite3": // SQLite does not support altering columns. However, data types in SQLite are not rigid and thus no action is really required
+		return nil
+	case "mysql":
+		return updateMySQLSchema(db)
+	case "postgres":
+		return updatePostgresSchema(db)
+	default:
+		return errors.Errorf("Unsupported database type: %s", db.DriverName())
+	}
+}
+
+func updateMySQLSchema(db *sqlx.DB) error {
+	log.Debug("Update MySQL schema if using outdated schema")
+	var err error
+
+	_, err = db.Exec("ALTER TABLE users MODIFY id VARCHAR(255), MODIFY type VARCHAR(256), MODIFY affiliation VARCHAR(256)")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE users MODIFY attributes TEXT")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE affiliations DROP INDEX name;")
+	if err != nil {
+		if !strings.Contains(err.Error(), "Error 1091") { // Indicates that index not found
+			return err
+		}
+	}
+	_, err = db.Exec("ALTER TABLE affiliations MODIFY name VARCHAR(1024), MODIFY prekey VARCHAR(1024)")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE affiliations ADD INDEX name_index (name)")
+	if err != nil {
+		if !strings.Contains(err.Error(), "Error 1061") { // Error 1061: Duplicate key name, index already exists
+			return err
+		}
+	}
+	_, err = db.Exec("ALTER TABLE certificates MODIFY id VARCHAR(255)")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updatePostgresSchema(db *sqlx.DB) error {
+	log.Debug("Update Postgres schema if using outdated schema")
+	var err error
+
+	_, err = db.Exec("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255), ALTER COLUMN type TYPE VARCHAR(256), ALTER COLUMN affiliation TYPE VARCHAR(256)")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE users ALTER COLUMN attributes TYPE TEXT")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE affiliations ALTER COLUMN name TYPE VARCHAR(1024), ALTER COLUMN prekey TYPE VARCHAR(1024)")
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("ALTER TABLE certificates ALTER COLUMN id TYPE VARCHAR(255)")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

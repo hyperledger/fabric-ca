@@ -564,6 +564,12 @@ func (ca *CA) initDB() error {
 		return errors.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
 	}
 
+	// Update the database to use the latest schema
+	err = dbutil.UpdateSchema(ca.db)
+	if err != nil {
+		return errors.Wrap(err, "Failed to update schema")
+	}
+
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db)
 
