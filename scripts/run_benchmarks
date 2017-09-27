@@ -102,7 +102,7 @@ fi
 echo "Running all benchmarks ..."
 if test -n "$CREATE_PROFILE"; then
   # go test does not allow to specify multiple packages when benchmarks are profiled
-  # so, run go test in each package with profiling options. This will create benchmark 
+  # so, run go test in each package with profiling options. This will create benchmark
   # and profile files in each package
   for pkg in $PKGS
   do

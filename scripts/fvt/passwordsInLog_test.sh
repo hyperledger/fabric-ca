@@ -45,7 +45,7 @@ function passWordSub() {
 }
 
 RC=0
-TESTCASE="passwordsInLog"
+: ${TESTCASE:="passwordsInLog"}
 TESTDIR="/tmp/$TESTCASE"
 mkdir -p $TESTDIR
 

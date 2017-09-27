@@ -5,7 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-TESTCASE="multica-test"
+
+: ${TESTCASE:="multica-test"}
 TDIR=/tmp/$TESTCASE
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
@@ -26,7 +27,7 @@ function createRootCA() {
    # Start RootCA
    mkdir -p "$TDIR/ca0"
    $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/ca0" -d $driver -m $MAXENROLL
-   sed -i "/^ca:/,/^[^\t ]/ s@\(\(cert\|key\)file:\).*@\1@" /tmp/multica-test/ca0/runFabricCaFvt.yaml
+   sed -i "/^ca:/,/^[^\t ]/ s@\(\(cert\|key\)file:\).*@\1@" $TDIR/ca0/runFabricCaFvt.yaml
    FABRIC_CA_SERVER_HOME="$TDIR/ca0" fabric-ca-server start -d --cacount $NUMINTCAS \
                                       --csr.hosts $ROOT_CA_ADDR --address $ROOT_CA_ADDR \
                                       -c $TDIR/ca0/runFabricCaFvt.yaml 2>&1 |

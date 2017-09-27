@@ -23,7 +23,7 @@ now=$(date +"%g%m%d%H%M%SZ")
 future=$(date +"$next_year%m%d%H%M%SZ")
 
 NUM_SERVERS=4
-USER_SERVER_RATIO=8 
+USER_SERVER_RATIO=8
 for u in $(eval echo {1..$((NUM_SERVERS*USER_SERVER_RATIO-1))}); do
    USERS[u]="user$u"
 done
