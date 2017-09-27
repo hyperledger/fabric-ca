@@ -27,6 +27,12 @@
 			"revisionTime": "2016-08-11T09:34:08Z"
 		},
 		{
+			"checksumSHA1": "iEY+FrSTNxVBKjBbjoqDFupnjQI=",
+			"path": "github.com/Knetic/govaluate",
+			"revision": "aa73cfd04eeb71192f11391d4854c2f22e8ac26f",
+			"revisionTime": "2017-09-26T21:22:37Z"
+		},
+		{
 			"checksumSHA1": "Mu77HNTb0SVN0IEBB+hSDeZzO+g=",
 			"path": "github.com/cloudflare/cfssl/api",
 			"revision": "7d88da830aad9d533c2fb8532da23f6a75331b52",
