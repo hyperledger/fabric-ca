@@ -112,7 +112,7 @@ pollServer() {
 
    # continue to poll host:port until
    # we either get a response, or reach timeout
-   while test "$(($(date +%s)-starttime))" -lt "$((timeout*2))" -a $rc -ne 0
+   while test "$(($(date +%s)-starttime))" -lt "$timeout" -a $rc -ne 0
    do
       printf "\r%s%03d" "Waiting for $app to $action on $host:$port ..." "$(($(date +%s)-starttime))"
       ss -lpnt "src $host:$port"
