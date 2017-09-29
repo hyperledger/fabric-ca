@@ -109,7 +109,10 @@ func TestDBCreation(t *testing.T) {
 	testWithExistingDbAndTable(t)
 	testWithExistingDb(t)
 
-	os.Remove(rootDB)
+	err := os.Remove(rootDB)
+	if err != nil {
+		t.Errorf("Remove failed: %s", err)
+	}
 }
 
 func createSQLiteDB(path string, t *testing.T) (*sqlx.DB, *TestAccessor) {
@@ -159,6 +162,8 @@ func testWithExistingDbAndTablesAndUser(t *testing.T) {
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to stop server")
 
+	err = db.Close()
+	assert.NoError(t, err, "Failed to close DB")
 }
 
 // Test starting a server with an already existing database and tables, but not bootstrapped
@@ -183,6 +188,8 @@ func testWithExistingDbAndTable(t *testing.T) {
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to stop server")
 
+	err = db.Close()
+	assert.NoError(t, err, "Failed to close DB")
 }
 
 // Test starting a server with an already existing database, but no tables or users
@@ -190,7 +197,7 @@ func testWithExistingDb(t *testing.T) {
 	var err error
 
 	os.Remove(rootDB)
-	_, acc := createSQLiteDB(rootDB, t)
+	db, acc := createSQLiteDB(rootDB, t)
 
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
 	srv.CA.Config.DB.Datasource = "fabric_ca.db"
@@ -204,6 +211,8 @@ func testWithExistingDb(t *testing.T) {
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to stop server")
 
+	err = db.Close()
+	assert.NoError(t, err, "Failed to close DB")
 }
 
 func removeDatabase() {

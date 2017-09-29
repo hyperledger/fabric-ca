@@ -267,13 +267,13 @@ func TestCAInit(t *testing.T) {
 	}
 	ca.Config.CA.Keyfile = caKey
 	ca.Config.CA.Certfile = caCert
-	err = os.Link("../ec256-1-key.pem", caKey)
+	err = CopyFile("../ec256-1-key.pem", caKey)
 	if err != nil {
-		t.Fatal("symlink error: ", err)
+		t.Fatal("Failed to copy file: ", err)
 	}
-	err = os.Link("../ec256-2-cert.pem", caCert)
+	err = CopyFile("../ec256-2-cert.pem", caCert)
 	if err != nil {
-		t.Fatal("symlink error: ", err)
+		t.Fatal("Failed to copy file: ", err)
 	}
 	err = ca.init(false)
 	t.Logf("init err: %v", err)
@@ -317,13 +317,13 @@ func TestCAInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.Remove failed: %v", err)
 	}
-	err = os.Link("../rsa2048-1-key.pem", caKey)
+	err = CopyFile("../rsa2048-1-key.pem", caKey)
 	if err != nil {
-		t.Fatal("symlink error: ", err)
+		t.Fatal("Failed to copy file: ", err)
 	}
-	err = os.Link("../rsa2048-1-cert.pem", caCert)
+	err = CopyFile("../rsa2048-1-cert.pem", caCert)
 	if err != nil {
-		t.Fatal("symlink error: ", err)
+		t.Fatal("Failed to copy file: ", err)
 	}
 	ca.Config.CA.Keyfile = caKey
 	ca.Config.CA.Certfile = caCert
