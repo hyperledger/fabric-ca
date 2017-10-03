@@ -57,12 +57,18 @@ func TestCWBClient1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
+	defer func() {
+		err = server.Stop()
+		if err != nil {
+			t.Errorf("Server stop failed: %s", err)
+		}
+		err = os.RemoveAll(serversDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	testInvalidAuthEnrollment(t)
-
-	server.Stop()
-
-	os.RemoveAll(serversDir)
 }
 
 // TestTLS performs 3 main steps:
@@ -70,9 +76,8 @@ func TestCWBClient1(t *testing.T) {
 // 2) Test over HTTPS with client auth disabled
 // 3) Test over HTTPS with client auth enabled, using standard ECert from #1
 func TestCWBTLSClientAuth(t *testing.T) {
-	os.RemoveAll(testTLSClientAuthDir)
-	defer os.RemoveAll(testTLSClientAuthDir)
-	defer os.RemoveAll("msp")
+	cleanTestSlateCWB(t)
+	defer cleanTestSlateCWB(t)
 	//
 	// 1) Test over HTTP to get a standard ECert
 	//
@@ -253,7 +258,10 @@ func enrollAndCheck(t *testing.T, c *Client, body []byte, authHeader string) {
 		t.Errorf("Enrollment with bad basic auth header '%s' should have failed",
 			authHeader)
 	}
-	defer os.RemoveAll("../testdata/msp")
+	err = os.RemoveAll("../testdata/msp")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 }
 
 // Try to impersonate 'id' identity by creating a self-signed certificate
@@ -271,7 +279,13 @@ func testImpersonation(id *Identity, t *testing.T) {
 	}
 	var fm os.FileMode = 0777
 	os.MkdirAll("msp/keystore", os.FileMode(fm))
-	defer os.RemoveAll("msp")
+	defer func() {
+		err = os.RemoveAll("msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
+
 	privateKey, err := csp.KeyGen(&bccsp.ECDSAKeyGenOpts{Temporary: false})
 	if err != nil {
 		t.Fatalf("Failed generating ECDSA key [%s]", err)
@@ -378,6 +392,12 @@ func getEnrollmentPayload(t *testing.T, c *Client) ([]byte, error) {
 }
 
 func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
+	if home != testdataDir {
+		err := os.RemoveAll(home)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}
 	srv, err := createServer(port, home, parentURL, maxEnroll)
 	if err != nil {
 		t.Errorf("failed to register bootstrap user: %s", err)
@@ -387,6 +407,12 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 }
 
 func getServerForBenchmark(port int, home, parentURL string, maxEnroll int, b *testing.B) *Server {
+	if home != testdataDir {
+		err := os.RemoveAll(home)
+		if err != nil {
+			b.Errorf("RemoveAll failed: %s", err)
+		}
+	}
 	srv, err := createServer(port, home, parentURL, maxEnroll)
 	if err != nil {
 		b.Errorf("failed to register bootstrap user: %s", err)
@@ -396,9 +422,6 @@ func getServerForBenchmark(port int, home, parentURL string, maxEnroll int, b *t
 }
 
 func createServer(port int, home, parentURL string, maxEnroll int) (*Server, error) {
-	if home != testdataDir {
-		os.RemoveAll(home)
-	}
 	affiliations := map[string]interface{}{
 		"hyperledger": map[string]interface{}{
 			"fabric":    []string{"ledger", "orderer", "security"},
@@ -558,7 +581,7 @@ func TestCWBCAConfigStat(t *testing.T) {
 	defer func() {
 		err = os.RemoveAll(td)
 		if err != nil {
-			t.Fatalf("RemoveAll failed: %s", err)
+			t.Errorf("RemoveAll failed: %s", err)
 		}
 	}()
 	err = os.Chdir(td)
@@ -601,11 +624,23 @@ func TestCWBCAConfigStat(t *testing.T) {
 	ca.HomeDir = ""
 }
 
-func TestCLIClientClean(t *testing.T) {
-	os.RemoveAll("msp")
-	os.RemoveAll("../testdata/msp")
-	os.RemoveAll(serversDir)
-	os.RemoveAll(testTLSClientAuthDir)
+func cleanTestSlateCWB(t *testing.T) {
+	err := os.RemoveAll("msp")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll("../testdata/msp")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll(serversDir)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll(testTLSClientAuthDir)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 }
 
 // masqueradeEnroll enrolls a new identity as a masquerader

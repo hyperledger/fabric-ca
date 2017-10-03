@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -34,7 +35,6 @@ import (
 
 const (
 	testdir               = "../testdata/"
-	configFile            = testdir + "fabric-ca-server-config.yaml"
 	dbname                = "fabric-ca-server.db"
 	badcert               = "../testdata/expiredcert.pem"
 	dsacert               = "../testdata/dsa-cert.pem"
@@ -54,6 +54,10 @@ const (
 	caCert                = "ca-cert.pem"
 	caKey                 = "ca-key.pem"
 	caPort                = "7054"
+)
+
+var (
+	configFile = serverCfgFile(testdir)
 )
 
 var cfg CAConfig
@@ -235,8 +239,8 @@ func TestCAInit(t *testing.T) {
 	}
 	t.Log("Working dir", wd)
 	defer cleanupTmpfiles(t, wd)
-
-	ca, err := newCA(confDir, &cfg, &srv, false)
+	cfgFile := serverCfgFile(".")
+	ca, err := newCA(cfgFile, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("newCA FAILED")
 	}
@@ -268,7 +272,7 @@ func TestCAInit(t *testing.T) {
 	defer cleanupTmpfiles(t, wd2)
 
 	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
-	ca, err = newCA(confDir, &cfg, &srv, true)
+	ca, err = newCA(cfgFile, &cfg, &srv, true)
 	if err != nil {
 		t.Fatal("newCA FAILED", err)
 	}
@@ -285,15 +289,21 @@ func TestCAInit(t *testing.T) {
 	err = ca.init(false)
 	t.Log("init err: ", err)
 	if err == nil {
-		t.Error("Should have failed")
+		t.Error("Should have failed because key and cert don't match")
 	}
 
 	err = os.Remove(caKey)
+	if err != nil {
+		t.Fatalf("Remove failed: %s", err)
+	}
 	err = os.Remove(caCert)
+	if err != nil {
+		t.Fatalf("Remove failed: %s", err)
+	}
 	ca.Config.CA.Keyfile = ""
 	ca.Config.CA.Certfile = ""
 	ca.Config.DB.Datasource = ""
-	ca, err = newCA(confDir, &cfg, &srv, true)
+	ca, err = newCA(cfgFile, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("newCA FAILED: ", err)
 	}
@@ -313,7 +323,7 @@ func TestCAInit(t *testing.T) {
 
 	// initEnrollmentSigner error
 	ca.Config.LDAP.Enabled = false
-	ca, err = newCA(confDir, &cfg, &srv, false)
+	ca, err = newCA(cfgFile, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("newCA FAILED")
 	}
@@ -420,7 +430,7 @@ func TestCAwriteFile(t *testing.T) {
 }
 
 func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
-	ca, err := newCA("/tmp", &CAConfig{}, &srv, true)
+	ca, err := newCA(serverCfgFile(os.TempDir()), &CAConfig{}, &srv, true)
 	_, err = ca.loadCNFromEnrollmentInfo(string(0))
 	t.Log("loadCNFromEnrollmentInfo err: ", err)
 	if err == nil {
@@ -507,14 +517,11 @@ func TestCAinitUserRegistry(t *testing.T) {
 	cfg = CAConfig{}
 	cfg.LDAP.Enabled = true
 	cfg.LDAP.URL = "ldap://CN=admin,dc=example,dc=com:adminpw@localhost:389/dc=example,dc=com"
-	_, err := newCA(configFile, &cfg, &srv, false)
+	ca, err := newCA(configFile, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("newCA FAILED", err)
 	}
-	err = os.RemoveAll(testdir + dbname)
-	if err != nil {
-		t.Fatal("RemoveAll failed: ", err)
-	}
+	CAclean(ca, t)
 }
 
 func TestCAgetCaCert(t *testing.T) {
@@ -550,7 +557,10 @@ func TestCAgetCaCert(t *testing.T) {
 	}
 
 	CAclean(ca, t)
-	os.Remove(configFile)
+	err = os.RemoveAll(configFile)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 }
 
 func TestCAinitEnrollmentSigner(t *testing.T) {
@@ -575,7 +585,7 @@ func TestCAinitEnrollmentSigner(t *testing.T) {
 	if err == nil {
 		t.Error("initEnrollmentSigner should have failed")
 	}
-	os.Remove(testdir + dbname)
+	CAclean(ca, t)
 }
 
 func TestCADBinit(t *testing.T) {
@@ -595,7 +605,7 @@ func TestCADBinit(t *testing.T) {
 
 	cfg = CAConfig{}
 	cfg.DB = CAConfigDB{Datasource: "root:mysql@" + util.RandomString(237)}
-	ca, err := newCA(confDir, &cfg, &srv, false)
+	ca, err := newCA(serverCfgFile(confDir), &cfg, &srv, false)
 	if ca.db != nil {
 		t.Error("Create DB should have failed")
 	}
@@ -729,14 +739,17 @@ func TestCAVerifyCertificate(t *testing.T) {
 
 	caCert1, err := ioutil.ReadFile("../testdata/ec_cert.pem")
 	caCert2 := append(caCert1, util.RandomString(128)...)
-	err = ioutil.WriteFile("/tmp/ca-chainfile.pem", caCert2, 0644)
-	ca.Config.CA.Chainfile = "/tmp/ca-chainfile.pem"
+	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0644)
+	ca.Config.CA.Chainfile = filepath.Join(os.TempDir(), "ca-chainfile.pem")
 	err = ca.VerifyCertificate(cert)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
 	}
-	os.Remove("/tmp/ca-chainfile.pem")
+	err = os.Remove(filepath.Join(os.TempDir(), "ca-chainfile.pem"))
+	if err != nil {
+		t.Errorf("Remove failed: %s", err)
+	}
 
 	ca.Config.CA.Chainfile = "doesNotExist"
 	ca.Config.CA.Certfile = "doesNotExist"
@@ -808,6 +821,10 @@ func getCertFromFile(f string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("decode of %s failed", f)
 	}
 	return c, nil
+}
+
+func serverCfgFile(dir string) string {
+	return path.Join(dir, "fabric-ca-server-config.yaml")
 }
 
 func cleanupTmpfiles(t *testing.T, d string) {

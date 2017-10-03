@@ -52,12 +52,18 @@ func (ta *TestAccessor) Truncate() {
 }
 
 func TestSQLite(t *testing.T) {
+	cleanTestSlateSQ(t)
+	defer cleanTestSlateSQ(t)
+
 	if _, err := os.Stat(dbPath); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(dbPath, 0755)
 		}
 	} else {
-		os.RemoveAll(dbPath)
+		err = os.RemoveAll(dbPath)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
 		os.MkdirAll(dbPath, 0755)
 	}
 	dataSource := dbPath + "/fabric-ca.db"
@@ -72,7 +78,6 @@ func TestSQLite(t *testing.T) {
 		DB:       db,
 	}
 	testEverything(ta, t)
-	removeDatabase()
 }
 
 // Truncate truncates the DB
@@ -100,18 +105,14 @@ func TestEmptyAccessor(t *testing.T) {
 }
 
 func TestDBCreation(t *testing.T) {
-	os.RemoveAll(rootDir)
-	defer os.RemoveAll(rootDir)
+	cleanTestSlateSQ(t)
+	defer cleanTestSlateSQ(t)
+
 	os.Mkdir(rootDir, 0755)
 
 	testWithExistingDbAndTablesAndUser(t)
 	testWithExistingDbAndTable(t)
 	testWithExistingDb(t)
-
-	err := os.Remove(rootDB)
-	if err != nil {
-		t.Errorf("Remove failed: %s", err)
-	}
 }
 
 func createSQLiteDB(path string, t *testing.T) (*sqlx.DB, *TestAccessor) {
@@ -133,7 +134,10 @@ func createSQLiteDB(path string, t *testing.T) (*sqlx.DB, *TestAccessor) {
 func testWithExistingDbAndTablesAndUser(t *testing.T) {
 	var err error
 
-	os.Remove(rootDB)
+	err = os.RemoveAll(rootDB)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 	db, acc := createSQLiteDB(rootDB, t)
 
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
@@ -168,7 +172,10 @@ func testWithExistingDbAndTablesAndUser(t *testing.T) {
 func testWithExistingDbAndTable(t *testing.T) {
 	var err error
 
-	os.Remove(rootDB)
+	err = os.RemoveAll(rootDB)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 	db, acc := createSQLiteDB(rootDB, t)
 
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
@@ -194,7 +201,10 @@ func testWithExistingDbAndTable(t *testing.T) {
 func testWithExistingDb(t *testing.T) {
 	var err error
 
-	os.Remove(rootDB)
+	err = os.RemoveAll(rootDB)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 	db, acc := createSQLiteDB(rootDB, t)
 
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
@@ -213,8 +223,15 @@ func testWithExistingDb(t *testing.T) {
 	assert.NoError(t, err, "Failed to close DB")
 }
 
-func removeDatabase() {
-	os.RemoveAll(dbPath)
+func cleanTestSlateSQ(t *testing.T) {
+	err := os.RemoveAll(rootDir)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll(dbPath)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 }
 
 func testEverything(ta TestAccessor, t *testing.T) {
@@ -422,12 +439,18 @@ func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 func TestDBErrorMessages(t *testing.T) {
 	var err error
 
+	cleanTestSlateSQ(t)
+	defer cleanTestSlateSQ(t)
+
 	if _, err = os.Stat(dbPath); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(dbPath, 0755)
 		}
 	} else {
-		os.RemoveAll(dbPath)
+		err = os.RemoveAll(dbPath)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
 		os.MkdirAll(dbPath, 0755)
 	}
 

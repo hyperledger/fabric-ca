@@ -175,8 +175,11 @@ func TestSRVRootServer(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
-		// Clean up for the next test
 		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -356,6 +359,14 @@ func TestSRVSpecialPassword(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
+		err = os.RemoveAll("../testdata/msp/")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
 	}()
 
 	// Enroll request
@@ -370,6 +381,14 @@ func TestSRVSpecialPassword(t *testing.T) {
 // enabled and not accessible when disabled (default)
 func TestSRVProfiling(t *testing.T) {
 	t.Log("start TestProfiling")
+
+	defer func() {
+		err := os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
+
 	pport := rootPort + 1000
 	url := fmt.Sprintf("http://localhost:%d/debug/pprof/heap", pport)
 
@@ -477,6 +496,10 @@ func TestSRVIntermediateServerWithFalseAttr(t *testing.T) {
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
+		err = os.RemoveAll(intermediateDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
 	}()
 
 	intermediateServer := TestGetIntermediateServer(0, t)
@@ -508,6 +531,10 @@ func TestSRVIntermediateServer(t *testing.T) {
 		err = rootServer.Stop()
 		if err != nil {
 			t.Errorf("Root server stop failed: %s", err)
+		}
+		err := os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
 		}
 		err = os.RemoveAll(rootDir)
 		if err != nil {
@@ -547,6 +574,10 @@ func TestSRVIntermediateServerWithTLS(t *testing.T) {
 			t.Errorf("Root server stop failed: %s", err)
 		}
 		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(intermediateDir)
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -637,6 +668,18 @@ func TestSRVRunningTLSServer(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
+		err = os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
 	}()
 
 	clientConfig := &ClientConfig{
@@ -679,7 +722,21 @@ func TestSRVRunningTLSServer(t *testing.T) {
 }
 
 func TestSRVDefaultDatabase(t *testing.T) {
-	TestSRVServerClean(t)
+	cleanTestSlateSRV(t)
+	defer func() {
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
 
@@ -700,7 +757,21 @@ func TestSRVDefaultDatabase(t *testing.T) {
 }
 
 func TestSRVDefaultAddrPort(t *testing.T) {
-	TestSRVServerClean(t)
+	cleanTestSlateSRV(t)
+	defer func() {
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	srv1 := getServer(rootPort, testdataDir, "", -1, t)
 	srv1.Config.Address = ""
@@ -868,7 +939,9 @@ func invalidBasicAuthorization(t *testing.T) {
 }
 
 func TestSRVTLSAuthClient(t *testing.T) {
-	TestSRVServerClean(t)
+	cleanTestSlateSRV(t)
+	defer cleanTestSlateSRV(t)
+
 	testNoClientCert(t)
 	testInvalidRootCertWithNoClientAuth(t)
 	testInvalidRootCertWithClientAuth(t)
@@ -878,6 +951,21 @@ func TestSRVTLSAuthClient(t *testing.T) {
 func TestSRVMultiCAConfigs(t *testing.T) {
 	t.Log("TestMultiCA...")
 
+	defer func() {
+		cleanMultiCADir(t)
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
 	srv.Config.CAfiles = []string{"ca/ca1/fabric-ca-server-config.yaml", "ca/ca1/fabric-ca-server-config.yaml", "ca/ca2/fabric-ca-server-config.yaml"}
 
@@ -943,7 +1031,7 @@ func TestSRVMultiCAConfigs(t *testing.T) {
 		t.Errorf("Failed to copy file: %s", err)
 	}
 	if err = os.Chmod(keyfile, 0000); err != nil {
-		t.Errorf("Failed to chmod file: /tmp/ca-key.pem, %v", err)
+		t.Errorf("Failed to chmod key file: , %v", err)
 	}
 	certfile := filepath.Join(os.TempDir(), "ca-cert.pem")
 	err = CopyFile("../testdata/ca/rootca/ca1/ca-cert.pem", certfile)
@@ -951,7 +1039,7 @@ func TestSRVMultiCAConfigs(t *testing.T) {
 		t.Errorf("Failed to copy file: %s", err)
 	}
 	if err = os.Chmod(certfile, 0000); err != nil {
-		t.Errorf("Failed to chmod file: /tmp/ca-cert.pem, %v", err)
+		t.Errorf("Failed to chmod cert file:, %v", err)
 	}
 	configfile := filepath.Join(os.TempDir(), "ca-server-config.yaml")
 	err = CopyFile("../testdata/ca/rootca/ca1/fabric-ca-server-config.yaml", configfile)
@@ -979,6 +1067,10 @@ func TestSRVMultiCAConfigs(t *testing.T) {
 	err = os.Remove(configfile)
 	if err != nil {
 		t.Errorf("Remove failed: %s", err)
+	}
+	err = os.RemoveAll(filepath.Join(os.TempDir(), "msp"))
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
 	}
 
 	testBadCryptoData(t, srv, []string{"../testdata/expiredcert.pem", "../testdata/tls_client-key.pem", "expired cert"})
@@ -1098,10 +1190,24 @@ func TestSRVMultiCAConfigs(t *testing.T) {
 		t.Error("Failed to stop server:", err)
 	}
 
-	cleanMultiCADir(t)
 }
 
 func TestSRVDefaultCAWithSetCAName(t *testing.T) {
+	defer func() {
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
+
 	srv := getServer(rootPort, testdataDir, "", -1, t)
 	srv.CA.Config.CA.Name = "DefaultCA"
 
@@ -1127,6 +1233,22 @@ func TestSRVDefaultCAWithSetCAName(t *testing.T) {
 }
 
 func TestSRVMultiCAWithIntermediate(t *testing.T) {
+	defer func() {
+		cleanMultiCADir(t)
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
+
 	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
 	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml", "ca/rootca/ca2/fabric-ca-server-config.yaml"}
 	srv.CA.Config.CSR.Hosts = []string{"hostname"}
@@ -1171,6 +1293,16 @@ func TestSRVMultiCAWithIntermediate(t *testing.T) {
 
 func TestSRVDefaultMultiCA(t *testing.T) {
 	t.Log("TestDefaultMultiCA...")
+	defer func() {
+		err := os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("multica")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 	srv := TestGetServer(rootPort, "multica", "", -1, t)
 	srv.Config.CAcount = 4 // Starting 4 default CA instances
 	srv.Config.CAfiles = []string{"fabric-ca1-config.yaml"}
@@ -1209,10 +1341,6 @@ func TestSRVDefaultMultiCA(t *testing.T) {
 	err = srv.Stop()
 	if err != nil {
 		t.Error("Failed to stop server: ", err)
-	}
-	err = os.RemoveAll("multica")
-	if err != nil {
-		t.Errorf("RemoveAll failed: %s", err)
 	}
 }
 
@@ -1307,17 +1435,31 @@ func TestSRVMultiCAIntermediates(t *testing.T) {
 }
 
 func TestSRVMaxEnrollmentInfinite(t *testing.T) {
+	t.Log("Test max enrollment infinite")
 	err := os.RemoveAll(rootDir)
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
-	t.Log("Test max enrollment infinite")
 	// Starting server/ca with infinite enrollments
 	srv := TestGetServer(rootPort, rootDir, "", -1, t)
 	err = srv.Start()
 	if err != nil {
 		t.Fatalf("Server start failed: %s", err)
 	}
+	defer func() {
+		err = srv.Stop()
+		if err != nil {
+			t.Errorf("Failed to stop server: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 	client := getRootClient()
 	id, err := client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
@@ -1373,22 +1515,14 @@ func TestSRVMaxEnrollmentInfinite(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to register me_1000_-1, error: %s", err)
 	}
-	err = srv.Stop()
-	if err != nil {
-		t.Errorf("Failed to stop server: %s", err)
-	}
-	err = os.RemoveAll(rootDir)
-	if err != nil {
-		t.Errorf("RemoveAll failed: %s", err)
-	}
 }
 
 func TestSRVMaxEnrollmentDisabled(t *testing.T) {
+	t.Log("Test max enrollment disabled")
 	err := os.RemoveAll(rootDir)
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
-	t.Log("Test max enrollment disabled")
 	// Starting server/ca with infinite enrollments
 	srv := TestGetServer(rootPort, rootDir, "", -1, t)
 	err = srv.Start()
@@ -1401,7 +1535,11 @@ func TestSRVMaxEnrollmentDisabled(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
-		os.RemoveAll(rootDir)
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -1454,7 +1592,11 @@ func TestSRVMaxEnrollmentLimited(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
-		os.RemoveAll(rootDir)
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -1588,11 +1730,13 @@ func TestTLSCertIssuance(t *testing.T) {
 	if !clientAuth || !serverAuth {
 		t.Fatal("Certificate does not have correct extended key usage. Should have ExtKeyUsageServerAuth and ExtKeyUsageClientAuth")
 	}
+
+	stopserver = false
 	err = srv.Stop()
 	if err != nil {
 		t.Fatalf("Failed to stop server: %s", err)
 	}
-	stopserver = false
+
 	// Write the TLS certificate to disk
 	os.MkdirAll(testDir, 0755)
 	tlsCertFile := path.Join(testDir, "tls-cert.pem")
@@ -1814,7 +1958,11 @@ func TestSRVSqliteLocking(t *testing.T) {
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
 		}
-		os.RemoveAll(rootDir)
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -2056,8 +2204,16 @@ func TestAutoTLSCertificateGeneration(t *testing.T) {
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
+	err = os.RemoveAll("../testdata/msp/")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 	defer func() {
 		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp/")
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -2125,7 +2281,7 @@ func TestAutoTLSCertificateGeneration(t *testing.T) {
 		assert.Contains(t, err.Error(), "TLS is enabled but no TLS certificate provided")
 	}
 }
-func TestRegisterationAffiliation(t *testing.T) {
+func TestRegistrationAffiliation(t *testing.T) {
 	// Start the server
 	server := TestGetServer(rootPort, rootDir, "", -1, t)
 	if server == nil {
@@ -2138,6 +2294,14 @@ func TestRegisterationAffiliation(t *testing.T) {
 		err = server.Stop()
 		if err != nil {
 			t.Errorf("Failed to stop server: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(rootDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
 		}
 	}()
 
@@ -2214,10 +2378,6 @@ func TestRegisterationAffiliation(t *testing.T) {
 	assert.Error(t, err, "Should have failed, can't register a user with root affiliation if the registrar does not have root affiliation")
 }
 
-func TestEnd(t *testing.T) {
-	TestSRVServerClean(t)
-}
-
 func cleanMultiCADir(t *testing.T) {
 	var err error
 	caFolder := "../testdata/ca"
@@ -2245,6 +2405,10 @@ func cleanMultiCADir(t *testing.T) {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
 	err = os.RemoveAll("multica")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll("msp")
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
@@ -2491,7 +2655,7 @@ func testBadCryptoData(t *testing.T, s *Server, testData []string) {
 	}
 }
 
-func TestSRVServerClean(t *testing.T) {
+func cleanTestSlateSRV(t *testing.T) {
 	err := os.RemoveAll("../testdata/ca-cert.pem")
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)

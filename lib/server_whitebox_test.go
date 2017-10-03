@@ -16,6 +16,7 @@ limitations under the License.
 package lib
 
 import (
+	"os"
 	"testing"
 )
 
@@ -30,6 +31,20 @@ const (
 // duplicate affiliations in the database every time it is
 // started.
 func TestGetAffliation(t *testing.T) {
+	defer func() {
+		err := os.RemoveAll("../testdata/ca-cert.pem")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 	// Start the server at an available port (using port 0 will make OS to
 	// pick an available port)
 	srv := getServer(serverPort, testdataDir, "", -1, t)
@@ -47,7 +62,12 @@ func TestGetAffliation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Server start failed: %v", err)
 	}
-	defer srv.Stop()
+	defer func() {
+		err = srv.Stop()
+		if err != nil {
+			t.Errorf("Failed to stop server: %s", err)
+		}
+	}()
 
 	afs := []AffiliationRecord{}
 	err = srv.db.Select(&afs, srv.db.Rebind(getAffiliation), affiliationName)
