@@ -58,8 +58,6 @@ func (se *serverEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		err = api.SendResponse(w, resp)
 		if err != nil {
 			log.Warning("Failed to send response for %s: %+v", url, err)
-		} else {
-			log.Debugf("Sent response for %s: %+v", url, resp)
 		}
 		log.Infof(`%s %s %s 200 0 "OK"`, r.RemoteAddr, r.Method, r.URL)
 	} else {

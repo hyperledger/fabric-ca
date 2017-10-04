@@ -48,7 +48,7 @@ func registerHandler(ctx *serverRequestContext) (interface{}, error) {
 	}
 	// Authenticate
 	callerID, err := ctx.TokenAuthentication()
-	log.Debugf("Received registration request from %s: %+v", callerID, util.StructToString(&req))
+	log.Debugf("Received registration request from %s: %v", callerID, &req)
 	if err != nil {
 		return nil, err
 	}

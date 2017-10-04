@@ -264,10 +264,10 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 
 // Get the CA certificate for this CA
 func (ca *CA) getCACert() (cert []byte, err error) {
-	log.Debugf("Getting CA cert; parent server URL is '%s'", ca.Config.Intermediate.ParentServer.URL)
 	if ca.Config.Intermediate.ParentServer.URL != "" {
 		// This is an intermediate CA, so call the parent fabric-ca-server
 		// to get the cert
+		log.Debugf("Getting CA cert; parent server URL is %s", util.GetMaskedURL(ca.Config.Intermediate.ParentServer.URL))
 		clientCfg := ca.Config.Client
 		if clientCfg == nil {
 			clientCfg = &ClientConfig{}
@@ -540,7 +540,7 @@ func (ca *CA) initDB() error {
 
 	// Strip out user:pass from datasource for logging
 	ds := db.Datasource
-	ds = dbutil.MaskDBCred(ds, db.Type)
+	ds = dbutil.MaskDBCred(ds)
 
 	log.Debugf("Initializing '%s' database at '%s'", db.Type, ds)
 

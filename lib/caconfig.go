@@ -17,12 +17,11 @@ limitations under the License.
 package lib
 
 import (
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
@@ -62,10 +61,6 @@ ca:
 csr:
   cn: <<<COMMONNAME>>>
 `
-)
-
-var (
-	dbURLRegex = regexp.MustCompile("Datasource:\\s*(\\S+):(\\S+)@|Datasource:.*\\s(user=\\S+).*\\s(password=\\S+)|Datasource:.*\\s(password=\\S+).*\\s(user=\\S+)")
 )
 
 // CAConfig is the CA instance's config
@@ -112,27 +107,7 @@ type CAConfigDB struct {
 // resulting string.
 func (c CAConfigDB) String() string {
 	str := util.StructToString(&c)
-	matches := dbURLRegex.FindStringSubmatch(str)
-
-	// If there is a match, there should be three entries: 1 for
-	// the match and 6 for submatches (see dbURLRegex regular expression)
-	if len(matches) == 7 {
-		matchIdxs := dbURLRegex.FindStringSubmatchIndex(str)
-		substr := str[matchIdxs[0]:matchIdxs[1]]
-		for idx := 1; idx < len(matches); idx++ {
-			if matches[idx] != "" {
-				if strings.Index(matches[idx], "user=") == 0 {
-					substr = strings.Replace(substr, matches[idx], "user=****", 1)
-				} else if strings.Index(matches[idx], "password=") == 0 {
-					substr = strings.Replace(substr, matches[idx], "password=****", 1)
-				} else {
-					substr = strings.Replace(substr, matches[idx], "****", 1)
-				}
-			}
-		}
-		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:len(str)]
-	}
-	return str
+	return dbutil.MaskDBCred(str)
 }
 
 // CAConfigRegistry is the registry part of the server's config
@@ -143,8 +118,8 @@ type CAConfigRegistry struct {
 
 // CAConfigIdentity is identity information in the server's config
 type CAConfigIdentity struct {
-	Name           string `secret:"password"`
-	Pass           string `secret:"password"`
+	Name           string `mask:"username"`
+	Pass           string `mask:"password"`
 	Type           string
 	Affiliation    string
 	MaxEnrollments int
@@ -154,7 +129,7 @@ type CAConfigIdentity struct {
 // ParentServer contains URL for the parent server and the name of CA inside
 // the server to connect to
 type ParentServer struct {
-	URL    string `opt:"u" help:"URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)"`
+	URL    string `opt:"u" help:"URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)" mask:"url"`
 	CAName string `help:"Name of the CA to connect to on fabric-ca-server"`
 }
 
@@ -176,4 +151,8 @@ type CRLConfig struct {
 
 func (cc CAConfigIdentity) String() string {
 	return util.StructToString(&cc)
+}
+
+func (parent ParentServer) String() string {
+	return util.StructToString(&parent)
 }

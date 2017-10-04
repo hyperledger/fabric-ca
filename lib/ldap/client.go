@@ -43,7 +43,7 @@ var (
 // Config is the configuration object for this LDAP client
 type Config struct {
 	Enabled     bool   `def:"false" help:"Enable the LDAP client for authentication and attributes"`
-	URL         string `help:"LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base"`
+	URL         string `help:"LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base" mask:"url"`
 	UserFilter  string `def:"(uid=%s)" help:"The LDAP user filter to use when searching for users"`
 	GroupFilter string `def:"(memberUid=%s)" help:"The LDAP group filter for a single affiliation group"`
 	TLS         ctls.ClientTLSConfig
@@ -51,24 +51,9 @@ type Config struct {
 
 // Implements Stringer interface for ldap.Config
 // Calls util.StructToString to convert the Config struct to
-// string and masks the password from the ldap URL. Returns
-// resulting string.
+// string.
 func (c Config) String() string {
-	str := util.StructToString(&c)
-	matches := ldapURLRegex.FindStringSubmatch(str)
-	// If there is a match, there should be two entries: 1 for
-	// the match and 2 for submatches
-	if len(matches) == 3 {
-		matchIdxs := ldapURLRegex.FindStringSubmatchIndex(str)
-		substr := str[matchIdxs[0]:matchIdxs[1]]
-		for idx := 1; idx < len(matches); idx++ {
-			if matches[idx] != "" {
-				substr = strings.Replace(substr, matches[idx], "****", 1)
-			}
-		}
-		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:len(str)]
-	}
-	return str
+	return util.StructToString(&c)
 }
 
 // NewClient creates an LDAP client

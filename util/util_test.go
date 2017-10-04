@@ -446,12 +446,11 @@ func TestGetUser(t *testing.T) {
 }
 
 type configID struct {
-	Name  string
-	Addr  string `json:"address"`
-	Pass  string `secret:"password"`
-	Pass1 string `secret:"password,token"`
-	Pass2 string `secret:"token,password"`
-	pass3 string `secret:"token,password,basic"`
+	Name string `mask:"username"`
+	Addr string `json:"address"`
+	Pass string `mask:"password"`
+	URL  string `mask:"url"`
+	ID   int    `mask:"url"`
 }
 
 func (cc configID) String() string {
@@ -463,14 +462,13 @@ func TestStructToString(t *testing.T) {
 	obj.Name = "foo"
 	addr := "101, penn ave"
 	obj.Addr = addr
-	obj.Pass, obj.Pass1, obj.Pass2 = "bar", "bar", "bar"
-	obj.pass3 = "bar"
+	obj.Pass = "bar"
 	str := StructToString(&obj)
 	if strings.Index(str, "bar") > 0 {
 		t.Errorf("Password is not masked by the StructToString function: %s", str)
 	}
-	if strings.Index(str, "foo") < 0 {
-		t.Errorf("Name is masked by the StructToString function: %s", str)
+	if strings.Index(str, "foo") > 0 {
+		t.Errorf("Name is not masked by the StructToString function: %s", str)
 	}
 	if strings.Index(str, addr) < 0 {
 		t.Errorf("Addr is masked by the StructToString function: %s", str)
@@ -494,11 +492,15 @@ func TestStructToString(t *testing.T) {
 					Name: "foo",
 					Pass: "foopwd",
 					Addr: "user",
+					URL:  "http://foo:foopwd@localhost:7054",
+					ID:   2,
 				},
 				configID{
 					Name: "bar",
 					Pass: "barpwd",
 					Addr: "user",
+					URL:  "ldap://foo:foopwd@localhost:7054",
+					ID:   3,
 				},
 			},
 		},

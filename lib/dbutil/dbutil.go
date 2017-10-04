@@ -30,6 +30,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var (
+	dbURLRegex = regexp.MustCompile("(Datasource:\\s*)?(\\S+):(\\S+)@|(Datasource:.*\\s)?(user=\\S+).*\\s(password=\\S+)|(Datasource:.*\\s)?(password=\\S+).*\\s(user=\\S+)")
+)
+
 // NewUserRegistrySQLLite3 returns a pointer to a sqlite database
 func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, error) {
 	log.Debugf("Using sqlite database, connect to database in home (%s) directory", datasource)
@@ -108,7 +112,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 
 	connStr := getConnStr(datasource)
 
-	log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr, "postgres"))
+	log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr))
 	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to open Postgres database")
@@ -124,7 +128,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 		return nil, errors.Wrap(err, "Failed to create Postgres database: %s")
 	}
 
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource, "postgres"))
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource))
 	db, err = sqlx.Open("postgres", datasource)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open database '%s' in Postgres server", dbName)
@@ -188,7 +192,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		mysql.RegisterTLSConfig("custom", tlsConfig)
 	}
 
-	log.Debug("Connecting to MySQL server, using connection string: ", MaskDBCred(connStr, "mysql"))
+	log.Debug("Connecting to MySQL server, using connection string: ", MaskDBCred(connStr))
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to open MySQL database")
@@ -204,7 +208,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		return nil, errors.Wrap(err, "Failed to create MySQL database")
 	}
 
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource, "mysql"))
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource))
 	db, err = sqlx.Open("mysql", datasource)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
@@ -280,20 +284,28 @@ func getConnStr(datasource string) string {
 }
 
 // MaskDBCred hides DB credentials in connection string
-func MaskDBCred(connStr, dbType string) string {
-	switch dbType {
-	case "mysql":
-		dsParts := strings.Split(connStr, "@")
-		if len(dsParts) > 1 {
-			connStr = fmt.Sprintf("*****:*****@%s", dsParts[len(dsParts)-1])
+func MaskDBCred(str string) string {
+	matches := dbURLRegex.FindStringSubmatch(str)
+
+	// If there is a match, there should be three entries: 1 for
+	// the match and 9 for submatches (see dbURLRegex regular expression)
+	if len(matches) == 10 {
+		matchIdxs := dbURLRegex.FindStringSubmatchIndex(str)
+		substr := str[matchIdxs[0]:matchIdxs[1]]
+		for idx := 1; idx < len(matches); idx++ {
+			if matches[idx] != "" {
+				if strings.Index(matches[idx], "user=") == 0 {
+					substr = strings.Replace(substr, matches[idx], "user=****", 1)
+				} else if strings.Index(matches[idx], "password=") == 0 {
+					substr = strings.Replace(substr, matches[idx], "password=****", 1)
+				} else {
+					substr = strings.Replace(substr, matches[idx], "****", 1)
+				}
+			}
 		}
-	case "postgres":
-		re := regexp.MustCompile("((?i)user=\\S*)")
-		connStr = re.ReplaceAllLiteralString(connStr, "user=****")
-		re = regexp.MustCompile("((?i)password=\\S*)")
-		connStr = re.ReplaceAllLiteralString(connStr, "password=****")
+		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:len(str)]
 	}
-	return connStr
+	return str
 }
 
 // UpdateSchema updates the database tables to use the latest schema
