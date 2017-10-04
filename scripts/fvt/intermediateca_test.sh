@@ -32,7 +32,7 @@ function setupTLScerts() {
    export HOME=$TLSDIR
    # Root TLS CA
    $SCRIPTDIR/utils/pki -f newca -a rootTlsCa -t ec -l 256 -d sha256 \
-                        -n "/C=US/ST=NC/L=RTP/O=IBM/O=Hyperledger/OU=FVT/CN=localhost/" -S "IP:127.0.0.1" \
+                        -n "/C=US/ST=NC/L=RTP/O=IBM/O=Hyperledger/OU=FVT/CN=localhost/" -S "IP:127.0.0.1,DNS:localhost" \
                         -K "digitalSignature,nonRepudiation,keyEncipherment,dataEncipherment,keyAgreement,keyCertSign,cRLSign" \
                         -E "serverAuth,clientAuth,codeSigning,emailProtection,timeStamping" \
                         -e 20370101000000Z -s 20160101000000Z -p rootTlsCa- >/dev/null 2>&1
