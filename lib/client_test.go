@@ -488,6 +488,7 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 
 func testRevocationErrors(c *Client, t *testing.T) {
 	var revoker = "erroneous_revoker"
+	var revoker2 = "erroneous_revoker2"
 	var user = "etuser"
 
 	// register and enroll revoker
@@ -512,6 +513,29 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		return
 	}
 	revokerId := eresp.Identity
+
+	// register and enroll revoker2
+	rr = &api.RegistrationRequest{
+		Name:           revoker2,
+		Type:           "user",
+		Affiliation:    "org2",
+		MaxEnrollments: 1,
+		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "faux"}},
+	}
+	resp, err = adminID.Register(rr)
+	if err != nil {
+		t.Fatalf("Failed to register %s %s", revoker2, err)
+	}
+	req = &api.EnrollmentRequest{
+		Name:   revoker2,
+		Secret: resp.Secret,
+	}
+	eresp, err = c.Enroll(req)
+	if err != nil {
+		t.Errorf("enroll of user %s failed", revoker2)
+		return
+	}
+	revoker2Id := eresp.Identity
 
 	// register and enroll test user
 	rr = &api.RegistrationRequest{
@@ -546,6 +570,11 @@ func testRevocationErrors(c *Client, t *testing.T) {
 
 	id := eresp.Identity
 	err = revokerId.Revoke(revreq)
+	t.Logf("testRevocationErrors revoke error %v", err)
+	if err == nil {
+		t.Errorf("Revocation should have failed")
+	}
+	err = revoker2Id.Revoke(revreq)
 	t.Logf("testRevocationErrors revoke error %v", err)
 	if err == nil {
 		t.Errorf("Revocation should have failed")
