@@ -348,7 +348,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successfully registered identity",
+            "description": "Successfully reenrolled identity",
             "schema": {
               "type": "object",
               "properties": {
@@ -480,6 +480,10 @@
                       "value": {
                         "type": "string",
                         "description": "Value of attribute"
+                      },
+                      "ecert": {
+                        "type": "boolean",
+                        "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
                       }
                     },
                     "required": [
