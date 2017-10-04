@@ -242,13 +242,13 @@ fi
 function startFabricCa() {
    local inst=$1
    local start=$SECONDS
-   local timeout="$((TIMEOUT*2))"
+   local timeout="$TIMEOUT"
    local now=0
    local server_addr=0.0.0.0
    local port=${USER_CA_PORT-$CA_DEFAULT_PORT}
    port=$((port+$inst))
    # if not explcitly set, use default
-   test -n "${port}" && local server_port="--port $port" || local server_port=""
+   local server_port="--port $port" 
 
    if test -n "$FABRIC_CA_SERVER_PROFILE_PORT" ; then
       local profile_port=$((FABRIC_CA_SERVER_PROFILE_PORT+$inst))
@@ -258,13 +258,10 @@ function startFabricCa() {
       $FABRIC_CA_SERVEREXEC start --address $server_addr $server_port --ca.certfile $DST_CERT \
                      --ca.keyfile $DST_KEY --config $RUNCONFIG 2>&1 &
    fi
-   until test "$started" = ":::$port" -o "$now" -gt "$timeout"; do
-      started=$(ss -ltnp src :$port | awk 'NR!=1 {print $4}')
-      sleep .1
-      let now+=1
-   done
+
    printf "FABRIC_CA server on $server_addr:$port "
-   if test "$started" = ":::$port"; then
+   pollServer $FABRIC_CA_SERVEREXEC $server_addr $port $timeout
+   if test "$?" -eq 0; then
       echo "STARTED"
    else
       RC=$((RC+1))
