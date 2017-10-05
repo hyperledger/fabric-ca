@@ -160,6 +160,7 @@ func TestCLIClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
+	defer server.Stop()
 
 	c := getTestClient(ctport1)
 
@@ -198,16 +199,14 @@ func testGetCAInfo(c *Client, t *testing.T) {
 	client2 := new(Client)
 	client2.Config = new(ClientConfig)
 	client2.Config.MSPDir = string(make([]byte, 1))
-	si, err = client2.GetCAInfo(req)
-	t.Logf("GetCAInfo error %v", err)
+	_, err = client2.GetCAInfo(req)
 	if err == nil {
 		t.Errorf("Should have failed to get server info")
 	}
 
 	client2.Config.MSPDir = ""
 	client2.Config.URL = "http://localhost:["
-	si, err = client2.GetCAInfo(req)
-	t.Logf("GetCAInfo error %v", err)
+	_, err = client2.GetCAInfo(req)
 	if err == nil {
 		t.Errorf("Should have failed due to invalid URL")
 	}
@@ -215,8 +214,7 @@ func testGetCAInfo(c *Client, t *testing.T) {
 	client2.Config.MSPDir = ""
 	client2.Config.URL = ""
 	client2.Config.TLS.Enabled = true
-	si, err = client2.GetCAInfo(req)
-	t.Logf("GetCAInfo error %v", err)
+	_, err = client2.GetCAInfo(req)
 	if err == nil {
 		t.Errorf("Should have failed due to invalid TLS config")
 	}
@@ -231,7 +229,6 @@ func testRegister(c *Client, t *testing.T) {
 	}
 
 	err := c.CheckEnrollment()
-	t.Logf("CheckEnrollment error %v", err)
 	if err == nil {
 		t.Fatalf("testRegister check enrollment should have failed - client not enrolled")
 	}
@@ -300,10 +297,11 @@ func testRegister(c *Client, t *testing.T) {
 	userName := "MyTestUserWithAttrs"
 	registerReq = &api.RegistrationRequest{
 		Name:        userName,
-		Type:        "Client",
+		Type:        "client",
 		Affiliation: "hyperledger",
 		Attributes: []api.Attribute{
-			api.Attribute{Name: "attr1", Value: "val1"},
+			api.Attribute{Name: "hf.EnrollmentID", Value: userName, ECert: true},
+			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
 			api.Attribute{Name: "attr2", Value: "val2"},
 		},
 	}
@@ -311,11 +309,51 @@ func testRegister(c *Client, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register of %s failed: %s", userName, err)
 	}
-	// Request an ECert with attr1 but without attr2.
+
+	// Get an ECert with no explict attribute requested and make sure we get the defaults.
+	req = &api.EnrollmentRequest{
+		Name:   userName,
+		Secret: resp.Secret,
+	}
+	eresp, err = c.Enroll(req)
+	if err != nil {
+		t.Fatalf("Enroll with attributes failed: %s", err)
+	}
+	// Verify that the ECert has the correct attributes.
+	attrs, err := eresp.Identity.GetECert().Attributes()
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+	checkAttrResult(t, "hf.EnrollmentID", userName, attrs)
+	checkAttrResult(t, "hf.Type", "", attrs)
+	checkAttrResult(t, "hf.Affiliation", "", attrs)
+	checkAttrResult(t, "attr1", "val1", attrs)
+	checkAttrResult(t, "attr2", "", attrs)
+
+	// Another test of registration and enrollment of an identity with attributes
+	userName = "MyTestUserWithAttrs2"
+	registerReq = &api.RegistrationRequest{
+		Name:        userName,
+		Type:        "client",
+		Affiliation: "hyperledger",
+		Attributes: []api.Attribute{
+			api.Attribute{Name: "hf.EnrollmentID", Value: userName, ECert: true},
+			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
+			api.Attribute{Name: "attr2", Value: "val2"},
+		},
+	}
+	resp, err = adminID.Register(registerReq)
+	if err != nil {
+		t.Fatalf("Register of %s failed: %s", userName, err)
+	}
+
+	// Request an ECert with hf.EnrollmentID, hf.Type, hf.Affiliation, attr1 but without attr2.
 	req = &api.EnrollmentRequest{
 		Name:   userName,
 		Secret: resp.Secret,
 		AttrReqs: []*api.AttributeRequest{
+			&api.AttributeRequest{Name: "hf.Type"},
+			&api.AttributeRequest{Name: "hf.Affiliation"},
 			&api.AttributeRequest{Name: "attr1"},
 		},
 	}
@@ -323,15 +361,18 @@ func testRegister(c *Client, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Enroll with attributes failed: %s", err)
 	}
-	// Verify that the ECert's attributes have correct values for "attr1"
-	// and "attr2" and that "attr3" is not found.
-	attrs, err := eresp.Identity.GetECert().Attributes()
+	// Verify that the ECert has the correct attributes
+	attrs, err = eresp.Identity.GetECert().Attributes()
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
+	checkAttrResult(t, "hf.EnrollmentID", "", attrs)
+	checkAttrResult(t, "hf.Type", "client", attrs)
+	checkAttrResult(t, "hf.Affiliation", "hyperledger", attrs)
 	checkAttrResult(t, "attr1", "val1", attrs)
 	checkAttrResult(t, "attr2", "", attrs)
-	// Request an ECert with an attribute that the identity does not have (attr4)
+
+	// Request an ECert with an attribute that the identity does not have (attr3)
 	// but we say that it is required.  This should result in an error.
 	req = &api.EnrollmentRequest{
 		Name:   userName,
