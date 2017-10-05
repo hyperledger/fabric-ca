@@ -300,7 +300,7 @@ func BenchmarkGenCRL(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to register and enroll the user %s: %s", userName, err)
 		}
-		err = admin.Revoke(&api.RevocationRequest{
+		_, err = admin.Revoke(&api.RevocationRequest{
 			Name: userName,
 		})
 		if err != nil {

@@ -24,6 +24,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
 
@@ -59,6 +60,7 @@ func (c *ClientCmd) newRevokeCommand() *cobra.Command {
 			return nil
 		},
 	}
+	util.RegisterFlags(c.myViper, revokeCmd.Flags(), &c.revokeParams, nil)
 	return revokeCmd
 }
 
@@ -89,18 +91,23 @@ func (c *ClientCmd) runRevoke(cmd *cobra.Command) error {
 		return errInput
 	}
 
-	err = id.Revoke(
-		&api.RevocationRequest{
-			Name:   c.clientCfg.Revoke.Name,
-			Serial: c.clientCfg.Revoke.Serial,
-			AKI:    c.clientCfg.Revoke.AKI,
-			Reason: c.clientCfg.Revoke.Reason,
-			CAName: c.clientCfg.CAName,
-		})
-
-	if err == nil {
-		log.Infof("Revocation was successful")
+	req := &api.RevocationRequest{
+		Name:   c.clientCfg.Revoke.Name,
+		Serial: c.clientCfg.Revoke.Serial,
+		AKI:    c.clientCfg.Revoke.AKI,
+		Reason: c.clientCfg.Revoke.Reason,
+		GenCRL: c.revokeParams.GenCRL,
+		CAName: c.clientCfg.CAName,
 	}
+	result, err := id.Revoke(req)
 
-	return err
+	if err != nil {
+		return err
+	}
+	log.Infof("Sucessfully revoked certificates: %+v", result.RevokedCerts)
+
+	if req.GenCRL && result.CRL != "" {
+		return storeCRL(c.clientCfg, result.CRL)
+	}
+	return nil
 }

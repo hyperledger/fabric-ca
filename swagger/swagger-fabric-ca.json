@@ -640,6 +640,13 @@
                     "null"
                   ],
                   "description": "Name of the CA to direct traffic to within server."
+                },
+                "gencrl": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "When this request results in revoking one or more certificates, this boolean indicates whether to generate a CRL and return it in the response"
                 }
               }
             }

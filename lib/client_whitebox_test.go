@@ -299,7 +299,7 @@ func testImpersonation(id *Identity, t *testing.T) {
 	}
 	fakeCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: fakeCertBytes})
 	fakeID := newIdentity(id.GetClient(), "admin", privateKey, fakeCert)
-	err = fakeID.RevokeSelf()
+	_, err = fakeID.RevokeSelf()
 	t.Logf("fakeID.RevokeSelf: %v", err)
 	if err == nil {
 		t.Fatalf("Fake ID should have failed revocation")

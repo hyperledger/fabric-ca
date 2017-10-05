@@ -344,7 +344,7 @@ func TestGenCRL(t *testing.T) {
 	err = RunMain([]string{cmdName, "gencrl", "--expirebefore", "Sat Mar 7 11:06:39 PST 2015"})
 	assert.Error(t, err, "gencrl should have failed when --expirebefore value is not in RFC339 format")
 
-	// Error case 13: should fail when invoked with expireafter value is greater (comes after) than expirebefore
+	// Error case 11: should fail when invoked with expireafter value is greater (comes after) than expirebefore
 	err = RunMain([]string{cmdName, "gencrl", "--expireafter", "2017-09-13T16:39:57-08:00",
 		"--expirebefore", "2017-09-13T15:39:57-08:00"})
 	assert.Error(t, err, "gencrl should have failed when --expireafter value is greater than --expirebefore")
@@ -811,7 +811,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	}
 
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister4",
-		"--id.affiliation", "hyperledger.org2", "--id.type", "client"})
+		"--id.secret", "testRegister4", "--id.affiliation", "hyperledger.org2", "--id.type", "client"})
 	if err != nil {
 		t.Errorf("client register failed: %s", err)
 	}
@@ -820,7 +820,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	// The identity type is set to default type "user"
 	userName := "testRegister5"
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
-		"--id.affiliation", "hyperledger.org1"})
+		"--id.secret", "testRegister5", "--id.affiliation", "hyperledger.org1"})
 	assert.NoError(t, err, "Failed to register identity "+userName)
 	user, err = db.GetUserInfo(userName)
 	assert.NoError(t, err)
@@ -842,7 +842,8 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 // TestRevoke tests fabric-ca-client revoke
 func testRevoke(t *testing.T) {
 	t.Log("Testing Revoke command")
-	os.Setenv("FABRIC_CA_CLIENT_HOME", "../../testdata/")
+	clientHome := "../../testdata/"
+	os.Setenv("FABRIC_CA_CLIENT_HOME", clientHome)
 	defer os.Unsetenv("FABRIC_CA_CLIENT_HOME")
 
 	err := RunMain([]string{cmdName, "revoke"})
@@ -893,17 +894,57 @@ func testRevoke(t *testing.T) {
 	// Enroll admin with root affiliation and test revoking with root
 	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
 	if err != nil {
-		t.Errorf("client enroll -u failed: %s", err)
+		t.Fatalf("client enroll -u failed: %s", err)
+	}
+
+	// Enroll testRegister4, so the next revoke command will revoke atleast one
+	// ecert
+	testRegister4Home := filepath.Join(os.TempDir(), "testregister4Home")
+	defer os.RemoveAll(testRegister4Home)
+	err = RunMain([]string{cmdName, "enroll", "-u",
+		fmt.Sprintf("http://testRegister4:testRegister4@localhost:%d", serverPort), "-H", testRegister4Home})
+	if err != nil {
+		t.Fatalf("Failed to enroll testRegister4 user: %s", err)
 	}
 
 	// testRegister4's affiliation: company2, revoker's affiliation: "" (root)
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister4", "--revoke.serial", "", "--revoke.aki", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name",
+		"testRegister4", "--revoke.serial", "", "--revoke.aki", "", "--gencrl"})
 	if err != nil {
 		t.Errorf("User with root affiliation failed to revoke, error: %s", err)
 	}
+	crlFile := filepath.Join(clientHome, "msp/crls/crl.pem")
+	_, err = os.Stat(crlFile)
+	assert.NoError(t, err, "CRL should be created when revoke is called with --gencrl parameter")
+
+	// Remove the CRL file created by revoke command
+	err = os.Remove(crlFile)
+	if err != nil {
+		t.Fatalf("Failed to delete the CRL file '%s': %s", crlFile, err)
+	}
+
+	// Enroll testRegister5, so the next revoke command will revoke atleast one
+	// ecert
+	testRegister5Home := filepath.Join(os.TempDir(), "testregister5Home")
+	defer os.RemoveAll(testRegister5Home)
+	err = RunMain([]string{cmdName, "enroll", "-u",
+		fmt.Sprintf("http://testRegister5:testRegister5@localhost:%d", serverPort), "-H", testRegister5Home})
+	if err != nil {
+		t.Fatalf("Failed to enroll testRegister5 user: %s", err)
+	}
+
+	// Revoke testRegister5 without --gencrl option, so it does not create a CRL
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name",
+		"testRegister5", "--revoke.serial", "", "--revoke.aki", ""})
+	if err != nil {
+		t.Errorf("Failed to revoke testRegister5, error: %s", err)
+	}
+	_, err = os.Stat(filepath.Join(clientHome, "msp/crls/crl.pem"))
+	assert.Error(t, err, "CRL should not be created when revoke is called without --gencrl parameter")
 
 	// testRegister2's affiliation: hyperledger, revoker's affiliation: ""
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister2", "--revoke.serial", "", "--revoke.aki", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name",
+		"testRegister2", "--revoke.serial", "", "--revoke.aki", ""})
 	if err != nil {
 		t.Errorf("Failed to revoke proper affiliation hierarchy, error: %s", err)
 	}
@@ -914,7 +955,8 @@ func testRevoke(t *testing.T) {
 	}
 
 	// Revoked user's affiliation: hyperledger.org3
-	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name", "testRegister3", "--revoke.serial", "", "--revoke.aki", ""})
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name",
+		"testRegister3", "--revoke.serial", "", "--revoke.aki", ""})
 	if err == nil {
 		t.Error("Should have failed, admin3 does not have authority revoke")
 	}
@@ -938,7 +980,6 @@ func testRevoke(t *testing.T) {
 	}
 
 	os.RemoveAll(filepath.Dir(defYaml))
-
 }
 
 // Test that affiliations get correctly set when registering a user with affiliation specified
@@ -1569,7 +1610,7 @@ func registerAndRevokeUsers(t *testing.T, admin *lib.Identity, num int) []*big.I
 		}
 
 		// Revoke the user cert
-		err = admin.Revoke(revokeReq)
+		_, err = admin.Revoke(revokeReq)
 		if err != nil {
 			t.Fatalf("Failed to revoke the identity '%s': %s", userName, err)
 		}

@@ -460,30 +460,36 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 		return
 	}
 	id := eresp.Identity
+	var revResp *api.RevocationResponse
 	if ecertOnly {
-		err = id.GetECert().RevokeSelf()
+		revResp, err = id.GetECert().RevokeSelf()
 	} else {
-		err = id.RevokeSelf()
+		revResp, err = id.RevokeSelf()
 	}
-	if withPriv && err != nil {
-		t.Errorf("testRevocation failed for user %s: %s", user, err)
-		return
-	} else if !withPriv && err == nil {
-		t.Errorf("testRevocation for user %s passed but should have failed", user)
-		return
-	}
-
 	if withPriv {
-		eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
-		if err == nil {
-			t.Errorf("user ecert %s enrolled but ecert should have been revoked", user)
+		// Assert that there is no error revoking user/Ecert
+		ar := assert.NoError(t, err, "Revocation failed for user %s", user)
+		if !ar {
+			return
 		}
+
+		// Assert that the cert serial in the revocation response is same as that of user certificate
+		cert, err := id.GetECert().GetX509Cert()
+		if err != nil {
+			t.Fatalf("Failed to get certificate for the enrolled user %s: %s", user, err)
+		}
+		assert.Equal(t, 1, len(revResp.RevokedCerts), "Expected 1 certificate to be revoked")
+		assert.Equal(t, util.GetSerialAsHex(cert.SerialNumber), revResp.RevokedCerts[0].Serial,
+			"Cert serial in revocation response does match serial number of the cert that was revoked")
+
+		eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
+		assert.Errorf(t, err, "Enrollment of a revoked user %s cert succeeded but should have failed", user)
 		if !ecertOnly {
 			eresp, err = c.Enroll(req)
-			if err == nil {
-				t.Errorf("user %s enrolled but should have been revoked", user)
-			}
+			assert.Errorf(t, err, "Enrollment of a revoked user %s succeeded but should have failed", user)
 		}
+	} else {
+		assert.Errorf(t, err, "Revocation for user %s should have failed", user)
 	}
 }
 
@@ -570,12 +576,12 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	}
 
 	id := eresp.Identity
-	err = revokerId.Revoke(revreq)
+	_, err = revokerId.Revoke(revreq)
 	t.Logf("testRevocationErrors revoke error %v", err)
 	if err == nil {
 		t.Errorf("Revocation should have failed")
 	}
-	err = revoker2Id.Revoke(revreq)
+	_, err = revoker2Id.Revoke(revreq)
 	t.Logf("testRevocationErrors revoke error %v", err)
 	if err == nil {
 		t.Errorf("Revocation should have failed")
@@ -590,7 +596,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	revreq.Name = "fake"
 	revreq.Serial, revreq.AKI, err = GetCertID(eresp.Identity.GetECert().Cert())
 	t.Logf("Name: %s, Serial: %s, AKI: %s. err, %v", revreq.Name, revreq.Serial, revreq.AKI, err)
-	err = revokerId.Revoke(revreq)
+	_, err = revokerId.Revoke(revreq)
 	t.Logf("testRevocationErrors revoke error %v", err)
 	if err == nil {
 		t.Errorf("Revocation should have failed")
@@ -605,7 +611,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	revreq.Name = "etuser"
 	revreq.Serial, revreq.AKI, err = GetCertID(eresp.Identity.GetECert().Cert())
 	t.Logf("Name: %s, Serial: %s, AKI: %s. err, %v", revreq.Name, revreq.Serial, revreq.AKI, err)
-	err = revokerId.Revoke(revreq)
+	_, err = revokerId.Revoke(revreq)
 	t.Logf("testRevocationErrors revoke error %v", err)
 	if err == nil {
 		t.Errorf("Revocation should have failed")
@@ -849,7 +855,7 @@ func setupGenCRLTest(t *testing.T, serverHome, clientHome string) (*Server, *Ide
 	if err != nil {
 		t.Fatalf("Failed to enroll user '%s': %s", user, err)
 	}
-	err = adminID.Revoke(&api.RevocationRequest{Name: user})
+	_, err = adminID.Revoke(&api.RevocationRequest{Name: user})
 	if err != nil {
 		t.Fatalf("Failed to revoke user '%s': %s", user, err)
 	}
@@ -1060,7 +1066,7 @@ func TestRevokedIdentity(t *testing.T) {
 		Name: "TestUser",
 	}
 
-	err = admin_id.Revoke(revReq)
+	_, err = admin_id.Revoke(revReq)
 	if err != nil {
 		t.Fatalf("Failed to revoke TestUser identity: %s", err)
 	}
@@ -1092,14 +1098,14 @@ func TestRevokedIdentity(t *testing.T) {
 		t.Fatalf("Registeration of TestUser identity should have failed: %s", err)
 	}
 
-	err = testuserid.Revoke(&api.RevocationRequest{
+	_, err = testuserid.Revoke(&api.RevocationRequest{
 		Name: "admin",
 	})
 	if err == nil {
 		t.Fatalf("Revocation of 'admin' identity should have failed: %s", err)
 	}
 
-	err = testuserid2.Revoke(&api.RevocationRequest{
+	_, err = testuserid2.Revoke(&api.RevocationRequest{
 		Name: "admin",
 	})
 	if err == nil {

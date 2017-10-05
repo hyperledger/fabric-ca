@@ -159,22 +159,23 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, 
 }
 
 // Revoke the identity associated with 'id'
-func (i *Identity) Revoke(req *api.RevocationRequest) error {
+func (i *Identity) Revoke(req *api.RevocationRequest) (*api.RevocationResponse, error) {
 	log.Debugf("Entering identity.Revoke %+v", req)
 	reqBody, err := util.Marshal(req, "RevocationRequest")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	err = i.Post("revoke", reqBody, nil)
+	var result api.RevocationResponse
+	err = i.Post("revoke", reqBody, &result)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	log.Debugf("Successfully revoked %+v", req)
-	return nil
+	log.Debugf("Successfully revoked certificates: %+v", req)
+	return &result, nil
 }
 
 // RevokeSelf revokes the current identity and all certificates
-func (i *Identity) RevokeSelf() error {
+func (i *Identity) RevokeSelf() (*api.RevocationResponse, error) {
 	name := i.GetName()
 	log.Debugf("RevokeSelf %s", name)
 	req := &api.RevocationRequest{
@@ -195,7 +196,7 @@ func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Successfully generated CRL: %+v", result)
+	log.Debugf("Successfully generated CRL: %+v", req)
 	return &result, nil
 }
 
@@ -224,7 +225,7 @@ func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}) err
 }
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
-	log.Debug("adding token-based authorization header")
+	log.Debug("Adding token-based authorization header")
 	cert := i.ecert.cert
 	key := i.ecert.key
 	token, err := util.CreateToken(i.CSP, cert, key, body)
