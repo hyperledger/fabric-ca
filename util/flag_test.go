@@ -19,6 +19,7 @@ package util_test
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hyperledger/fabric-ca/lib"
 	. "github.com/hyperledger/fabric-ca/util"
@@ -29,6 +30,7 @@ import (
 
 // A test struct
 type A struct {
+	ADur        time.Duration     `help:"Duration"`
 	ASlice      []string          `help:"Slice description"`
 	AStr        string            `def:"defval" help:"Str1 description"`
 	AInt        int               `def:"10" help:"Int1 description"`
@@ -58,6 +60,14 @@ type C struct {
 type ABad struct {
 }
 
+type DurBad struct {
+	ADur time.Duration `def:"xx" help:"Duration"`
+}
+
+type Int64Struct struct {
+	Int64Var int64 `def:"3546343826724305832" help:"int64"`
+}
+
 func printit(f *Field) error {
 	//fmt.Printf("%+v\n", f)
 	return nil
@@ -75,6 +85,8 @@ func TestRegisterFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to register flags: %s", err)
 	}
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &Int64Struct{}, tags)
+	assert.NoError(t, err, "Failed to register int64 flag")
 }
 
 func TestParseObj(t *testing.T) {
@@ -91,6 +103,7 @@ func TestParseObj(t *testing.T) {
 func TestCheckForMissingValues(t *testing.T) {
 
 	src := &A{
+		ADur:      time.Hour,
 		AStr:      "AStr",
 		AStr2:     "AStr2",
 		AIntArray: []int{1, 2, 3},
@@ -184,7 +197,6 @@ func TestViperUnmarshal(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to correctly process valid path to be type string array: ", err)
 	}
-
 }
 
 func TestRegisterFlagsInvalidArgs(t *testing.T) {
@@ -208,7 +220,16 @@ func TestRegisterFlagsInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Field is missing a help tag")
 
-	data5 := struct{ Field float32 }{}
+	data5 := struct{ Field time.Duration }{}
 	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data5, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Field is missing a help tag")
+
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &DurBad{}, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Invalid duration value in 'def' tag")
+
+	data6 := struct{ Field float32 }{}
+	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &data6, nil)
 	assert.NoError(t, err)
 }

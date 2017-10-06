@@ -107,11 +107,11 @@ if test -n "$CREATE_PROFILE"; then
   for pkg in $PKGS
   do
     pushd $GOPATH/src/$pkg
-    go test -run=^$ -bench=. -benchmem -timeout=20m $CPU_PROFILE_OPT $MEM_PROFILE_OPT | tee $BENCHMARK_FILE_NAME
+    (go test -run=^$ -bench=. -benchmem -timeout=20m $CPU_PROFILE_OPT $MEM_PROFILE_OPT 2> /dev/null) | tee $BENCHMARK_FILE_NAME
     exitrc ${PIPESTATUS[0]}
     popd
   done
 else
-  go test -run=^$ -bench=. -benchmem -timeout=20m $PKGS | tee $BENCHMARK_FILE_NAME
+  (go test -run=^$ -bench=. -benchmem -timeout=20m $PKGS 2> /dev/null) | tee $BENCHMARK_FILE_NAME
   exitrc ${PIPESTATUS[0]}
 fi

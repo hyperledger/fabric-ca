@@ -127,6 +127,17 @@ ca:
   chainfile: ca-chain.pem
 
 #############################################################################
+#  The gencrl REST endpoint is used to generate a CRL that contains revoked
+#  certificates. This section contains configuration options that are used
+#  during gencrl request processing.
+#############################################################################
+crl:
+  # Specifies expiration for the generated CRL. The number of hours
+  # specified by this property is added to the UTC time, the resulting time
+  # is used to set the 'Next Update' date of the CRL.
+  expiry: 24h
+
+#############################################################################
 #  The registry section controls how the fabric-ca-server does two things:
 #  1) authenticates enrollment requests which contain a username and password
 #     (also known as an enrollment ID and secret).
@@ -160,6 +171,7 @@ registry:
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
           hf.Revoker: true
           hf.IntermediateCA: true
+          hf.GenCRL: true
 
 #############################################################################
 #  Database section

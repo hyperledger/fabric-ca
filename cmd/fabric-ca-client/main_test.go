@@ -24,12 +24,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
@@ -60,6 +63,7 @@ const (
 	clientCertEnvVar     = "FABRIC_CA_CLIENT_TLS_CLIENT_CERTFILE"
 	moptionDir           = "moption-test"
 	clientCMD            = "fabric-ca-client"
+	crlExpiry            = time.Hour * 240 // 10 days
 )
 
 const jsonConfig = `{
@@ -225,6 +229,127 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	}
 }
 
+// Test cases for gencrl command
+func TestGenCRL(t *testing.T) {
+	t.Log("Testing GenCRL")
+	adminHome := filepath.Join(tdDir, "gencrladminhome")
+
+	// Remove server home directory if it exists
+	err := os.RemoveAll(adminHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+	}
+
+	// Remove server home directory that this test is going to create before
+	// exiting the test case
+	defer os.RemoveAll(adminHome)
+
+	// Set up for the test case
+	srv := setupGenCRLTest(t, adminHome)
+
+	// Cleanup before exiting the test case
+	defer cleanupGenCRLTest(t, srv)
+
+	// Error case 1: gencrl command should fail when called without enrollment info
+	tmpHome := filepath.Join(os.TempDir(), "gencrlhome")
+	defer os.RemoveAll(tmpHome)
+	prvHome := os.Getenv(homeEnvVar)
+	defer os.Setenv(homeEnvVar, prvHome)
+
+	os.Setenv(homeEnvVar, tmpHome)
+	err = RunMain([]string{cmdName, "gencrl"})
+	assert.Error(t, err, "gencrl should have failed when called without enrollment information")
+
+	os.Setenv(homeEnvVar, adminHome)
+
+	// Register, enroll and revoke two users using admin identity
+	client := &lib.Client{
+		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", serverPort)},
+		HomeDir: adminHome,
+	}
+	admin, err := client.LoadMyIdentity()
+	if err != nil {
+		t.Fatalf("Failed to load admin identity: %s", err)
+	}
+
+	var revokedCertSerials []*big.Int
+
+	// Success cases
+	// success case 1: there are no revoked certs
+	err = RunMain([]string{cmdName, "gencrl"})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	revokedCertSerials = registerAndRevokeUsers(t, admin, 2)
+
+	// success case 2: gencrl invoked without any arguments
+	err = RunMain([]string{cmdName, "gencrl"})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	// success case 3: gencrl invoked with --revokedafter argument but not --revokedbefore
+	pastTime := time.Now().UTC().Add(time.Hour * -1).Format(time.RFC3339)
+	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", pastTime})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	// success case 4: gencrl invoked with --revokedbefore argument but not --revokedafter
+	futureTime := time.Now().UTC().Add(time.Hour * 1).Format(time.RFC3339)
+	err = RunMain([]string{cmdName, "gencrl", "--revokedbefore", futureTime})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	// success case 5: gencrl invoked with --expirebefore, --revokedbefore and --revokedafter args
+	expTime := time.Now().UTC().Add(time.Hour * 3).Format(time.RFC3339)
+	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", pastTime,
+		"--revokedbefore", futureTime, "--expirebefore", expTime})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	// Error cases
+	// Error case 2: should fail when invoked with invalid --revokedafter arg
+	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", "foo"})
+	assert.Error(t, err, "gencrl should have failed when --revokedafter value is not a timestamp")
+
+	// Error case 3: should fail when invoked with invalid --revokedafter arg
+	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", "Mon Jan 2 15:04:05 -0700 MST 2006"})
+	assert.Error(t, err, "gencrl should have failed when --revokedafter value is not in RFC339 format")
+
+	// Error case 4: should fail when invoked with invalid --revokedbefore arg
+	err = RunMain([]string{cmdName, "gencrl", "--revokedbefore", "bar"})
+	assert.Error(t, err, "gencrl should have failed when --revokedbefore value is not a timestamp")
+
+	// Error case 5: should fail when invoked with invalid --revokedbefore arg
+	err = RunMain([]string{cmdName, "gencrl", "--revokedbefore", "Sat Mar 7 11:06:39 PST 2015"})
+	assert.Error(t, err, "gencrl should have failed when --revokedbefore value is not in RFC339 format")
+
+	// Error case 6: should fail when invoked with revokeafter value is greater (comes after) than revokedbefore
+	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", "2017-09-13T16:39:57-08:00",
+		"--revokedbefore", "2017-09-13T15:39:57-08:00"})
+	assert.Error(t, err, "gencrl should have failed when --revokedafter value is greater than --revokedbefore")
+
+	// Error case 7: should fail when invoked with invalid --expireafter arg
+	err = RunMain([]string{cmdName, "gencrl", "--expireafter", "foo"})
+	assert.Error(t, err, "gencrl should have failed when --expireafter value is not a timestamp")
+
+	// Error case 8: should fail when invoked with invalid --expireafter arg
+	err = RunMain([]string{cmdName, "gencrl", "--expireafter", "Mon Jan 2 15:04:05 -0700 MST 2006"})
+	assert.Error(t, err, "gencrl should have failed when --expireafter value is not in RFC339 format")
+
+	// Error case 9: should fail when invoked with invalid --expirebefore arg
+	err = RunMain([]string{cmdName, "gencrl", "--expirebefore", "bar"})
+	assert.Error(t, err, "gencrl should have failed when --expirebefore value is not a timestamp")
+
+	// Error case 10: should fail when invoked with invalid --expirebefore arg
+	err = RunMain([]string{cmdName, "gencrl", "--expirebefore", "Sat Mar 7 11:06:39 PST 2015"})
+	assert.Error(t, err, "gencrl should have failed when --expirebefore value is not in RFC339 format")
+
+	// Error case 13: should fail when invoked with expireafter value is greater (comes after) than expirebefore
+	err = RunMain([]string{cmdName, "gencrl", "--expireafter", "2017-09-13T16:39:57-08:00",
+		"--expirebefore", "2017-09-13T15:39:57-08:00"})
+	assert.Error(t, err, "gencrl should have failed when --expireafter value is greater than --expirebefore")
+}
+
 // Test role based access control
 func TestRBAC(t *testing.T) {
 	// Variable initialization
@@ -371,7 +496,6 @@ func checkAttrsInCert(t *testing.T, home, name, val, missing string) {
 	if ok {
 		t.Fatalf("The '%s' attribute was found in the cert but should not be", missing)
 	}
-
 }
 
 func testConfigFileTypes(t *testing.T) {
@@ -1325,6 +1449,135 @@ func getSerialAKIByID(id string) (serial, aki string, err error) {
 	aki = hex.EncodeToString(x509Cert.AuthorityKeyId)
 
 	return
+}
+
+func setupGenCRLTest(t *testing.T, adminHome string) *lib.Server {
+	srvHome := filepath.Join(tdDir, "gencrlsrvhom")
+	err := os.RemoveAll(srvHome)
+	if err != nil {
+		t.Fatalf("Failed to remove home directory %s: %s", srvHome, err)
+	}
+
+	srv := lib.TestGetServer(serverPort, srvHome, "", -1, t)
+	srv.Config.Debug = true
+	srv.CA.Config.CRL.Expiry = crlExpiry
+	d, _ := time.ParseDuration("2h")
+	srv.CA.Config.Signing.Default.Expiry = d
+
+	adminName := "admin"
+	adminPass := "adminpw"
+	err = srv.RegisterBootstrapUser(adminName, adminPass, "")
+	if err != nil {
+		t.Fatalf("Failed to register bootstrap user: %s", err)
+	}
+
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", adminHome})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	return srv
+}
+
+func cleanupGenCRLTest(t *testing.T, srv *lib.Server) {
+	defer os.RemoveAll(srv.HomeDir)
+	if srv != nil {
+		err := srv.Stop()
+		if err != nil {
+			t.Errorf("Server stop failed: %s", err)
+		}
+	}
+}
+
+// Checks if the generated CRL is in PEM format and contains expected
+// revoked certificates
+func checkCRL(t *testing.T, client *lib.Client, revokedSerials []*big.Int) {
+	crlfile := filepath.Join(client.Config.MSPDir, "crls/crl.pem")
+	crl, err := ioutil.ReadFile(crlfile)
+	assert.NoError(t, err, "Failed to read the CRL from the file %s", crlfile)
+	blk, _ := pem.Decode(crl)
+	assert.Equal(t, blk.Type, "X509 CRL", "The %s is not a pem encoded CRL")
+
+	revokedList, err := x509.ParseCRL(crl)
+	assert.False(t, revokedList.HasExpired(time.Now().UTC().Add(crlExpiry-time.Hour)), "Next Update value is not set to expected value (240h)")
+	assert.True(t, revokedList.HasExpired(time.Now().UTC().Add(crlExpiry+time.Hour)), "Next Update value is not set to expected value (240h)")
+	assert.NoError(t, err, "Failed to parse the CRL")
+	assert.Equal(t, len(revokedSerials), len(revokedList.TBSCertList.RevokedCertificates),
+		"CRL contains unexpected number of revoked certificates")
+	t.Logf("Revoked certs from the CRL: %v", revokedList.TBSCertList.RevokedCertificates)
+	for _, revokedCert := range revokedList.TBSCertList.RevokedCertificates {
+		serial := util.GetSerialAsHex(revokedCert.SerialNumber)
+		found := false
+		for _, revokedSerial := range revokedSerials {
+			if revokedCert.SerialNumber.Cmp(revokedSerial) == 0 {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "Certificate %s is not one of revoked certificates", serial)
+	}
+}
+
+// Registers, enrolls and revokes specified number of users. This is
+// a utility function used by the gencrl test cases
+func registerAndRevokeUsers(t *testing.T, admin *lib.Identity, num int) []*big.Int {
+	var serials []*big.Int
+	for i := 0; i < num; i++ {
+		userName := "gencrluser" + strconv.Itoa(i)
+		// Register a user
+		regRes, err := admin.Register(&api.RegistrationRequest{
+			Name:        userName,
+			Type:        "user",
+			Affiliation: "org2",
+		})
+		if err != nil {
+			t.Fatalf("Failed to register the identity '%s': %s", userName, err)
+		}
+
+		// Enroll the user
+		enrollResp, err := admin.GetClient().Enroll(&api.EnrollmentRequest{
+			Name:   userName,
+			Secret: regRes.Secret,
+			CSR:    &api.CSRInfo{Hosts: []string{"localhost"}},
+		})
+		if err != nil {
+			t.Fatalf("Failed to enroll the identity '%s': %s", userName, err)
+		}
+
+		cert, err := enrollResp.Identity.GetECert().GetX509Cert()
+		if err != nil {
+			t.Fatalf("Failed to get enrollment certificate for the user %s: %s", userName, err)
+		}
+
+		revokeReq := &api.RevocationRequest{}
+		if i%2 == 0 {
+			revokeReq.Name = userName
+		} else {
+			revokeReq.Serial = util.GetSerialAsHex(cert.SerialNumber)
+			revokeReq.AKI = hex.EncodeToString(cert.AuthorityKeyId)
+			// Reenroll the user, this should create a new certificate, so this
+			// user will have two valid certificates, but we will revoke one
+			// of her certificate only
+			_, err := enrollResp.Identity.Reenroll(&api.ReenrollmentRequest{})
+			if err != nil {
+				t.Fatalf("Reenrollment of user %s failed: %s", userName, err)
+			}
+		}
+
+		// Revoke the user cert
+		err = admin.Revoke(revokeReq)
+		if err != nil {
+			t.Fatalf("Failed to revoke the identity '%s': %s", userName, err)
+		}
+
+		serials = append(serials, cert.SerialNumber)
+	}
+	t.Logf("Revoked certificates: %v", serials)
+	return serials
 }
 
 func extraArgErrorTest(in *TestData, t *testing.T) {

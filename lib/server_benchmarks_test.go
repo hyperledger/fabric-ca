@@ -17,7 +17,6 @@ package lib
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -33,13 +32,6 @@ const (
 	revokeUserCertEnv = "REVOKE_USER_CERT"
 	clientMspDir      = testdataDir + "/msp"
 )
-
-func TestMain(m *testing.M) {
-	// Will prevent log messages from priting to stdout and stderr
-	// Comment this out to see log messages
-	log.SetOutput(ioutil.Discard)
-	os.Exit(m.Run())
-}
 
 func BenchmarkServerStart(b *testing.B) {
 	b.StopTimer()
@@ -79,8 +71,10 @@ func BenchmarkGetCACert(b *testing.B) {
 		infoSE.ServeHTTP(rw, req)
 		// Stop the timer
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("GetCACert request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("GetCACert request handler returned an error: %s", body)
 		}
 	}
 }
@@ -102,6 +96,7 @@ func BenchmarkRegister(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to enroll admin/adminpw: %s", err)
 	}
+
 	admin := eresp.Identity
 	registerSE := newRegisterEndpoint(srv)
 	for i := 0; i < b.N; i++ {
@@ -113,8 +108,10 @@ func BenchmarkRegister(b *testing.B) {
 		b.StartTimer()
 		registerSE.ServeHTTP(rw, req)
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("Register request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("Register request handler returned an error: %s", body)
 		}
 	}
 }
@@ -157,8 +154,10 @@ func BenchmarkEnroll(b *testing.B) {
 		b.StartTimer()
 		enrollSE.ServeHTTP(rw, req)
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("Enroll request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("Enroll request handler returned an error: %s", body)
 		}
 	}
 }
@@ -181,7 +180,6 @@ func BenchmarkReenrollOneUser(b *testing.B) {
 		b.Fatalf("Failed to enroll admin/adminpw: %s", err)
 	}
 	admin := eresp.Identity
-	reenrollSE := newReenrollEndpoint(srv)
 	userName := "reenrolluser0"
 	regReq := &api.RegistrationRequest{
 		Name:        userName,
@@ -192,6 +190,7 @@ func BenchmarkReenrollOneUser(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to register and enroll the user %s: %s", userName, err)
 	}
+	reenrollSE := newReenrollEndpoint(srv)
 	for i := 0; i < b.N; i++ {
 		req, err := createReenrollRequest(user)
 		if err != nil {
@@ -201,8 +200,10 @@ func BenchmarkReenrollOneUser(b *testing.B) {
 		b.StartTimer()
 		reenrollSE.ServeHTTP(rw, req)
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("Reenroll request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("Reenroll request handler returned an error: %s", body)
 		}
 	}
 }
@@ -245,8 +246,10 @@ func BenchmarkReenroll(b *testing.B) {
 		b.StartTimer()
 		reenrollSE.ServeHTTP(rw, req)
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("Reenroll request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("Reenroll request handler returned an error: %s", body)
 		}
 	}
 }
@@ -265,6 +268,63 @@ func BenchmarkRevokeIdentity(b *testing.B) {
 	os.Setenv(revokeUserCertEnv, "")
 	defer os.Setenv(revokeUserCertEnv, revokeUserCertOrig)
 	invokeRevokeBenchmark(b)
+}
+
+func BenchmarkGenCRL(b *testing.B) {
+	b.StopTimer()
+	srv := getServerForBenchmark(serverbPort, rootDir, "", -1, b)
+	err := srv.Start()
+	if err != nil {
+		b.Fatalf("Server failed to start: %v", err)
+	}
+	defer cleanup(srv)
+
+	client := getTestClient(serverbPort)
+	eresp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	if err != nil {
+		b.Fatalf("Failed to enroll admin/adminpw: %s", err)
+	}
+	admin := eresp.Identity
+
+	for j := 0; j < 50; j++ {
+		userName := "gencrluser" + strconv.Itoa(j)
+		regReq := &api.RegistrationRequest{
+			Name:        userName,
+			Type:        "user",
+			Affiliation: "hyperledger.fabric.security",
+		}
+		_, err = admin.RegisterAndEnroll(regReq)
+		if err != nil {
+			b.Fatalf("Failed to register and enroll the user %s: %s", userName, err)
+		}
+		err = admin.Revoke(&api.RevocationRequest{
+			Name: userName,
+		})
+		if err != nil {
+			b.Fatalf("Failed to revoke the user %s: %s", userName, err)
+		}
+	}
+
+	genCRLSE := newGenCRLEndpoint(srv)
+
+	for i := 0; i < b.N; i++ {
+		req, err := createGenCRLRequest(admin)
+		if err != nil {
+			b.Fatalf("Failed to create the genCRL request %s", err)
+		}
+		rw := httptest.NewRecorder()
+		b.StartTimer()
+		genCRLSE.ServeHTTP(rw, req)
+		b.StopTimer()
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("GenCRL request handler returned an error: %s", body)
+		}
+	}
 }
 
 func invokeRevokeBenchmark(b *testing.B) {
@@ -304,8 +364,10 @@ func invokeRevokeBenchmark(b *testing.B) {
 		b.StartTimer()
 		revokeSE.ServeHTTP(rw, req)
 		b.StopTimer()
-		if err != nil {
-			b.Fatalf("Revoke request handler returned an error: %s", err.Error())
+		resp := rw.Result()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			b.Fatalf("Revoke request handler returned an error: %s", body)
 		}
 	}
 }
@@ -442,4 +504,20 @@ func createGetCACertRequest(client *Client) (*http.Request, error) {
 		return nil, err
 	}
 	return cainforeq, nil
+}
+
+func createGenCRLRequest(user *Identity) (*http.Request, error) {
+	body, err := util.Marshal(&api.GenCRLRequest{CAName: ""}, "GenCRL")
+	if err != nil {
+		return nil, err
+	}
+	req, err := user.client.newPost("gencrl", body)
+	if err != nil {
+		return nil, err
+	}
+	err = user.addTokenAuthHdr(req, body)
+	if err != nil {
+		return nil, err
+	}
+	return req, nil
 }

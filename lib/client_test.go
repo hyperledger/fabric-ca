@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
@@ -727,6 +728,132 @@ func testIncorrectEnrollment(t *testing.T) {
 	if err == nil {
 		t.Error("Registration should have failed, can't register user with max enrollment greater than server max enrollment setting")
 	}
+}
+
+// Test cases for gencrl command
+func TestGenCRL(t *testing.T) {
+	t.Log("Testing genCRL")
+
+	serverHome := path.Join(serversDir, "gencrlserver")
+	clientHome := path.Join(tdDir, "gencrlclient")
+	err := os.RemoveAll(serverHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s", serverHome)
+	}
+	err = os.RemoveAll(clientHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s", clientHome)
+	}
+	defer os.RemoveAll(serverHome)
+	defer os.RemoveAll(clientHome)
+
+	srv, adminID := setupGenCRLTest(t, serverHome, clientHome)
+	defer func() {
+		if srv != nil {
+			srv.Stop()
+		}
+	}()
+
+	_, err = adminID.GenCRL(&api.GenCRLRequest{CAName: ""})
+	assert.NoError(t, err, "failed to generate CRL")
+
+	// error cases
+	// Error case 1: revokedafter is greater than revokedbefore
+	gencrlReq := &api.GenCRLRequest{
+		CAName:        "",
+		RevokedBefore: time.Now().UTC().AddDate(0, 1, 0),
+		RevokedAfter:  time.Now().UTC().AddDate(0, 2, 0),
+	}
+	_, err = adminID.GenCRL(gencrlReq)
+	assert.Error(t, err, "genCRL should have failed as revokedafter timestamp is after revokedbefore timestamp")
+	assert.Contains(t, err.Error(), "Invalid revokedafter value", "Not expected error message")
+
+	// Error case 2: expireafter is greater than expirebefore
+	gencrlReq = &api.GenCRLRequest{
+		CAName:       "",
+		ExpireBefore: time.Now().UTC().AddDate(0, 1, 0),
+		ExpireAfter:  time.Now().UTC().AddDate(0, 2, 0),
+	}
+	_, err = adminID.GenCRL(gencrlReq)
+	assert.Error(t, err, "genCRL should have failed as expireafter timestamp is after expirebefore timestamp")
+	assert.Contains(t, err.Error(), "Invalid expireafter value", "Not expected error message")
+
+	// Error case 3: gencrl request by an user without hf.GenCRL authority should fail
+	gencrluser := "gencrluser1"
+	rr := &api.RegistrationRequest{
+		Name:           gencrluser,
+		Type:           "user",
+		Affiliation:    "org2",
+		MaxEnrollments: 1,
+	}
+	resp, err := adminID.Register(rr)
+	if err != nil {
+		t.Fatalf("Failed to register %s: %s", gencrluser, err)
+	}
+
+	eresp, err := adminID.GetClient().Enroll(&api.EnrollmentRequest{
+		Name:   gencrluser,
+		Secret: resp.Secret,
+	})
+	if err != nil {
+		t.Fatalf("Failed to enroll user %s: %s", gencrluser, err)
+	}
+
+	user1 := eresp.Identity
+	_, err = user1.GenCRL(gencrlReq)
+	assert.Error(t, err, "genCRL should have failed as invoker does not have hf.GenCRL attribute")
+}
+
+func setupGenCRLTest(t *testing.T, serverHome, clientHome string) (*Server, *Identity) {
+	server := TestGetServer(ctport1, serverHome, "", 1, t)
+	if server == nil {
+		t.Fatalf("Failed to get server")
+	}
+	d, _ := time.ParseDuration("2h")
+	server.CA.Config.Signing.Default.Expiry = d
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+
+	c := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+		HomeDir: clientHome,
+	}
+
+	// Enroll admin
+	eresp, err := c.Enroll(&api.EnrollmentRequest{Name: "admin", Secret: "adminpw"})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	adminID := eresp.Identity
+
+	// Register and revoker a user
+	user := "gencrluser"
+	rr := &api.RegistrationRequest{
+		Name:           user,
+		Type:           "user",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 1,
+	}
+	resp, err := adminID.Register(rr)
+	if err != nil {
+		t.Fatalf("Failed to register user '%s': %s", user, err)
+	}
+	req := &api.EnrollmentRequest{
+		Name:   user,
+		Secret: resp.Secret,
+	}
+	eresp, err = c.Enroll(req)
+	if err != nil {
+		t.Fatalf("Failed to enroll user '%s': %s", user, err)
+	}
+	err = adminID.Revoke(&api.RevocationRequest{Name: user})
+	if err != nil {
+		t.Fatalf("Failed to revoke user '%s': %s", user, err)
+	}
+	return server, adminID
 }
 
 func TestCLINormalizeUrl(t *testing.T) {

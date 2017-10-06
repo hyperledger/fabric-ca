@@ -99,6 +99,20 @@ const (
 	ErrCallerIsNotAuthenticated = 33
 	// Invalid configuration setting
 	ErrConfig = 34
+	// The caller does not have authority to generate a CRL
+	ErrNoGenCRLAuth = 35
+	// Invalid RevokedAfter value in the GenCRL request
+	ErrInvalidRevokedAfter = 36
+	// Invalid ExpiredAfter value in the GenCRL request
+	ErrInvalidExpiredAfter = 37
+	// Failed to get revoked certs from the database
+	ErrRevokedCertsFromDB = 38
+	// Failed to get CA cert
+	ErrGetCACert = 39
+	// Failed to get CA signer
+	ErrGetCASigner = 40
+	// Failed to generate CRL
+	ErrGenCRL = 41
 )
 
 // Construct a new HTTP error.

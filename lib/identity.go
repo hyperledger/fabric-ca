@@ -183,6 +183,22 @@ func (i *Identity) RevokeSelf() error {
 	return i.Revoke(req)
 }
 
+// GenCRL generates CRL
+func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
+	log.Debugf("Entering identity.GenCRL %+v", req)
+	reqBody, err := util.Marshal(req, "GenCRLRequest")
+	if err != nil {
+		return nil, err
+	}
+	var result api.GenCRLResponse
+	err = i.Post("gencrl", reqBody, &result)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully generated CRL: %+v", result)
+	return &result, nil
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {
