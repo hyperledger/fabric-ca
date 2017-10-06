@@ -211,11 +211,6 @@ func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeReque
 	if err != nil {
 		return nil, err
 	}
-	if ca.Config.LDAP.Enabled {
-		// Attributes in ECerts when LDAP is enabled is not supported initially
-		log.Debug("No attributes will be added to certificate with LDAP enabled")
-		return nil, nil
-	}
 	ui, err := ca.registry.GetUser(ctx.enrollmentID, nil)
 	if err != nil {
 		return nil, err

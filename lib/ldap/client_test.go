@@ -64,11 +64,13 @@ func testLDAP(proto string, port int, t *testing.T) {
 	if err == nil {
 		t.Errorf("ldap.User.Login passed but should have failed")
 	}
-	email := user.GetAttribute("mail")
-	if email == "" {
+	email, err := user.GetAttribute("mail")
+	assert.NoError(t, err, "failed getting mail attribute")
+	if email == nil {
 		t.Errorf("ldap.User.GetAttribute failed: no mail found")
+	} else {
+		assert.EqualValues(t, "jsmith", email.Value)
 	}
-	t.Logf("email for user 'jsmith' is %s", email)
 }
 
 func testLDAPNegative(t *testing.T) {
@@ -123,11 +125,13 @@ func TestLDAPTLS(t *testing.T) {
 	if err == nil {
 		t.Errorf("ldap.User.Login passed but should have failed")
 	}
-	email := user.GetAttribute("mail")
-	if email == "" {
+	email, err := user.GetAttribute("mail")
+	assert.NoError(t, err, "failed getting mail attribute")
+	if email == nil {
 		t.Errorf("ldap.User.GetAttribute failed: no mail found")
+	} else {
+		assert.EqualValues(t, "jsmith", email.Value)
 	}
-	t.Logf("email for user 'jsmith' is %s", email)
 }
 
 // Tests String method of ldap.Config
