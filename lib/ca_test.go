@@ -801,7 +801,7 @@ func TestCAVerifyCertificate(t *testing.T) {
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
 	}
-	ca.Config.CA.Chainfile = noCACert
+	ca.Config.CA.Chainfile = noUsageCert
 	err = ca.VerifyCertificate(cert)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
