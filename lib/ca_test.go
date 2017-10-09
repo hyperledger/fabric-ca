@@ -25,8 +25,6 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/ldap"
-	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/hyperledger/fabric/bccsp/pkcs11"
@@ -226,7 +224,6 @@ func TestCAInit(t *testing.T) {
 			t.Fatalf("failed to cd to %v: %s", orgwd, err)
 		}
 	}()
-	t.Logf("confDir: %v", confDir)
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal("failed to get cwd: ", err)
@@ -262,7 +259,7 @@ func TestCAInit(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to get cwd: ", err)
 	}
-	t.Log("changed to ", wd2)
+	t.Log("changed directory to ", wd2)
 	defer cleanupTmpfiles(t, wd2)
 
 	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
@@ -295,8 +292,8 @@ func TestCAInit(t *testing.T) {
 	if err != nil {
 		t.Fatal("NewCA FAILED: ", err)
 	}
+
 	err = ca.init(false)
-	t.Log("init err: ", err)
 	if err != nil {
 		t.Fatal("ca init failed", err)
 	}
@@ -306,7 +303,7 @@ func TestCAInit(t *testing.T) {
 	err = ca.initUserRegistry()
 	t.Log("init err: ", err)
 	if err == nil {
-		t.Fatal("Should have failed: ")
+		t.Fatal("initUserRegistry should have failed")
 	}
 
 	// initEnrollmentSigner error
@@ -336,21 +333,7 @@ func TestCAInit(t *testing.T) {
 	err = ca.init(false)
 	t.Log("init err: ", err)
 	if err == nil {
-		t.Fatal("Should have failed")
-	}
-
-	// ca.initConfig() error
-	os.RemoveAll(wd2)
-	ca, err = NewCA("", &cfg, &srv, false)
-	t.Log("NewCA err: ", err)
-	if err != nil {
-		t.Fatal("Should have failed")
-	}
-	ca.HomeDir = ""
-	err = ca.init(false)
-	t.Log("init err: ", err)
-	if err == nil {
-		t.Fatal("Should have failed")
+		t.Fatal("init should have failed")
 	}
 }
 
@@ -642,60 +625,6 @@ func TestCAloadAffiliationsTableR(t *testing.T) {
 	}
 
 	os.Remove(testdir + dbname)
-}
-
-func TestCAmakeFileNamesAbsolute(t *testing.T) {
-	cfg = CAConfig{}
-	confDir, err := cdTmpTestDir("TestCAmakeFileNamesAbsolute")
-	// defer os.RemoveAll(confDir)
-	defer cleanupTmpfiles(t, confDir)
-	t.Log("confDir: ", confDir)
-	if err != nil {
-		t.Fatal("failed to cd to tmp dir")
-	}
-
-	ca, err := NewCA(confDir, &cfg, &srv, false)
-	if err != nil {
-		t.Fatal("NewCA FAILED", err)
-	}
-
-	err = os.RemoveAll("../" + confDir)
-	if err != nil {
-		t.Fatal("rm failed ", err)
-	}
-
-	ca.Config.CA.Keyfile = caKey
-	err = ca.makeFileNamesAbsolute()
-	t.Log("makeFileNamesAbsolute error: ", err)
-	if err == nil {
-		t.Error("makeFileNamesAbsolute should have failed")
-	}
-
-	c := []string{"x", "y"}
-	ca.Config.CA.Keyfile = ""
-	ca.Config.DB = CAConfigDB{TLS: tls.ClientTLSConfig{CertFiles: c}}
-	err = ca.makeFileNamesAbsolute()
-	t.Log("makeFileNamesAbsolute error: ", err)
-	if err == nil {
-		t.Error("makeFileNamesAbsolute should have failed")
-	}
-
-	ca.Config.LDAP = ldap.Config{TLS: tls.ClientTLSConfig{CertFiles: c}}
-	c = []string{}
-	ca.Config.DB = CAConfigDB{TLS: tls.ClientTLSConfig{CertFiles: c}}
-	err = ca.makeFileNamesAbsolute()
-	t.Log("makeFileNamesAbsolute error: ", err)
-	if err == nil {
-		t.Error("makeFileNamesAbsolute should have failed")
-	}
-
-	ca, err = NewCA(confDir, &cfg, &srv, false)
-	t.Log("NewCA error: ", err)
-	if err == nil {
-		t.Error("NewCA should have failed")
-	}
-
-	os.Chdir("..")
 }
 
 func TestCAloadUsersTable(t *testing.T) {
