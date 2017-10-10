@@ -352,7 +352,7 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 
 	log.Debugf("CA configuration after checking for missing values: %+v", cfg)
 
-	ca, err := NewCA(caFile, cfg, s, renew)
+	ca, err := newCA(caFile, cfg, s, renew)
 	if err != nil {
 		return err
 	}

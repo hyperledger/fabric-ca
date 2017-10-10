@@ -109,9 +109,9 @@ const (
 	certificateError = "Invalid certificate in file"
 )
 
-// NewCA creates a new CA with the specified
+// newCA creates a new CA with the specified
 // home directory, parent server URL, and config
-func NewCA(caFile string, config *CAConfig, server *Server, renew bool) (*CA, error) {
+func newCA(caFile string, config *CAConfig, server *Server, renew bool) (*CA, error) {
 	ca := new(CA)
 	ca.ConfigFilePath = caFile
 	err := initCA(ca, filepath.Dir(caFile), config, server, renew)
