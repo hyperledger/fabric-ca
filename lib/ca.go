@@ -116,6 +116,10 @@ func newCA(caFile string, config *CAConfig, server *Server, renew bool) (*CA, er
 	ca.ConfigFilePath = caFile
 	err := initCA(ca, filepath.Dir(caFile), config, server, renew)
 	if err != nil {
+		err2 := ca.closeDB()
+		if err2 != nil {
+			log.Errorf("Close DB failed: %s", err2)
+		}
 		return nil, err
 	}
 	return ca, nil
