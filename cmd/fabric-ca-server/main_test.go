@@ -27,6 +27,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -246,6 +248,57 @@ func TestMultiCA(t *testing.T) {
 	cleanUpMultiCAFiles()
 }
 
+// Tests to see that the bootstrap by default has permission to register any attibute
+func TestRegistrarAttribute(t *testing.T) {
+	var err error
+	blockingStart = false
+
+	err = os.Setenv("FABRIC_CA_SERVER_HOME", "testregattr/server")
+	if !assert.NoError(t, err, "Failed to set environment variable") {
+		t.Fatal("Failed to set environment variable")
+	}
+
+	args := TestData{[]string{cmdName, "start", "-b", "admin:admin", "-p", "7096", "-d"}, ""}
+	os.Args = args.input
+	scmd := NewCommand(args.input[1], blockingStart)
+	// Execute the command
+	err = scmd.Execute()
+	if !assert.NoError(t, err, "Failed to start server") {
+		t.Fatal("Failed to start server")
+	}
+
+	client := getTestClient(7096, "testregattr/client")
+
+	resp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "admin",
+	})
+	if !assert.NoError(t, err, "Failed to enroll 'admin'") {
+		t.Fatal("Failed to enroll 'admin'")
+	}
+
+	adminIdentity := resp.Identity
+
+	_, err = adminIdentity.Register(&api.RegistrationRequest{
+		Name: "testuser",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Revoker",
+				Value: "true",
+			},
+			api.Attribute{
+				Name:  "hf.IntermediateCA",
+				Value: "true",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer,client",
+			},
+		},
+	})
+	assert.NoError(t, err, "Bootstrap user 'admin' should have been able to register a user with attributes")
+}
+
 func TestVersion(t *testing.T) {
 	err := RunMain([]string{cmdName, "version"})
 	if err != nil {
@@ -283,6 +336,7 @@ func TestClean(t *testing.T) {
 	os.Remove("../../testdata/fabric-ca-server.db")
 	os.Remove("../../testdata/ca-cert.pem")
 	os.RemoveAll(ldapTestDir)
+	os.RemoveAll("testregattr")
 }
 
 func cleanUpMultiCAFiles() {
@@ -299,4 +353,11 @@ func cleanUpMultiCAFiles() {
 	}
 
 	os.Remove("../../testdata/test.yaml")
+}
+
+func getTestClient(port int, homeDir string) *lib.Client {
+	return &lib.Client{
+		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+		HomeDir: homeDir,
+	}
 }
