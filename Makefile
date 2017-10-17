@@ -30,7 +30,7 @@
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION   = 1.0.1
+BASE_VERSION   = 1.1.0
 PREV_VERSION   = 1.0.0
 IS_RELEASE     = false
 
