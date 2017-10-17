@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -43,10 +44,11 @@ func TestTCertWithoutAttribute(t *testing.T) {
 		t.Errorf("LoadCert unable to load ec.pem %v", err)
 	}
 
-	resp, err := mgr.GetBatch(&GetBatchRequest{
-		Count:  1,
-		PreKey: "anyroot",
-	}, ecert)
+	batchReq := &GetTCertBatchRequest{}
+	batchReq.Count = 1
+	batchReq.PreKey = "anyroot"
+
+	resp, err := mgr.GetBatch(batchReq, ecert)
 	if err != nil {
 		t.Errorf("Error from GetBatch: %s", err)
 		return
@@ -71,7 +73,7 @@ func TestTCertWitAttributes(t *testing.T) {
 	if err != nil {
 		return
 	}
-	var Attrs = []Attribute{
+	var Attrs = []api.Attribute{
 		{
 			Name:  "SSN",
 			Value: "123-456-789",
@@ -82,12 +84,12 @@ func TestTCertWitAttributes(t *testing.T) {
 			Value: "USD",
 		},
 	}
-	resp, err := mgr.GetBatch(&GetBatchRequest{
-		Count:        2,
-		EncryptAttrs: true,
-		Attrs:        Attrs,
-		PreKey:       "anotherprekey",
-	}, ecert)
+	batchReq := &GetTCertBatchRequest{}
+	batchReq.Count = 2
+	batchReq.EncryptAttrs = true
+	batchReq.Attrs = Attrs
+	batchReq.PreKey = "anotherprekey"
+	resp, err := mgr.GetBatch(batchReq, ecert)
 	if err != nil {
 		t.Errorf("Error from GetBatch: %s", err)
 		return

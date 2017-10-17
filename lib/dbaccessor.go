@@ -25,7 +25,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jmoiron/sqlx"
@@ -240,36 +239,6 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	return d.newDBUser(&userRec), nil
 }
 
-// GetUserInfo gets user information from database
-func (d *Accessor) GetUserInfo(id string) (spi.UserInfo, error) {
-	log.Debugf("DB: Getting information for identity %s", id)
-
-	var userInfo spi.UserInfo
-
-	err := d.checkDB()
-	if err != nil {
-		return userInfo, err
-	}
-
-	var userRec UserRecord
-	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
-	if err != nil {
-		return userInfo, dbGetError(err, "User")
-	}
-
-	var attributes []api.Attribute
-	json.Unmarshal([]byte(userRec.Attributes), &attributes)
-
-	userInfo.Name = userRec.Name
-	userInfo.Type = userRec.Type
-	userInfo.Affiliation = userRec.Affiliation
-	userInfo.State = userRec.State
-	userInfo.MaxEnrollments = userRec.MaxEnrollments
-	userInfo.Attributes = attributes
-
-	return userInfo, nil
-}
-
 // InsertAffiliation inserts affiliation into database
 func (d *Accessor) InsertAffiliation(name string, prekey string) error {
 	log.Debugf("DB: Add affiliation %s", name)
@@ -351,9 +320,13 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	json.Unmarshal([]byte(userRec.Attributes), &attrs)
 	user.Attributes = attrs
 
-	user.attrs = make(map[string]string)
+	user.attrs = make(map[string]api.Attribute)
 	for _, attr := range attrs {
-		user.attrs[attr.Name] = attr.Value
+		user.attrs[attr.Name] = api.Attribute{
+			Name:  attr.Name,
+			Value: attr.Value,
+			ECert: attr.ECert,
+		}
 	}
 
 	user.db = d.db
@@ -364,13 +337,23 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 type DBUser struct {
 	spi.UserInfo
 	pass  []byte
-	attrs map[string]string
+	attrs map[string]api.Attribute
 	db    *sqlx.DB
 }
 
 // GetName returns the enrollment ID of the user
 func (u *DBUser) GetName() string {
 	return u.Name
+}
+
+// GetType returns the type of the user
+func (u *DBUser) GetType() string {
+	return u.Type
+}
+
+// GetMaxEnrollments returns the max enrollments of the user
+func (u *DBUser) GetMaxEnrollments() int {
+	return u.MaxEnrollments
 }
 
 // Login the user with a password
@@ -456,18 +439,60 @@ func (u *DBUser) GetAffiliationPath() []string {
 }
 
 // GetAttribute returns the value for an attribute name
-func (u *DBUser) GetAttribute(name string) string {
-	return u.attrs[name]
+func (u *DBUser) GetAttribute(name string) (*api.Attribute, error) {
+	value, hasAttr := u.attrs[name]
+	if !hasAttr {
+		return nil, errors.Errorf("User does not have attribute '%s'", name)
+	}
+	return &value, nil
 }
 
-// GetAttributes returns the requested attributes
-func (u *DBUser) GetAttributes(attrNames []string) []tcert.Attribute {
-	var attrs []tcert.Attribute
-	for _, name := range attrNames {
-		value := u.attrs[name]
-		attrs = append(attrs, tcert.Attribute{Name: name, Value: value})
+// GetAttributes returns the requested attributes. Return all the user's
+// attributes if nil is passed in
+func (u *DBUser) GetAttributes(attrNames []string) ([]api.Attribute, error) {
+	var attrs []api.Attribute
+	if attrNames == nil {
+		for _, value := range u.attrs {
+			attrs = append(attrs, value)
+		}
+		return attrs, nil
 	}
-	return attrs
+
+	for _, name := range attrNames {
+		value, hasAttr := u.attrs[name]
+		if !hasAttr {
+			return nil, errors.Errorf("User does not have attribute '%s'", name)
+		}
+		attrs = append(attrs, value)
+	}
+	return attrs, nil
+}
+
+// Revoke will revoke the user, setting the state of the user to be -1
+func (u *DBUser) Revoke() error {
+	stateUpdateSQL := "UPDATE users SET state = -1 WHERE (id = ?)"
+
+	res, err := u.db.Exec(u.db.Rebind(stateUpdateSQL), u.GetName())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to update state of identity %s to -1", u.Name)
+	}
+
+	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "db.RowsAffected failed")
+	}
+
+	if numRowsAffected == 0 {
+		return errors.Errorf("No rows were affected when updating the state of identity %s", u.Name)
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, u.Name)
+	}
+
+	log.Debugf("Successfully incremented state for identity %s to -1", u.Name)
+
+	return nil
 }
 
 func dbGetError(err error, prefix string) error {

@@ -17,10 +17,10 @@ limitations under the License.
 package api
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -161,7 +161,16 @@ type GetTCertBatchRequest struct {
 
 // GetTCertBatchResponse is the return value of identity.GetTCertBatch
 type GetTCertBatchResponse struct {
-	tcert.GetBatchResponse
+	ID     *big.Int  `json:"id"`
+	TS     time.Time `json:"ts"`
+	Key    []byte    `json:"key"`
+	TCerts []TCert   `json:"tcerts"`
+}
+
+// TCert encapsulates a signed transaction certificate and optionally a map of keys
+type TCert struct {
+	Cert []byte            `json:"cert"`
+	Keys map[string][]byte `json:"keys,omitempty"` //base64 encoded string as value
 }
 
 // GetCAInfoRequest is request to get generic CA information

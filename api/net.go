@@ -18,7 +18,6 @@ package api
 
 import (
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 )
 
 /*
@@ -73,7 +72,7 @@ type GetTCertBatchRequestNet struct {
 
 // GetTCertBatchResponseNet is the network response for a batch of transaction certificates
 type GetTCertBatchResponseNet struct {
-	tcert.GetBatchResponse
+	GetTCertBatchResponse
 }
 
 // KeySig is a public key, signature, and signature algorithm tuple

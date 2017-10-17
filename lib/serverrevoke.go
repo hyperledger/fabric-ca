@@ -17,12 +17,12 @@ limitations under the License.
 package lib
 
 import (
+	"encoding/hex"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -73,6 +73,9 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 
 	result := &revocationResponseNet{}
 	if req.Serial != "" && req.AKI != "" {
+		calleraki := strings.ToLower(strings.TrimLeft(hex.EncodeToString(ctx.enrollmentCert.AuthorityKeyId), "0"))
+		callerserial := strings.ToLower(strings.TrimLeft(util.GetSerialAsHex(ctx.enrollmentCert.SerialNumber), "0"))
+
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
 			return nil, newHTTPErr(404, ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
@@ -84,14 +87,16 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 				req.Serial, req.AKI, req.Name)
 		}
 
-		userInfo, err := registry.GetUserInfo(certificate.ID)
+		userInfo, err := registry.GetUser(certificate.ID, nil)
 		if err != nil {
 			return nil, newHTTPErr(404, ErrRevokeIDNotFound, "Identity %s was not found: %s", certificate.ID, err)
 		}
 
-		err = checkAffiliations(id, userInfo, ca)
-		if err != nil {
-			return nil, err
+		if !((req.AKI == calleraki) && (req.Serial == callerserial)) {
+			err = ctx.CanManageUser(userInfo)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, reason)
@@ -108,22 +113,21 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 
 		// Set user state to -1 for revoked user
 		if user != nil {
-			var userInfo spi.UserInfo
-			userInfo, err = registry.GetUserInfo(req.Name)
-			if err != nil {
-				return nil, newHTTPErr(500, ErrRevokeUserInfoNotFound, "Failed getting info for identity %s: %s", req.Name, err)
-			}
-
-			err = checkAffiliations(id, userInfo, ca)
+			caller, err := ctx.GetCaller()
 			if err != nil {
 				return nil, err
 			}
 
-			userInfo.State = -1
+			if caller.GetName() != user.GetName() {
+				err = ctx.CanManageUser(user)
+				if err != nil {
+					return nil, err
+				}
+			}
 
-			err = registry.UpdateUser(userInfo)
+			err = user.Revoke()
 			if err != nil {
-				return nil, newHTTPErr(500, ErrRevokeUpdateUser, "Failed to update identity info: %s", err)
+				return nil, newHTTPErr(500, ErrRevokeUpdateUser, "Failed to revoke user: %s", err)
 			}
 		}
 
@@ -158,31 +162,4 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 	}
 
 	return result, nil
-}
-
-func checkAffiliations(revoker string, revoking spi.UserInfo, ca *CA) error {
-	log.Debugf("Check to see if revoker %s has affiliations to revoke: %s", revoker, revoking.Name)
-	userAffiliation, err := ca.getUserAffiliation(revoker)
-	if err != nil {
-		return newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation of %s: %s", revoker, err)
-	}
-
-	log.Debugf("Affiliation of revoker: %s, affiliation of identity being revoked: %s", userAffiliation, revoking.Affiliation)
-
-	// Revoking user has root affiliation thus has ability to revoke
-	if userAffiliation == "" {
-		log.Debug("Identity with root affiliation revoking")
-		return nil
-	}
-
-	revokingAffiliation := strings.Split(revoking.Affiliation, ".")
-	revokerAffiliation := strings.Split(userAffiliation, ".")
-	for i := range revokerAffiliation {
-		if revokerAffiliation[i] != revokingAffiliation[i] {
-			return newHTTPErr(401, ErrRevokerNotAffiliated,
-				"Revoker %s does not have proper affiliation to revoke identity %s", revoker, revoking.Name)
-		}
-	}
-
-	return nil
 }

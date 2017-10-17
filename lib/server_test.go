@@ -1478,11 +1478,11 @@ func TestSRVMaxEnrollmentLimited(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to register me_0_1, error: %s", err)
 	}
-	user, err := srv.CA.DBAccessor().GetUserInfo("me_0_1")
+	user, err := srv.CA.DBAccessor().GetUser("me_0_1", nil)
 	if err != nil {
 		t.Errorf("Failed to find user 'me_0_1,' in database")
 	}
-	if user.MaxEnrollments != 1 {
+	if user.GetMaxEnrollments() != 1 {
 		t.Error("Failed to correctly set max enrollment value for a user registering with max enrollment of 0")
 	}
 	_, err = id.Identity.Register(&api.RegistrationRequest{
@@ -2144,11 +2144,12 @@ func TestRegisterationAffiliation(t *testing.T) {
 	assert.NoError(t, err, "Client register failed")
 
 	db := server.DBAccessor()
-	user, err := db.GetUserInfo("testuser")
+	user, err := db.GetUser("testuser", nil)
 	assert.NoError(t, err)
 
-	if user.Affiliation != "" {
-		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", user.Affiliation)
+	userAff := GetUserAffiliation(user)
+	if userAff != "" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", userAff)
 	}
 
 	_, err = admin.Register(&api.RegistrationRequest{
@@ -2158,11 +2159,12 @@ func TestRegisterationAffiliation(t *testing.T) {
 	})
 	assert.NoError(t, err, "Client register failed")
 
-	user, err = db.GetUserInfo("testuser2")
+	user, err = db.GetUser("testuser2", nil)
 	assert.NoError(t, err)
 
-	if user.Affiliation != "" {
-		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", user.Affiliation)
+	userAff = GetUserAffiliation(user)
+	if userAff != "" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", userAff)
 	}
 
 	eresp, err = client.Enroll(&api.EnrollmentRequest{
@@ -2181,11 +2183,12 @@ func TestRegisterationAffiliation(t *testing.T) {
 	assert.NoError(t, err, "Client register failed")
 
 	db = server.DBAccessor()
-	user, err = db.GetUserInfo("testuser3")
+	user, err = db.GetUser("testuser3", nil)
 	assert.NoError(t, err)
 
-	if user.Affiliation != "hyperledger" {
-		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected 'hyperledger' got %s", user.Affiliation)
+	userAff = GetUserAffiliation(user)
+	if userAff != "hyperledger" {
+		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected 'hyperledger' got %s", userAff)
 	}
 
 	_, err = admin2.Register(&api.RegistrationRequest{
@@ -2358,7 +2361,7 @@ func testRegistration(admin *Identity, t *testing.T) {
 		Name:        name,
 		Type:        "user",
 		Affiliation: midAffiliation,
-		Attributes:  makeAttrs(t, "hf.Registrar.Roles=user,peer", "hf.Registrar.DelegateRoles=user"),
+		Attributes:  makeAttrs(t, "hf.Registrar.Roles=user,peer", "hf.Registrar.DelegateRoles=user", "hf.Registrar.Attributes=*"),
 	})
 	if err != nil {
 		t.Fatalf("%s", err)

@@ -1185,13 +1185,16 @@ the certificates owned by the identity and will also prevent the identity from g
 any new certificates. Revoking a certificate will invalidate a single certificate.
 
 In order to revoke a certificate or an identity, the calling identity must have
-the ``hf.Revoker`` attribute. The revoking identity can only revoke a certificate
-or an identity that has an affiliation that is equal to or prefixed by the revoking
-identity's affiliation.
+the ``hf.Revoker`` and ``hf.Registrar.Roles`` attribute. The revoking identity
+can only revoke a certificate or an identity that has an affiliation that is
+equal to or prefixed by the revoking identity's affiliation. Furthermore, the
+revoker can only revoke identities with types that are listed in the revoker's
+``hf.Registrar.Roles`` attribute.
 
-For example, a revoker with affiliation **orgs.org1** can revoke an identity
-affiliated with **orgs.org1** or **orgs.org1.department1** but can't revoke an
-identity affiliated with **orgs.org2**.
+For example, a revoker with affiliation **orgs.org1** and 'hf.Registrar.Roles=peer,client'
+attribute can revoke either a **peer** or **client** type identity affiliated with
+**orgs.org1** or **orgs.org1.department1** but can't revoke an identity affiliated with
+**orgs.org2** or of any other type.
 
 The following command disables an identity and revokes all of the certificates
 associated with the identity. All future requests received by the Fabric CA server

@@ -32,6 +32,7 @@ import (
 	"strconv"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
@@ -109,7 +110,7 @@ type Mgr struct {
 // GetBatch gets a batch of TCerts
 // @parameter req Is the TCert batch request
 // @parameter ecert Is the enrollment certificate of the caller
-func (tm *Mgr) GetBatch(req *GetBatchRequest, ecert *x509.Certificate) (*GetBatchResponse, error) {
+func (tm *Mgr) GetBatch(req *GetTCertBatchRequest, ecert *x509.Certificate) (*api.GetTCertBatchResponse, error) {
 
 	log.Debugf("GetBatch req=%+v", req)
 
@@ -154,7 +155,7 @@ func (tm *Mgr) GetBatch(req *GetBatchRequest, ecert *x509.Certificate) (*GetBatc
 	mac.Write(raw)
 	kdfKey := mac.Sum(nil)
 
-	var set []TCert
+	var set []api.TCert
 
 	for i := 0; i < numTCertsInBatch; i++ {
 		tcertid, uuidError := GenerateIntUUID()
@@ -208,7 +209,7 @@ func (tm *Mgr) GetBatch(req *GetBatchRequest, ecert *x509.Certificate) (*GetBatc
 
 		pem := ConvertDERToPEM(raw, "CERTIFICATE")
 
-		set = append(set, TCert{pem, ks})
+		set = append(set, api.TCert{Cert: pem, Keys: ks})
 	}
 
 	tcertID, randNumErr := GenNumber(big.NewInt(20))
@@ -216,7 +217,12 @@ func (tm *Mgr) GetBatch(req *GetBatchRequest, ecert *x509.Certificate) (*GetBatc
 		return nil, randNumErr
 	}
 
-	tcertResponse := &GetBatchResponse{tcertID, time.Now(), kdfKey, set}
+	tcertResponse := &api.GetTCertBatchResponse{
+		ID:     tcertID,
+		TS:     time.Now(),
+		Key:    kdfKey,
+		TCerts: set,
+	}
 
 	return tcertResponse, nil
 
@@ -234,7 +240,7 @@ func createHMACKey() string {
 }
 
 // Generate encrypted extensions to be included into the TCert (TCertIndex, EnrollmentID and attributes).
-func generateExtensions(tcertid *big.Int, tidx []byte, enrollmentCert *x509.Certificate, batchRequest *GetBatchRequest) ([]pkix.Extension, map[string][]byte, error) {
+func generateExtensions(tcertid *big.Int, tidx []byte, enrollmentCert *x509.Certificate, batchRequest *GetTCertBatchRequest) ([]pkix.Extension, map[string][]byte, error) {
 	// For each TCert we need to store and retrieve to the user the list of Ks used to encrypt the EnrollmentID and the attributes.
 	ks := make(map[string][]byte)
 	attrs := batchRequest.Attrs

@@ -23,11 +23,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
 )
@@ -179,4 +181,9 @@ func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error
 			return userMaxEnrollments, nil
 		}
 	}
+}
+
+// GetUserAffiliation return a joined version version of the affiliation path with '.' as the seperator
+func GetUserAffiliation(user spi.User) string {
+	return strings.Join(user.GetAffiliationPath(), ".")
 }

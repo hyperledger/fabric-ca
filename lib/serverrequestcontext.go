@@ -216,12 +216,13 @@ func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeReque
 		log.Debug("No attributes will be added to certificate with LDAP enabled")
 		return nil, nil
 	}
-	ui, err := ca.registry.GetUserInfo(ctx.enrollmentID)
+	ui, err := ca.registry.GetUser(ctx.enrollmentID, nil)
 	if err != nil {
 		return nil, err
 	}
+	allAttrs, _ := ui.GetAttributes(nil)
 	if attrReqs == nil {
-		attrReqs = getDefaultAttrReqs(ui.Attributes)
+		attrReqs = getDefaultAttrReqs(allAttrs)
 		if attrReqs == nil {
 			// No attributes are being requested, so we are done
 			return nil, nil
@@ -229,7 +230,7 @@ func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeReque
 	}
 	attrs, err := ca.attrMgr.ProcessAttributeRequests(
 		convertAttrReqs(attrReqs),
-		convertAttrs(ui.Attributes),
+		convertAttrs(allAttrs),
 	)
 	if err != nil {
 		return nil, err
@@ -341,6 +342,104 @@ func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 		return nil, errors.WithMessage(err, "Failed to get user")
 	}
 	return ctx.caller, nil
+}
+
+// CanManageUser determines if the caller has the right type and affiliation to act on on a user
+func (ctx *serverRequestContext) CanManageUser(user spi.User) error {
+	userAff := strings.Join(user.GetAffiliationPath(), ".")
+	validAffiliation, err := ctx.ContainsAffiliation(userAff)
+	if err != nil {
+		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to get ID: %s", err)
+	}
+	if !validAffiliation {
+		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", userAff)
+	}
+
+	userType := user.GetType()
+	canAct, err := ctx.CanActOnType(userType)
+	if err != nil {
+		return newHTTPErr(500, ErrGettingType, "Failed to verify if user can act on type '%s': %s", userType, err)
+	}
+	if !canAct {
+		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on type '%s'", userType)
+	}
+	return nil
+}
+
+// IsRegistrar returns back true if the caller is a registrar along with the types the registrar is allowed to register
+func (ctx *serverRequestContext) IsRegistrar() (string, bool, error) {
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return "", false, err
+	}
+
+	log.Debugf("Checking to see if caller '%s' is a registrar", caller.GetName())
+
+	rolesStr, err := caller.GetAttribute("hf.Registrar.Roles")
+	if err != nil {
+		return "", false, newAuthErr(ErrRegAttrAuth, "'%s' is not a registrar", caller.GetName())
+	}
+
+	// Has some value for attribute 'hf.Registrar.Roles' then user is a registrar
+	if rolesStr.Value != "" {
+		return rolesStr.Value, true, nil
+	}
+
+	return "", false, nil
+}
+
+// CanActOnType returns true if the caller has the proper authority to take action on specific type
+func (ctx *serverRequestContext) CanActOnType(typ string) (bool, error) {
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return false, err
+	}
+
+	log.Debugf("Checking to see if caller '%s' with type '%s' can act on type '%s'", caller.GetName(), typ)
+
+	typesStr, isRegistrar, err := ctx.IsRegistrar()
+	if err != nil {
+		return false, err
+	}
+	if !isRegistrar {
+		return false, newAuthErr(ErrRegAttrAuth, "'%s' is not allowed to manage users", caller.GetName())
+	}
+
+	var types []string
+	if typesStr != "" {
+		types = strings.Split(typesStr, ",")
+	} else {
+		types = make([]string, 0)
+	}
+
+	if !util.StrContained(typ, types) {
+		log.Debug("Caller with types '%s' is not authorized to act on '%s'", types, typ)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// ContainsAffiliation returns true if the caller the requested affiliation contains the caller's affiliation
+func (ctx *serverRequestContext) ContainsAffiliation(affiliation string) (bool, error) {
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return false, err
+	}
+
+	callerAffiliationPath := strings.Join(caller.GetAffiliationPath(), ".")
+	log.Debugf("Checking to see if affiliation '%s' contains caller's affiliation '%s'", affiliation, callerAffiliationPath)
+
+	// If the caller has root affiliation return "true"
+	if callerAffiliationPath == "" {
+		return true, nil
+	}
+
+	if strings.HasPrefix(affiliation, callerAffiliationPath) {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {
