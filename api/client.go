@@ -195,8 +195,8 @@ func (a *Attribute) GetValue() string {
 // AttributeRequest is a request for an attribute.
 // This implements the certmgr/AttributeRequest interface.
 type AttributeRequest struct {
-	Name    string `json:"name"`
-	Require bool   `json:"require,omitempty"`
+	Name     string `json:"name"`
+	Optional bool   `json:"optional,omitempty"`
 }
 
 // GetName returns the name of an attribute being requested
@@ -206,5 +206,5 @@ func (ar *AttributeRequest) GetName() string {
 
 // IsRequired returns true if the attribute being requested is required
 func (ar *AttributeRequest) IsRequired() bool {
-	return ar.Require
+	return !ar.Optional
 }

@@ -316,7 +316,7 @@ func testRegister(c *Client, t *testing.T) {
 		Name:   userName,
 		Secret: resp.Secret,
 		AttrReqs: []*api.AttributeRequest{
-			&api.AttributeRequest{Name: "attr1", Require: true},
+			&api.AttributeRequest{Name: "attr1"},
 		},
 	}
 	eresp, err = c.Enroll(req)
@@ -337,8 +337,8 @@ func testRegister(c *Client, t *testing.T) {
 		Name:   userName,
 		Secret: resp.Secret,
 		AttrReqs: []*api.AttributeRequest{
-			&api.AttributeRequest{Name: "attr1"},
-			&api.AttributeRequest{Name: "attr3", Require: true},
+			&api.AttributeRequest{Name: "attr1", Optional: true},
+			&api.AttributeRequest{Name: "attr3"},
 		},
 	}
 	eresp, err = c.Enroll(req)
