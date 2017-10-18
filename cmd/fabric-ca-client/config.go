@@ -382,12 +382,12 @@ func processAttributeRequests(cfgAttrReqs []string, cfg *lib.ClientConfig) error
 		name := sreq[0]
 		switch len(sreq) {
 		case 1:
-			reqs[idx] = &api.AttributeRequest{Name: name, Require: true}
+			reqs[idx] = &api.AttributeRequest{Name: name}
 		case 2:
 			if sreq[1] != "opt" {
 				return errors.Errorf("Invalid option in attribute request specification at '%s'; the value after the colon must be 'opt'", req)
 			}
-			reqs[idx] = &api.AttributeRequest{Name: name, Require: false}
+			reqs[idx] = &api.AttributeRequest{Name: name, Optional: true}
 		default:
 			return errors.Errorf("Multiple ':' characters not allowed in attribute request specification; error at '%s'", req)
 		}
