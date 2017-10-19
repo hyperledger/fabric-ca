@@ -52,6 +52,7 @@ setTLS() {
         LDAP_PROTO="ldaps://"
         LDAP_PORT=636
         TLSOPT="--tls.certfiles $TLS_ROOTCERT"
+        INTTLSOPT="--intermediate.tls.certfiles $TLS_ROOTCERT"
      fi
    fi
 }
