@@ -38,6 +38,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
@@ -432,6 +433,9 @@ func (s *Server) createDefaultCAConfigs(cacount int) error {
 
 		cn := fmt.Sprintf("fabric-ca-server-ca%d", i)
 		cfg = strings.Replace(cfg, "<<<COMMONNAME>>>", cn, 1)
+
+		datasource := dbutil.GetCADataSource(s.CA.Config.DB.Type, s.CA.Config.DB.Datasource, i)
+		cfg = strings.Replace(cfg, "<<<DATASOURCE>>>", datasource, 1)
 
 		s.Config.CAfiles = append(s.Config.CAfiles, cfgFileName)
 

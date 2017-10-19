@@ -771,23 +771,25 @@ function testStatus() {
    local user="$1"
    local driver="$2"
    local ca_cfg_path="$3"
+   local dbname="$4"
    : ${driver:="sqlite3"}
    : ${ca_cfg_path:="$CA_CFG_PATH"}
+   : ${dbname:="fabric_ca"}
    case $driver in
       sqlite3)
-         user_status="$(sqlite3 $ca_cfg_path/$DB "SELECT * FROM users WHERE (id=\"$user\");")"
-         cert_status="$(sqlite3 $ca_cfg_path/$DB "SELECT * FROM certificates WHERE (id=\"$user\");")"
+         user_status="$(sqlite3 $ca_cfg_path/$dbname "SELECT * FROM users WHERE (id=\"$user\");")"
+         cert_status="$(sqlite3 $ca_cfg_path/$dbname "SELECT * FROM certificates WHERE (id=\"$user\");")"
 
          user_status_code="$(printf "$user_status" | awk -F'|' -v s=$user '$1~s {print $6}')"
          cert_status_code="$(printf "$cert_status" | awk -F'|' -v s=$user '$1~s {print $5}')"
       ;;
       mysql)
-         user_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM users WHERE (id=\"$user\");" $DB| awk -F'\t' -v u=$user '$1==u {print $6}')
-         cert_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\") order by revoked_at;" $DB| awk -F'\t' -v u=$user '$1==u {print $5}')
+         user_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM users WHERE (id=\"$user\");" $dbname| awk -F'\t' -v u=$user '$1==u {print $6}')
+         cert_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\") order by revoked_at;" $dbname| awk -F'\t' -v u=$user '$1==u {print $5}')
       ;;
       postgres)
-         user_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,state FROM users WHERE id='$user';" --dbname=fabric_ca | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
-         cert_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,encode(status,'escape') FROM certificates WHERE id='$user' order by revoked_at;" --dbname=fabric_ca | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
+         user_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,state FROM users WHERE id='$user';" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
+         cert_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,encode(status,'escape') FROM certificates WHERE id='$user' order by revoked_at;" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
       ;;
     esac
     echo "$user_status_code $cert_status_code"

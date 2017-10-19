@@ -221,7 +221,7 @@ func TestDefaultMultiCAs(t *testing.T) {
 		t.Error("Failed to start server with multiple default CAs using the --cacount flag from command line: ", err)
 	}
 
-	if !util.FileExists("ca/ca4/fabric-ca-server.db") {
+	if !util.FileExists("ca/ca4/fabric-ca-server_ca4.db") {
 		t.Error("Failed to create 4 default CA instances")
 	}
 
