@@ -34,6 +34,8 @@ export DEFAULT_CA_TIMEOUT="150"
 export DEFAULT_HTTP_TIMEOUT="30"
 export DEFAULT_MSG_TIMEOUT="30"
 export DEFAULT_DB_TIMEOUT="30"
+export INTERMEDIATE_PROXY_PORT="8054"
+export INTERMEDIATE_CA_DEFAULT_PORT="1${INTERMEDIATE_PROXY_PORT}"
 
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
@@ -44,6 +46,17 @@ TimeStamp() {
 
 tolower() {
   echo "$1" | tr [:upper:] [:lower:]
+}
+
+runPSQL() {
+   local cmd="$1"
+   local opts="$2"
+   local wrk_dir="$(pwd)"
+   cd /tmp
+   /usr/bin/psql "$opts" -U postgres -h localhost -c "$cmd"
+   local rc=$?
+   cd $wrk_dir
+   return $rc
 }
 
 setTLS() {
@@ -115,13 +128,15 @@ pollServer() {
    : ${action:="start"}
    local rc=1
    local starttime=$(date +%s)
+   local searcHost=$host
+   test host = "0.0.0.0" && searcHost='*'
 
    # continue to poll host:port until
    # we either get a response, or reach timeout
    while test "$(($(date +%s)-starttime))" -lt "$timeout" -a $rc -ne 0
    do
-      printf "\r%s%03d" "Waiting for $app to $action on $host:$port ..." "$(($(date +%s)-starttime))"
-      ss -lpnt "src $host:$port"
+      printf "\r%s%03d" "Waiting for $app to $action on $host:$port... " "$(($(date +%s)-starttime))"
+      # ss -lpnt "src $searchHost:$port"
       isReachable "$host" "$port"
       rc=$?
       # invert the normal sense of 'success' for stop
@@ -130,7 +145,6 @@ pollServer() {
       fi
       test $rc -eq 0 && break
    done
-   echo "Server rc $rc"
    return $rc
 }
 
@@ -275,7 +289,6 @@ verifyServerTraffic() {
            END {print sessions" "status}')
    eval test "${result%% *}" -$op "$num_requests" 2>/dev/null; rc=$((rc+$?))
    eval test "${result##* }" -$op "$percent" 2>/dev/null; rc=$((rc+$?))
-
    return $rc
 }
 
@@ -411,7 +424,7 @@ register() {
 
    export FABRIC_CA_ENROLLMENT_DIR
    setTLS
-   $FABRIC_CA_CLIENTEXEC register -u "$PROTO${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
+   $FABRIC_CA_CLIENTEXEC register -d -u "$PROTO${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
                            --id.name "$USERNAME" \
                            --id.type "$USERTYPE" \
                            --id.maxenrollments 1 \
@@ -449,7 +462,8 @@ function genRunconfig() {
             \"attrs\": {
                \"hf.Registrar.Roles\": \"client,user,peer,validator,auditor,ca\",
                \"hf.Registrar.DelegateRoles\": \"client,user,validator,auditor\",
-               \"hf.Revoker\": true
+               \"hf.Revoker\": true,
+               \"hf.GenCRL\": true
             }
          },
          {
@@ -461,7 +475,8 @@ function genRunconfig() {
             \"attrs\": {
                \"hf.Registrar.Roles\": \"client,user,peer,validator,auditor,ca\",
                \"hf.Registrar.DelegateRoles\": \"client,user,validator,auditor\",
-               \"hf.Revoker\": true
+               \"hf.Revoker\": true,
+               \"hf.GenCRL\": true
             }
          },
          {
@@ -675,7 +690,7 @@ done)
     - name: admin
       pass: adminpw
       type: client
-      affiliation: bank_a
+      affiliation:
       maxEnrollments: $maxEnroll
       attrs:
         hf.Registrar.Roles: \"client,user,peer,validator,auditor,ca\"
@@ -683,15 +698,19 @@ done)
         hf.Revoker: true
         hf.IntermediateCA: true
         hf.Registrar.Attributes: \"*\"
+        hf.GenCRL: true
     - name: admin2
       pass: adminpw2
       type: client
-      affiliation: bank_a
+      affiliation:
       maxEnrollments: $maxEnroll
       attrs:
         hf.Registrar.Roles: \"client,user,peer,validator,auditor,ca\"
         hf.Registrar.DelegateRoles: \"client,user,validator,auditor\"
         hf.Revoker: true
+        hf.IntermediateCA: true
+        hf.Registrar.Attributes: \"*\"
+        hf.GenCRL: true
     - name: revoker
       pass: revokerpw
       type: client
@@ -838,7 +857,7 @@ bccsp:
     security: 256
     filekeystore:
       keystore:
-cacount:
+cacount: $CACOUNT
 cafiles:
 intermediate:
   parentserver:
@@ -850,9 +869,10 @@ intermediate:
     label:
   tls:
     certfiles:
+      - $TLS_ROOTCERT
     client:
-      certfile:
-      keyfile:
+      certfile: $TLS_CLIENTCERT
+      keyfile: $TLS_CLIENTKEY
 EOF
    ;;
    esac
