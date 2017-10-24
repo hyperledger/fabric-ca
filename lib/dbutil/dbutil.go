@@ -18,6 +18,7 @@ package dbutil
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -65,7 +66,7 @@ func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, error) {
 }
 
 func createSQLiteDBTables(datasource string) error {
-	log.Debug("Creating SQLite database (%s) if it does not exist...", datasource)
+	log.Debugf("Creating SQLite database (%s) if it does not exist...", datasource)
 	db, err := sqlx.Open("sqlite3", datasource)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open SQLite database")
@@ -180,7 +181,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 	dbName := getDBName(datasource)
 	log.Debug("Database Name: ", dbName)
 
-	re := regexp.MustCompile(`\/([a-zA-z]+)`)
+	re := regexp.MustCompile(`\/([0-9,a-z,A-Z$_]+)`)
 	connStr := re.ReplaceAllString(datasource, "/")
 
 	if clientTLSConfig.Enabled {
@@ -259,7 +260,7 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 	return nil
 }
 
-// GetDBName gets database name from connection string
+// getDBName gets database name from connection string
 func getDBName(datasource string) string {
 	var dbName string
 	datasource = strings.ToLower(datasource)
@@ -274,6 +275,19 @@ func getDBName(datasource string) string {
 	}
 
 	return dbName
+}
+
+// GetCADataSource returns a datasource with a unqiue database name
+func GetCADataSource(dbtype, datasource string, cacount int) string {
+	if dbtype == "sqlite3" {
+		ext := filepath.Ext(datasource)
+		dbName := strings.TrimSuffix(filepath.Base(datasource), ext)
+		datasource = fmt.Sprintf("%s_ca%d%s", dbName, cacount, ext)
+	} else {
+		dbName := getDBName(datasource)
+		datasource = strings.Replace(datasource, dbName, fmt.Sprintf("%s_ca%d", dbName, cacount), 1)
+	}
+	return datasource
 }
 
 // GetConnStr gets connection string without database

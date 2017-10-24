@@ -10,7 +10,6 @@ TDIR=/tmp/$TESTCASE
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
-export DB="fabric_ca"
 . $SCRIPTDIR/fabric-ca_utils
 PROTO="http://"
 ROOT_CA_ADDR=localhost
@@ -107,6 +106,25 @@ function revokeUser() {
    return $?
 }
 
+function resetDB() {
+  local driver=$1
+  if [ $driver = "mysql" ]; then
+    i=0;while test $((i++)) -lt $NUMINTCAS; do
+      mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca_ca$i;"
+    done
+  fi
+
+  if [ $driver = "postgres" ]; then
+    i=0;while test $((i++)) -lt $NUMINTCAS; do
+      psql -c "drop database fabric_ca_ca$i"
+    done
+  fi
+
+  if [ $driver = "sqlite3" ]; then
+    rm -rf $TDIR
+  fi
+}
+
 #function setTLS() {
 #: ${FABRIC_TLS:="false"}
 #if $($FABRIC_TLS); then
@@ -133,6 +151,7 @@ for driver in sqlite3 postgres mysql; do
 
    # if ENV FABRIC_TLS=true, use TLS
    setTLS
+   resetDB $driver
 
    createRootCA || ErrorExit "Failed to create root CA"
 
@@ -141,7 +160,7 @@ for driver in sqlite3 postgres mysql; do
    # roundrobin through all servers in pool and enroll users
    u=-1; while test $((u++)) -lt ${#USERS[u]}; do
       i=0;while test $((i++)) -lt $NUMINTCAS; do
-         for iter in {0..1}; do
+         for iter in $(seq 1 $MAXENROLL); do
             # Issue duplicate enroll to ensure proper processing of multiple requests
             enrollUser ${USERS[u]} ${PSWDS[u]} ca$i || ErrorExit "Failed to enroll ${USERS[u]} to ca$i"
          done
@@ -151,7 +170,7 @@ for driver in sqlite3 postgres mysql; do
    # enrolling beyond the configured MAXENROLL should fail
    u=-1; while test $((u++)) -lt ${#USERS[u]}; do
       i=0;while test $((i++)) -lt $NUMINTCAS; do
-         enrollUser ${USERS[u]} ${PSWDS[u]} ca$i && ErrorExit "Should have failedto enroll ${USERS[u]} to ca$i"
+         enrollUser ${USERS[u]} ${PSWDS[u]} ca$i && ErrorExit "Should have failed to enroll ${USERS[u]} to ca$i"
       done
    done
 
@@ -178,7 +197,7 @@ for driver in sqlite3 postgres mysql; do
    # Check the DB contents
    i=0;while test $((i++)) -lt $NUMINTCAS;  do
       j=0;while test $((j++)) -lt $NUMUSERS; do
-         test "$(testStatus user$i$j $driver $TDIR/ca0 )" = "$enrolledGood" ||
+         test "$(testStatus user$i$j $driver $TDIR/ca0/ca/ca$i fabric_ca_ca$i )" = "$enrolledGood" ||
             ErrorMsg "Incorrect user/certificate status for $user$i$j" RC
       done
    done
@@ -197,7 +216,7 @@ for driver in sqlite3 postgres mysql; do
          #### Ensure that revoking an already revoked cert doesn't blow up
          echo "=========================> Issuing duplicate revoke by -s -a"
          revokeUser admin user$i$j ca$i "$SN_UC" "$AKI_UC"
-         test "$(testStatus user$i$j $driver $TDIR/ca0 )" = "$enrolledRevoked" ||
+         test "$(testStatus user$i$j $driver $TDIR/ca0/ca/ca$i fabric_ca_ca$i )" = "$enrolledRevoked" ||
             ErrorMsg "Incorrect user/certificate status for user$i$j" RC
       done
    done
@@ -209,7 +228,7 @@ for driver in sqlite3 postgres mysql; do
          #### Ensure that revoking an already revoked cert doesn't blow up
          echo "=========================> Issuing duplicate revoke by -s -a"
          revokeUser admin user$i$j ca$i
-         test "$(testStatus user$i$j $driver $TDIR/ca0 )" = "$revokedRevoked" ||
+         test "$(testStatus user$i$j $driver $TDIR/ca0/ca/ca$i fabric_ca_ca$i )" = "$revokedRevoked" ||
             ErrorMsg "Incorrect user/certificate status for user$i$j" RC
       done
    done
