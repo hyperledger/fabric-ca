@@ -25,6 +25,7 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/hyperledger/fabric/bccsp/pkcs11"
@@ -761,6 +762,49 @@ func TestCAVerifyCertificate(t *testing.T) {
 		t.Error("VerifyCertificate should have failed")
 	}
 	CAclean(ca, t)
+}
+
+// Loads a registrar user and a non-registrar user into database. Server is started using an existing database
+// with users. This test verifies that the registrar is given the new attribute "hf.Registrar.Attribute" but
+// the non-registrar user is not.
+func TestServerMigration(t *testing.T) {
+	dir := "migrationTest"
+	os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
+	os.Mkdir(dir, 0777)
+	db, err := dbutil.NewUserRegistrySQLLite3(filepath.Join(dir, "fabric-ca-server.db"))
+	util.FatalError(t, err, "Failed to create db")
+	_, err = db.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('registrar', '', 'user', 'org2', '[{\"name\":\"hf.Registrar.Roles\",\"value\":\"user,peer,client\"}]', '0', '-1', '0')")
+	assert.NoError(t, err, "Failed to insert user 'registrar' into database")
+	_, err = db.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\":\"hf.Revoker\",\"value\":\"true\"}]', '0', '-1', '0')")
+	assert.NoError(t, err, "Failed to insert user 'notregistrar' into database")
+
+	server := TestGetServer2(false, rootPort, dir, "", -1, t)
+	if server == nil {
+		return
+	}
+	err = server.Start()
+	util.FatalError(t, err, "Server start failed")
+	defer func() {
+		err = server.Stop()
+		if err != nil {
+			t.Errorf("Failed to stop server: %s", err)
+		}
+	}()
+
+	registrar, err := server.CA.registry.GetUser("registrar", nil)
+	assert.NoError(t, err, "Failed to get user")
+	registrarAttr, err := registrar.GetAttribute("hf.Registrar.Attributes")
+	assert.NoError(t, err, "Failed to get attribute")
+	t.Logf("registrarAttr: '%+v'", registrarAttr)
+	if registrarAttr.Value == "" {
+		t.Error("Failed to correctly migrate user 'registrar'")
+	}
+
+	notregistrar, err := server.CA.registry.GetUser("notregistrar", nil)
+	assert.NoError(t, err, "Failed to get user")
+	_, err = notregistrar.GetAttribute("hf.Registrar.Attributes")
+	assert.Error(t, err, "Non-registrar user should not have this attribute, failed to correctly migrate user")
 }
 
 func getCertFromFile(f string) (*x509.Certificate, error) {
