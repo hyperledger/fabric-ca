@@ -91,7 +91,7 @@ url: <<<URL>>>
 # Membership Service Provider (MSP) directory
 # This is useful when the client is used to enroll a peer or orderer, so
 # that the enrollment artifacts are stored in the format expected by MSP.
-mspdir:
+mspdir: <<<MSPDIR>>>
 
 #############################################################################
 #    TLS section for secure socket connection
@@ -210,15 +210,6 @@ func (c *ClientCmd) configInit() error {
 
 	log.Debugf("Home directory: %s", c.homeDirectory)
 
-	// Commands other than 'enroll' and 'getcacert' require that client already
-	// be enrolled
-	if c.requiresEnrollment() {
-		err = checkForEnrollment(c.cfgFileName, c.clientCfg)
-		if err != nil {
-			return err
-		}
-	}
-
 	// If the config file doesn't exist, create a default one if enroll
 	// command being executed. Enroll should be the first command to be
 	// executed, and furthermore the default configuration file requires
@@ -291,6 +282,15 @@ func (c *ClientCmd) configInit() error {
 	// Check for separaters and insert values back into slice
 	normalizeStringSlices(c.clientCfg)
 
+	// Commands other than 'enroll' and 'getcacert' require that client already
+	// be enrolled
+	if c.requiresEnrollment() {
+		err = checkForEnrollment(c.cfgFileName, c.clientCfg)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -313,6 +313,7 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	// Do string subtitution to get the default config
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
+	cfg = strings.Replace(cfg, "<<<MSPDIR>>>", c.clientCfg.MSPDir, 1)
 
 	user := ""
 	var err error

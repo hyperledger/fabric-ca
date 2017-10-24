@@ -690,6 +690,26 @@ func TestMOption(t *testing.T) {
 
 	validCertsInDir(path.Join(homedir, mspdir, "cacerts"), path.Join(homedir, mspdir, "intermediatecerts"), t)
 	validCertsInDir(path.Join(homedir, mspdir, "tlscacerts"), path.Join(homedir, mspdir, "tlsintermediatecerts"), t)
+
+	// Test case: msp and home are in different paths
+	// Enroll the bootstrap user and then register another user. Since msp
+	// and home are in two different directory paths, registration should
+	// not fail if -M option is not specified
+	mspdir = os.TempDir() + "/msp-abs-test"
+	homedir = os.TempDir() + "/msp-abs-test-home"
+	defer os.RemoveAll(mspdir)
+	defer os.RemoveAll(homedir)
+	err = RunMain([]string{
+		cmdName, "enroll",
+		"-u", fmt.Sprintf("http://admin:adminpw@localhost:%d", intCAPort),
+		"-H", homedir,
+		"-M", mspdir, "-d"})
+	if err != nil {
+		t.Fatalf("client enroll -u failed: %s", err)
+	}
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegisterForMoption",
+		"--id.affiliation", "org1", "--id.type", "user", "-H", homedir})
+	assert.NoError(t, err, "Register command should not fail even though -M option is not specified")
 }
 
 // Checks to see if root and intermediate certificate are correctly getting stored in their respective directories
