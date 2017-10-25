@@ -215,7 +215,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			log.Info("The CA key and certificate files already exist")
 			log.Infof("Key file location: %s", keyFile)
 			log.Infof("Certificate file location: %s", certFile)
-			err = ca.validateCert(certFile, keyFile)
+			err = ca.validateCertAndKey(certFile, keyFile)
 			if err != nil {
 				return errors.WithMessage(err, "Validation of certificate and key failed")
 			}
@@ -887,7 +887,7 @@ func (ca *CA) getUserAttrValue(username, attrname string) (string, error) {
 	}
 	attrval, err := user.GetAttribute(attrname)
 	if err != nil {
-		return "", errors.Errorf("Failed to get attribute '%s': %s", attrname, err)
+		return "", errors.WithMessage(err, fmt.Sprintf("Failed to get attribute '%s'", attrname))
 	}
 	log.Debugf("getUserAttrValue identity=%s, name=%s, value=%s", username, attrname, attrval)
 	return attrval.Value, nil
@@ -917,7 +917,7 @@ func (ca *CA) fillCAInfo(info *serverInfoResponseNet) error {
 }
 
 // Perfroms checks on the provided CA cert to make sure it's valid
-func (ca *CA) validateCert(certFile string, keyFile string) error {
+func (ca *CA) validateCertAndKey(certFile string, keyFile string) error {
 	log.Debug("Validating the CA certificate and key")
 	var err error
 	var certPEM []byte
@@ -935,7 +935,7 @@ func (ca *CA) validateCert(certFile string, keyFile string) error {
 	if err = validateDates(cert); err != nil {
 		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
-	if err = validateUsage(cert); err != nil {
+	if err = validateUsage(cert, ca.Config.CA.Name); err != nil {
 		return errors.WithMessage(err, fmt.Sprintf(certificateError+" '%s'", certFile))
 	}
 	if err = validateIsCA(cert); err != nil {
@@ -953,6 +953,10 @@ func (ca *CA) validateCert(certFile string, keyFile string) error {
 	log.Debug("Validation of CA certificate and key successful")
 
 	return nil
+}
+
+func canSignCRL(cert *x509.Certificate) bool {
+	return cert.KeyUsage&x509.KeyUsageCRLSign != 0
 }
 
 func validateDates(cert *x509.Certificate) error {
@@ -973,7 +977,7 @@ func validateDates(cert *x509.Certificate) error {
 	return nil
 }
 
-func validateUsage(cert *x509.Certificate) error {
+func validateUsage(cert *x509.Certificate, caName string) error {
 	log.Debug("Check CA certificate for valid usages")
 
 	if cert.KeyUsage == 0 {
@@ -981,9 +985,12 @@ func validateUsage(cert *x509.Certificate) error {
 	}
 
 	if cert.KeyUsage&x509.KeyUsageCertSign == 0 {
-		return errors.New("'Cert Sign' key usage is required")
+		return errors.New("The 'cert sign' key usage is required")
 	}
 
+	if !canSignCRL(cert) {
+		log.Warningf("The CA certificate for the CA '%s' does not have 'crl sign' key usage, so the CA will not be able generate a CRL", caName)
+	}
 	return nil
 }
 
@@ -1100,7 +1107,7 @@ func initSigningProfile(spp **config.SigningProfile, expiry time.Duration, isCA 
 		*spp = sp
 	}
 	if sp.Usage == nil {
-		sp.Usage = []string{"cert sign"}
+		sp.Usage = []string{"cert sign", "crl sign"}
 	}
 	if sp.Expiry == 0 {
 		sp.Expiry = expiry

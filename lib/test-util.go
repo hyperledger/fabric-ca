@@ -79,7 +79,7 @@ func TestGetServer2(deleteHome bool, port int, home, parentURL string, maxEnroll
 			ExpiryString: "8760h",
 		},
 		"ca": &config.SigningProfile{
-			Usage:        []string{"cert sign"},
+			Usage:        []string{"cert sign", "crl sign"},
 			ExpiryString: "8760h",
 			CAConstraint: config.CAConstraint{
 				IsCA:       true,

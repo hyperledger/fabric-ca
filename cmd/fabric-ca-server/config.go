@@ -250,6 +250,7 @@ signing:
       ca:
          usage:
            - cert sign
+           - crl sign
          expiry: 43800h
          caconstraint:
            isca: true

@@ -120,7 +120,9 @@ const (
 	// Failed to get caller's affiliation
 	ErrCallerNotAffiliated = 44
 	// Failed to verify if caller has appropriate
-	ErrGettingType = 33
+	ErrGettingType = 45
+	// CA cert does not have 'crl sign' usage
+	ErrNoCrlSignAuth = 46
 )
 
 // Construct a new HTTP error.
