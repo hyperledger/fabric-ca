@@ -486,6 +486,26 @@ func GetX509CertificateFromPEM(cert []byte) (*x509.Certificate, error) {
 	return x509Cert, nil
 }
 
+// GetX509CertificatesFromPEM returns X509 certificates from bytes in PEM format
+func GetX509CertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) {
+	chain := pemBytes
+	var certs []*x509.Certificate
+	for len(chain) > 0 {
+		var block *pem.Block
+		block, chain = pem.Decode(chain)
+		if block == nil {
+			break
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error parsing certificate")
+		}
+		certs = append(certs, cert)
+	}
+	return certs, nil
+}
+
 // GetCertificateDurationFromFile returns the validity duration for a certificate
 // in a file.
 func GetCertificateDurationFromFile(file string) (time.Duration, error) {

@@ -128,7 +128,30 @@ func TestGetX509CertFromPem(t *testing.T) {
 	if certificate != nil {
 		t.Fatalf("GetX509CertificateFromPEM should have failed as bytes passed was not in correct format")
 	}
+}
 
+func TestGetX509CertsFromPem(t *testing.T) {
+	certBuffer, error := ioutil.ReadFile(getPath("ec.pem"))
+	if error != nil {
+		t.Fatalf("Certificate File Read from file failed with error : %s", error)
+	}
+	certificates, err := GetX509CertificatesFromPEM(certBuffer)
+	assert.NoError(t, err, "GetX509CertificatesFromPEM failed")
+	assert.NotNil(t, certificates)
+	assert.Equal(t, 1, len(certificates), "GetX509CertificatesFromPEM should have returned 1 certificate")
+
+	skiBuffer, skiError := ioutil.ReadFile(getPath("ec-key.ski"))
+	if skiError != nil {
+		t.Fatalf("SKI File read failed with error : %s", skiError)
+	}
+
+	certificates, err = GetX509CertificatesFromPEM(skiBuffer)
+	if err == nil {
+		t.Fatal("GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
+	}
+	if certificates != nil {
+		t.Fatalf("GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
+	}
 }
 
 // This test case has been removed temporarily
