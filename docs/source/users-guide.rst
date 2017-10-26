@@ -1479,5 +1479,13 @@ Troubleshooting
    To resolve this error, you must enroll again by repeating step 'a'.  This will issue a new ECert
    which will be stored in the current database.
 
+3. When sending multiple parallel requests to a Fabric CA Server cluster that uses shared sqlite3 databases,
+   the server occasionally returns a 'database locked' error. This is most probably because the database
+   transaction timed out while waiting for database lock (held by another cluster member) to be released.
+   This is an invalid configuration because sqlite is an embedded database, which means the Fabric CA server
+   cluster must share the same file via a shared file system, which introduces a SPoF (single point of failure),
+   which contradicts the purpose of cluster topology. The best practice is to use either Postgres or MySQL
+   databases in a cluster topology.
+
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
