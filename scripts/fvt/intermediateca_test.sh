@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-TESTCASE="intermediateca-test"
+: ${TESTCASE:="intermediateca-test"}
 TDIR=/tmp/$TESTCASE
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"

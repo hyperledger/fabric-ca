@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-TESTCASE="db_resiliency"
+: ${TESTCASE:="db_resiliency"}
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 echo $FABRIC_CA
 FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"

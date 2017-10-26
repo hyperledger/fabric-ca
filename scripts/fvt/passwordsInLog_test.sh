@@ -113,7 +113,7 @@ function testIntermediateCa() {
 
 ### Start Main Test ###
 RC=0
-TESTCASE="passwordsInLog"
+: ${TESTCASE:="passwordsInLog"}
 TESTDIR="/tmp/$TESTCASE"
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"

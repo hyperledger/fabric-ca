@@ -30,6 +30,7 @@ apt-get -y autoremove
 sed -i 's/^[[:blank:]]*#\([[:blank:]]*.*imudp.*\)/\1/' /etc/rsyslog.conf
 rm /etc/rsyslog.d/*haproxy*conf
 printf "local2.*    /var/log/haproxy.log\n& ~\n" > /etc/rsyslog.d/haproxy.conf
+printf "local0.*    /var/log/postgres.log\n& ~\n" > /etc/rsyslog.d/postgres.conf
 
 # Use python2, not 3
 ln -s /usr/bin/python2.7 /usr/local/bin/python && chmod 777 /usr/local/bin/python || let RC+=1

@@ -16,28 +16,27 @@ export FABRIC_TLS
 
 function runTests() {
    echo "Running fvt tests ..."
+   echo ""
    tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh")"
 
    for FABRIC_TLS in "true" "false"; do
       for cmd in $tests; do
-        echo ""
-        echo "*******************"
-        export TESTCASE="${cmd##*/}"
-        echo "${cmd}"
-        echo "*******************"
-        ${cmd}
-        RC=$((RC+$?))
+        export TESTCASE="${cmd##*/}-TLS-${FABRIC_TLS}"
+        echo "*******************"  | tee -a $RESULTLOG 2>&1
+        printf " Running $TESTCASE " |tee -a $RESULTLOG 2>&1
+        ${cmd} >> $RESULTLOG 2>&1
+        rc=$?
+        test $rc -eq 0 && echo PASSED || echo FAILED
+        test $rc -ne 0 && awk -v b=$TESTCASE -v e="test ended." '$0~b,$0~e' $RESULTLOG
+        RC=$((RC+$rc))
         $SCRIPTDIR/fabric-ca_setup.sh -R
-        echo ""
-        echo ""
-        echo ""
       done
    done
 }
 
-TimeStamp
-runTests > >( tee $RESULTLOG )
-grep RC: $RESULTLOG
+TimeStamp | tee $RESULTLOG
+runTests
+grep -a RC: $RESULTLOG
 echo "Finished running fvt tests"
 TESTCASE="fabric-ca-fvt"
 CleanUp "$RC"
