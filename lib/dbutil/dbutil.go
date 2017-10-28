@@ -89,7 +89,7 @@ func createSQLiteDBTables(datasource string) error {
 	return nil
 }
 
-// NewUserRegistryPostgres opens a connecton to a postgres database
+// NewUserRegistryPostgres opens a connection to a postgres database
 func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, error) {
 	log.Debugf("Using postgres database, connecting to database...")
 
@@ -111,22 +111,33 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 		datasource = fmt.Sprintf("%s sslcert=%s sslkey=%s", datasource, cert, key)
 	}
 
-	connStr := getConnStr(datasource)
+	dbNames := []string{dbName, "postgres", "template1"}
+	var db *sqlx.DB
+	var pingErr, err error
 
-	log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr))
-	db, err := sqlx.Open("postgres", connStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to open Postgres database")
+	for _, dbName := range dbNames {
+		connStr := getConnStr(datasource, dbName)
+		log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr))
+
+		db, err = sqlx.Open("postgres", connStr)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to open Postgres database")
+		}
+
+		pingErr = db.Ping()
+		if pingErr == nil {
+			break
+		}
+		log.Warningf("Failed to connect to database '%s'", dbName)
 	}
 
-	err = db.Ping()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to connect to Postgres database")
+	if pingErr != nil {
+		return nil, errors.Errorf("Failed to connect to Postgres database. Postgres requires connecting to a specific database, the following databases were tried: %s. Please create one of these database before continuing", dbNames)
 	}
 
 	err = createPostgresDatabase(dbName, db)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create Postgres database: %s")
+		return nil, errors.Wrap(err, "Failed to create Postgres database")
 	}
 
 	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, MaskDBCred(datasource))
@@ -291,9 +302,9 @@ func GetCADataSource(dbtype, datasource string, cacount int) string {
 }
 
 // GetConnStr gets connection string without database
-func getConnStr(datasource string) string {
+func getConnStr(datasource string, dbname string) string {
 	re := regexp.MustCompile(`(dbname=)([^\s]+)`)
-	connStr := re.ReplaceAllString(datasource, "")
+	connStr := re.ReplaceAllString(datasource, fmt.Sprintf("dbname=%s", dbname))
 	return connStr
 }
 
