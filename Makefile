@@ -25,9 +25,9 @@
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION   = 1.0.4
-PREV_VERSION   = 1.0.3
-IS_RELEASE     = true
+BASE_VERSION   = 1.0.5
+PREV_VERSION   = 1.0.4
+IS_RELEASE     = false
 
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
