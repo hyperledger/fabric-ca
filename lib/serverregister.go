@@ -235,7 +235,7 @@ func canRegister(registrar string, req *api.RegistrationRequestNet, user spi.Use
 		roles = make([]string, 0)
 	}
 	if req.Type == "" {
-		req.Type = "user"
+		req.Type = "client"
 	}
 	if !util.StrContained(req.Type, roles) {
 		return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, req.Type)

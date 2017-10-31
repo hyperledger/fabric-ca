@@ -99,6 +99,8 @@ type ClientCmd struct {
 	profileInst interface {
 		Stop()
 	}
+	// Dynamically configuring identities
+	dynamicIdentity identityArgs
 }
 
 // NewCommand returns new ClientCmd ready for running
@@ -145,7 +147,8 @@ func (c *ClientCmd) init() {
 		c.newRevokeCommand(),
 		c.newGetCACertCommand(),
 		c.newGenCsrCommand(),
-		c.newGenCRLCommand())
+		c.newGenCRLCommand(),
+		c.newIdentityCommand())
 	c.rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Prints Fabric CA Client version",
@@ -235,4 +238,19 @@ func (c *ClientCmd) shouldCreateDefaultConfig() bool {
 
 func (c *ClientCmd) requiresUser() bool {
 	return c.name != gencsr
+}
+
+// Loads the client's identity
+func (c *ClientCmd) loadMyIdentity() (*lib.Identity, error) {
+	client := &lib.Client{
+		HomeDir: filepath.Dir(c.cfgFileName),
+		Config:  c.clientCfg,
+	}
+
+	id, err := client.LoadMyIdentity()
+	if err != nil {
+		return nil, err
+	}
+
+	return id, nil
 }

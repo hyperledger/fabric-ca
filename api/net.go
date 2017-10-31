@@ -75,6 +75,21 @@ type GetTCertBatchResponseNet struct {
 	GetTCertBatchResponse
 }
 
+// AddIdentityRequestNet is a network request for adding a new identity
+type AddIdentityRequestNet struct {
+	AddIdentityRequest
+}
+
+// ModifyIdentityRequestNet is a network request for modifying an existing identity
+type ModifyIdentityRequestNet struct {
+	ModifyIdentityRequest
+}
+
+// RemoveIdentityRequestNet is a network request for removing an existing identity
+type RemoveIdentityRequestNet struct {
+	RemoveIdentityRequest
+}
+
 // KeySig is a public key, signature, and signature algorithm tuple
 type KeySig struct {
 	// Key is a public key

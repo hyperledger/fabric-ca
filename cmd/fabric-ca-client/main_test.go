@@ -458,6 +458,77 @@ func TestRBAC(t *testing.T) {
 	}
 }
 
+func TestIdentityCmd(t *testing.T) {
+	var err error
+
+	// Start with a clean test dir
+	os.RemoveAll("identity")
+	defer os.RemoveAll("identity")
+
+	// Start the server
+	server := startServer("identity", 7090, "", t)
+	defer server.Stop()
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	err = RunMain([]string{
+		cmdName, "identity", "list"})
+	assert.Error(t, err, "Server endpoint does not exist yet, should fail")
+
+	err = RunMain([]string{
+		cmdName, "identity", "list", "--id", "testuser"})
+	assert.Error(t, err, "Server endpoint does not exist yet, should fail")
+
+	err = RunMain([]string{
+		cmdName, "identity", "add"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "Identity name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "modify"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "Identity name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "remove"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "Identity name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "add", "user1", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Too many arguments, only the identity name should be passed in as argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "modify", "user1", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Too many arguments, only the identity name should be passed in as argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "remove", "user1", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Too many arguments, only the identity name should be passed in as argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "identity", "add", "testuser", "--json", `{"type": "peer"}`})
+	assert.Error(t, err, "Should have failed, not yet implemented")
+
+	err = RunMain([]string{
+		cmdName, "identity", "modify", "testuser", "--type", "client"})
+	assert.Error(t, err, "Should have failed, not yet implemented")
+
+	err = RunMain([]string{
+		cmdName, "identity", "remove", "testuser"})
+	assert.Error(t, err, "Should have failed, not yet implemented")
+}
+
 // Verify the certificate has attribute 'name' with a value of 'val'
 // and does not have the 'missing' attribute.
 func checkAttrsInCert(t *testing.T, home, name, val, missing string) {
@@ -838,14 +909,14 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	}
 
 	// Register an identity without identity type parameter (--id.type). It should succeed.
-	// The identity type is set to default type "user"
+	// The identity type is set to default type "client"
 	userName := "testRegister5"
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
 		"--id.secret", "testRegister5", "--id.affiliation", "hyperledger.org1"})
 	assert.NoError(t, err, "Failed to register identity "+userName)
 	user, err = db.GetUser(userName, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "user", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
+	assert.Equal(t, "client", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
 
 	// Register an identity with a space in its name
 	userName = "Test Register5"
@@ -854,7 +925,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	assert.NoError(t, err, "Failed to register identity "+userName)
 	user, err = db.GetUser(userName, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "user", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
+	assert.Equal(t, "client", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
 
 	os.Remove(defYaml) // Delete default config file
 

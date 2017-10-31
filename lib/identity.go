@@ -200,6 +200,31 @@ func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
 	return &result, nil
 }
 
+// GetIdentity returns information about the requested identity
+func (i *Identity) GetIdentity(id, caname string) (*api.GetIDResponse, error) {
+	log.Debugf("Entering identity.GetIdentity %s", id)
+	result := &api.GetIDResponse{}
+	err := i.Get(fmt.Sprintf("identities/%s", id), caname, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully retrieved identity: %+v", result)
+	return result, nil
+}
+
+// GetAllIdentities returns all identities that the caller is authorized to see
+func (i *Identity) GetAllIdentities(caname string) (*api.GetAllIDsResponse, error) {
+	log.Debugf("Entering identity.GetAllIdentities")
+	result := &api.GetAllIDsResponse{}
+	err := i.Get("identities", caname, result)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully retrieved identities: %+v", result)
+	return result, nil
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {
@@ -208,7 +233,25 @@ func (i *Identity) Store() error {
 	return i.client.StoreMyIdentity(i.ecert.cert)
 }
 
-// Post sends arbtrary request body (reqBody) to an endpoint.
+// Get sends a get request to an endpoint
+func (i *Identity) Get(endpoint, caname string, result interface{}) error {
+	req, err := i.client.newGet(endpoint)
+	if err != nil {
+		return err
+	}
+	if caname != "" {
+		url := req.URL.Query()
+		url.Add("ca", caname)
+		req.URL.RawQuery = url.Encode()
+	}
+	err = i.addTokenAuthHdr(req, nil)
+	if err != nil {
+		return err
+	}
+	return i.client.SendReq(req, result)
+}
+
+// Post sends arbitrary request body (reqBody) to an endpoint.
 // This adds an authorization header which contains the signature
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.

@@ -1421,6 +1421,174 @@ see https://github.com/hyperledger/fabric/tree/release/core/chaincode/lib/cid/RE
 For an end-to-end sample which demonstrates Attribute-Based Access Control and more,
 see https://github.com/hyperledger/fabric-samples/tree/release/fabric-ca/README.md
 
+Dynamic Server Configuration Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This section describes how to use fabric-ca-client to dynamically update portions
+of the fabric-ca-server's configuration without restarting the server.
+
+All commands in this section require that you first be enrolled by executing the
+`fabric-ca-client enroll` command.
+
+Dynamically updating identities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This section describes how to use fabric-ca-client to dynamically update identities.
+
+An authorization failure will occur if the client identity does not satisfy all of the following:
+
+ - The client identity must possess the "hf.Registrar.Roles" attribute with a comma-separated list of
+   values where one of the values equals the type of identity being updated; for example, if the client's
+   identity has the "hf.Registrar.Roles" attribute with a value of "client,peer", the client can update
+   identities of type 'client' and 'peer', but not 'orderer'.
+
+ - The affiliation of the client's identity must be equal to or a prefix of the affiliation of the identity
+   being updated.  For example, a client with an affiliation of "a.b" may update an identity with an affiliation
+   of "a.b.c" but may not update an identity with an affiliation of "a.c". If root affiliation is required for an
+   identity, then the update request should specify a dot (".") for the affiliation and the client must also have
+   root affiliation.
+
+The following shows how to add, modify, and remove an affiliation.
+
+Getting Identity Information
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A caller may retrieve information on a identity from the fabric-ca server as long as the caller meets
+the authorization requirements highlighted in the section above. The following command shows how to get an
+identity.
+
+.. code:: bash
+
+    fabric-ca-client identity list --id user1
+
+A caller may also request to retrieve information on all identities that it is authorized to see by
+issuing the following command.
+
+.. code:: bash
+
+    fabric-ca-client identity list
+
+Adding an identity
+"""""""""""""""""""
+
+The following adds a new identity for 'user1'. Adding a new identity performs the same action as registering an
+identity via the 'fabric-ca-client register' command. There are two available methods for adding a new identity.
+The first method is via the `--json` flag where you describe the identity in a JSON string.
+
+.. code:: bash
+
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}'
+
+The following adds a user with root affiliation. Note that an affiliation name of "." means the root affiliation.
+
+.. code:: bash
+
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": ".", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}'
+
+The second method for adding an identity is to use direct flags. See the example below for adding 'user1'.
+
+.. code:: bash
+
+    fabric-ca-client identity add user1 --secret user1pw --type user --affiliation . --maxenrollments 1 --attrs hf.Revoker=true
+
+The table below lists all the fields of an identity and whether they are required or optional, and any default values they might have.
+
++----------------+------------+------------------------+
+| Fields         | Required   | Default Value          |
++================+============+========================+
+| ID             | Yes        |                        |
++----------------+------------+------------------------+
+| Secret         | No         |                        |
++----------------+------------+------------------------+
+| Affiliation    | No         | Caller's Affiliation   |
++----------------+------------+------------------------+
+| Type           | No         | client                 |
++----------------+------------+------------------------+
+| Maxenrollments | No         | 0                      |
++----------------+------------+------------------------+
+| Attributes     | No         |                        |
++----------------+------------+------------------------+
+
+
+Modifying an identity
+""""""""""""""""""""""
+
+There are two available methods for modifying an existing identity. The first method is via the `--json` flag where you describe
+the modifications in to an identity in a JSON string. Multiple modifications can be made in a single request. Any element of an identity that
+is not modified will retain its original value.
+
+NOTE: A maxenrollments value of "-2" specifies that the CA's max enrollment setting is to be used.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --json '{"secret": "newPassword", "affiliation": "."}'
+
+The commands below make modifcations using direct flags. The following updates the enrollment secret (or password) for identity 'user1' to 'newsecret'.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --secret newsecret
+
+The following updates the affiliation of identity 'user1' to 'org2'.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --affiliation org2
+
+The following updates the type of identity 'user1' to 'peer'.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --type peer
+
+
+The following updates the maxenrollments of identity 'user1' to 5.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --maxenrollments 5
+
+By specifying a maxenrollments value of '-2', the following causes identity 'user1' to use
+the CA's max enrollment setting.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --maxenrollments -2
+
+The following sets the value of the 'hf.Revoker' attribute for identity 'user1' to 'false'.
+If the identity has other attributes, they are not changed.  If the identity did not previously
+possess the 'hf.Revoker' attribute, the attribute is added to the identity. An attribute may
+also be removed by specifiying no value for the attribute.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --attrs hf.Revoker=false
+
+The following removes the 'hf.Revoker' attribute for user 'user1'.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --attrs hf.Revoker=
+
+The following demonstrates that multiple options may be used in a single `fabric-ca-client identity modify`
+command. In this case, both the secret and the type are updated for user 'user1'.
+
+.. code:: bash
+
+    fabric-ca-client identity modify user1 --secret newpass --type peer
+
+Removing an identity
+"""""""""""""""""""""
+
+The following removes identity 'user1' and also revokes any certificates associated with the 'user1' identity.
+
+.. code:: bash
+
+    fabric-ca-client identity remove user1
+
+Note: Removal of identities is disabled in the fabric-ca-server by default, but may be enabled
+by starting the fabric-ca-server with the `--cfg.identities.allowremove` option.
+
 Contact specific CA instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

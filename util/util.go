@@ -38,9 +38,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric/bccsp"
@@ -776,4 +778,12 @@ func ValidateAndReturnAbsConf(configFilePath, homeDir, cmdName string) (string, 
 
 	configFile := filepath.Join(homeDir, filepath.Base(defaultConfig)) // Join specified home directory with default config file name
 	return configFile, homeDir, nil
+}
+
+// FatalError will check to see if an error occured if so it will cause the test cases exit
+func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
+	msg = fmt.Sprintf(msg, args)
+	if !assert.NoError(t, err, msg) {
+		t.Fatal(msg)
+	}
 }

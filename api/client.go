@@ -29,7 +29,7 @@ type RegistrationRequest struct {
 	// Name is the unique name of the identity
 	Name string `json:"id" help:"Unique name of the identity"`
 	// Type of identity being registered (e.g. "peer, app, user")
-	Type string `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Type string `json:"type" def:"client" help:"Type of identity being registered (e.g. 'peer, app, user')"`
 	// Secret is an optional password.  If not specified,
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.
@@ -190,6 +190,55 @@ type GenCRLRequest struct {
 // GenCRLResponse represents a response to get CRL
 type GenCRLResponse struct {
 	CRL string
+}
+
+// AddIdentityRequest represents the request to add a new identity to the
+// fabric-ca-server
+type AddIdentityRequest struct {
+	IdentityInfo `json:"info"`
+	// Secret is an optional password.  If not specified,
+	// a random secret is generated.  In both cases, the secret
+	// is returned in the RegistrationResponse.
+	Secret string `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity being registered"`
+}
+
+// ModifyIdentityRequest represents the request to modify an existing identity on the
+// fabric-ca-server
+type ModifyIdentityRequest struct {
+	ID           string `json:"id"`
+	IdentityInfo `json:"info"`
+	// Secret is an optional password.  If not specified,
+	// a random secret is generated.  In both cases, the secret
+	// is returned in the RegistrationResponse.a
+	Secret string `json:"secret,omitempty" mask:"password"`
+}
+
+// RemoveIdentityRequest represents the request to remove an existing identity from the
+// fabric-ca-server
+type RemoveIdentityRequest struct {
+	ID     string `json:"id" skip:"true"`
+	CAName string `json:"caname" skip:"true"`
+}
+
+// GetIDResponse is the response from the GetIdentity call
+type GetIDResponse struct {
+	IdentityInfo `mapstructure:",squash"`
+	CAName       string `json:"caname"`
+}
+
+// GetAllIDsResponse is the response from the GetAllIdentities call
+type GetAllIDsResponse struct {
+	Identities []IdentityInfo
+	CAName     string `json:"caname"`
+}
+
+// IdentityInfo contains information about an identity
+type IdentityInfo struct {
+	ID             string      `json:"id" skip:"true"`
+	Type           string      `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Affiliation    string      `json:"affiliation" help:"The identity's affiliation"`
+	Attributes     []Attribute `mapstructure:"attrs" json:"attrs"`
+	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
 }
 
 // CSRInfo is Certificate Signing Request (CSR) Information
