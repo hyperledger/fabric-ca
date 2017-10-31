@@ -63,17 +63,19 @@ type enrollmentResponseNet struct {
 
 func newEnrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
-		Methods: []string{"POST"},
-		Handler: enrollHandler,
-		Server:  s,
+		Methods:   []string{"POST"},
+		Handler:   enrollHandler,
+		Server:    s,
+		successRC: 201,
 	}
 }
 
 func newReenrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
-		Methods: []string{"POST"},
-		Handler: reenrollHandler,
-		Server:  s,
+		Methods:   []string{"POST"},
+		Handler:   reenrollHandler,
+		Server:    s,
+		successRC: 201,
 	}
 }
 

@@ -200,7 +200,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Successfully enrolled a new identity",
             "schema": {
               "type": "object",
@@ -347,7 +347,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "Successfully reenrolled identity",
             "schema": {
               "type": "object",
