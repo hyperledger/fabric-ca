@@ -1,3 +1,12 @@
+## v1.0.4
+Tue Oct 31 15:14:49 EDT 2017
+
+* [65686e9](https://github.com/hyperledger/fabric-ca/commit/65686e9) [FAB-6704](https://jira.hyperledger.org/browse/FAB-6704) Fix garbled listen message on startup
+* [5149604](https://github.com/hyperledger/fabric-ca/commit/5149604) [FAB-6624](https://jira.hyperledger.org/browse/FAB-6624) Update vendored version of bccsp
+* [c5d399d](https://github.com/hyperledger/fabric-ca/commit/c5d399d) [FAB-6643](https://jira.hyperledger.org/browse/FAB-6643) Add ci.properties file
+* [9ceec62](https://github.com/hyperledger/fabric-ca/commit/9ceec62) Update URL for MAINTAINERS source
+* [19280b6](https://github.com/hyperledger/fabric-ca/commit/19280b6) [FAB-6377](https://jira.hyperledger.org/browse/FAB-6377) Prepare fabric-ca for v1.0.4 release
+
 ## v1.0.3
 Tue Oct  3 05:21:02 EDT 2017
 
