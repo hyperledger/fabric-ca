@@ -1,3 +1,153 @@
+## v1.1.0-preview
+Wed Nov  1 10:12:26 EDT 2017
+
+* [92f2cf6](https://github.com/hyperledger/fabric-ca/commit/92f2cf6) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) - ABAC doc
+* [37cbb14](https://github.com/hyperledger/fabric-ca/commit/37cbb14) [FAB-6675](https://jira.hyperledger.org/browse/FAB-6675) Document sqlite db locked error
+* [5c9086f](https://github.com/hyperledger/fabric-ca/commit/5c9086f) [FAB-5782](https://jira.hyperledger.org/browse/FAB-5782) Initialization failure on Postgres
+* [5d2f1b5](https://github.com/hyperledger/fabric-ca/commit/5d2f1b5) [FAB-6508](https://jira.hyperledger.org/browse/FAB-6508) Unique db names for cacount option
+* [9a87e6d](https://github.com/hyperledger/fabric-ca/commit/9a87e6d) [FAB-6661](https://jira.hyperledger.org/browse/FAB-6661) Update version to 1.1.0
+* [4edfdd8](https://github.com/hyperledger/fabric-ca/commit/4edfdd8) [FAB-6672](https://jira.hyperledger.org/browse/FAB-6672) Moved fvt script to right directory
+* [7b42a83](https://github.com/hyperledger/fabric-ca/commit/7b42a83) [FAB-6662](https://jira.hyperledger.org/browse/FAB-6662) Make enroll attrs required by default
+* [50b828b](https://github.com/hyperledger/fabric-ca/commit/50b828b) [FAB-6643](https://jira.hyperledger.org/browse/FAB-6643) Add ci.properties file
+* [fddda65](https://github.com/hyperledger/fabric-ca/commit/fddda65) Update URL for MAINTAINERS source
+* [b74248d](https://github.com/hyperledger/fabric-ca/commit/b74248d) [FAB-6575](https://jira.hyperledger.org/browse/FAB-6575) Fix missing attr from bootstrap user
+* [aa10999](https://github.com/hyperledger/fabric-ca/commit/aa10999) [FAB-6035](https://jira.hyperledger.org/browse/FAB-6035) Validate attributes being registered
+* [3e15d7e](https://github.com/hyperledger/fabric-ca/commit/3e15d7e) [FAB-6529](https://jira.hyperledger.org/browse/FAB-6529) Fix new CA unit-tests
+* [2528217](https://github.com/hyperledger/fabric-ca/commit/2528217) [FAB-6561](https://jira.hyperledger.org/browse/FAB-6561) Close DB when initCA fails
+* [5172de7](https://github.com/hyperledger/fabric-ca/commit/5172de7) [FAB-6562](https://jira.hyperledger.org/browse/FAB-6562) Rename NewCA to make it private
+* [0a42217](https://github.com/hyperledger/fabric-ca/commit/0a42217) [FAB-6247](https://jira.hyperledger.org/browse/FAB-6247) Sanitize debug messages
+* [7256a44](https://github.com/hyperledger/fabric-ca/commit/7256a44) [FAB-5300](https://jira.hyperledger.org/browse/FAB-5300) Fix test cases failing on Mac
+* [c553bc0](https://github.com/hyperledger/fabric-ca/commit/c553bc0) [FAB-6332](https://jira.hyperledger.org/browse/FAB-6332) Save msp dir in default client config file
+* [086e651](https://github.com/hyperledger/fabric-ca/commit/086e651) [FAB-5300](https://jira.hyperledger.org/browse/FAB-5300) Updated github.com/stretchr/testify pkg
+* [dc9ab3d](https://github.com/hyperledger/fabric-ca/commit/dc9ab3d) [ FAB-6516 ] certification path validation go1.9
+* [76fb6ec](https://github.com/hyperledger/fabric-ca/commit/76fb6ec) [FAB-5300](https://jira.hyperledger.org/browse/FAB-5300) Add support to generate CRL
+* [813fafa](https://github.com/hyperledger/fabric-ca/commit/813fafa) [FAB-6445](https://jira.hyperledger.org/browse/FAB-6445) Add missing "ecert" field to swagger
+* [a030aae](https://github.com/hyperledger/fabric-ca/commit/a030aae) [FAB-6374](https://jira.hyperledger.org/browse/FAB-6374) Update release notes
+* [339d5b1](https://github.com/hyperledger/fabric-ca/commit/339d5b1) [ FAB-6337 ] Update BASEREL version in Makefile
+* [09f4bda](https://github.com/hyperledger/fabric-ca/commit/09f4bda) [ FAB-6339 ] Update fabric-ca_setup.sh polling
+* [0ed7e38](https://github.com/hyperledger/fabric-ca/commit/0ed7e38) [FAB-6360](https://jira.hyperledger.org/browse/FAB-6360) Update license text in README
+* [618353f](https://github.com/hyperledger/fabric-ca/commit/618353f) [ FAB-2919 ] Set postgres SSL environment
+* [21ee6a1](https://github.com/hyperledger/fabric-ca/commit/21ee6a1) [ FAB-6320 ] Trim logs for CI builds
+* [2780ccb](https://github.com/hyperledger/fabric-ca/commit/2780ccb) [FAB-5426](https://jira.hyperledger.org/browse/FAB-5426) Fix unit-tests on vagrant/windows
+* [8fa1ed8](https://github.com/hyperledger/fabric-ca/commit/8fa1ed8) [FAB-6302](https://jira.hyperledger.org/browse/FAB-6302) Add json tag to AttrReqs field
+* [57c0cf3](https://github.com/hyperledger/fabric-ca/commit/57c0cf3) [FAB-5060](https://jira.hyperledger.org/browse/FAB-5060) Update DB schema
+* [c65b634](https://github.com/hyperledger/fabric-ca/commit/c65b634) [FAB-6050](https://jira.hyperledger.org/browse/FAB-6050) Added jq to fabric-ca-tools container
+* [b21aa3b](https://github.com/hyperledger/fabric-ca/commit/b21aa3b) [FAB-6050](https://jira.hyperledger.org/browse/FAB-6050) Add fabric images with fabric-ca-client
+* [bb5691b](https://github.com/hyperledger/fabric-ca/commit/bb5691b) [FAB-6278](https://jira.hyperledger.org/browse/FAB-6278) Adding another troubleshooting tip
+* [d6f2461](https://github.com/hyperledger/fabric-ca/commit/d6f2461) [FAB-5300](https://jira.hyperledger.org/browse/FAB-5300) Updated cfssl to add crl package
+* [43a3bef](https://github.com/hyperledger/fabric-ca/commit/43a3bef) [FAB-6181](https://jira.hyperledger.org/browse/FAB-6181) Add HSM section to the Fabric CA users guide
+* [ba55903](https://github.com/hyperledger/fabric-ca/commit/ba55903) [ FAB-5773 ] Increase ca.go test coverage
+* [307d7d8](https://github.com/hyperledger/fabric-ca/commit/307d7d8) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Doc update for attributes in ECerts
+* [58e337b](https://github.com/hyperledger/fabric-ca/commit/58e337b) [FAB-6247](https://jira.hyperledger.org/browse/FAB-6247) Sanitize debug messages
+* [1cfe8b3](https://github.com/hyperledger/fabric-ca/commit/1cfe8b3) [FAB-6248](https://jira.hyperledger.org/browse/FAB-6248) Make docs part of CI
+* [f7cc93a](https://github.com/hyperledger/fabric-ca/commit/f7cc93a) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Use vendored attrmgr
+* [3b9d83c](https://github.com/hyperledger/fabric-ca/commit/3b9d83c) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Vendoring attrmgr from fabric
+* [f3028c4](https://github.com/hyperledger/fabric-ca/commit/f3028c4) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Attribute-based access control (#4)
+* [d7b554c](https://github.com/hyperledger/fabric-ca/commit/d7b554c) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Attribute-based access control (#3)
+* [27b9697](https://github.com/hyperledger/fabric-ca/commit/27b9697) FAB-5925 Compile fabric-ca with Go 1.9
+* [efc7232](https://github.com/hyperledger/fabric-ca/commit/efc7232) [FAB-6168](https://jira.hyperledger.org/browse/FAB-6168) Store TLS signing certs in proper dir
+* [55afb3d](https://github.com/hyperledger/fabric-ca/commit/55afb3d) [FAB-6085](https://jira.hyperledger.org/browse/FAB-6085) Fixes server CA DBs management
+* [2dd4f5b](https://github.com/hyperledger/fabric-ca/commit/2dd4f5b) [FAB-6068](https://jira.hyperledger.org/browse/FAB-6068) Update state after all checks done
+* [c41f4f1](https://github.com/hyperledger/fabric-ca/commit/c41f4f1) [FAB-6187](https://jira.hyperledger.org/browse/FAB-6187) Start troubleshooting for fabric-ca
+* [b2fb753](https://github.com/hyperledger/fabric-ca/commit/b2fb753) [FAB-5786](https://jira.hyperledger.org/browse/FAB-5786) DB initialization made more resilient
+* [02c8f4e](https://github.com/hyperledger/fabric-ca/commit/02c8f4e) [FAB-5935](https://jira.hyperledger.org/browse/FAB-5935) Fixes TestSRVServerInit and more on vagrant
+* [57aa82c](https://github.com/hyperledger/fabric-ca/commit/57aa82c) [FAB-2840](https://jira.hyperledger.org/browse/FAB-2840) Add home directory configuration
+* [11ca4d3](https://github.com/hyperledger/fabric-ca/commit/11ca4d3) [FAB-5740](https://jira.hyperledger.org/browse/FAB-5740) Remove TCerts from documentation
+* [2339c6c](https://github.com/hyperledger/fabric-ca/commit/2339c6c) [FAB-5427](https://jira.hyperledger.org/browse/FAB-5427) Fixes TestNewUserRegistryMySQL on vagrant
+* [53bd27f](https://github.com/hyperledger/fabric-ca/commit/53bd27f) [FAB-5679](https://jira.hyperledger.org/browse/FAB-5679) Allow empty affiliation string
+* [5a01179](https://github.com/hyperledger/fabric-ca/commit/5a01179) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Attribute-based access control (#2)
+* [487c413](https://github.com/hyperledger/fabric-ca/commit/487c413) [FAB-5346](https://jira.hyperledger.org/browse/FAB-5346) Attribute-based access control (#1)
+* [d332960](https://github.com/hyperledger/fabric-ca/commit/d332960) [FAB-4462](https://jira.hyperledger.org/browse/FAB-4462) Scripts to dynamically generate readme
+* [446f9cf](https://github.com/hyperledger/fabric-ca/commit/446f9cf) [FAB-5697](https://jira.hyperledger.org/browse/FAB-5697) Make identity type optional to register
+* [cb71418](https://github.com/hyperledger/fabric-ca/commit/cb71418) [FAB-3013](https://jira.hyperledger.org/browse/FAB-3013) Benchmarks for server request handlers
+* [7bca42a](https://github.com/hyperledger/fabric-ca/commit/7bca42a) [FAB-3013](https://jira.hyperledger.org/browse/FAB-3013) Run servers at 0.0.0.0 in the FVT image
+* [85cd788](https://github.com/hyperledger/fabric-ca/commit/85cd788) [ FAB-5555 ] Improve password-masking test
+* [3c819af](https://github.com/hyperledger/fabric-ca/commit/3c819af) [ FAB-5521 ] Fix CI build fail x86 for slapd
+* [3d521fc](https://github.com/hyperledger/fabric-ca/commit/3d521fc) [ FAB-1383 ] Add TLS tests for mysql
+* [c678910](https://github.com/hyperledger/fabric-ca/commit/c678910) [ FAB-3982 ] TLS dynamic certs for fabric-ca tests
+* [940cc6a](https://github.com/hyperledger/fabric-ca/commit/940cc6a) [FAB-3013](https://jira.hyperledger.org/browse/FAB-3013) Reuse connections in the client
+* [e3a10f2](https://github.com/hyperledger/fabric-ca/commit/e3a10f2) [FAB-3013](https://jira.hyperledger.org/browse/FAB-3013) Simple load test driver for Fabric CA server
+* [a0af417](https://github.com/hyperledger/fabric-ca/commit/a0af417) [FAB-5707](https://jira.hyperledger.org/browse/FAB-5707) Integrate pkg/errors with httpErr
+* [f59c655](https://github.com/hyperledger/fabric-ca/commit/f59c655) [FAB-5707](https://jira.hyperledger.org/browse/FAB-5707) Use pkg/errors to create errors
+* [f8a910f](https://github.com/hyperledger/fabric-ca/commit/f8a910f) [FAB-5058](https://jira.hyperledger.org/browse/FAB-5058) Auto generate TLS certificates
+* [17e530d](https://github.com/hyperledger/fabric-ca/commit/17e530d) [FAB-3458](https://jira.hyperledger.org/browse/FAB-3458) Use viper instance in server/client cmds
+* [f77203e](https://github.com/hyperledger/fabric-ca/commit/f77203e) [FAB-3458](https://jira.hyperledger.org/browse/FAB-3458) Remove global vars in server command
+* [5554406](https://github.com/hyperledger/fabric-ca/commit/5554406) [FAB-3458](https://jira.hyperledger.org/browse/FAB-3458) Remove global vars in client cmd
+* [ddddc5c](https://github.com/hyperledger/fabric-ca/commit/ddddc5c) [FAB-5707](https://jira.hyperledger.org/browse/FAB-5707) Vendoring github.com/pkg/errors
+* [253afb7](https://github.com/hyperledger/fabric-ca/commit/253afb7) [FAB-5794](https://jira.hyperledger.org/browse/FAB-5794) Fix some DB log messages
+* [48e7be4](https://github.com/hyperledger/fabric-ca/commit/48e7be4) FAB-5749 Fix fabric-ca-server startup msg
+* [77f76df](https://github.com/hyperledger/fabric-ca/commit/77f76df) [FAB-5389](https://jira.hyperledger.org/browse/FAB-5389) gencsr command for fabric-ca-client
+* [da97bc8](https://github.com/hyperledger/fabric-ca/commit/da97bc8) [FAB-5678](https://jira.hyperledger.org/browse/FAB-5678) Improve SQL not found error message
+* [0d9c927](https://github.com/hyperledger/fabric-ca/commit/0d9c927) [ FAB-3581 ] Updated error message for multica fvt
+* [b630717](https://github.com/hyperledger/fabric-ca/commit/b630717) [FAB-5761](https://jira.hyperledger.org/browse/FAB-5761) Fix a couple of debug messages
+* [7dd5747](https://github.com/hyperledger/fabric-ca/commit/7dd5747) [ FAB-3982 ] TLS copy tools for fabric-ca tests
+* [9300caa](https://github.com/hyperledger/fabric-ca/commit/9300caa) [FAB-3581](https://jira.hyperledger.org/browse/FAB-3581) Improve error handling (#3)
+* [9966ce5](https://github.com/hyperledger/fabric-ca/commit/9966ce5) [FAB-3581](https://jira.hyperledger.org/browse/FAB-3581) Improve error handling (#2)
+* [00caa9c](https://github.com/hyperledger/fabric-ca/commit/00caa9c) [FAB-3581](https://jira.hyperledger.org/browse/FAB-3581) Improve error handling (#1)
+* [a070182](https://github.com/hyperledger/fabric-ca/commit/a070182) [FAB-4973](https://jira.hyperledger.org/browse/FAB-4973) Add TLS profile to default config
+* [c6fc16b](https://github.com/hyperledger/fabric-ca/commit/c6fc16b) [FAB-3924](https://jira.hyperledger.org/browse/FAB-3924) Improve test coverage of lib
+* [9895f6b](https://github.com/hyperledger/fabric-ca/commit/9895f6b) [ FAB-5278 ] Multi-ca fvt test
+* [919d632](https://github.com/hyperledger/fabric-ca/commit/919d632) [ FAB-5254 ] Add logging for haproxy
+* [77f573c](https://github.com/hyperledger/fabric-ca/commit/77f573c) [ FAB-5251 ] Changes to optimize fvt tests
+* [748467f](https://github.com/hyperledger/fabric-ca/commit/748467f) [FAB-5510](https://jira.hyperledger.org/browse/FAB-5510) Mask the identity password in the log
+* [fa60287](https://github.com/hyperledger/fabric-ca/commit/fa60287) FAB-5530 Vendor latest version of bccsp
+* [72e010e](https://github.com/hyperledger/fabric-ca/commit/72e010e) [ FAB-5009 ] Update intermediate CA test
+* [d24c05c](https://github.com/hyperledger/fabric-ca/commit/d24c05c) [ FAB-5434 ] Fix mysql internal_DB permissions
+* [64676ae](https://github.com/hyperledger/fabric-ca/commit/64676ae) [FAB-5512](https://jira.hyperledger.org/browse/FAB-5512) Fix typos in fabric-ca-client package
+* [f54aaf2](https://github.com/hyperledger/fabric-ca/commit/f54aaf2) [FAB-3026](https://jira.hyperledger.org/browse/FAB-3026) OOM for very large CRLs
+* [3ba0088](https://github.com/hyperledger/fabric-ca/commit/3ba0088) [FAB-4844](https://jira.hyperledger.org/browse/FAB-4844) Store MSP intermediatecerts
+* [5d131b7](https://github.com/hyperledger/fabric-ca/commit/5d131b7) [FAB-5250](https://jira.hyperledger.org/browse/FAB-5250) Add version command to server and client
+* [2abc451](https://github.com/hyperledger/fabric-ca/commit/2abc451) [FAB-4409](https://jira.hyperledger.org/browse/FAB-4409) update vendored package cfssl
+* [dd60a58](https://github.com/hyperledger/fabric-ca/commit/dd60a58) [FAB-3662](https://jira.hyperledger.org/browse/FAB-3662) Document DB version support
+* [d31c0d7](https://github.com/hyperledger/fabric-ca/commit/d31c0d7) [FAB-5239](https://jira.hyperledger.org/browse/FAB-5239) LDAP reconnect for idle timeout
+* [e03673c](https://github.com/hyperledger/fabric-ca/commit/e03673c) [FAB-3051](https://jira.hyperledger.org/browse/FAB-3051) Input validation on CSR fields
+* [4e5c55f](https://github.com/hyperledger/fabric-ca/commit/4e5c55f) [FAB-4915](https://jira.hyperledger.org/browse/FAB-4915) Fix timing bug in server stop
+* [bc2b642](https://github.com/hyperledger/fabric-ca/commit/bc2b642) [FAB-5434](https://jira.hyperledger.org/browse/FAB-5434) Fix mysql config in fvt image
+* [086cc2f](https://github.com/hyperledger/fabric-ca/commit/086cc2f) [FAB-4126](https://jira.hyperledger.org/browse/FAB-4126) Convert fatal message to error
+* [b9e8a8e](https://github.com/hyperledger/fabric-ca/commit/b9e8a8e) [FAB-5334](https://jira.hyperledger.org/browse/FAB-5334) Intermediate CA does not copy BCCSP config
+
+## v1.0.4
+Tue Oct 31 15:14:49 EDT 2017
+
+* [65686e9](https://github.com/hyperledger/fabric-ca/commit/65686e9) [FAB-6704](https://jira.hyperledger.org/browse/FAB-6704) Fix garbled listen message on startup
+* [5149604](https://github.com/hyperledger/fabric-ca/commit/5149604) [FAB-6624](https://jira.hyperledger.org/browse/FAB-6624) Update vendored version of bccsp
+* [c5d399d](https://github.com/hyperledger/fabric-ca/commit/c5d399d) [FAB-6643](https://jira.hyperledger.org/browse/FAB-6643) Add ci.properties file
+* [9ceec62](https://github.com/hyperledger/fabric-ca/commit/9ceec62) Update URL for MAINTAINERS source
+* [19280b6](https://github.com/hyperledger/fabric-ca/commit/19280b6) [FAB-6377](https://jira.hyperledger.org/browse/FAB-6377) Prepare fabric-ca for v1.0.4 release
+
+## v1.0.3
+Tue Oct  3 05:21:02 EDT 2017
+
+* [897e99e](https://github.com/hyperledger/fabric-ca/commit/897e99e) [FAB-6360](https://jira.hyperledger.org/browse/FAB-6360) Update license text in README
+* [cc1a524](https://github.com/hyperledger/fabric-ca/commit/cc1a524)  [FAB-6247](https://jira.hyperledger.org/browse/FAB-6247) Sanitize debug messages
+* [4c9f3d9](https://github.com/hyperledger/fabric-ca/commit/4c9f3d9) [FAB-5994](https://jira.hyperledger.org/browse/FAB-5994) Prepare fabric-ca for v1.0.3 release
+
+## v1.0.2
+Thu Aug 31 04:22:27 EDT 2017
+
+* [3066136](https://github.com/hyperledger/fabric-ca/commit/3066136) [FAB-5794](https://jira.hyperledger.org/browse/FAB-5794) Mask credentials in debug messages
+* [00700da](https://github.com/hyperledger/fabric-ca/commit/00700da) [FAB-5653](https://jira.hyperledger.org/browse/FAB-5653) Prepare fabric-ca for v1.0.2 release
+
+## v1.0.1
+Mon Jul 31 05:57:59 EDT 2017
+
+* [748467f](https://github.com/hyperledger/fabric-ca/commit/748467f) [FAB-5510](https://jira.hyperledger.org/browse/FAB-5510) Mask the identity password in the log
+* [fa60287](https://github.com/hyperledger/fabric-ca/commit/fa60287) [FAB-5530](https://jira.hyperledger.org/browse/FAB-5530) Vendor latest version of bccsp
+* [72e010e](https://github.com/hyperledger/fabric-ca/commit/72e010e) [ [FAB-5009](https://jira.hyperledger.org/browse/FAB-5009) ] Update intermediate CA test
+* [d24c05c](https://github.com/hyperledger/fabric-ca/commit/d24c05c) [ [FAB-5434](https://jira.hyperledger.org/browse/FAB-5434) ] Fix mysql internal_DB permissions
+* [f54aaf2](https://github.com/hyperledger/fabric-ca/commit/f54aaf2) [FAB-3026](https://jira.hyperledger.org/browse/FAB-3026) OOM for very large CRLs
+* [3ba0088](https://github.com/hyperledger/fabric-ca/commit/3ba0088) [FAB-4844](https://jira.hyperledger.org/browse/FAB-4844) Store MSP intermediatecerts
+* [2abc451](https://github.com/hyperledger/fabric-ca/commit/2abc451) [FAB-4409](https://jira.hyperledger.org/browse/FAB-4409) update vendored package cfssl
+* [dd60a58](https://github.com/hyperledger/fabric-ca/commit/dd60a58) [FAB-3662](https://jira.hyperledger.org/browse/FAB-3662) Document DB version support
+* [d31c0d7](https://github.com/hyperledger/fabric-ca/commit/d31c0d7) [FAB-5239](https://jira.hyperledger.org/browse/FAB-5239) LDAP reconnect for idle timeout
+* [e03673c](https://github.com/hyperledger/fabric-ca/commit/e03673c) [FAB-3051](https://jira.hyperledger.org/browse/FAB-3051) Input validation on CSR fields
+* [4e5c55f](https://github.com/hyperledger/fabric-ca/commit/4e5c55f) [FAB-4915](https://jira.hyperledger.org/browse/FAB-4915) Fix timing bug in server stop
+* [bc2b642](https://github.com/hyperledger/fabric-ca/commit/bc2b642) [FAB-5434](https://jira.hyperledger.org/browse/FAB-5434) Fix mysql config in fvt image
+* [086cc2f](https://github.com/hyperledger/fabric-ca/commit/086cc2f) [FAB-4126](https://jira.hyperledger.org/browse/FAB-4126) Convert fatal message to error
+* [b9e8a8e](https://github.com/hyperledger/fabric-ca/commit/b9e8a8e) [FAB-5334](https://jira.hyperledger.org/browse/FAB-5334) Intermediate CA does not copy BCCSP config
+* [b2679c9](https://github.com/hyperledger/fabric-ca/commit/b2679c9) [FAB-5531](https://jira.hyperledger.org/browse/FAB-5531) Create 1.0.1 fabric-ca release
+* [a21585d](https://github.com/hyperledger/fabric-ca/commit/a21585d) [FAB-5071](https://jira.hyperledger.org/browse/FAB-5071) Prepare for v1.0.1 release
+
 ## v1.0.0
 Tue Jul 11 16:38:28 CEST 2017
 

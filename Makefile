@@ -30,9 +30,9 @@
 #   - clean - cleans the build area
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION   = 1.1.0
+BASE_VERSION   = 1.1.0-preview
 PREV_VERSION   = 1.0.0
-IS_RELEASE     = false
+IS_RELEASE     = true
 
 ARCH=$(shell uname -m)
 
