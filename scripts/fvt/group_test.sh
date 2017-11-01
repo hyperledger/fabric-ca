@@ -15,7 +15,7 @@ HTTP_PORT="3755"
 cd $TESTDATA
 python -m SimpleHTTPServer $HTTP_PORT &
 HTTP_PID=$!
-pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server"
+pollSimpleHttp
 echo $HTTP_PID
 trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
 

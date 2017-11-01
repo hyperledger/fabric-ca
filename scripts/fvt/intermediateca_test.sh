@@ -16,7 +16,6 @@ ROOT_CA_ADDR=localhost
 TLSDIR="$TDIR/tls"
 NUMINTCAS=8
 MAXENROLL=$((2*NUMINTCAS))
-TIMEOUT=10
 RC=0
 TDIR=/tmp/intermediateca-tests
 PROTO="http://"
@@ -72,7 +71,7 @@ function createRootCA() {
                                       --csr.hosts $ROOT_CA_ADDR --address $ROOT_CA_ADDR \
                                       $tlsopts -c $TDIR/root/runFabricCaFvt.yaml -d 2>&1 |
                                       tee $TDIR/root/server.log &
-   pollServer fabric-ca-server $ROOT_CA_ADDR $CA_DEFAULT_PORT $TIMEOUT
+   pollFabricCa fabric-ca-server $ROOT_CA_ADDR $CA_DEFAULT_PORT
 }
 
 function createIntCA() {
@@ -96,7 +95,7 @@ function createIntCA() {
    done
    i=0;while test $((i++)) -lt $NUMINTCAS; do
       ADDR=127.0.${i}.1
-      pollServer fabric-ca-server $ADDR $CA_DEFAULT_PORT $TIMEOUT
+      pollFabricCa "" $ADDR $CA_DEFAULT_PORT
    done
 }
 

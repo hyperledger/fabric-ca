@@ -17,7 +17,7 @@ export FABRIC_TLS
 function runTests() {
    echo "Running fvt tests ..."
    echo ""
-   tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh")"
+   tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh"| sort)"
 
    for FABRIC_TLS in "true" "false"; do
       for cmd in $tests; do
@@ -29,7 +29,7 @@ function runTests() {
         test $rc -eq 0 && echo PASSED || echo FAILED
         test $rc -ne 0 && awk -v b=$TESTCASE -v e="test ended." '$0~b,$0~e' $RESULTLOG
         RC=$((RC+$rc))
-        $SCRIPTDIR/fabric-ca_setup.sh -R
+        $SCRIPTDIR/fabric-ca_setup.sh -R >/dev/null 2>&1
       done
    done
 }

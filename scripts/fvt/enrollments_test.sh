@@ -25,6 +25,7 @@ export CA_CFG_PATH
 function genServerConfig {
 case "$1" in
    implicit) cat > $SERVERCONFIG <<EOF
+debug: true
 db:
   type: $DRIVER
   datasource: $DATASRC
@@ -92,6 +93,7 @@ EOF
 ;;
    # Max enroll for identities cannot surpass global setting
    invalid) cat > $SERVERCONFIG <<EOF
+debug: true
 db:
   type: $DRIVER
   datasource: $DATASRC
@@ -166,7 +168,7 @@ trap "CleanUp 1; exit 1" INT
 # explicitly set value
    # user can only enroll MAX_ENROLL times
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -m $MAX_ENROLL
+   $SCRIPTDIR/fabric-ca_setup.sh -D -I -S -X -m $MAX_ENROLL
    i=0
    while test $((i++)) -lt "$MAX_ENROLL"; do
       enroll
@@ -187,7 +189,7 @@ trap "CleanUp 1; exit 1" INT
    # user can only enroll once
    MAX_ENROLL=1
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -m $MAX_ENROLL
+   $SCRIPTDIR/fabric-ca_setup.sh -D -I -S -X -m $MAX_ENROLL
    i=0
    while test $((i++)) -lt "$MAX_ENROLL"; do
       enroll
@@ -207,7 +209,7 @@ trap "CleanUp 1; exit 1" INT
    # user enrollment unlimited
    MAX_ENROLL=-1
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
-   $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -m $MAX_ENROLL
+   $SCRIPTDIR/fabric-ca_setup.sh -D -I -S -X -m $MAX_ENROLL
    i=0
    while test $((i++)) -lt "$UNLIMITED"; do
       enroll
@@ -236,8 +238,8 @@ trap "CleanUp 1; exit 1" INT
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH
    test -d $CA_CFG_PATH || mkdir $CA_CFG_PATH
    genServerConfig invalid
-   $SCRIPTDIR/fabric-ca_setup.sh -o 1 -S -X -g $SERVERCONFIG
-   test $? -eq 0 && ErrorMsg "user enrollment > global setting"
+   $SCRIPTDIR/fabric-ca_setup.sh -o 0 -S -X -g $SERVERCONFIG | grep 'Configuration Error: Requested enrollments (16) exceeds maximum allowable enrollments (15)'
+   test $? -ne 0 && ErrorMsg "user enrollment > global setting"
 
 $SCRIPTDIR/fabric-ca_setup.sh -L
 $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH

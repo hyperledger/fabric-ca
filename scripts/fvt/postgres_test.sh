@@ -100,7 +100,7 @@ configureDB
 # TEST 1: Database user does not have permission to create DB and also
 # no database exists with the same name as user
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
-pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pollFabricCa "" "" $CA_DEFAULT_PORT
 $SCRIPTDIR/fabric-ca_setup.sh -K
 grep "pq: permission denied to create database" $SERVERLOG &> /dev/null
 if [ $? != 0 ]; then
@@ -112,7 +112,7 @@ fi
 # and template1
 psql -d testdb -c "ALTER DATABASE template1 RENAME TO template1_temp"
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
-pollServer fabric-ca-server 127.0.0.1 17054 10 start
+pollFabricCa "" "" $CA_DEFAULT_PORT
 grep "Please create one of these database before continuing" $SERVERLOG &> /dev/null
 if [ $? != 0 ]; then
     ErrorMsg "None of the database expected exist, should have thrown an error in the logs"
