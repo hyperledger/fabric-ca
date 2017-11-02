@@ -28,6 +28,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -116,9 +117,9 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Authorization the caller, depending on the contents of the
-	// CSR (Certificate Signing Request)
-	err = csrAuthCheck(id, &req.SignRequest, ca)
+	// Process the sign request from the caller.
+	// Make sure it is authorized and do any swizzling appropriate to the request.
+	err = processSignRequest(id, &req.SignRequest, ca, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -149,13 +150,15 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 	return resp, nil
 }
 
+// Process the sign request.
 // Make any authorization checks needed, depending on the contents
 // of the CSR (Certificate Signing Request).
 // In particular, if the request is for an intermediate CA certificate,
 // the caller must have the "hf.IntermediateCA" attribute.
-// Also check to see that CSR values do not exceed the character limit
+// Check to see that CSR values do not exceed the character limit
 // as specified in RFC 3280, page 103.
-func csrAuthCheck(id string, req *signer.SignRequest, ca *CA) error {
+// Set the OU fields of the request.
+func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverRequestContext) error {
 	// Decode and parse the request into a CSR so we can make checks
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
@@ -169,7 +172,7 @@ func csrAuthCheck(id string, req *signer.SignRequest, ca *CA) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("csrAuthCheck: id=%s, CommonName=%s, Subject=%+v", id, csrReq.Subject.CommonName, req.Subject)
+	log.Debugf("Processing sign request: id=%s, CommonName=%s, Subject=%+v", id, csrReq.Subject.CommonName, req.Subject)
 	if (req.Subject != nil && req.Subject.CN != id) || csrReq.Subject.CommonName != id {
 		return errors.New("The CSR subject common name must equal the enrollment ID")
 	}
@@ -184,15 +187,29 @@ func csrAuthCheck(id string, req *signer.SignRequest, ca *CA) error {
 				return newHTTPErr(400, ErrBadCSR, "Trailing data after X.509 BasicConstraints")
 			}
 			if constraints.IsCA {
-				log.Debug("CSR request received for an intermediate CA")
+				log.Debug("sign request received for an intermediate CA")
 				// This is a request for a CA certificate, so make sure the caller
 				// has the 'hf.IntermediateCA' attribute
-				return ca.attributeIsTrue(id, "hf.IntermediateCA")
+				err := ca.attributeIsTrue(id, "hf.IntermediateCA")
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
-	log.Debug("CSR authorization check passed")
-	return csrInputLengthCheck(csrReq)
+	// Check the CSR input length
+	err = csrInputLengthCheck(csrReq)
+	if err != nil {
+		return err
+	}
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return err
+	}
+	// Set the OUs in the request appropriately.
+	setRequestOUs(req, caller)
+	log.Debug("Finished processing sign request")
+	return nil
 }
 
 // Checks to make sure that character limits are not exceeded for CSR fields
@@ -234,4 +251,33 @@ func csrInputLengthCheck(req *x509.CertificateRequest) error {
 	}
 
 	return nil
+}
+
+// Set the OU fields of the sign request based on the identity's type and affilation.
+// For example, if the type is 'peer' and the affiliation is 'a.b.c', the
+// OUs become 'OU=c,OU=b,OU=a,OU=peer'.
+// This is necessary because authorization decisions are made based on the OU fields,
+// so we ignore any OU values specified in the enroll request and set them according
+// to the type and affiliation.
+func setRequestOUs(req *signer.SignRequest, caller spi.User) {
+	s := req.Subject
+	if s == nil {
+		s = &signer.Subject{}
+	}
+	names := []csr.Name{}
+	// Add non-OU fields from request
+	for _, name := range s.Names {
+		if name.C != "" || name.L != "" || name.O != "" || name.ST != "" || name.SerialNumber != "" {
+			name.OU = ""
+			names = append(names, name)
+		}
+	}
+	// Add an OU field with the type
+	names = append(names, csr.Name{OU: caller.GetType()})
+	for _, aff := range caller.GetAffiliationPath() {
+		names = append(names, csr.Name{OU: aff})
+	}
+	// Replace with new names
+	s.Names = names
+	req.Subject = s
 }

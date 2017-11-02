@@ -111,29 +111,32 @@ tls:
     keyfile:
 
 #############################################################################
-#  Certificate Signing Request section for generating the CSR for
-#  an enrollment certificate (ECert)
+#  Certificate Signing Request section for generating the CSR for an
+#  enrollment certificate (ECert)
 #
 #  cn - Used by CAs to determine which domain the certificate is to be generated for
+#
+#  serialnumber - The serialnumber field, if specified, becomes part of the issued
+#     certificate's DN (Distinguished Name).  For example, one use case for this is
+#     a company with its own CA (Certificate Authority) which issues certificates
+#     to its employees and wants to include the employee's serial number in the DN
+#     of its issued certificates.
+#     WARNING: The serialnumber field should not be confused with the certificate's
+#     serial number which is set by the CA but is not a component of the
+#     certificate's DN.
+#
 #  names -  A list of name objects. Each name object should contain at least one
-#  "C", "L", "O", "OU", or "ST" value (or any combination of these). These values are:
-#      "C": country
-#      "L": locality or municipality (such as city or town name)
-#      "O": organisation
-#      "OU": organisational unit, such as the department responsible for owning the key;
-#      it can also be used for a "Doing Business As" (DBS) name
-#      "ST": the state or province
-#  hosts - A list of space-separated host names which the certificate should be valid for
+#    "C", "L", "O", or "ST" value (or any combination of these) where these
+#    are abbreviations for the following:
+#        "C": country
+#        "L": locality or municipality (such as city or town name)
+#        "O": organisation
+#        "ST": the state or province
+#    Note that the "OU" or organizational units of an ECert are always set according
+#    to the values of the identities type and affiliation.
 #
-#  NOTE: The serialnumber field below, if specified, becomes part of the issued
-#  certificate's DN (Distinguished Name).  For example, one use case for this is
-#  a company with its own CA (Certificate Authority) which issues certificates
-#  to its employees and wants to include the employee's serial number in the DN
-#  of its issued certificates.
+#  hosts - A list of host names for which the certificate should be valid
 #
-#  WARNING: This serialnumber field should not be confused with the certificate's
-#  serial number which is set by the CA but is not a component of the
-#  certificate's DN.
 #############################################################################
 csr:
   cn: <<<ENROLLMENT_ID>>>
@@ -146,10 +149,6 @@ csr:
       OU: Fabric
   hosts:
     - <<<MYHOST>>>
-  ca:
-    pathlen:
-    pathlenzero:
-    expiry:
 
 #############################################################################
 #  Registration section used to register a new identity with fabric-ca server

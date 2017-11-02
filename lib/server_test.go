@@ -203,15 +203,24 @@ func TestSRVRootServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to register user1: %s", err)
 	}
-	// Enroll user1
+	// Enroll user1 with an explicit OU.  Make sure it is ignored.
 	eresp, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "user1",
 		Secret: rr.Secret,
+		CSR:    &api.CSRInfo{Names: []csr.Name{csr.Name{OU: "foobar"}}},
 	})
 	if err != nil {
 		t.Fatalf("Failed to enroll user1: %s", err)
 	}
 	user1 = eresp.Identity
+	// Make sure the OUs are correct based on the identity type and affiliation
+	cert, err := user1.GetECert().GetX509Cert()
+	if err != nil {
+		assert.NoErrorf(t, err, "Failed to get user1's enrollment certificate")
+	} else {
+		ouPath := strings.Join(cert.Subject.OrganizationalUnit, ".")
+		assert.Equal(t, "user.hyperledger.fabric.security", ouPath, "Invalid OU path in certificate")
+	}
 	// The admin ID should have 1 cert in the DB now
 	dba := server.CA.CertDBAccessor()
 	recs, err = dba.GetCertificatesByID("admin")
