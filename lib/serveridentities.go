@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -242,7 +243,7 @@ func getID(ctx *serverRequestContext, caller spi.User, id, caname string) (*api.
 	registry := ctx.ca.registry
 	user, err := registry.GetUser(id, nil)
 	if err != nil {
-		return nil, getUserError(err)
+		return nil, err
 	}
 
 	err = ctx.CanManageUser(user)
@@ -250,23 +251,130 @@ func getID(ctx *serverRequestContext, caller spi.User, id, caname string) (*api.
 		return nil, err
 	}
 
-	userInfo := user.(*DBUser).UserInfo
 	resp := &api.GetIDResponse{
 		CAName: caname,
 	}
-	resp.IdentityInfo = *getIDInfo(userInfo)
+
+	idInfo, err := getIDInfo(user)
+	if err != nil {
+		return nil, err
+	}
+	resp.IdentityInfo = *idInfo
 
 	return resp, nil
 }
 
-func processDeleteRequest(ctx *serverRequestContext, caname string) (interface{}, error) {
+func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing DELETE request")
-	return nil, errors.Errorf("Not Implemented")
+
+	if !ctx.ca.Config.Cfg.Identities.AllowRemove {
+		return nil, newHTTPErr(403, ErrRemoveIdentity, "Identity removal is disabled")
+	}
+
+	removeID, err := ctx.GetVar("id")
+	if err != nil {
+		return nil, err
+	}
+
+	if removeID == "" {
+		return nil, newHTTPErr(400, ErrRemoveIdentity, "No ID name specified in remove request")
+	}
+
+	log.Debugf("Removing identity '%s'", removeID)
+
+	force, err := ctx.GetBoolQueryParm("force")
+	if err != nil {
+		return nil, err
+	}
+
+	if removeID == ctx.caller.GetName() && !force {
+		return nil, newHTTPErr(403, ErrRemoveIdentity, "Need to use 'force' option to delete your own identity")
+	}
+
+	registry := ctx.ca.registry
+
+	userToRemove, err := registry.GetUser(removeID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = performIdentityAuthCheck(userToRemove, ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Caller is not authorized to remove identity")
+	}
+
+	err = registry.DeleteUser(removeID)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveIdentity, "Failed to remove identity: ", err)
+	}
+
+	resp := &api.IdentityResponse{
+		CAName: caname,
+	}
+
+	idInfo, err := getIDInfo(userToRemove)
+	if err != nil {
+		return nil, err
+	}
+	resp.IdentityInfo = *idInfo
+
+	log.Debugf("Identity '%s' successfully removed", removeID)
+	return resp, nil
 }
 
-func processPostRequest(ctx *serverRequestContext, caname string) (interface{}, error) {
+func processPostRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing POST request")
-	return nil, errors.Errorf("Not Implemented")
+
+	ctx.endpoint.successRC = 201
+	var req api.AddIdentityRequest
+	err := ctx.ReadBody(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.ID == "" {
+		return nil, newHTTPErr(400, ErrAddIdentity, "Missing 'ID' in request to add a new intentity")
+	}
+	addReq := &api.RegistrationRequest{
+		Name:           req.ID,
+		Secret:         req.Secret,
+		Type:           req.Type,
+		Affiliation:    req.Affiliation,
+		Attributes:     req.Attributes,
+		MaxEnrollments: req.MaxEnrollments,
+	}
+	log.Debugf("Adding identity: %+v", util.StructToString(addReq))
+
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed to get caller identity")
+	}
+	callerID := caller.GetName()
+
+	pass, err := registerUser(addReq, callerID, ctx.ca, ctx)
+	if err != nil {
+		return nil, newHTTPErr(400, ErrAddIdentity, "Failed to add identity: %s", err)
+
+	}
+
+	user, err := ctx.ca.registry.GetUser(req.ID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &api.IdentityResponse{
+		Secret: pass,
+		CAName: caname,
+	}
+	idInfo, err := getIDInfo(user)
+	if err != nil {
+		return nil, err
+	}
+	resp.IdentityInfo = *idInfo
+
+	log.Debugf("Identity successfully added")
+
+	return resp, nil
 }
 
 func processPutRequest(ctx *serverRequestContext, caname string) (interface{}, error) {
@@ -274,12 +382,47 @@ func processPutRequest(ctx *serverRequestContext, caname string) (interface{}, e
 	return nil, errors.Errorf("Not Implemented")
 }
 
-func getIDInfo(user spi.UserInfo) *api.IdentityInfo {
-	return &api.IdentityInfo{
-		ID:             user.Name,
-		Type:           user.Type,
-		Affiliation:    user.Affiliation,
-		Attributes:     user.Attributes,
-		MaxEnrollments: user.MaxEnrollments,
+func performIdentityAuthCheck(user spi.User, ctx *serverRequestContext) error {
+	userRole := user.GetType()
+	userAff := strings.Join(user.GetAffiliationPath(), ".")
+
+	_, isRegistrar, err := ctx.IsRegistrar()
+	if err != nil {
+		return newAuthErr(ErrUpdateConfigAuth, "Caller is unable to edit identities: %s", err)
 	}
+	if !isRegistrar {
+		return newAuthErr(ErrUpdateConfigAuth, "Caller does not have the attribute '%s', unable to edit identities", registrarRole)
+	}
+
+	canActOnRole, err := ctx.CanActOnType(userRole)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to validate if registrar has proper authority to act on role")
+	}
+	if !canActOnRole {
+		return newAuthErr(ErrRegistrarInvalidType, "Registrar does not have authority to action on role '%s'", userRole)
+	}
+
+	validAffiliation, err := ctx.ContainsAffiliation(userAff)
+	if err != nil {
+		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to remove identity affiliation: %s", err)
+	}
+	if !validAffiliation {
+		return newAuthErr(ErrRegistrarNotAffiliated, "Registrar does not have authority to action on affiliation '%s'", userAff)
+	}
+
+	return nil
+}
+
+func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
+	allAttributes, err := user.GetAttributes(nil)
+	if err != nil {
+		return nil, err
+	}
+	return &api.IdentityInfo{
+		ID:             user.GetName(),
+		Type:           user.GetType(),
+		Affiliation:    GetUserAffiliation(user),
+		Attributes:     allAttributes,
+		MaxEnrollments: user.GetMaxEnrollments(),
+	}, nil
 }

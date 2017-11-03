@@ -58,6 +58,10 @@ SELECT %s FROM certificates
 	selectRevokedSQL1 = `
 SELECT %s FROM certificates
 	WHERE (expiry > ? AND expiry < ? AND status='revoked' AND revoked_at > ? AND revoked_at < ?);`
+
+	deleteCertificatebyID = `
+DELETE FROM certificates
+		WHERE (ID = ?);`
 )
 
 // CertRecord extends CFSSL CertificateRecord by adding an enrollment ID to the record

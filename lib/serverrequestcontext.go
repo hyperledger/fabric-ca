@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/config"
@@ -358,7 +359,7 @@ func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 	var err error
 	id := ctx.enrollmentID
 	if id == "" {
-		return nil, newHTTPErr(500, ErrCallerIsNotAuthenticated, "Caller is not authenticated")
+		return nil, newAuthErr(ErrCallerIsNotAuthenticated, "Caller is not authenticated")
 	}
 	ca, err := ctx.GetCA()
 	if err != nil {
@@ -367,7 +368,7 @@ func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 	// Get the user info object for this user
 	ctx.caller, err = ca.registry.GetUser(id, nil)
 	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to get user")
+		return nil, newAuthErr(ErrGettingUser, "Failed to get user")
 	}
 	return ctx.caller, nil
 }
@@ -395,13 +396,13 @@ func (ctx *serverRequestContext) IsRegistrar() (string, bool, error) {
 }
 
 // CanActOnType returns true if the caller has the proper authority to take action on specific type
-func (ctx *serverRequestContext) CanActOnType(typ string) (bool, error) {
+func (ctx *serverRequestContext) CanActOnType(requestedType string) (bool, error) {
 	caller, err := ctx.GetCaller()
 	if err != nil {
 		return false, err
 	}
 
-	log.Debugf("Checking to see if caller '%s' with type '%s' can act on type '%s'", caller.GetName(), typ)
+	log.Debugf("Checking to see if caller '%s' can act on type '%s'", caller.GetName(), requestedType)
 
 	typesStr, isRegistrar, err := ctx.IsRegistrar()
 	if err != nil {
@@ -418,8 +419,8 @@ func (ctx *serverRequestContext) CanActOnType(typ string) (bool, error) {
 		types = make([]string, 0)
 	}
 
-	if !util.StrContained(typ, types) {
-		log.Debug("Caller with types '%s' is not authorized to act on '%s'", types, typ)
+	if !util.StrContained(requestedType, types) {
+		log.Debug("Caller with types '%s' is not authorized to act on '%s'", types, requestedType)
 		return false, nil
 	}
 
@@ -455,6 +456,22 @@ func (ctx *serverRequestContext) GetVar(name string) (string, error) {
 		return "", newHTTPErr(500, ErrHTTPRequest, "Failed to correctly handle HTTP request")
 	}
 	value := vars[name]
+	return value, nil
+}
+
+// GetBoolQueryParm returns query parameter from the URL
+func (ctx *serverRequestContext) GetBoolQueryParm(name string) (bool, error) {
+	var err error
+
+	value := false
+	param := ctx.req.URL.Query().Get(name)
+	if param != "" {
+		value, err = strconv.ParseBool(param)
+		if err != nil {
+			return false, newHTTPErr(400, ErrGettingBoolQueryParm, "Failed to correctly parse value of '%s' query parameter: %s", name, err)
+		}
+	}
+
 	return value, nil
 }
 

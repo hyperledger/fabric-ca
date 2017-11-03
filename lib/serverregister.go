@@ -59,7 +59,7 @@ func registerHandler(ctx *serverRequestContext) (interface{}, error) {
 		return nil, err
 	}
 	// Register User
-	secret, err := registerUser(&req, callerID, ca, ctx)
+	secret, err := registerUser(&req.RegistrationRequest, callerID, ca, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func registerHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // RegisterUser will register a user and return the secret
-func registerUser(req *api.RegistrationRequestNet, registrar string, ca *CA, ctx *serverRequestContext) (string, error) {
+func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx *serverRequestContext) (string, error) {
 	var err error
 	var registrarUser spi.User
 
@@ -113,7 +113,7 @@ func registerUser(req *api.RegistrationRequestNet, registrar string, ca *CA, ctx
 	return secret, nil
 }
 
-func validateAffiliation(registrarAff string, req *api.RegistrationRequestNet) error {
+func validateAffiliation(registrarAff string, req *api.RegistrationRequest) error {
 	log.Debug("Validate Affiliation")
 	if req.Affiliation == "" {
 		log.Debugf("No affiliation provided in registeration request, will default to using registrar's affiliation of '%s'", registrarAff)
@@ -134,7 +134,7 @@ func validateAffiliation(registrarAff string, req *api.RegistrationRequestNet) e
 	return nil
 }
 
-func validateID(req *api.RegistrationRequestNet, ca *CA) error {
+func validateID(req *api.RegistrationRequest, ca *CA) error {
 	log.Debug("Validate ID")
 	// Check whether the affiliation is required for the current user.
 	if requireAffiliation(req.Type) {
@@ -148,7 +148,7 @@ func validateID(req *api.RegistrationRequestNet, ca *CA) error {
 }
 
 // registerUserID registers a new user and its enrollmentID, role and state
-func registerUserID(req *api.RegistrationRequestNet, ca *CA) (string, error) {
+func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 	log.Debugf("Registering user id: %s\n", req.Name)
 	var err error
 
@@ -222,7 +222,7 @@ func requireAffiliation(idType string) bool {
 	return true
 }
 
-func canRegister(registrar string, req *api.RegistrationRequestNet, user spi.User, ctx *serverRequestContext) error {
+func canRegister(registrar string, req *api.RegistrationRequest, user spi.User, ctx *serverRequestContext) error {
 	log.Debugf("canRegister - Check to see if user %s can register", registrar)
 
 	var roles []string
@@ -312,7 +312,7 @@ func validateRequestedAttributes(reqAttrs []api.Attribute, registrar spi.User) e
 }
 
 // Add an attribute to the registration request if not already found.
-func addAttributeToRequest(name, value string, req *api.RegistrationRequestNet) {
+func addAttributeToRequest(name, value string, req *api.RegistrationRequest) {
 	for _, attr := range req.Attributes {
 		if attr.Name == name {
 			return
