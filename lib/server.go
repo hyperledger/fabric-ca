@@ -480,7 +480,7 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("revoke", newRevokeEndpoint(s))
 	s.registerHandler("tcert", newTCertEndpoint(s))
 	s.registerHandler("gencrl", newGenCRLEndpoint(s))
-	s.registerHandler("identities", newIdentitiesEndpoint(s))
+	s.registerHandler("identities", newIdentitiesStreamingEndpoint(s))
 	s.registerHandler("identities/{id}", newIdentitiesEndpoint(s))
 }
 

@@ -231,8 +231,8 @@ type GetIDResponse struct {
 
 // GetAllIDsResponse is the response from the GetAllIdentities call
 type GetAllIDsResponse struct {
-	Identities []IdentityInfo
-	CAName     string `json:"caname,omitempty"`
+	Identities []IdentityInfo `json:"identities"`
+	CAName     string         `json:"caname,omitempty"`
 }
 
 // IdentityResponse is the response from the any add/modify/remove identity call

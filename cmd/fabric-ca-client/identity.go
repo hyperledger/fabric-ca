@@ -21,6 +21,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -53,6 +54,7 @@ func (c *ClientCmd) newListIdentityCommand() *cobra.Command {
 		Short: "List information an identity or identities",
 		Long:  "List information an identity or identities from the Fabric CA server",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			log.Level = log.LevelWarning
 			err := c.configInit()
 			if err != nil {
 				return err
@@ -222,14 +224,9 @@ func (c *ClientCmd) runListIdentity() error {
 		return nil
 	}
 
-	resp, err := id.GetAllIdentities(c.clientCfg.CAName)
+	err = id.GetAllIdentities(c.clientCfg.CAName, lib.IdentityDecoder)
 	if err != nil {
 		return err
-	}
-
-	fmt.Println("Identities:")
-	for _, id := range resp.Identities {
-		fmt.Printf("%+v\n", id)
 	}
 
 	return nil
@@ -348,10 +345,10 @@ func checkOtherFlags(cmd *cobra.Command) bool {
 
 func argsCheck(args []string) error {
 	if len(args) == 0 {
-		return errors.Errorf("Identity name is required")
+		return errors.New("Identity name is required")
 	}
 	if len(args) > 1 {
-		return errors.Errorf("Too many arguments, only the identity name should be passed in as argument")
+		return errors.Errorf("Unknown argument '%s', only the identity name should be passed in as non-flag argument", args[1])
 	}
 	return nil
 }

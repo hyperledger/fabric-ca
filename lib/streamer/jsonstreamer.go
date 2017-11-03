@@ -24,81 +24,65 @@ package streamer
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"reflect"
 	"strings"
 
+	"github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/pkg/errors"
 )
 
-// StreamJSONArray scans the JSON stream associated with 'decoder' to find
-// an array value associated with the json element at 'pathToArray'.
-// It then calls the 'cb' callback function so that it can decode one element
-// in the stream at a time.
-func StreamJSONArray(decoder *json.Decoder, pathToArray string, cb func(decoder *json.Decoder) error) error {
-	js := &jsonStream{decoder: decoder}
-	err := js.findPath(strings.Split(pathToArray, "."))
-	if err != nil {
-		return err
+// SearchElement defines the JSON arrays for which to search
+type SearchElement struct {
+	Path string
+	CB   func(*json.Decoder) error
+}
+
+// StreamJSONArray searches the JSON stream for an array matching 'path'.
+// For each element of this array, it streams one element at a time.
+func StreamJSONArray(decoder *json.Decoder, path string, cb func(*json.Decoder) error) error {
+	ses := []SearchElement{
+		SearchElement{Path: path, CB: cb},
+		SearchElement{Path: "errors", CB: errCB},
 	}
-	err = js.assertDelim("[")
-	if err != nil {
-		return errors.Errorf("Expecting array value at '%s'", pathToArray)
-	}
-	// While the array contains values
-	for decoder.More() {
-		err = cb(decoder)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return StreamJSON(decoder, ses)
+}
+
+// StreamJSON searches the JSON stream for arrays matching a search element.
+// For each array that it finds, it streams them one element at a time.
+func StreamJSON(decoder *json.Decoder, search []SearchElement) error {
+	js := &jsonStream{decoder: decoder, search: search, stack: []string{}}
+	return js.stream()
 }
 
 type jsonStream struct {
 	decoder *json.Decoder
+	search  []SearchElement
+	stack   []string
 }
 
-func (js *jsonStream) findPath(path []string) error {
-	if len(path) == 0 {
-		// Found the path
-		return nil
-	}
-	err := js.assertDelim("{")
-	if err != nil {
-		return err
-	}
-	for {
-		str, err := js.getString()
-		if err != nil {
-			return err
-		}
-		if str == path[0] {
-			break
-		}
-		err = js.skip()
-		if err != nil {
-			return err
-		}
-	}
-	if len(path) == 1 {
-		// Found the path
-		return nil
-	}
-	return js.findPath(path[1:])
-}
-
-func (js *jsonStream) skip() error {
+func (js *jsonStream) stream() error {
 	t, err := js.getToken()
 	if err != nil {
 		return err
 	}
 	if _, ok := t.(json.Delim); !ok {
-		// Was not a delimiter, so we're done
 		return nil
 	}
-	// It was a delimiter, so skip to the matching delimiter
+	path := strings.Join(js.stack, ".")
+	se := js.getSearchElement(path)
 	d := fmt.Sprintf("%s", t)
 	switch d {
 	case "[":
+		if se != nil {
+			for js.decoder.More() {
+				err = se.CB(js.decoder)
+				if err != nil {
+					return err
+				}
+			}
+		}
 		err = js.skipToDelim("]")
 		if err != nil {
 			return err
@@ -106,18 +90,44 @@ func (js *jsonStream) skip() error {
 	case "]":
 		return errors.Errorf("Unexpected '%s'", d)
 	case "{":
-		err = js.skipToDelim("}")
-		if err != nil {
-			return err
+		if se != nil {
+			return errors.Errorf("Expecting array for value of '%s'", path)
+		}
+		for {
+			name, err := js.getNextName()
+			if err != nil {
+				return err
+			}
+			if name == "" {
+				return nil
+			}
+			stack := js.stack
+			js.stack = append(stack, name)
+			err = js.stream()
+			if err != nil {
+				return err
+			}
+			js.stack = stack
 		}
 	case "}":
-		err = errors.Errorf("Unexpected '%s'", d)
+		return errors.Errorf("Unexpected '%s'", d)
 	default:
-		err = errors.Errorf("unknown JSON delimiter: '%s'", d)
+		return errors.Errorf("unknown JSON delimiter: '%s'", d)
 	}
-	return err
+	return nil
 }
 
+// Find a search element named 'path'
+func (js *jsonStream) getSearchElement(path string) *SearchElement {
+	for _, ele := range js.search {
+		if ele.Path == path {
+			return &ele
+		}
+	}
+	return nil
+}
+
+// Skip over tokens until we hit the delimiter
 func (js *jsonStream) skipToDelim(delim string) error {
 	for {
 		t, err := js.getToken()
@@ -151,37 +161,38 @@ func (js *jsonStream) skipToDelim(delim string) error {
 	}
 }
 
-func (js *jsonStream) assertDelim(delim string) error {
-	t, err := js.getToken()
-	if err != nil {
-		return err
-	}
-	if _, ok := t.(json.Delim); !ok {
-		return errors.Errorf("Invalid JSON; expecting delimiter but found '%s'", t)
-	}
-	d := fmt.Sprintf("%s", t)
-	if d != delim {
-		return errors.Errorf("Invalid JSON; expecting '%s' but found '%s'", delim, t)
-	}
-	return nil
-}
-
-func (js *jsonStream) getString() (string, error) {
-	t, err := js.getToken()
+func (js *jsonStream) getNextName() (string, error) {
+	token, err := js.getToken()
 	if err != nil {
 		return "", err
 	}
-	var val string
-	var ok bool
-	if val, ok = t.(string); !ok {
-		return "", errors.Errorf("Invalid JSON; expecting string but found '%s'", t)
+	switch v := token.(type) {
+	case string:
+		return v, nil
+	case json.Delim:
+		d := fmt.Sprintf("%s", v)
+		if d == "}" {
+			return "", nil
+		}
+		return "", errors.Errorf("Expecting '}' delimiter but found '%s'", d)
+	default:
+		return "", errors.Errorf("Expecting string or delimiter but found '%s'", v)
 	}
-	return val, nil
 }
 
 func (js *jsonStream) getToken() (interface{}, error) {
 	token, err := js.decoder.Token()
-	// Commenting out following debug because is too verbose normally
-	//log.Debugf("read token %s", token)
+	if os.Getenv("FABRIC_CA_JSON_STREAM_DEBUG") != "" {
+		log.Debugf("TOKEN: type=%s, %+v\n", reflect.TypeOf(token), token)
+	}
 	return token, err
+}
+
+func errCB(decoder *json.Decoder) error {
+	errMsg := &api.ResponseMessage{}
+	err := decoder.Decode(errMsg)
+	if err != nil {
+		return errors.Errorf("Invalid JSON error format: %s", err)
+	}
+	return errors.Errorf("%+v", errMsg)
 }
