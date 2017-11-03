@@ -225,6 +225,78 @@ func (i *Identity) GetAllIdentities(caname string) (*api.GetAllIDsResponse, erro
 	return result, nil
 }
 
+// IdentityResponse is the response from the any add/modify/remove identity call
+type IdentityResponse struct {
+	api.IdentityInfo `mapstructure:",squash"`
+	Secret           string `json:"secret"`
+	CAName           string `json:"caname"`
+}
+
+// AddIdentity adds a new identity to the server
+func (i *Identity) AddIdentity(req *api.AddIdentityRequest) (*IdentityResponse, error) {
+	log.Debugf("Entering identity.AddIdentity with request: %+v", req)
+	if req.ID == "" {
+		return nil, errors.New("Adding identity with no 'ID' set")
+	}
+
+	reqBody, err := util.Marshal(req, "addIdentity")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a post to the "identities" endpoint with req as body
+	result := &IdentityResponse{}
+	err = i.Post("identities", reqBody, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("Successfully added new identity")
+	return result, nil
+}
+
+// ModifyIdentity modifies an existing identity on the server
+func (i *Identity) ModifyIdentity(req *api.ModifyIdentityRequest) (*IdentityResponse, error) {
+	log.Debugf("Entering identity.ModifyIdentity with request: %+v", req)
+	if req.ID == "" {
+		return nil, errors.New("Name of identity to be modified not specified")
+	}
+
+	reqBody, err := util.Marshal(req, "modifyIdentity")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a put to the "identities" endpoint with req as body
+	result := &IdentityResponse{}
+	err = i.Put(fmt.Sprintf("identities/%s", req.ID), reqBody, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("Successfully modified identity")
+	return result, nil
+}
+
+// RemoveIdentity removes a new identity from the server
+func (i *Identity) RemoveIdentity(req *api.RemoveIdentityRequest) (*IdentityResponse, error) {
+	log.Debugf("Entering identity.RemoveIdentity with request: %+v", req)
+	id := req.ID
+	if id == "" {
+		return nil, errors.New("Name of the identity to removed is required")
+	}
+
+	// Send a delete to the "identities" endpoint id as a path parameter
+	result := &IdentityResponse{}
+	err := i.Delete(fmt.Sprintf("identities/%s", id), req.CAName, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully removed identity: %s", id)
+	return result, nil
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {
@@ -240,9 +312,36 @@ func (i *Identity) Get(endpoint, caname string, result interface{}) error {
 		return err
 	}
 	if caname != "" {
-		url := req.URL.Query()
-		url.Add("ca", caname)
-		req.URL.RawQuery = url.Encode()
+		addQueryParm(req, "ca", caname)
+	}
+	err = i.addTokenAuthHdr(req, nil)
+	if err != nil {
+		return err
+	}
+	return i.client.SendReq(req, result)
+}
+
+// Put sends a put request to an endpoint
+func (i *Identity) Put(endpoint string, reqBody []byte, result interface{}) error {
+	req, err := i.client.newPut(endpoint, reqBody)
+	if err != nil {
+		return err
+	}
+	err = i.addTokenAuthHdr(req, reqBody)
+	if err != nil {
+		return err
+	}
+	return i.client.SendReq(req, result)
+}
+
+// Delete sends a delete request to an endpoint
+func (i *Identity) Delete(endpoint, caname string, result interface{}) error {
+	req, err := i.client.newDelete(endpoint)
+	if err != nil {
+		return err
+	}
+	if caname != "" {
+		addQueryParm(req, "ca", caname)
 	}
 	err = i.addTokenAuthHdr(req, nil)
 	if err != nil {

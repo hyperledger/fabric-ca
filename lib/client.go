@@ -332,7 +332,7 @@ func (c *Client) StoreMyIdentity(cert []byte) error {
 
 // LoadIdentity loads an identity from disk
 func (c *Client) LoadIdentity(keyFile, certFile string) (*Identity, error) {
-	log.Debug("Loading identity: keyFile=%s, certFile=%s", keyFile, certFile)
+	log.Debugf("Loading identity: keyFile=%s, certFile=%s", keyFile, certFile)
 	err := c.Init()
 	if err != nil {
 		return nil, err
@@ -383,7 +383,7 @@ func (c *Client) GetCertFilePath() string {
 	return c.certFile
 }
 
-// NewGet create a new GET request
+// newGet create a new GET request
 func (c *Client) newGet(endpoint string) (*http.Request, error) {
 	curl, err := c.getURL(endpoint)
 	if err != nil {
@@ -392,6 +392,32 @@ func (c *Client) newGet(endpoint string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", curl, bytes.NewReader([]byte{}))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed creating GET request for %s", curl)
+	}
+	return req, nil
+}
+
+// newPut create a new PUT request
+func (c *Client) newPut(endpoint string, reqBody []byte) (*http.Request, error) {
+	curl, err := c.getURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PUT", curl, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed creating PUT request for %s", curl)
+	}
+	return req, nil
+}
+
+// newDelete create a new DELETE request
+func (c *Client) newDelete(endpoint string) (*http.Request, error) {
+	curl, err := c.getURL(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("DELETE", curl, bytes.NewReader([]byte{}))
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed creating DELETE request for %s", curl)
 	}
 	return req, nil
 }
@@ -422,7 +448,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "POST failure of request: %s", reqStr)
+		return errors.Wrapf(err, "%s failure of request: %s", req.Method, reqStr)
 	}
 	var respBody []byte
 	if resp.Body != nil {

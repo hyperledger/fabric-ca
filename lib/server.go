@@ -38,6 +38,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
+	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
@@ -75,7 +76,7 @@ type Server struct {
 	// The server's configuration
 	Config *ServerConfig
 	// The server mux
-	mux *http.ServeMux
+	mux *gmux.Router
 	// The current listener for this server
 	listener net.Listener
 	// An error which occurs when serving
@@ -467,7 +468,7 @@ func (s *Server) GetCA(name string) (*CA, error) {
 
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
-	s.mux = http.NewServeMux()
+	s.mux = gmux.NewRouter()
 	s.registerHandler("cainfo", newCAInfoEndpoint(s))
 	s.registerHandler("register", newRegisterEndpoint(s))
 	s.registerHandler("enroll", newEnrollEndpoint(s))
@@ -475,6 +476,8 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("revoke", newRevokeEndpoint(s))
 	s.registerHandler("tcert", newTCertEndpoint(s))
 	s.registerHandler("gencrl", newGenCRLEndpoint(s))
+	s.registerHandler("identities", newIdentitiesEndpoint(s))
+	s.registerHandler("identities/{id}", newIdentitiesEndpoint(s))
 }
 
 // Register a handler

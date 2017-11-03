@@ -23,6 +23,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -186,4 +187,10 @@ func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error
 // GetUserAffiliation return a joined version version of the affiliation path with '.' as the seperator
 func GetUserAffiliation(user spi.User) string {
 	return strings.Join(user.GetAffiliationPath(), ".")
+}
+
+func addQueryParm(req *http.Request, name, value string) {
+	url := req.URL.Query()
+	url.Add(name, value)
+	req.URL.RawQuery = url.Encode()
 }

@@ -200,6 +200,7 @@ type AddIdentityRequest struct {
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.
 	Secret string `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity being registered"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // ModifyIdentityRequest represents the request to modify an existing identity on the
@@ -211,25 +212,33 @@ type ModifyIdentityRequest struct {
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.a
 	Secret string `json:"secret,omitempty" mask:"password"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // RemoveIdentityRequest represents the request to remove an existing identity from the
 // fabric-ca-server
 type RemoveIdentityRequest struct {
 	ID     string `json:"id" skip:"true"`
-	CAName string `json:"caname" skip:"true"`
+	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // GetIDResponse is the response from the GetIdentity call
 type GetIDResponse struct {
 	IdentityInfo `mapstructure:",squash"`
-	CAName       string `json:"caname"`
+	CAName       string `json:"caname,omitempty"`
 }
 
 // GetAllIDsResponse is the response from the GetAllIdentities call
 type GetAllIDsResponse struct {
 	Identities []IdentityInfo
-	CAName     string `json:"caname"`
+	CAName     string `json:"caname,omitempty"`
+}
+
+// IdentityResponse is the response from the any add/modify/remove identity call
+type IdentityResponse struct {
+	IdentityInfo `mapstructure:",squash"`
+	Secret       string `json:"secret,omitempty"`
+	CAName       string `json:"caname,omitempty"`
 }
 
 // IdentityInfo contains information about an identity
