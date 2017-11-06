@@ -463,9 +463,9 @@
                   ],
                   "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                 },
-                "affiliation_path": {
+                "affiliation": {
                   "type": "string",
-                  "description": "The affiliation path of the new identity.\n"
+                  "description": "The affiliation of the new identity.\n If no affliation is provided, the affiliation of the registrar is used."
                 },
                 "attrs": {
                   "type": "array",
@@ -502,7 +502,6 @@
               },
               "required": [
                 "id",
-                "affiliation_path",
                 "attrs"
               ]
             }
