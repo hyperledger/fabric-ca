@@ -145,6 +145,8 @@ const (
 	ErrRemoveIdentity = 56
 	// Failed to get boolean query parameter
 	ErrGettingBoolQueryParm = 57
+	// Failed to modify identity
+	ErrModifyingIdentity = 58
 )
 
 // Construct a new HTTP error.

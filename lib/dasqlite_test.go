@@ -93,7 +93,12 @@ func Truncate(db *sqlx.DB) {
 func TestEmptyAccessor(t *testing.T) {
 	a := &Accessor{}
 	ui := spi.UserInfo{}
-	err := a.InsertUser(ui)
+	err := a.InsertUser(nil)
+	if err == nil {
+		t.Error("Passing in nil should have resulted in an error")
+	}
+
+	err = a.InsertUser(&ui)
 	if err == nil {
 		t.Error("Empty Accessor InsertUser should have failed")
 	}
@@ -254,7 +259,7 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 		},
 	}
 
-	err := ta.Accessor.InsertUser(insert)
+	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
@@ -329,7 +334,7 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 		Attributes: []api.Attribute{},
 	}
 
-	err := ta.Accessor.InsertUser(insert)
+	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
 		t.Errorf("Error occured during insert query of id: %s, error: %s", insert.Name, err)
 	}
@@ -357,14 +362,19 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 		MaxEnrollments: 1,
 	}
 
-	err := ta.Accessor.InsertUser(insert)
+	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
 	insert.Pass = "654321"
 
-	ta.Accessor.UpdateUser(insert)
+	err = ta.Accessor.UpdateUser(nil, true)
+	if err == nil {
+		t.Error("Passing in nil should have resulted in an error")
+	}
+
+	err = ta.Accessor.UpdateUser(&insert, true)
 	if err != nil {
 		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.Name, err)
 	}

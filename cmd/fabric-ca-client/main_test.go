@@ -552,11 +552,11 @@ func TestIdentityCmd(t *testing.T) {
 
 	// Add user using JSON
 	err = RunMain([]string{
-		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}`})
+		cmdName, "identity", "add", "-d", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "false"},{"name": "hf.IntermediateCA", "value": "false"}]}`})
 	assert.NoError(t, err, "Failed to add user 'testuser1'")
 
 	err = RunMain([]string{
-		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}`})
+		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "false"}]}`})
 	assert.Error(t, err, "Should have failed to add same user twice")
 
 	// Add user using flags
@@ -573,22 +573,53 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
 	util.FatalError(t, err, "Failed to enroll user")
 
-	server.CA.Config.Cfg.Identities.AllowRemove = true
-
 	registry := server.CA.DBAccessor()
-	_, err = registry.GetUser("testuser1", nil)
+	user, err := registry.GetUser("testuser1", nil)
 	assert.NoError(t, err, "Failed to get user 'testuser1'")
+
+	_, err = user.GetAttribute("hf.IntermediateCA")
+	assert.NoError(t, err, "Failed to get attribute")
 
 	_, err = registry.GetUser("testuser2", nil)
 	assert.NoError(t, err, "Failed to get user 'testuser2'")
 
+	// Modify value for hf.Revoker, add hf.Registrar.Roles, and delete hf.IntermediateCA attribute
+	err = RunMain([]string{
+		cmdName, "identity", "modify", "testuser1", "--type", "peer", "--affiliation", ".", "--attrs", "hf.Revoker=true,hf.Registrar.Roles=peer,hf.IntermediateCA="})
+	assert.NoError(t, err, "Failed to modify user 'testuser1'")
+
+	user, err = registry.GetUser("testuser1", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser1'")
+
+	if user.GetType() != "peer" {
+		t.Error("Failed to correctly modify user 'testuser1'")
+	}
+	affPath := lib.GetUserAffiliation(user)
+	if affPath != "" {
+		t.Error("Failed to correctly modify user 'testuser1'")
+	}
+	attrs, err := user.GetAttributes(nil)
+	assert.NoError(t, err, "Failed to get user attributes")
+	attrMap := getAttrsMap(attrs)
+
+	val := attrMap["hf.Revoker"]
+	assert.Equal(t, "true", val.Value, "Failed to correctly modify attributes for user 'testuser1'")
+
+	val = attrMap["hf.Registrar.Roles"]
+	assert.Equal(t, "peer", val.Value, "Failed to correctly modify attributes for user 'testuser1'")
+
+	_, found := attrMap["hf.IntermediateCA"]
+	assert.False(t, found, "Failed to delete attribute 'hf.IntermediateCA'")
+
+	err = RunMain([]string{
+		cmdName, "identity", "remove", "testuser1"})
+	assert.Error(t, err, "Should have failed, identity removal not allowed on server")
+
+	server.CA.Config.Cfg.Identities.AllowRemove = true
+
 	err = RunMain([]string{
 		cmdName, "identity", "remove", "testuser1"})
 	assert.NoError(t, err, "Failed to remove user")
-
-	err = RunMain([]string{
-		cmdName, "identity", "modify", "testuser", "--type", "peer"})
-	assert.Error(t, err, "Should have failed, not yet implemented")
 }
 
 // Verify the certificate has attribute 'name' with a value of 'val'
@@ -2103,4 +2134,16 @@ func startServer(home string, port int, parentURL string, t *testing.T) *lib.Ser
 		t.Fatalf("Failed to start server: %s", err)
 	}
 	return srv
+}
+
+func getAttrsMap(attrs []api.Attribute) map[string]api.Attribute {
+	attrMap := make(map[string]api.Attribute)
+	for _, attr := range attrs {
+		attrMap[attr.Name] = api.Attribute{
+			Name:  attr.Name,
+			Value: attr.Value,
+			ECert: attr.ECert,
+		}
+	}
+	return attrMap
 }
