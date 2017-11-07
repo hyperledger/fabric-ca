@@ -166,6 +166,12 @@ func registerUserID(req *api.RegistrationRequestNet, ca *CA) (string, error) {
 		return "", errors.WithMessage(err, "The delegateRoles field is a superset of roles")
 	}
 
+	// Add attributes containing the enrollment ID, type, and affiliation if not
+	// already defined
+	addAttributeToRequest("hf.EnrollmentID", req.Name, req)
+	addAttributeToRequest("hf.Type", req.Type, req)
+	addAttributeToRequest("hf.Affiliation", req.Affiliation, req)
+
 	insert := spi.UserInfo{
 		Name:           req.Name,
 		Pass:           req.Secret,
@@ -291,4 +297,14 @@ func validateRequestedAttributes(reqAttrs []api.Attribute, registrar spi.User) e
 	}
 
 	return nil
+}
+
+// Add an attribute to the registration request if not already found.
+func addAttributeToRequest(name, value string, req *api.RegistrationRequestNet) {
+	for _, attr := range req.Attributes {
+		if attr.Name == name {
+			return
+		}
+	}
+	req.Attributes = append(req.Attributes, api.Attribute{Name: name, Value: value})
 }

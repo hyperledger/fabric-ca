@@ -54,8 +54,9 @@ Table of Contents
    4. `Reenrolling an identity`_
    5. `Revoking a certificate or identity`_
    6. `Generating a CRL (Certificate Revocation List)`_
-   7. `Enabling TLS`_
-   8. `Contact specific CA instance`_
+   7. `Attribute-Based Access Control`_
+   8. `Enabling TLS`_
+   9. `Contact specific CA instance`_
 
 6. `HSM`_
 
@@ -1324,14 +1325,14 @@ based upon an identity's attributes.  This is called
 **Attribute-Based Access Control**, or **ABAC** for short.
 
 In order to make this possible, an identity's enrollment certificate (ECert)
-may contain one or more attribute names and values.  The chaincode then
+may contain one or more attribute name and value.  The chaincode then
 extracts an attribute's value to make an access control decision.
 
 For example, suppose that you are developing application *app1* and want a
 particular chaincode operation to be accessible only by app1 administrators.
-Your chaincode could verify that the caller's certificate, which was issued by
-a CA trusted for the channel, contains an attribute named *app1Admin* with a
-value of *true*.  Note that the name of the attribute could be anything and the
+Your chaincode could verify that the caller's certificate (which was issued by
+a CA trusted for the channel) contains an attribute named *app1Admin* with a
+value of *true*.  Of course the name of the attribute can be anything and the
 value need not be a boolean value.
 
 So how do you get an enrollment certificate with an attribute?
@@ -1346,27 +1347,49 @@ There are two methods:
      The following shows how to register *user1* with two attributes:
      *app1Admin* and *email*.
      The ":ecert" suffix causes the *appAdmin* attribute to be inserted into user1's
-     enrollment certificate by default.  The *email* attribute is not added
+     enrollment certificate by default, when the user does not explicitly request
+     attributes at enrollment time.  The *email* attribute is not added
      to the enrollment certificate by default.
 
 .. code:: bash
 
-    fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'app1Admin=true:ecert,email=user1@gmail.com'
+     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'app1Admin=true:ecert,email=user1@gmail.com'
 
+2. When you enroll an identity, you may explicitly request that one or more attributes
+   be added to the certificate.
+   For each attribute requested, you may specify whether the attribute is
+   optional or not.  If it is not requested optionally and the identity does
+   not possess the attribute, an error will occur.
 
-2.   When you enroll an identity, you may request that one or more attributes
-     be added to the certificate.
-     For each attribute requested, you may specify whether the attribute is
-     optional or not.  If it is not optional but does not exist for the identity,
-     enrollment fails.
-
-     The following shows how to enroll *user1* with the *email* attribute,
-     without the *app1Admin* attribute, and optionally with the *phone*
-     attribute (if the user possesses the *phone* attribute).
+   The following shows how to enroll *user1* with the *email* attribute,
+   without the *app1Admin* attribute, and optionally with the *phone*
+   attribute (if the user possesses the *phone* attribute).
 
 .. code:: bash
 
-    fabric-ca-client enroll -u http://user1:user1pw@localhost:7054 --enrollment.attrs "email,phone:opt"
+   fabric-ca-client enroll -u http://user1:user1pw@localhost:7054 --enrollment.attrs "email,phone:opt"
+
+The table below shows the three attributes which are automatically registered for every identity.
+
+===================================   =====================================
+     Attribute Name                               Attribute Value
+===================================   =====================================
+  hf.EnrollmentID                        The enrollment ID of the identity
+  hf.Type                                The type of the identity
+  hf.Affiliation                         The affiliation of the identity
+===================================   =====================================
+
+To add any of the above attributes **by default** to a certificate, you must
+explicitly register the attribute with the ":ecert" specification.
+For example, the following registers identity 'user1' so that
+the 'hf.Affiliation' attribute will be added to an enrollment certificate if
+no specific attributes are requested at enrollment time.  Note that the
+value of the affiliation (which is 'org1') must be the same in both the
+'--id.affiliation' and the '--id.attrs' flags.
+
+.. code:: bash
+
+    fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
 
 For information on the chaincode library API for Attribute-Based Access Control,
 see https://github.com/hyperledger/fabric/tree/release/core/chaincode/lib/cid/README.md
