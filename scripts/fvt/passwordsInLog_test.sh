@@ -106,7 +106,7 @@ function testIntermediateCa() {
    LOGFILE=$TESTDIR/testIntermediateCa.log
    fabric-ca-server start --csr.hosts 127.0.0.2 --address 127.0.0.2 --port 7055 -b admin:adminpw $INTTLSOPT \
                           -u ${PROTO}intermediateCa1:intermediateCa1pw@127.0.0.1:$CA_DEFAULT_PORT -d > $LOGFILE 2>&1 &
-   pollServer fabric-ca-server 127.0.0.2 7055 || ErrorMsg "Failed to start intermediate CA"
+   pollFabricCa "" 127.0.0.2 7055 || ErrorMsg "Failed to start intermediate CA"
    checkPasswd intermediateCa1pw intermediateCa
    cp $LOGFILE $FABRIC_CA_SERVER_HOME/testIntermediateCa.log
 }

@@ -68,7 +68,7 @@ cd $CERT_HOME
 cp $TESTDATA/TestCRL.crl $CERT_HOME
 python -m SimpleHTTPServer $HTTP_PORT &
 HTTP_PID=$!
-pollServer python localhost "$HTTP_PORT" || ErrorExit "Failed to start HTTP server"
+pollSimpleHttp
 echo $HTTP_PID
 trap "kill $HTTP_PID; CleanUp 1; exit 1" INT
 

@@ -13,11 +13,8 @@ SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
 PROTO="http://"
-ROOT_CA_ADDR=localhost
-CA_PORT=17054
 TLSDIR="$TESTDATA"
 NUMINTCAS=4
-TIMEOUT=30
 MAXENROLL=$((2*NUMINTCAS))
 NUMUSERS=2
 RC=0
@@ -28,10 +25,10 @@ function createRootCA() {
    $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/ca0" -d $driver -m $MAXENROLL
    sed -i "/^ca:/,/^[^\t ]/ s@\(\(cert\|key\)file:\).*@\1@" $TDIR/ca0/runFabricCaFvt.yaml
    FABRIC_CA_SERVER_HOME="$TDIR/ca0" fabric-ca-server start -d --cacount $NUMINTCAS \
-                                      --csr.hosts $ROOT_CA_ADDR --address $ROOT_CA_ADDR \
+                                      --csr.hosts $CA_HOST_ADDRESS --address $CA_HOST_ADDRESS \
                                       -c $TDIR/ca0/runFabricCaFvt.yaml 2>&1 |
                                       tee $TDIR/ca0/server.log &
-   pollServer fabric-ca-server $ROOT_CA_ADDR $CA_PORT $TIMEOUT
+   pollFabricCa "" "" $CA_DEFAULT_PORT
 }
 
 function enrollUser() {
@@ -42,7 +39,7 @@ function enrollUser() {
                    --caname $caname \
                    --mspdir $TDIR/$caname/$user/${user}msp \
                    --id.maxenrollments $MAXENROLL \
-                   -u ${PROTO}$user:$pswd@$ROOT_CA_ADDR:$CA_PORT \
+                   -u ${PROTO}$user:$pswd@$CA_HOST_ADDRESS:$CA_DEFAULT_PORT \
                    -c $TDIR/$caname/enroll.yaml \
                    $TLSOPT \
                    --csr.hosts $user@fab-client.raleigh.ibm.com,${user}.fabric.raleigh.ibm.com,127.42.42.$i
@@ -54,7 +51,7 @@ function registerAndEnrollUser() {
    local caname=$2
    local attrs='a=1,b=2,c=3,d=4,e=5,f=6,g=7,h=8,i=9,j=100000'
    local rc=0
-   pswd=$(eval /usr/local/bin/fabric-ca-client register -u ${PROTO}admin:adminpw@$ROOT_CA_ADDR:$CA_PORT \
+   pswd=$(eval /usr/local/bin/fabric-ca-client register -u ${PROTO}admin:adminpw@$CA_HOST_ADDRESS:$CA_DEFAULT_PORT \
                         --id.attrs "$attrs" \
                         --caname $caname \
                         --mspdir $TDIR/$caname/admin/adminmsp \
@@ -68,7 +65,7 @@ function registerAndEnrollUser() {
                    --caname $caname \
                    --mspdir $TDIR/$caname/$user/${user}msp \
                    --id.maxenrollments $MAXENROLL \
-                   -u ${PROTO}$user:$pswd@$ROOT_CA_ADDR:$CA_PORT \
+                   -u ${PROTO}$user:$pswd@$CA_HOST_ADDRESS:$CA_DEFAULT_PORT \
                    -c $TDIR/$caname/$user/enroll.yaml \
                    $TLSOPT \
                    --csr.hosts $user@fab-client.raleigh.ibm.com,$user.fabric.raleigh.ibm.com,127.37.37.$i
@@ -83,7 +80,7 @@ function reenrollUser() {
                       --caname $caname \
                       --mspdir $TDIR/$caname/${user}/${user}msp \
                       --id.maxenrollments $MAXENROLL \
-                      -u ${PROTO}@$ROOT_CA_ADDR:$CA_PORT \
+                      -u ${PROTO}@$CA_HOST_ADDRESS:$CA_DEFAULT_PORT \
                       -c $TDIR/$caname/$user/enroll.yaml \
                       $TLSOPT \
                       --csr.hosts ${user}@fab-client.raleigh.ibm.com,${user}.fabric.raleigh.ibm.com,127.42.42.$i
@@ -102,7 +99,7 @@ function revokeUser() {
    export FABRIC_CA_CLIENT_HOME="$TDIR/$caname/$revoker"
    /usr/local/bin/fabric-ca-client revoke --caname $caname \
                --mspdir $TDIR/$caname/$revoker/${revoker}msp \
-               -u ${PROTO}$ROOT_CA_ADDR:$CA_PORT \
+               -u ${PROTO}$CA_HOST_ADDRESS:$CA_DEFAULT_PORT \
                --revoke.name $user $serial $index $TLSOPT
    return $?
 }
