@@ -302,6 +302,103 @@ func (i *Identity) RemoveIdentity(req *api.RemoveIdentityRequest) (*api.Identity
 	return result, nil
 }
 
+// GetAffiliation returns information about the requested affiliation
+func (i *Identity) GetAffiliation(affiliation, caname string) (*api.AffiliationResponse, error) {
+	log.Debugf("Entering identity.GetAffiliation %+v", affiliation)
+	result := &api.AffiliationResponse{}
+	err := i.Get(fmt.Sprintf("affiliations/%s", affiliation), caname, result)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully retrieved affiliation: %+v", result)
+	return result, nil
+}
+
+// GetAllAffiliations returns all affiliations that the caller is authorized to see
+func (i *Identity) GetAllAffiliations(caname string) (*api.GetAllAffiliationsResponse, error) {
+	log.Debugf("Entering identity.GetAllAffiliations")
+	result := &api.GetAllAffiliationsResponse{}
+	err := i.Get("affiliations", caname, result)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully retrieved affiliations: %+v", result)
+	return result, nil
+}
+
+// AddAffiliation adds a new affiliation to the server
+func (i *Identity) AddAffiliation(req *api.AddAffiliationRequest) (*api.AffiliationResponse, error) {
+	log.Debugf("Entering identity.AddAffiliation with request: %+v", req)
+	if req.Info.Name == "" {
+		return nil, errors.New("Affiliation to add was not specified")
+	}
+
+	reqBody, err := util.Marshal(req, "addAffiliation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a post to the "affiliations" endpoint with req as body
+	result := &api.AffiliationResponse{}
+	err = i.Post("affiliations", reqBody, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully added new affiliation")
+	return result, nil
+}
+
+// ModifyAffiliation renames an existing affiliation on the server
+func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.AffiliationResponse, error) {
+	log.Debugf("Entering identity.ModifyAffiliation with request: %+v", req)
+	modifyAff := req.Name
+	if modifyAff == "" {
+		return nil, errors.New("Affiliation to modify was not specified")
+	}
+
+	if req.Info.Name == "" {
+		return nil, errors.New("New affiliation not specified")
+	}
+
+	reqBody, err := util.Marshal(req.Info, "modifyIdentity")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a put to the "affiliations" endpoint with req as body
+	result := &api.AffiliationResponse{}
+	err = i.Put(fmt.Sprintf("affiliations/%s", modifyAff), reqBody, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully modified affiliation")
+	return result, nil
+}
+
+// RemoveAffiliation removes an existing affiliation from the server
+func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.RemoveAffiliationResponse, error) {
+	log.Debugf("Entering identity.RemoveAffiliation with request: %+v", req)
+	removeAff := req.Name
+	if removeAff == "" {
+		return nil, errors.New("Affiliation to remove was not specified")
+	}
+
+	// Send a delete to the "identities" endpoint id as a path parameter
+	result := &api.RemoveAffiliationResponse{}
+	queryParam := make(map[string]string)
+	queryParam["force"] = strconv.FormatBool(req.Force)
+	queryParam["ca"] = req.CAName
+	err := i.Delete(fmt.Sprintf("affiliations/%s", removeAff), result, queryParam)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully removed affiliation")
+	return result, nil
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {

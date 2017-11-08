@@ -252,6 +252,55 @@ type IdentityInfo struct {
 	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
 }
 
+// GetAllAffiliationsResponse is the response from the GetAllAffiliations call
+type GetAllAffiliationsResponse struct {
+	Affiliations []AffiliationInfo `json:"affiliations"`
+	CAName       string            `json:"caname,omitempty"`
+}
+
+// AddAffiliationRequest represents the request to add a new affiliation to the
+// fabric-ca-server
+type AddAffiliationRequest struct {
+	Info   AffiliationInfo `json:"info"`
+	Force  bool            `json:"force"`
+	CAName string          `json:"caname,omitempty"`
+}
+
+// ModifyAffiliationRequest represents the request to modify an existing affiliation on the
+// fabric-ca-server
+type ModifyAffiliationRequest struct {
+	Name   string          `json:"name"`
+	Info   AffiliationInfo `json:"info"`
+	Force  bool            `json:"force"`
+	CAName string          `json:"caname,omitempty"`
+}
+
+// RemoveAffiliationRequest represents the request to remove an existing affiliation from the
+// fabric-ca-server
+type RemoveAffiliationRequest struct {
+	Name   string `json:"name"`
+	Force  bool   `json:"force"`
+	CAName string `json:"caname,omitempty"`
+}
+
+// RemoveAffiliationResponse contains the response from removing an affiliation request
+type RemoveAffiliationResponse struct {
+	Affiliations []AffiliationInfo `json:"affiliations"`
+	Identities   []IdentityInfo    `json:"identities"`
+	CAName       string            `json:"caname,omitempty"`
+}
+
+// AffiliationResponse is the response from the any add/modify/remove affiliation call
+type AffiliationResponse struct {
+	Info   AffiliationInfo `json:"info"`
+	CAName string          `json:"caname,omitempty"`
+}
+
+// AffiliationInfo contains information about the affiliation
+type AffiliationInfo struct {
+	Name string `json:"name"`
+}
+
 // CSRInfo is Certificate Signing Request (CSR) Information
 type CSRInfo struct {
 	CN           string           `json:"CN"`

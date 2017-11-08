@@ -622,6 +622,81 @@ func TestIdentityCmd(t *testing.T) {
 	assert.NoError(t, err, "Failed to remove user")
 }
 
+func TestAffiliationCmd(t *testing.T) {
+	var err error
+
+	// Start with a clean test dir
+	os.RemoveAll("affiliation")
+	defer os.RemoveAll("affiliation")
+
+	// Start the server
+	server := startServer("affiliation", 7090, "", t)
+	defer server.Stop()
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	err = RunMain([]string{cmdName, "register", "--id.name", "testuser"})
+	util.FatalError(t, err, "Failed to register user")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "list"})
+	assert.Error(t, err, "Should fail, affiliation endpoint not yet created")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "list", "--affiliation", "org2"})
+	assert.Error(t, err, "Should fail, affiliation endpoint not yet created")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add", "org3"})
+	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify", "org3"})
+	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove", "org3"})
+	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+
+}
+
 // Verify the certificate has attribute 'name' with a value of 'val'
 // and does not have the 'missing' attribute.
 func checkAttrsInCert(t *testing.T, home, name, val, missing string) {
