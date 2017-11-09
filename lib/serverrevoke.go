@@ -26,6 +26,11 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 )
 
+type revocationResponseNet struct {
+	RevokedCerts []api.RevokedCert
+	CRL          []byte
+}
+
 func newRevokeEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
 		Methods: []string{"POST"},
@@ -66,6 +71,7 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 	registry := ca.registry
 	reason := util.RevocationReasonCodes[req.Reason]
 
+	result := &revocationResponseNet{}
 	if req.Serial != "" && req.AKI != "" {
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
@@ -92,6 +98,7 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 		if err != nil {
 			return nil, newHTTPErr(500, ErrRevokeFailure, "Revoke of certificate <%s,%s> failed: %s", req.Serial, req.AKI, err)
 		}
+		result.RevokedCerts = append(result.RevokedCerts, api.RevokedCert{Serial: req.Serial, AKI: req.AKI})
 	} else if req.Name != "" {
 
 		user, err := registry.GetUser(req.Name, nil)
@@ -129,18 +136,27 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 
 		if len(recs) == 0 {
 			log.Warningf("No certificates were revoked for '%s' but the ID was disabled", req.Name)
+		} else {
+			log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
+			for _, certRec := range recs {
+				result.RevokedCerts = append(result.RevokedCerts, api.RevokedCert{AKI: certRec.AKI, Serial: certRec.Serial})
+			}
 		}
-
-		log.Debugf("Revoked the following certificates owned by '%s': %+v", req.Name, recs)
-
 	} else {
 		return nil, newHTTPErr(400, ErrMissingRevokeArgs, "Either Name or Serial and AKI are required for a revoke request")
 	}
 
 	log.Debugf("Revoke was successful: %+v", req)
 
-	// TODO: Return the AKI and serial number of certs which were revoked
-	result := map[string]string{}
+	if req.GenCRL && len(result.RevokedCerts) > 0 {
+		log.Debugf("Generating CRL")
+		crl, err := genCRL(ca, api.GenCRLRequest{CAName: ca.Config.CA.Name})
+		if err != nil {
+			return nil, err
+		}
+		result.CRL = crl
+	}
+
 	return result, nil
 }
 

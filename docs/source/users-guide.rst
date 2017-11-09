@@ -1238,13 +1238,24 @@ and pass them to the ``revoke`` command to revoke the said certificate as follow
    aki=$(openssl x509 -in userecert.pem -text | awk '/keyid/ {gsub(/ *keyid:|:/,"",$1);print tolower($0)}')
    fabric-ca-client revoke -s $serial -a $aki -r affiliationchange
 
+The `--gencrl` flag can be used to generate a CRL (Certificate Revocation List) that contains all the revoked
+certificates. For example, following command will revoke the identity **peer1**, generates a CRL and stores
+it in the **<msp folder>/crls/crl.pem** file.
+
+.. code:: bash
+
+    fabric-ca-client revoke -e peer1 --gencrl
+
+A CRL can also be generated using the `gencrl` command. Refer to the `Generating a CRL (Certificate Revocation List)`_
+section for more information on the `gencrl` command.
+
 Generating a CRL (Certificate Revocation List)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 After a certificate is revoked in the Fabric CA server, the appropriate MSPs in Hyperledger Fabric must also be updated.
 This includes both local MSPs of the peers as well as MSPs in the appropriate channel configuration blocks.
 To do this, PEM encoded CRL (certificate revocation list) file must be placed in the `crls`
 folder of the MSP. The ``fabric-ca-client gencrl`` command can be used to generate a CRL. Any identity
-with ``hf.GenCRL`` attribute can create a CRL that includes all certificates that were revoked
+with ``hf.GenCRL`` attribute can create a CRL that contains serial numbers of all certificates that were revoked
 during a certain period. The created CRL is stored in the `<msp folder>/crls/crl.pem` file.
 
 The following command will create a CRL containing all the revoked certficates (expired and unexpired) and
@@ -1286,10 +1297,10 @@ before 2017-09-21T16:39:57-08:00, and that expire after 2017-09-13T16:39:57-08:0
     export FABRIC_CA_CLIENT_HOME=~/clientconfig
     fabric-ca-client gencrl --caname "" --expireafter 2017-09-13T16:39:57-08:00 --expirebefore 2018-09-13T16:39:57-08:00  --revokedafter 2017-09-13T16:39:57-08:00 --revokedbefore 2017-09-21T16:39:57-08:00 -M ~/msp
 
-The `fabric-samples/fabric-ca <http://github.com/hyperledger/fabric-samples/fabric-ca/scripts/run-fabric.sh>`_
-sample demonstrates how to generate a CRL that contains certificate of a revoked user and update the msp in
-the configuration block of a channel. It will then demonstrate that querying the channel using the
-revoked user credentials will result in an authorization error.
+The `fabric-samples/fabric-ca <https://github.com/hyperledger/fabric-samples/blob/master/fabric-ca/scripts/run-fabric.sh>`_
+sample demonstrates how to generate a CRL that contains certificate of a revoked user and update the channel
+msp. It will then demonstrate that querying the channel using the revoked user credentials will result
+in an authorization error.
 
 Enabling TLS
 ~~~~~~~~~~~~

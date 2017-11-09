@@ -257,12 +257,12 @@ func TestSRVRootServer(t *testing.T) {
 	}
 	user1 = eresp.Identity
 	// User1 should not be allowed to revoke admin
-	err = user1.Revoke(&api.RevocationRequest{Name: "admin"})
+	_, err = user1.Revoke(&api.RevocationRequest{Name: "admin"})
 	if err == nil {
 		t.Error("User1 should not be allowed to revoke admin")
 	}
 	// User1 should not be allowed to revoke user2 because of affiliation
-	err = user1.Revoke(&api.RevocationRequest{Name: "user2"})
+	_, err = user1.Revoke(&api.RevocationRequest{Name: "user2"})
 	if err == nil {
 		t.Error("User1 should not be allowed to revoke user2 because of affiliation")
 	}
@@ -277,12 +277,12 @@ func TestSRVRootServer(t *testing.T) {
 		t.Fatalf("Failed to get tcerts for user1: %s", err)
 	}
 	// Admin should not be allowed to revoke an invalid cert
-	err = admin.Revoke(&api.RevocationRequest{AKI: "foo", Serial: "bar"})
+	_, err = admin.Revoke(&api.RevocationRequest{AKI: "foo", Serial: "bar"})
 	if err == nil {
 		t.Error("Admin should have failed to revoke foo/bar")
 	}
 	// Revoke user1's identity
-	err = admin.Revoke(&api.RevocationRequest{Name: "user1"})
+	_, err = admin.Revoke(&api.RevocationRequest{Name: "user1"})
 	if err != nil {
 		t.Fatalf("Failed to revoke user1's identity: %s", err)
 	}
@@ -309,7 +309,7 @@ func TestSRVRootServer(t *testing.T) {
 	assert.NoError(t, err, "Failed to enroll user2")
 	user3 := eresp.Identity
 	// User3 should not be allowed to revoke because of attribute 'hf.Revoker=false'
-	err = user3.Revoke(&api.RevocationRequest{Name: "admin"})
+	_, err = user3.Revoke(&api.RevocationRequest{Name: "admin"})
 	assert.Error(t, err)
 
 	// deferred cleanup

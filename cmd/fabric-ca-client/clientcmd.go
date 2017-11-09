@@ -58,6 +58,11 @@ type crlArgs struct {
 	ExpireBefore string `help:"Generate CRL with certificates that expire before this UTC timestamp (in RFC3339 format)"`
 }
 
+type revokeArgs struct {
+	// GenCRL specifies whether to generate a CRL
+	GenCRL bool `def:"false" json:"gencrl,omitempty" opt:"" help:"Generates a CRL that contains all revoked certificates"`
+}
+
 // ClientCmd encapsulates cobra command that provides command line interface
 // for the Fabric CA client and the configuration used by the Fabric CA client
 type ClientCmd struct {
@@ -84,7 +89,10 @@ type ClientCmd struct {
 	cfgCsrNames []string
 	// csrCommonName is the certificate signing request common name specified via the flag
 	csrCommonName string
-	crlParams     crlArgs
+	// gencrl command argument values
+	crlParams crlArgs
+	// revoke command argument values
+	revokeParams revokeArgs
 	// profileMode is the profiling mode, cpu or mem or empty
 	profileMode string
 	// profileInst is the profiling instance object

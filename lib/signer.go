@@ -65,11 +65,11 @@ func (s *Signer) GetX509Cert() (*x509.Certificate, error) {
 }
 
 // RevokeSelf revokes only the certificate associated with this signer
-func (s *Signer) RevokeSelf() error {
+func (s *Signer) RevokeSelf() (*api.RevocationResponse, error) {
 	log.Debugf("RevokeSelf %s", s.id.name)
 	serial, aki, err := GetCertID(s.cert)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req := &api.RevocationRequest{
 		Serial: serial,
