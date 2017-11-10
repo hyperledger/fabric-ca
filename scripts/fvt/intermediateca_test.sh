@@ -239,7 +239,7 @@ function genIntCAConfig() {
 }
 
 ### Start Test ###
-for driver in sqlite3 postgres mysql; do
+for driver in postgres mysql; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $TDIR/root -D -d $driver
    rm -rf $TDIR
 
