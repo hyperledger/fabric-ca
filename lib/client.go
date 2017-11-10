@@ -332,7 +332,7 @@ func (c *Client) StoreMyIdentity(cert []byte) error {
 
 // LoadIdentity loads an identity from disk
 func (c *Client) LoadIdentity(keyFile, certFile string) (*Identity, error) {
-	log.Debug("Loading identity: keyFile=%s, certFile=%s", keyFile, certFile)
+	log.Debugf("Loading identity: keyFile=%s, certFile=%s", keyFile, certFile)
 	err := c.Init()
 	if err != nil {
 		return nil, err
