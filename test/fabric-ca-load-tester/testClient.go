@@ -265,7 +265,8 @@ func (c *testClient) revoke(req TestRequest, id *lib.Identity, reason string) (e
 		revokeReq.AKI = aki
 		revokeReq.Serial = serial
 	}
-	err = c.Identity.Revoke(revokeReq)
+	result, err := c.Identity.Revoke(revokeReq)
+	log.Printf("Sucessfully revoked certificates: %+v", result.RevokedCerts)
 	if err == nil {
 		log.Printf(msg)
 	}
