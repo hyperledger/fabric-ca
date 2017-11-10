@@ -22,6 +22,7 @@
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
+#   - docker-fabric-ca - build the fabric-ca docker image
 #   - bench - Runs benchmarks in all the packages and stores the results in /tmp/bench.results
 #   - bench-cpu - Runs the benchmarks in the specified package with cpu profiling
 #   - bench-mem - Runs the benchmarks in the specified package with memory profiling
@@ -75,6 +76,8 @@ rename: .FORCE
 	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
+
+docker-fabric-ca: build/image/fabric-ca/$(DUMMY)
 
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
 
