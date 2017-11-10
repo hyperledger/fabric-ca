@@ -100,7 +100,7 @@ tls:
   # Enable TLS (default: false)
   enabled: false
   # TLS for the server's listening port
-  certfile: tls-cert.pem
+  certfile:
   keyfile:
   clientauth:
     type: noclientcert
@@ -119,12 +119,12 @@ tls:
 ca:
   # Name of this CA
   name:
-  # Key file (default: ca-key.pem)
-  keyfile: ca-key.pem
+  # Key file (is only used to import a private key into BCCSP)
+  keyfile:
   # Certificate file (default: ca-cert.pem)
-  certfile: ca-cert.pem
-  # Chain file (default: chain-cert.pem)
-  chainfile: ca-chain.pem
+  certfile:
+  # Chain file
+  chainfile:
 
 #############################################################################
 #  The gencrl REST endpoint is used to generate a CRL that contains revoked
@@ -190,10 +190,9 @@ db:
   tls:
       enabled: false
       certfiles:
-        - db-server-cert.pem
       client:
-        certfile: db-client-cert.pem
-        keyfile: db-client-key.pem
+        certfile:
+        keyfile:
 
 #############################################################################
 #  LDAP section
@@ -210,10 +209,9 @@ ldap:
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
    tls:
       certfiles:
-        - ldap-server-cert.pem
       client:
-         certfile: ldap-client-cert.pem
-         keyfile: ldap-client-key.pem
+         certfile:
+         keyfile:
 
 #############################################################################
 #  Affiliation section
