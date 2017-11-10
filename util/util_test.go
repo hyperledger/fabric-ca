@@ -514,29 +514,18 @@ func TestStructToString(t *testing.T) {
 	assert.NotContains(t, idStr, "barpwd", "Identity password is not masked in the output")
 }
 
+// Test file list with multiple and single entries both with and without brackets
 func TestNormalizeFileList(t *testing.T) {
-	var err error
-	slice := []string{"file1,file2", "file3,file4"}
-
-	slice, err = NormalizeFileList(slice, "../testdata")
+	slice := []string{"[file0,file1]", "file2,file3", "file4", "[file5]"}
+	slice, err := NormalizeFileList(slice, "../testdata")
 	if err != nil {
-		t.Error("Failed to normalize files list, error: ", err)
+		t.Fatalf("Failed to normalize files list, error: %s", err)
 	}
-
-	if !strings.Contains(slice[0], "file1") {
-		t.Error("Failed to correctly normalize files list")
-	}
-
-	if strings.Contains(slice[0], "file2") {
-		t.Error("Should have failed, first element should not contain 'file2'")
-	}
-
-	if !strings.Contains(slice[1], "file2") {
-		t.Error("Failed to correctly normalize files list")
-	}
-
-	if !strings.Contains(slice[3], "file4") {
-		t.Error("Failed to correctly normalize files list")
+	assert.Equal(t, 6, len(slice), "Invalid slice length")
+	for i := range slice {
+		if !strings.HasSuffix(slice[i], fmt.Sprintf("file%d", i)) {
+			t.Errorf("Failed to normalize files list for element %d; found '%s'", i, slice[i])
+		}
 	}
 }
 

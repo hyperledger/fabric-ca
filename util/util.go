@@ -641,6 +641,11 @@ func NormalizeStringSlice(slice []string) []string {
 
 	if len(slice) > 0 {
 		for _, item := range slice {
+			// Remove surrounding brackets "[]" if specified
+			if strings.HasPrefix(item, "[") && strings.HasSuffix(item, "]") {
+				item = item[1 : len(item)-1]
+			}
+			// Split elements based on comma and add to normalized slice
 			if strings.Contains(item, ",") {
 				normalizedSlice = append(normalizedSlice, strings.Split(item, ",")...)
 			} else {
