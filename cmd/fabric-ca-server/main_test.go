@@ -228,6 +228,27 @@ func TestDefaultMultiCAs(t *testing.T) {
 	os.RemoveAll("ca")
 }
 
+func TestCACountWithAbsPath(t *testing.T) {
+	testDir := "myTestDir"
+	defer os.RemoveAll(testDir)
+	// Run init to create the ca-cert.pem
+	err := RunMain([]string{cmdName, "init", "-H", testDir, "-b", "user:pass"})
+	if err != nil {
+		t.Fatalf("Failed to init CA: %s", err)
+	}
+	// Set the complete path to the ca-cert.pem file
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %s", err)
+	}
+	certFilePath := path.Join(cwd, testDir, "ca-cert.pem")
+	// Init again with the absolute path to ca-cert.pem and --cacount to make sure this works
+	err = RunMain([]string{cmdName, "init", "-H", testDir, "--ca.certfile", certFilePath, "--cacount", "2"})
+	if err != nil {
+		t.Fatalf("Failed to init multi CA with absolute path: %s", err)
+	}
+}
+
 func TestMultiCA(t *testing.T) {
 	blockingStart = false
 
