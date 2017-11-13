@@ -66,7 +66,7 @@ function createRootCA() {
                               --db.tls.client.certfile $PGSSLCERT \
                               --db.tls.client.keyfile $PGSSLKEY"
    mkdir -p "$TDIR/root"
-   $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/root" -d $driver -m $MAXENROLL
+   $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/root" -d $driver -m $MAXENROLL -a
    FABRIC_CA_SERVER_HOME="$TDIR/root" fabric-ca-server start \
                                       --csr.hosts $ROOT_CA_ADDR --address $ROOT_CA_ADDR \
                                       $tlsopts -c $TDIR/root/runFabricCaFvt.yaml -d 2>&1 |
@@ -266,11 +266,6 @@ for driver in postgres mysql; do
    # roundrobin through all intermediate servers and enroll a user
    for iter in {0..1}; do
      enrollUser   || ErrorMsg "Failed to enroll users"
-   done
-
-   # enrolling beyond the configured MAXENROLL should fail
-   for iter in {0..1}; do
-     enrollUser && ErrorMsg "Enroll users should have failed"
    done
 
    registerAndEnrollUser

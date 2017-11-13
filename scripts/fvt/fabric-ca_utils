@@ -36,9 +36,97 @@ export DEFAULT_MSG_TIMEOUT="30"
 export DEFAULT_DB_TIMEOUT="30"
 export INTERMEDIATE_PROXY_PORT="8054"
 export INTERMEDIATE_CA_DEFAULT_PORT="1${INTERMEDIATE_PROXY_PORT}"
+export LDAPHOST="-h localhost"
+export LDAPAUTH="-D "cn=$LDAPUSER,dc=example,dc=com" -w $LDAPPASWD"
+export LDAPBASE="-b "dc=example,dc=com""
+export LDAPUSERBASE="-b ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com"
 
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
+
+stripBlank() {
+   # delete comments and blanks lines
+   egrep -v "^ *#|^$"
+}
+
+listUser(){
+   local user="$1"
+   : ${user:="$LDAPUSER"}
+   shift
+   ldapsearch $LDAPHOST $LDAPAUTH $LDAPUSERBASE -s sub "(uid=$user)" $@ | stripBlank
+}
+
+listUsers() {
+   ldapsearch $LDAPHOST $LDAPAUTH $LDAPUSERBASE dn | stripBlank
+}
+
+listGroups() {
+   group="$1"
+   test -z "$group" &&
+   ldapsearch $LDAPHOST $LDAPAUTH $LDAPBASE \
+             -s sub "(|(objectclass=posixGroup) (objectclass=groupOfNames))" dn | stripBlank ||
+   ldapsearch $LDAPHOST $LDAPAUTH $LDAPBASE \
+             -s sub "(memberOf=cn=$group,ou=groups,dc=example,dc=com)" dn | stripBlank
+}
+
+changeAttr() {
+   local entry="$1"
+   local attr="$2"
+   local val="$3"
+   if test $# -ne 3; then
+      echo "Usage: changeAttr <entry> <attr> <value>"
+      return
+   fi
+   ldapmodify $LDAPHOST $LDAPAUTH <<EOF
+dn: $entry
+changetype: modify
+replace: $attr
+$attr: $val
+EOF
+}
+
+delUser() {
+   local user="$1"
+   if test $# -ne 1; then
+      echo "Usage: delUser <userName>"
+      return
+   fi
+   ldapdelete $LDAPHOST -p $LDAPPORT $LDAPAUTH \
+               "uid=$user,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com"
+}
+
+addUser () {
+   # Add the eqivalent of a top-level fabric-ca administrator
+   local user="$1"
+   if test $# -ne 1; then
+      echo "Usage: delUser <userName>"
+      return
+   fi
+   # Get the next sequential UID
+   uidN=$(ldapsearch $LDAPHOST -p $LDAPPORT $LDAPAUTH $LDAPUSERBASE |
+          awk '/uidNumber:/ {print $2}' | sort -n | tail -n1)
+   ldapadd -h localhost -p $LDAPPORT \
+           -D cn=$LDAPUSER,dc=example,dc=com -w $LDAPPASWD <<EOF
+# User account
+dn: uid=$user,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: $user
+cn: $user
+sn: Hyperledeger
+givenName: $user
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: $((uidN+1))
+gidNumber: $((uidN+1))
+mail: $user@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/$user
+userPassword: $userpw
+EOF
+}
 
 TimeStamp() {
    printf "TIMESTAMP--%s %s\n" $($DATE) $($TIME)
@@ -793,21 +881,49 @@ $registry
 ldap:
   enabled: $LDAP_ENABLE
   url: ${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
+  userfilter: "(uid=%s)"
   attribute:
-    names: ["uid"]
+    names: [
+             "cn",
+             "gidNumber",
+             "givenName",
+             "homeDirectory",
+             "loginShell",
+             "mail",
+             "o",
+             "objectClass",
+             "ou",
+             "sn",
+             "st",
+             "uid",
+             "uidNumber",
+             "memberOf"
+           ]
     converters:
-      - name: hf.Revoker
-        value: attr("uid") =~ "revoker*"
+      - name: hf.GenCRL
+        value: attr("memberOf") =~ "cn=Gencrl,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
+      - name: hf.Revoker 
+        value: attr("memberOf") =~ "cn=Revoker,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
+      - name: hf.IntermediateCA
+        value: attr("memberOf") =~ "cn=Ca,ou=groups,dc=example,dc=com"
       - name: hf.Registrar.Roles
-        value: if( attr("uid") =~ "revoker*", "client", "")
-      - name: mapattr
-        value: map("foo1,foo2,foo3","Map1")
+        value: map(attr("memberOf"),"roles")
     maps:
-       Map1:
-          - name: foo1
-            value: bar1
-          - name: foo2
-            value: bar2
+      ROLES:
+         - name: cn=Client,ou=groups,dc=example,dc=com
+           value: client
+         - name: cn=User,ou=groups,dc=example,dc=com
+           value: user
+         - name: cn=Peer,ou=groups,dc=example,dc=com
+           value: peer
+         - name: cn=App,ou=groups,dc=example,dc=com
+           value: app
+         - name: cn=Auditor,ou=groups,dc=example,dc=com
+           value: auditor
+         - name: cn=Validator,ou=groups,dc=example,dc=com
+           value: validator
+         - name: cn=pkiAdmin,ou=groups,dc=example,dc=com
+           value: pkiadmin
   tls:
     certfiles:
       - $TLS_ROOTCERT
@@ -829,29 +945,30 @@ affiliations:
     - department2
 signing:
   default:
-  usage:
-    - cert sign
-    - crl sign
-    - digital signature
-    - key encipherment
-    - timestamping
-  expiry: 17520h
-  caconstraint:
-    isca: true
-    maxpathlen: 1
+    usage:
+      - digital signature
+    expiry: 17520h
+    backdate: 30s
     ocspnocheck: true
-    notbefore: 2016-12-30T00:00:00Z
+    caconstraint:
+       isca: false
   profiles:
-     ca:
-       usage:
-         - cert sign
-         - crl sign
-       expiry: 17520h
-       caconstraint:
-         isca: true
-         maxpathlen: 0
-         ocspnocheck: true
-         notbefore: 2016-12-30T00:00:00Z
+    ca:
+      usage:
+        - cert sign
+        - crl sign
+      expiry: 43800h
+      caconstraint:
+        isca: true
+        maxpathlen: 0
+        ocspnocheck: true
+    tls:
+      usage:
+        - server auth
+        - client auth
+      expiry: 8760h
+      caconstraint:
+         isca: false
 csr:
   keyrequest:
     algo: $KEYTYPE
