@@ -45,10 +45,10 @@ func TestStateUpdate(t *testing.T) {
 	assert.NoError(t, err, "Failed to enroll 'admin' user")
 
 	registry := srv.CA.DBAccessor()
-	userInfo, err := registry.GetUserInfo("admin")
+	userInfo, err := registry.GetUser("admin", nil)
 	assert.NoError(t, err, "Failed to get user 'admin' from database")
 	// User state should have gotten updated to 1 after a successful enrollment
-	if userInfo.State != 1 {
+	if userInfo.(*DBUser).State != 1 {
 		t.Error("Incorrect state set for user")
 	}
 
@@ -68,9 +68,9 @@ func TestStateUpdate(t *testing.T) {
 	}
 
 	// State should not have gotten updated because the enrollment failed
-	userInfo, err = registry.GetUserInfo("admin")
+	userInfo, err = registry.GetUser("admin", nil)
 	assert.NoError(t, err, "Failed to get user 'admin' from database")
-	if userInfo.State != 1 {
+	if userInfo.(*DBUser).State != 1 {
 		t.Error("Incorrect state set for user")
 	}
 

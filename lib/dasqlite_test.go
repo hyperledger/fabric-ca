@@ -391,11 +391,6 @@ func TestDBErrorMessages(t *testing.T) {
 		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "User"))
 	}
 
-	_, err = ta.Accessor.GetUserInfo("testuser")
-	if assert.Error(t, err, "Should have errored, and not returned any results") {
-		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "User"))
-	}
-
 	newCertDBAcc := NewCertDBAccessor(db)
 	_, err = newCertDBAcc.GetCertificateWithID("serial", "aki")
 	if assert.Error(t, err, "Should have errored, and not returned any results") {

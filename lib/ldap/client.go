@@ -27,8 +27,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 	ctls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -216,12 +216,6 @@ func (lc *Client) GetUser(username string, attrNames []string) (spi.User, error)
 	return user, nil
 }
 
-// GetUserInfo gets user information from database
-func (lc *Client) GetUserInfo(id string) (spi.UserInfo, error) {
-	var userInfo spi.UserInfo
-	return userInfo, errNotSupported
-}
-
 // InsertUser inserts a user
 func (lc *Client) InsertUser(user spi.UserInfo) error {
 	return errNotSupported
@@ -304,6 +298,16 @@ func (u *User) GetName() string {
 	return u.dn
 }
 
+// GetType returns the type of the user
+func (u *User) GetType() string {
+	return ""
+}
+
+// GetMaxEnrollments returns the max enrollments of the user
+func (u *User) GetMaxEnrollments() int {
+	return 0
+}
+
 // Login logs a user in using password
 func (u *User) Login(password string, caMaxEnrollment int) error {
 
@@ -335,18 +339,40 @@ func (u *User) GetAffiliationPath() []string {
 }
 
 // GetAttribute returns the value of an attribute, or "" if not found
-func (u *User) GetAttribute(name string) string {
-	return u.attrs[name]
+func (u *User) GetAttribute(name string) (*api.Attribute, error) {
+	value, hasAttr := u.attrs[name]
+	if !hasAttr {
+		return nil, errors.Errorf("User does not have attribute '%s'", name)
+	}
+	return &api.Attribute{
+		Name:  name,
+		Value: value,
+	}, nil
 }
 
 // GetAttributes returns the requested attributes
-func (u *User) GetAttributes(attrNames []string) []tcert.Attribute {
-	var attrs []tcert.Attribute
-	for _, name := range attrNames {
-		value := u.attrs[name]
-		attrs = append(attrs, tcert.Attribute{Name: name, Value: value})
+func (u *User) GetAttributes(attrNames []string) ([]api.Attribute, error) {
+	var attrs []api.Attribute
+	if attrNames == nil {
+		for name, value := range u.attrs {
+			attrs = append(attrs, api.Attribute{Name: name, Value: value})
+		}
+		return attrs, nil
 	}
-	return attrs
+
+	for _, name := range attrNames {
+		value, hasAttr := u.attrs[name]
+		if !hasAttr {
+			return nil, errors.Errorf("User does not have attribute '%s'", name)
+		}
+		attrs = append(attrs, api.Attribute{Name: name, Value: value})
+	}
+	return attrs, nil
+}
+
+// Revoke requires not action on LDAP
+func (u *User) Revoke() error {
+	return nil
 }
 
 // Returns a slice with the elements reversed

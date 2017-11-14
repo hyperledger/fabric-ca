@@ -885,19 +885,22 @@ func (ca *CA) getUserAttrValue(username, attrname string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	attrval := user.GetAttribute(attrname)
+	attrval, err := user.GetAttribute(attrname)
+	if err != nil {
+		return "", errors.Errorf("Failed to get attribute '%s': %s", attrname, err)
+	}
 	log.Debugf("getUserAttrValue identity=%s, name=%s, value=%s", username, attrname, attrval)
-	return attrval, nil
+	return attrval.Value, nil
 }
 
 // getUserAffiliation returns a user's affiliation
 func (ca *CA) getUserAffiliation(username string) (string, error) {
 	log.Debugf("getUserAffilliation identity=%s", username)
-	user, err := ca.registry.GetUserInfo(username)
+	user, err := ca.registry.GetUser(username, nil)
 	if err != nil {
 		return "", err
 	}
-	aff := user.Affiliation
+	aff := GetUserAffiliation(user)
 	log.Debugf("getUserAffiliation identity=%s, aff=%s", username, aff)
 	return aff, nil
 }
