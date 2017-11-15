@@ -1526,5 +1526,42 @@ Troubleshooting
    which contradicts the purpose of cluster topology. The best practice is to use either Postgres or MySQL
    databases in a cluster topology.
 
+4. Suppose an error similar to
+   ``Failed to deserialize creator identity, err The supplied identity is not valid, Verify() returned x509: certificate signed by unknown authority``
+   is returned by a peer or orderer when using an enrollment certificate issued by the Fabric CA Server.  This indicates that
+   the signing CA certificate used by the Fabric CA Server to issue certificates does not match a certificate in the `cacerts` or `intermediatecerts`
+   folder of the MSP used to make authorization checks.
+
+   The MSP which is used to make authorization checks depends on which operation you were performing when the error occurred.
+   For example, if you were trying to install chaincode on a peer, the local MSP on the file system of the peer is used;
+   otherwise, if you were performing some channel specific operation such as instantiating chaincode on a specific channel,
+   the MSP in the genesis block or the most recent configuration block of the channel is used.
+
+   To confirm that this is the problem, compare the AKI (Authority Key Identifier) of the enrollment certificate
+   to the SKI (Subject Key Identifier) of the certificate(s) in the `cacerts` and `intermediatecerts` folder of appropriate MSP.
+   The command `openssl x509 -in <PEM-file> -noout -text | grep -A1 "Authority Key Identifier"` will display the AKI and
+   `openssl x509 -in <PEM-file> -noout -text | grep -A1 "Subject Key Identifier"` will display the SKI.
+   If they are not equal, you have confirmed that this is the cause of the error.
+
+   This can happen for multiple reasons including:
+
+   a. You used `cryptogen` to generate your key material but did not start `fabric-ca-server` with the signing key and certificate generated
+      by `cryptogen`.
+
+      To resolve (assuming `FABRIC_CA_SERVER_HOME` is set to the home directory of your `fabric-ca-server`):
+
+      1. Stop `fabric-ca-server`.
+      2. Copy `crypto-config/peerOrganizations/<orgName>/ca/*pem` to `$FABRIC_CA_SERVER_HOME/ca-cert.pem`.
+      3. Copy `crypto-config/peerOrganizations/<orgName>/ca/*_sk` to `$FABRIC_CA_SERVER_HOME/msp/keystore/`.
+      4. Start `fabric-ca-server`.
+      5. Delete any previously issued enrollment certificates and get new certificates by enrolling again.
+
+   b. You deleted and recreated the CA signing key and certificate used by the Fabric CA Server after generating the genesis block.
+      This can happen if the Fabric CA Server is running in a docker container, the container was restarted, and its home directory
+      is not on a volume mount.  In this case, the Fabric CA Server will create a new CA signing key and certificate.
+
+      Assuming that you can not recover the original CA signing key, the only way to recover from this scenario is to update the
+      certificate in the `cacerts` (or `intermediatecerts`) of the appropriate MSPs to the new CA certificate.
+
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
