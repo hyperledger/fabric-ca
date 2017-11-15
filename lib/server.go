@@ -204,7 +204,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 		Pass:           pass,
 		Type:           "user",
 		Affiliation:    affiliation,
-		MaxEnrollments: s.CA.Config.Registry.MaxEnrollments,
+		MaxEnrollments: 0, // 0 means to use the server's max enrollment setting
 		Attrs: map[string]string{
 			attrRoles:          allRoles,
 			attrDelegateRoles:  allRoles,
