@@ -249,11 +249,11 @@ EOF
 
    # Start all Root and intermediate CAs
    echo -e "   >>>>>>>>>>  Starting $NUMSERVER Root CA instances with $NUMCAS servers each"
-   $SCRIPTDIR/fabric-ca_setup.sh -N -X -o 30 -x $ROOTDIR -S -n $NUMSERVER -D -d $DBdriver \
+   $SCRIPTDIR/fabric-ca_setup.sh -N -X -x $ROOTDIR -S -n $NUMSERVER -D -d $DBdriver \
                                  -- "--cafiles" "$rootCafiles" >> $ROOTDIR/log.txt 2>&1 ||
                                  ErrorExit "Failed to start root servers"
    echo -e "   >>>>>>>>>>  Starting $NUMSERVER Intermediate CA instances with $NUMCAS servers each"
-   $SCRIPTDIR/fabric-ca_setup.sh -o 30 -n $NUMSERVER -S -r $INTERMEDIATE_CA_DEFAULT_PORT -x $INTDIR \
+   $SCRIPTDIR/fabric-ca_setup.sh -n $NUMSERVER -S -r $INTERMEDIATE_CA_DEFAULT_PORT -x $INTDIR \
                                  -U "https://$INTUSER:$INTPSWD@$ROOT_CA_ADDR:$PROXY_PORT" \
                                  --  "--cafiles" "$intermediateCafiles" >> $INTDIR/log.txt 2>&1 ||
                                  ErrorExit "Failed to intermediate servers"
