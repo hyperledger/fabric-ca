@@ -273,6 +273,18 @@
 			"revisionTime": "2017-09-01T12:46:19Z"
 		},
 		{
+			"checksumSHA1": "g/V4qrXjUGG9B+e3hB+4NAYJ5Gs=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "hUTpkQKTPpTUll9JmFj9NyQ+wjs=",
+			"path": "github.com/gorilla/mux",
+			"revision": "7f08801859139f86dfafd1c296e2cba9a80d292e",
+			"revisionTime": "2017-11-05T17:23:20Z"
+		},
+		{
 			"checksumSHA1": "8OPDk+bKyRGJoKcS4QNw9F7dpE8=",
 			"path": "github.com/hashicorp/hcl",
 			"revision": "99ce73d4fe576449f7a689d4fc2b2ad09a86bdaa",
