@@ -18,6 +18,7 @@ package lib
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -31,9 +32,10 @@ import (
 
 func newRegisterEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
-		Methods: []string{"POST"},
-		Handler: registerHandler,
-		Server:  s,
+		Methods:   []string{"POST"},
+		Handler:   registerHandler,
+		Server:    s,
+		successRC: 201,
 	}
 }
 
@@ -106,7 +108,8 @@ func registerUser(req *api.RegistrationRequestNet, registrar string, ca *CA, ctx
 	if err != nil {
 		return "", errors.WithMessage(err, fmt.Sprintf("Registration of '%s' failed", req.Name))
 	}
-
+	// Set the location header to the URI of the identity that was created by the registration request
+	ctx.resp.Header().Set("Location", fmt.Sprintf("%sidentities/%s", apiPathPrefix, url.PathEscape(req.Name)))
 	return secret, nil
 }
 

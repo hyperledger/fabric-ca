@@ -27,6 +27,8 @@ import (
 type serverEndpoint struct {
 	// The HTTP methods ("GET", "POST", etc) which the function will handle
 	Methods []string
+	// The HTTP return code for success responses
+	successRC int
 	// Handler is the handler function for this endpoint
 	Handler func(ctx *serverRequestContext) (interface{}, error)
 	// Server which hosts this endpoint
@@ -50,22 +52,29 @@ func (se *serverEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(he.scode)
 			log.Infof(`%s %s %s %d %d "%s"`, r.RemoteAddr, r.Method, r.URL, he.scode, he.lcode, he.lmsg)
 		} else {
-			w.WriteHeader(200)
-			log.Infof(`%s %s %s 200 0 "OK"`, r.RemoteAddr, r.Method, r.URL)
+			w.WriteHeader(se.getSuccessRC())
+			log.Infof(`%s %s %s %d 0 "OK"`, r.RemoteAddr, r.Method, r.URL, se.getSuccessRC())
 		}
 	} else if err == nil {
-		w.WriteHeader(200)
+		w.WriteHeader(se.getSuccessRC())
 		err = api.SendResponse(w, resp)
 		if err != nil {
 			log.Warning("Failed to send response for %s: %+v", url, err)
 		}
-		log.Infof(`%s %s %s 200 0 "OK"`, r.RemoteAddr, r.Method, r.URL)
+		log.Infof(`%s %s %s %d 0 "OK"`, r.RemoteAddr, r.Method, r.URL, se.getSuccessRC())
 	} else {
 		he := getHTTPErr(err)
 		he.writeResponse(w)
 		log.Debugf("Sent error for %s: %+v", url, err)
 		log.Infof(`%s %s %s %d %d "%s"`, r.RemoteAddr, r.Method, r.URL, he.scode, he.lcode, he.lmsg)
 	}
+}
+
+func (se *serverEndpoint) getSuccessRC() int {
+	if se.successRC == 0 {
+		return 200
+	}
+	return se.successRC
 }
 
 // Validate that the HTTP method is supported for this endpoint

@@ -62,6 +62,7 @@ const (
 	attrIntermediateCA = "hf.IntermediateCA"
 	attrGenCRL         = "hf.GenCRL"
 	attrRegistrarAttr  = "hf.Registrar.Attributes"
+	apiPathPrefix      = "/api/v1/"
 )
 
 // Server is the fabric-ca server
@@ -479,7 +480,7 @@ func (s *Server) registerHandlers() {
 // Register a handler
 func (s *Server) registerHandler(path string, se *serverEndpoint) {
 	s.mux.Handle("/"+path, se)
-	s.mux.Handle("/api/v1/"+path, se)
+	s.mux.Handle(apiPathPrefix+path, se)
 }
 
 // Starting listening and serving

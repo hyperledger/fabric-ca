@@ -847,6 +847,15 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	assert.NoError(t, err)
 	assert.Equal(t, "user", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
 
+	// Register an identity with a space in its name
+	userName = "Test Register5"
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
+		"--id.affiliation", "hyperledger.org1"})
+	assert.NoError(t, err, "Failed to register identity "+userName)
+	user, err = db.GetUserInfo(userName)
+	assert.NoError(t, err)
+	assert.Equal(t, "user", user.Type, "Identity type for '%s' should have been 'user'", userName)
+
 	os.Remove(defYaml) // Delete default config file
 
 	err = RunMain([]string{cmdName, "register", "-u", "http://localhost:7091"})

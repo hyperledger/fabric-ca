@@ -100,7 +100,7 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 		return nil, err
 	}
 
-	log.Debug("The register request completely successfully")
+	log.Debug("The register request completed successfully")
 	return resp, nil
 }
 
