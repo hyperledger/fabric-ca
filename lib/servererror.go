@@ -123,6 +123,10 @@ const (
 	ErrGettingType = 45
 	// CA cert does not have 'crl sign' usage
 	ErrNoCrlSignAuth = 46
+	// Incorrect level of database
+	ErrDBLevel = 47
+	// Incorrect level of configuration file
+	ErrConfigFileLevel = 48
 )
 
 // Construct a new HTTP error.

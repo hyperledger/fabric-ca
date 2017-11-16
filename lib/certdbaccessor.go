@@ -35,8 +35,8 @@ import (
 
 const (
 	insertSQL = `
-INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem)
-	VALUES (:id, :serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem);`
+INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level)
+	VALUES (:id, :serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem, :level);`
 
 	selectSQLbyID = `
 SELECT %s FROM certificates
@@ -62,21 +62,24 @@ SELECT %s FROM certificates
 
 // CertRecord extends CFSSL CertificateRecord by adding an enrollment ID to the record
 type CertRecord struct {
-	ID string `db:"id"`
+	ID    string `db:"id"`
+	Level int    `db:"level"`
 	certdb.CertificateRecord
 }
 
 // CertDBAccessor implements certdb.Accessor interface.
 type CertDBAccessor struct {
+	level    int
 	accessor certdb.Accessor
 	db       *sqlx.DB
 }
 
 // NewCertDBAccessor returns a new Accessor.
-func NewCertDBAccessor(db *sqlx.DB) *CertDBAccessor {
+func NewCertDBAccessor(db *sqlx.DB, level int) *CertDBAccessor {
 	cffslAcc := new(CertDBAccessor)
 	cffslAcc.db = db
 	cffslAcc.accessor = certsql.NewAccessor(db)
+	cffslAcc.level = level
 	return cffslAcc
 }
 
@@ -124,6 +127,7 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 	record.Expiry = cr.Expiry.UTC()
 	record.RevokedAt = cr.RevokedAt.UTC()
 	record.PEM = cr.PEM
+	record.Level = d.level
 
 	res, err := d.db.NamedExec(insertSQL, record)
 	if err != nil {

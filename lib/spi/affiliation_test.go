@@ -19,7 +19,7 @@ package spi
 import "testing"
 
 func TestGetName(t *testing.T) {
-	aff := &AffiliationImpl{Name: "Bank_a", Prekey: "1234"}
+	aff := NewAffiliation("Bank_a", "1234", 0)
 	name := aff.GetName()
 
 	if name != "Bank_a" {
@@ -28,10 +28,19 @@ func TestGetName(t *testing.T) {
 }
 
 func TestGetPrekey(t *testing.T) {
-	aff := &AffiliationImpl{Name: "Bank_a", Prekey: "1234"}
+	aff := NewAffiliation("Bank_a", "1234", 0)
 	name := aff.GetPrekey()
 
 	if name != "1234" {
 		t.Error("Prekey does not match, expected '1234'")
+	}
+}
+
+func TestGetLevel(t *testing.T) {
+	aff := NewAffiliation("Bank_a", "1234", 2)
+	level := aff.GetLevel()
+
+	if level != 2 {
+		t.Error("Level does not match, expected '2'")
 	}
 }

@@ -906,3 +906,9 @@ function testStatus() {
     echo "$user_status_code $cert_status_code"
 }
 
+function killserver {
+    echo "killing server $1"
+    kill -9 $1
+    pollFabricCa "" "" "$CA_DEFAULT_PORT" stop 30
+    return $?
+}

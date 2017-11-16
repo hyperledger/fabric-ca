@@ -26,6 +26,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -76,6 +77,9 @@ const (
 #   of this configuration file.
 #
 #############################################################################
+
+# Version of config file
+version: <<<VERSION>>>
 
 # Server's listening port (default: 7054)
 port: 7054
@@ -481,7 +485,8 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 	}
 
 	// Do string subtitution to get the default config
-	cfg := strings.Replace(defaultCfgTemplate, "<<<ADMIN>>>", user, 1)
+	cfg := strings.Replace(defaultCfgTemplate, "<<<VERSION>>>", metadata.Version, 1)
+	cfg = strings.Replace(cfg, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	purl := s.myViper.GetString("intermediate.parentserver.url")

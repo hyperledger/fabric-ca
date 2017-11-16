@@ -29,6 +29,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -87,6 +88,11 @@ func errorTest(in *TestData, t *testing.T) {
 	} else {
 		t.Errorf("FAILED:\n \tin: %v;\n \tout: <nil>\n \texpected: %v\n", in.input, in.expected)
 	}
+}
+
+func TestMain(m *testing.M) {
+	metadata.Version = "1.1.0"
+	os.Exit(m.Run())
 }
 
 func TestNoArguments(t *testing.T) {

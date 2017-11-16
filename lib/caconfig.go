@@ -84,6 +84,7 @@ csr:
 // "help" - the help message to display on the command line;
 // "skip" - to skip the field.
 type CAConfig struct {
+	Version      string `skip:"true"`
 	CA           CAInfo
 	Signing      *config.Signing
 	CSR          api.CSRInfo

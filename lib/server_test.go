@@ -37,6 +37,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/metadata"
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -52,6 +53,11 @@ const (
 	testdataDir      = "../testdata"
 	pportEnvVar      = "FABRIC_CA_SERVER_PROFILE_PORT"
 )
+
+func TestMain(m *testing.M) {
+	metadata.Version = "1.1.0"
+	os.Exit(m.Run())
+}
 
 func TestSRVServerInit(t *testing.T) {
 	server := TestGetRootServer(t)

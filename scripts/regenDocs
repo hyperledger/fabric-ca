@@ -82,7 +82,7 @@ echo -e "======================================\n" >> clientconfig.rst
 echo -e "::\n" >> clientconfig.rst
 
 # Sanitize the configuration files to remove any machine specific information and provide a generic config file
-sed -e 's/cn:.*/cn: <<<COMMONNAME>>>/' -e 's/pathlength:.*/pathlength: <<<PATHLENGTH>>>/' -e 's/abc/<<<adminUserName>>>/' -e 's/pass:.*/pass: <<<adminPassword>>>/' -e 's/'"$HOSTNAME"'/<<<MYHOST>>>/' fabric-ca-server-config.yaml > server-config.yaml
+sed -e 's/cn:.*/cn: <<<COMMONNAME>>>/' -e 's/pathlength:.*/pathlength: <<<PATHLENGTH>>>/' -e 's/abc/<<<adminUserName>>>/' -e 's/pass:.*/pass: <<<adminPassword>>>/' -e 's/'"$HOSTNAME"'/<<<MYHOST>>>/' -e 's/version:.*/version: <<<VERSION>>>/' fabric-ca-server-config.yaml > server-config.yaml
 sed -e 's/cn:.*/cn: <<<ENROLLMENT_ID>>>/' -e 's/'"$HOSTNAME"'/<<<MYHOST>>>/' -e 's/url:.*/url: <<<URL>>>/' fabric-ca-client-config.yaml > client-config.yaml
 
 # Insert a few spaces in front of all the lines in temp files created above (RST formatting purposes)
