@@ -852,9 +852,9 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
 		"--id.affiliation", "hyperledger.org1"})
 	assert.NoError(t, err, "Failed to register identity "+userName)
-	user, err = db.GetUserInfo(userName)
+	user, err = db.GetUser(userName, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, "user", user.Type, "Identity type for '%s' should have been 'user'", userName)
+	assert.Equal(t, "user", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
 
 	os.Remove(defYaml) // Delete default config file
 
