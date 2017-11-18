@@ -165,7 +165,6 @@ registry:
        pass: <<<ADMINPW>>>
        type: client
        affiliation: ""
-       maxenrollments: -1
        attrs:
           hf.Registrar.Roles: "client,user,peer,validator,auditor"
           hf.Registrar.DelegateRoles: "client,user,validator,auditor"
