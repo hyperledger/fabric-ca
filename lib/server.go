@@ -203,7 +203,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 	id := CAConfigIdentity{
 		Name:           user,
 		Pass:           pass,
-		Type:           "user",
+		Type:           "client",
 		Affiliation:    affiliation,
 		MaxEnrollments: 0, // 0 means to use the server's max enrollment setting
 		Attrs: map[string]string{

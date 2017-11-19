@@ -1119,7 +1119,7 @@ password (or secret) rather than letting the server generate one for us.
     export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
     fabric-ca-client register --id.name peer1 --id.type peer --id.affiliation org1.department1 --id.secret peer1pw
 
-Enrolling a Peer Identity
+Enrolling a peer identity
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you have successfully registered a peer identity, you may now
@@ -1141,6 +1141,16 @@ You may also set the FABRIC_CA_CLIENT_HOME to the home directory of your peer.
 
 Enrolling an orderer is the same, except the path to the MSP directory is
 the 'LocalMSPDir' setting in your orderer's orderer.yaml file.
+
+All enrollment certificates issued by the fabric-ca-server have organizational
+units (or "OUs" for short) as follows:
+
+1. The root of the OU hierarchy equals the identity type
+2. An OU is added for each component of the identity's affiliation
+
+For example, if an identity is of type `peer` and its affiliation is
+`department1.team1`, the identity's OU hierarchy (from leaf to root) is
+`OU=team1, OU=department1, OU=peer`.
 
 Getting a CA certificate chain from another Fabric CA server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
