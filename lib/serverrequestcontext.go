@@ -571,6 +571,47 @@ func (ctx *serverRequestContext) canRegisterRequestedAttributes(reqAttrs []api.A
 	return nil
 }
 
+// HasRole returns true if the caller has the role, for boolean roles it does not check if the value is true
+func (ctx *serverRequestContext) HasRole(role string) error {
+	hasRole, err := ctx.hasRole(role)
+	if err != nil {
+		return err
+	}
+	if !hasRole {
+		return newAuthErr(ErrMissingRole, "Caller does not possess the attribute/role '%s'", role)
+	}
+	return nil
+}
+
+func (ctx *serverRequestContext) hasRole(role string) (bool, error) {
+	if ctx.callerRoles == nil {
+		ctx.callerRoles = make(map[string]bool)
+	}
+
+	roleStatus, hasRole := ctx.callerRoles[role]
+	if hasRole {
+		return roleStatus, nil
+	}
+
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return false, err
+	}
+
+	roleAttr, err := caller.GetAttribute(role)
+	if err != nil {
+		return false, err
+	}
+
+	roleStatus, err = strconv.ParseBool(roleAttr.Value)
+	if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("Failed to get boolean value of '%s'", role))
+	}
+	ctx.callerRoles[role] = roleStatus
+
+	return ctx.callerRoles[role], nil
+}
+
 // Function will iterate through the values of registrar's 'hf.Registrar.Attributes' attribute to check if registrar can register the requested attributes
 func registrarCanRegisterAttr(requestedAttr string, hfRegistrarAttrsSlice []string) error {
 	reserveredAttributes := []string{"hf.Type", "hf.EnrollmentID", "hf.Affiliation"}

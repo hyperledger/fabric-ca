@@ -24,6 +24,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -482,13 +483,16 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{cmdName, "register", "--id.name", "test user"})
 	util.FatalError(t, err, "Failed to register user")
 
-	err = RunMain([]string{
+	result, err := captureOutput(RunMain, []string{
 		cmdName, "identity", "list"})
 	assert.NoError(t, err, "Failed to get all ids")
+	assert.Contains(t, result, "admin")
+	assert.Contains(t, result, "test user")
 
-	err = RunMain([]string{
+	result, err = captureOutput(RunMain, []string{
 		cmdName, "identity", "list", "--id", "test user"})
 	assert.NoError(t, err, "Failed to get id 'test user'")
+	assert.Contains(t, result, "test user")
 
 	err = RunMain([]string{
 		cmdName, "identity", "add"})
@@ -636,16 +640,12 @@ func TestAffiliationCmd(t *testing.T) {
 	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
 	util.FatalError(t, err, "Failed to enroll user")
 
-	err = RunMain([]string{cmdName, "register", "--id.name", "testuser"})
-	util.FatalError(t, err, "Failed to register user")
+	result, err := captureOutput(RunMain, []string{cmdName, "affiliation", "list"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, "org1\n", result)
 
-	err = RunMain([]string{
-		cmdName, "affiliation", "list"})
-	assert.Error(t, err, "Should fail, affiliation endpoint not yet created")
-
-	err = RunMain([]string{
-		cmdName, "affiliation", "list", "--affiliation", "org2"})
-	assert.Error(t, err, "Should fail, affiliation endpoint not yet created")
+	err = RunMain([]string{cmdName, "affiliation", "list", "--affiliation", "org2"})
+	assert.Error(t, err, "Should failed to get the requested affiliation, affiliation does not exist")
 
 	err = RunMain([]string{
 		cmdName, "affiliation", "add"})
@@ -694,7 +694,6 @@ func TestAffiliationCmd(t *testing.T) {
 	err = RunMain([]string{
 		cmdName, "affiliation", "remove", "org3"})
 	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
-
 }
 
 // Verify the certificate has attribute 'name' with a value of 'val'
@@ -1935,6 +1934,24 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to get fabric-ca-client version: ", err)
 	}
+}
+
+func captureOutput(f func(args []string) error, args []string) (string, error) {
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	os.Stdout = w
+	err = f(args)
+	if err != nil {
+		return "", err
+	}
+	w.Close()
+	os.Stdout = old
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	return buf.String(), nil
 }
 
 func getServer() *lib.Server {

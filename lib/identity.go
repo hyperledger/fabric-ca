@@ -315,15 +315,14 @@ func (i *Identity) GetAffiliation(affiliation, caname string) (*api.AffiliationR
 }
 
 // GetAllAffiliations returns all affiliations that the caller is authorized to see
-func (i *Identity) GetAllAffiliations(caname string) (*api.GetAllAffiliationsResponse, error) {
+func (i *Identity) GetAllAffiliations(caname string, cb func(*json.Decoder) error) error {
 	log.Debugf("Entering identity.GetAllAffiliations")
-	result := &api.GetAllAffiliationsResponse{}
-	err := i.Get("affiliations", caname, result)
+	err := i.GetStreamResponse("affiliations", caname, "result.affiliations", cb)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	log.Debugf("Successfully retrieved affiliations: %+v", result)
-	return result, nil
+	log.Debug("Successfully retrieved affiliations")
+	return nil
 }
 
 // AddAffiliation adds a new affiliation to the server

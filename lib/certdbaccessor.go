@@ -190,7 +190,7 @@ func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs CertRecor
 
 	err = d.db.Get(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(CertRecord{})), serial, aki)
 	if err != nil {
-		return crs, dbGetError(err, "Certificate")
+		return crs, getError(err, "Certificate")
 	}
 
 	return crs, nil
@@ -218,13 +218,13 @@ func (d *CertDBAccessor) GetRevokedCertificates(expiredAfter, expiredBefore, rev
 		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL),
 			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, revokedAfter, revokedBefore)
 		if err != nil {
-			return crs, dbGetError(err, "Certificate")
+			return crs, getError(err, "Certificate")
 		}
 	} else {
 		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL1),
 			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, expiredBefore, revokedAfter, revokedBefore)
 		if err != nil {
-			return crs, dbGetError(err, "Certificate")
+			return crs, getError(err, "Certificate")
 		}
 	}
 

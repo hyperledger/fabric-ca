@@ -65,6 +65,7 @@ const (
 	attrIntermediateCA = "hf.IntermediateCA"
 	attrGenCRL         = "hf.GenCRL"
 	attrRegistrarAttr  = "hf.Registrar.Attributes"
+	attrAffiliationMgr = "hf.AffiliationMgr"
 )
 
 // Server is the fabric-ca server
@@ -225,6 +226,7 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 			attrIntermediateCA: "true",
 			attrGenCRL:         "true",
 			attrRegistrarAttr:  "*",
+			attrAffiliationMgr: "true",
 		},
 	}
 
@@ -482,6 +484,8 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("gencrl", newGenCRLEndpoint(s))
 	s.registerHandler("identities", newIdentitiesStreamingEndpoint(s))
 	s.registerHandler("identities/{id}", newIdentitiesEndpoint(s))
+	s.registerHandler("affiliations", newAffiliationsStreamingEndpoint(s))
+	s.registerHandler("affiliations/{affiliation}", newAffiliationsEndpoint(s))
 }
 
 // Register a handler

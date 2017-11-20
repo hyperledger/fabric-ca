@@ -63,9 +63,13 @@ INSERT INTO affiliations (name, prekey, level)
 DELETE FROM affiliations
 	WHERE (name = ?)`
 
-	getAffiliation = `
+	getAffiliationQuery = `
 SELECT * FROM affiliations
 	WHERE (name = ?)`
+
+	getAllAffiliationsQuery = `
+SELECT * FROM affiliations
+	WHERE ((name = ?) OR (name LIKE ?))`
 )
 
 // UserRecord defines the properties of a user
@@ -260,7 +264,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	var userRec UserRecord
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return nil, getUserError(dbGetError(err, "User"))
+		return nil, getError(err, "User")
 	}
 
 	return d.newDBUser(&userRec), nil
@@ -324,9 +328,10 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 	}
 
 	var affiliationRecord AffiliationRecord
-	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliation), name)
+
+	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
-		return nil, dbGetError(err, "Affiliation")
+		return nil, getError(err, "Affiliation")
 	}
 
 	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
@@ -356,7 +361,7 @@ func (d *Accessor) GetProperties(names []string) (map[string]string, error) {
 	}
 	err = d.db.Select(&properties, d.db.Rebind(inQuery), args...)
 	if err != nil {
-		return nil, dbGetError(err, "Properties")
+		return nil, getError(err, "Properties")
 	}
 
 	propertiesMap := make(map[string]string)
@@ -389,6 +394,30 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
 	}
 
 	return allUsers, nil
+}
+
+// GetAllAffiliations gets the requested affiliation and any sub affiliations from the database
+func (d *Accessor) GetAllAffiliations(name string) (*sqlx.Rows, error) {
+	log.Debugf("DB: Get affiliation %s", name)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	if name == "" { // Requesting all affiliations
+		rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM affiliations"))
+		if err != nil {
+			return nil, err
+		}
+		return rows, nil
+	}
+
+	rows, err := d.db.Queryx(d.db.Rebind(getAllAffiliationsQuery), name, name+".%")
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 // GetFilteredUsers returns all identities that fall under the affiliation and types
@@ -706,16 +735,9 @@ func (u *DBUser) ModifyAttributes(newAttrs []api.Attribute) error {
 	return nil
 }
 
-func dbGetError(err error, prefix string) error {
+func getError(err error, getType string) error {
 	if err.Error() == "sql: no rows in result set" {
-		return errors.Errorf("%s not found", prefix)
-	}
-	return err
-}
-
-func getUserError(err error) error {
-	if err.Error() == "not found" {
-		return newHTTPErr(404, ErrGettingUser, "Failed to get user: %s", err)
+		return newHTTPErr(404, ErrGettingUser, "Failed to get %s: %s", getType, err)
 	}
 	return newHTTPErr(504, ErrConnectingDB, "Failed to process database request: %s", err)
 }

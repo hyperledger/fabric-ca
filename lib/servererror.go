@@ -147,6 +147,8 @@ const (
 	ErrGettingBoolQueryParm = 57
 	// Failed to modify identity
 	ErrModifyingIdentity = 58
+	// Caller does not have the appropriate role
+	ErrMissingRole = 59
 )
 
 // Construct a new HTTP error.

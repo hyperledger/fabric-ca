@@ -237,6 +237,11 @@ func (lc *Client) GetAffiliation(name string) (spi.Affiliation, error) {
 	return nil, errNotSupported
 }
 
+// GetAllAffiliations gets affiliation and any sub affiliation from the database
+func (lc *Client) GetAllAffiliations(name string) (*sqlx.Rows, error) {
+	return nil, errNotSupported
+}
+
 // GetRootAffiliation returns the root affiliation group
 func (lc *Client) GetRootAffiliation() (spi.Affiliation, error) {
 	return nil, errNotSupported
