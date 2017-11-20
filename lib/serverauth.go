@@ -102,6 +102,14 @@ func (ah *fcaAuthHandler) serveHTTP(w http.ResponseWriter, r *http.Request) erro
 		return fmt.Errorf("CA '%s' does not exist", req.CAName)
 	}
 
+	ca := ah.server.caMap[req.CAName]
+	if !ca.dbInitialized {
+		err := ca.initDB()
+		if err != nil {
+			return fmt.Errorf("Failed to initialize DB: %s", err)
+		}
+	}
+
 	r.Header.Set(caHdrName, req.CAName)
 
 	authHdr := r.Header.Get("authorization")

@@ -1264,7 +1264,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 		Enabled: true,
 	}
 	csp := util.GetDefaultBCCSP()
-	_, _, err := dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err := dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
 
@@ -1273,7 +1273,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"doesnotexit.pem"},
 	}
-	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 
@@ -1282,7 +1282,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"../testdata/empty.json"},
 	}
-	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to process certificate from file")
 
@@ -1296,7 +1296,7 @@ func TestNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"../testdata/root.pem"},
 	}
-	_, _, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "permission denied")
 

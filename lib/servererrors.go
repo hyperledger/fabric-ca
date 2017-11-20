@@ -19,7 +19,9 @@ package lib
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
 
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
@@ -33,6 +35,11 @@ var (
 	errTokenAuthNotAllowed = errors.New("Token authorization is not permitted")
 	errInvalidUserPass     = errors.New("Invalid identity name or password")
 	errInputNotSeeker      = errors.New("Input stream was not a seeker")
+)
+
+const (
+	// ErrConfig is due to improper configuration setting
+	ErrConfig = 1
 )
 
 func badRequest(w http.ResponseWriter, err error) error {
@@ -61,4 +68,38 @@ func httpError(w http.ResponseWriter, scode, code int, msg string) error {
 	}
 	http.Error(w, msg, scode)
 	return nil
+}
+
+type fatalErr struct {
+	code int
+	msg  string
+}
+
+func newFatalError(code int, format string, args ...interface{}) *fatalErr {
+	msg := fmt.Sprintf(format, args...)
+	return &fatalErr{
+		code: code,
+		msg:  msg,
+	}
+}
+
+func (fe *fatalErr) Error() string {
+	return fe.String()
+}
+
+func (fe *fatalErr) String() string {
+	return fmt.Sprintf("Code: %d - %s", fe.code, fe.msg)
+}
+
+func isFatalError(err error) bool {
+	typ := reflect.TypeOf(err)
+	// If a pointer to a struct is passe, get the type of the dereferenced object
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	if typ == reflect.TypeOf(fatalErr{}) {
+		return true
+	}
+	return false
 }

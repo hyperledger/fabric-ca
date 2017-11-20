@@ -53,7 +53,12 @@ func TestGetIntermediateServer(idx int, t *testing.T) *Server {
 
 // TestGetServer creates and returns a pointer to a server struct
 func TestGetServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
-	if home != testdataDir {
+	return TestGetServer2(home != testdataDir, port, home, parentURL, maxEnroll, t)
+}
+
+// TestGetServer2 creates and returns a pointer to a server struct
+func TestGetServer2(deleteHome bool, port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
+	if deleteHome {
 		os.RemoveAll(home)
 	}
 	affiliations := map[string]interface{}{

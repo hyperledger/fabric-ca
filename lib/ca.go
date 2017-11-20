@@ -29,7 +29,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
@@ -93,6 +93,12 @@ type CA struct {
 	keyTree *tcert.KeyTree
 	// The server hosting this CA
 	server *Server
+	// Indicates if database was successfully initialized
+	dbInitialized bool
+	// Indicates if errors encountered during db initialization
+	dbError bool
+	// CA mutex
+	mutex sync.Mutex
 }
 
 const (
@@ -129,6 +135,8 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 func (ca *CA) init(renew bool) (err error) {
 	log.Debugf("Init CA with home %s and config %+v", ca.HomeDir, *ca.Config)
 	// Initialize the config, setting defaults, etc
+	ca.dbInitialized = false
+
 	err = ca.initConfig()
 	if err != nil {
 		return err
@@ -146,7 +154,11 @@ func (ca *CA) init(renew bool) (err error) {
 	// Initialize the database
 	err = ca.initDB()
 	if err != nil {
-		return err
+		log.Error("Error occurred initializing database: ", err)
+		// Return if a server configuration error encountered (e.g. Invalid max enrollment for a bootstrap user)
+		if isFatalError(err) {
+			return err
+		}
 	}
 	// Initialize the enrollment signer
 	err = ca.initEnrollmentSigner()
@@ -467,10 +479,33 @@ func (ca *CA) getVerifyOptions() (*x509.VerifyOptions, error) {
 
 // Initialize the database for the CA
 func (ca *CA) initDB() error {
-	db := &ca.Config.DB
+	log.Debug("Initializing DB")
 
+	initFunc := func(fn func() error) error {
+		initErr := fn()
+		if initErr != nil {
+			ca.dbError = true
+			log.Error(initErr)
+		}
+		return initErr
+	}
+
+	// If DB is initialized, don't need to proceed further
+	if ca.dbInitialized {
+		return nil
+	}
+
+	ca.mutex.Lock()
+	defer ca.mutex.Unlock()
+
+	// After obtaining a lock, check again to see if DB got initialized by another process
+	if ca.dbInitialized {
+		return nil
+	}
+
+	db := &ca.Config.DB
+	ca.dbError = false
 	var err error
-	var exists bool
 
 	if db.Type == "" || db.Type == defaultDatabaseType {
 
@@ -488,26 +523,22 @@ func (ca *CA) initDB() error {
 
 	// Strip out user:pass from datasource for logging
 	ds := db.Datasource
-	dsParts := strings.Split(ds, "@")
-	if len(dsParts) > 1 {
-		ds = fmt.Sprintf("*****:*****@%s", dsParts[len(dsParts)-1])
-	}
+	ds = dbutil.MaskDBCred(ds, db.Type)
 
 	switch db.Type {
 	case defaultDatabaseType:
-		ca.db, exists, err = dbutil.NewUserRegistrySQLLite3(db.Datasource)
+		ca.db, err = dbutil.NewUserRegistrySQLLite3(db.Datasource)
 		if err != nil {
-			return err
 		}
 	case "postgres":
-		ca.db, exists, err = dbutil.NewUserRegistryPostgres(db.Datasource, &db.TLS)
+		ca.db, err = dbutil.NewUserRegistryPostgres(db.Datasource, &db.TLS)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to create user registry for PostgreSQL: %s", err)
 		}
 	case "mysql":
-		ca.db, exists, err = dbutil.NewUserRegistryMySQL(db.Datasource, &db.TLS, ca.csp)
+		ca.db, err = dbutil.NewUserRegistryMySQL(db.Datasource, &db.TLS, ca.csp)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to create user registry for MySQL: %s", err)
 		}
 	default:
 		return fmt.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
@@ -516,30 +547,31 @@ func (ca *CA) initDB() error {
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db)
 
-	// Initialize the user registry.
-	// If LDAP is not configured, the fabric-ca CA functions as a user
-	// registry based on the database.
-	err = ca.initUserRegistry()
+	// If DB initialization fails and we need to reinitialize DB, need to make sure to set the DB accessor for the signer
+	if ca.enrollSigner != nil {
+		ca.enrollSigner.SetDBAccessor(ca.certDBAccessor)
+	}
+
+	// Initialize user registry to either use DB or LDAP
+	err = initFunc(ca.initUserRegistry)
 	if err != nil {
 		return err
 	}
-
-	// If the DB doesn't exist, bootstrap it
-	if !exists {
-		// Since users come from LDAP when enabled,
-		// load them from the config file only when LDAP is disabled
-		if !ca.Config.LDAP.Enabled {
-			err = ca.loadUsersTable()
-			if err != nil {
-				return err
-			}
-		}
-		err = ca.loadAffiliationsTable()
+	// If not using LDAP, load the affiliations table
+	if !ca.Config.LDAP.Enabled {
+		err = initFunc(ca.loadAffiliationsTable)
 		if err != nil {
 			return err
 		}
 	}
-	log.Infof("Initialized %s database", db.Type)
+
+	if ca.dbError {
+		return fmt.Errorf("Failed to initialize %s database at %s", db.Type, ds)
+	}
+
+	ca.dbInitialized = true
+	log.Infof("Initialized %s database at %s", db.Type, ds)
+
 	return nil
 }
 
@@ -561,10 +593,14 @@ func (ca *CA) initUserRegistry() error {
 		return err
 	}
 
-	// Use the DB for the user registry
+	// Use the DB for the user registry and load users
 	dbAccessor := new(Accessor)
 	dbAccessor.SetDB(ca.db)
 	ca.registry = dbAccessor
+	err = ca.loadUsersTable()
+	if err != nil {
+		return err
+	}
 	log.Debug("Initialized DB identity registry")
 	return nil
 }
@@ -613,7 +649,10 @@ func (ca *CA) loadUsersTable() error {
 		log.Debugf("Loading identity '%s'", id.Name)
 		err := ca.addIdentity(&id, false)
 		if err != nil {
-			return err
+			if isFatalError(err) {
+				return err
+			}
+			return fmt.Errorf("Failed to load identity table: %s", err)
 		}
 	}
 	log.Debug("Successfully loaded identity table")
@@ -624,10 +663,10 @@ func (ca *CA) loadUsersTable() error {
 func (ca *CA) loadAffiliationsTable() error {
 	log.Debug("Loading affiliations table")
 	err := ca.loadAffiliationsTableR(ca.Config.Affiliations, "")
-	if err == nil {
-		log.Debug("Successfully loaded affiliations table")
+	if err != nil {
+		return fmt.Errorf("Failed to load affiliations table: %s", err)
 	}
-	log.Debug("Successfully loaded groups table")
+	log.Debug("Successfully loaded affiliations table")
 	return nil
 }
 
@@ -682,13 +721,13 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 		if errIfFound {
 			return fmt.Errorf("Identity '%s' is already registered", id.Name)
 		}
-		log.Debugf("Loaded identity: %+v", id)
+		log.Debugf("Identity '%s' already registered, loaded identity", user.GetName())
 		return nil
 	}
 
 	id.MaxEnrollments, err = getMaxEnrollments(id.MaxEnrollments, ca.Config.Registry.MaxEnrollments)
 	if err != nil {
-		return err
+		return newFatalError(ErrConfig, "Configuration Error: %s", err)
 	}
 
 	rec := spi.UserInfo{
@@ -708,7 +747,6 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 }
 
 func (ca *CA) addAffiliation(path, parentPath string) error {
-	log.Debugf("Adding affiliation %s", path)
 	return ca.registry.InsertAffiliation(path, parentPath)
 }
 

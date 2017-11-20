@@ -27,6 +27,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -36,6 +37,8 @@ const (
 DELETE FROM Users;
 DELETE FROM affiliations;
 `
+
+	rootDB = "rootDir/fabric_ca.db"
 )
 
 type TestAccessor struct {
@@ -57,7 +60,7 @@ func TestSQLite(t *testing.T) {
 		os.MkdirAll(dbPath, 0755)
 	}
 	dataSource := dbPath + "/fabric-ca.db"
-	db, _, err := dbutil.NewUserRegistrySQLLite3(dataSource)
+	db, err := dbutil.NewUserRegistrySQLLite3(dataSource)
 	if err != nil {
 		t.Error("Failed to open connection to DB")
 	}
@@ -85,6 +88,115 @@ func Truncate(db *sqlx.DB) {
 			panic(err)
 		}
 	}
+}
+
+func TestEmptyAccessor(t *testing.T) {
+	a := &Accessor{}
+	ui := spi.UserInfo{}
+	err := a.InsertUser(ui)
+	if err == nil {
+		t.Error("Empty Accessor InsertUser should have failed")
+	}
+}
+
+func TestDBCreation(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.Mkdir(rootDir, 0755)
+
+	testWithExistingDbAndTablesAndUser(t)
+	testWithExistingDbAndTable(t)
+	testWithExistingDb(t)
+
+	os.Remove(rootDB)
+}
+
+func createSQLiteDB(path string, t *testing.T) *sqlx.DB {
+	db, err := sqlx.Open("sqlite3", path)
+	assert.NoError(t, err, "Failed to open SQLite database")
+
+	return db
+}
+
+// Test that an already bootstrapped database properly get inspected and bootstrapped with any new identities on the
+// next server start
+func testWithExistingDbAndTablesAndUser(t *testing.T) {
+	var err error
+
+	os.Remove(rootDB)
+	db := createSQLiteDB(rootDB, t)
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)")
+	assert.NoError(t, err, "Error creating users table")
+
+	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
+	srv.CA.Config.DB.Datasource = "fabric_ca.db"
+
+	err = srv.Start()
+	assert.NoError(t, err, "Failed to start server")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to stop server")
+
+	// Add additional user to registry and start server and confirm that it correctly get added
+	srv.RegisterBootstrapUser("admin2", "admin2pw", "")
+
+	err = srv.Start()
+	assert.NoError(t, err, "Failed to start server")
+
+	registry := srv.CA.DBAccessor()
+	_, err = registry.GetUser("admin2", nil)
+	assert.NoError(t, err, "Failed to correctly insert 'admin2' during second server bootstrap")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to stop server")
+}
+
+// Test starting a server with an already existing database and tables, but not bootstrapped
+func testWithExistingDbAndTable(t *testing.T) {
+	var err error
+
+	os.Remove(rootDB)
+	db := createSQLiteDB(rootDB, t)
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)")
+	assert.NoError(t, err, "Error creating users table")
+
+	srv := TestGetServer(rootPort, rootDir, "", -1, t)
+	srv.CA.Config.DB.Datasource = "fabric_ca.db"
+
+	err = srv.Start()
+	assert.NoError(t, err, "Failed to start server")
+
+	registry := srv.CA.DBAccessor()
+	_, err = registry.GetUser("admin", nil)
+	assert.NoError(t, err, "Failed to correctly insert 'admin' during second server bootstrap")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to stop server")
+
+}
+
+// Test starting a server with an already existing database, but no tables or users
+func testWithExistingDb(t *testing.T) {
+	var err error
+
+	os.Remove(rootDB)
+	createSQLiteDB(rootDB, t)
+
+	srv := TestGetServer(rootPort, rootDir, "", -1, t)
+	srv.CA.Config.DB.Datasource = "fabric_ca.db"
+
+	err = srv.Start()
+	assert.NoError(t, err, "Failed to start server")
+
+	registry := srv.CA.DBAccessor()
+	_, err = registry.GetUser("admin", nil)
+	assert.NoError(t, err, "Failed to correctly insert 'admin' during second server bootstrap")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to stop server")
+
 }
 
 func removeDatabase() {
