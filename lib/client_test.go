@@ -40,6 +40,7 @@ import (
 var (
 	ctport1     = 7098
 	ctport2     = 7099
+	intCAPort   = 7080
 	tdDir       = "../testdata"
 	fcaDB       = path.Join(tdDir, "fabric-ca-server.db")
 	fcaDB2      = path.Join(tdDir, "fabric-ca.db")
@@ -813,7 +814,7 @@ func TestGenCRL(t *testing.T) {
 	}
 	_, err = adminID.GenCRL(gencrlReq)
 	assert.Error(t, err, "genCRL should have failed as revokedafter timestamp is after revokedbefore timestamp")
-	assert.Contains(t, err.Error(), "Invalid revokedafter value", "Not expected error message")
+	assert.Contains(t, err.Error(), "Invalid 'revokedafter' value", "Not expected error message")
 
 	// Error case 2: expireafter is greater than expirebefore
 	gencrlReq = &api.GenCRLRequest{
@@ -823,7 +824,7 @@ func TestGenCRL(t *testing.T) {
 	}
 	_, err = adminID.GenCRL(gencrlReq)
 	assert.Error(t, err, "genCRL should have failed as expireafter timestamp is after expirebefore timestamp")
-	assert.Contains(t, err.Error(), "Invalid expireafter value", "Not expected error message")
+	assert.Contains(t, err.Error(), "Invalid 'expireafter' value", "Not expected error message")
 
 	// Error case 3: gencrl request by an user without hf.GenCRL authority should fail
 	gencrluser := "gencrluser1"
@@ -849,6 +850,126 @@ func TestGenCRL(t *testing.T) {
 	user1 := eresp.Identity
 	_, err = user1.GenCRL(gencrlReq)
 	assert.Error(t, err, "genCRL should have failed as invoker does not have hf.GenCRL attribute")
+}
+
+func TestGenCRLWithIntServer(t *testing.T) {
+	t.Log("Testing genCRL against intermediate CA server")
+
+	rootCAHome := path.Join(serversDir, "gencrlrootserver")
+	intCAHome := path.Join(serversDir, "gencrlintserver")
+	clientHome := path.Join(tdDir, "gencrlclient")
+	err := os.RemoveAll(rootCAHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s", rootCAHome)
+	}
+	err = os.RemoveAll(intCAHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s", intCAHome)
+	}
+	err = os.RemoveAll(clientHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s", clientHome)
+	}
+
+	removeDirs := func() {
+		os.RemoveAll(rootCAHome)
+		os.RemoveAll(intCAHome)
+		os.RemoveAll(clientHome)
+	}
+	defer removeDirs()
+
+	rootCASrv, intCASrv, adminID := setupGenCRLWithIntServerTest(t, rootCAHome, intCAHome, clientHome, false)
+	stopServers := func() {
+		if rootCASrv != nil {
+			rootCASrv.Stop()
+		}
+		if intCASrv != nil {
+			intCASrv.Stop()
+		}
+	}
+	defer stopServers()
+
+	_, err = adminID.GenCRL(&api.GenCRLRequest{CAName: ""})
+	assert.NoError(t, err, "failed to generate CRL")
+
+	stopServers()
+	removeDirs()
+
+	// Error case: Do not give 'crl sign' usage to the intermediate CA certificate and try generating a CRL
+	// It should return an error
+	rootCASrv, intCASrv, adminID = setupGenCRLWithIntServerTest(t, rootCAHome, intCAHome, clientHome, true)
+	_, err = adminID.GenCRL(&api.GenCRLRequest{CAName: ""})
+	assert.Error(t, err, "gen CRL should have failed because intermediate CA does not have 'crl sign' usage")
+}
+
+func setupGenCRLWithIntServerTest(t *testing.T, rootCAHome, intCAHome, clientHome string, noCrlSign bool) (*Server, *Server, *Identity) {
+	// Start the root CA server
+	rootCASrv := TestGetServer(ctport1, rootCAHome, "", 1, t)
+	if rootCASrv == nil {
+		t.Fatalf("Failed to get server")
+	}
+	// If noCrlSign is true, remove 'crl sign' usage from the ca profile
+	if noCrlSign {
+		caProfile := rootCASrv.CA.Config.Signing.Profiles["ca"]
+		caProfile.Usage = caProfile.Usage[0:1]
+	}
+	err := rootCASrv.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+
+	// Start the intermediate CA server
+	intCASrv := TestGetServer(intCAPort, intCAHome,
+		fmt.Sprintf("http://admin:adminpw@localhost:%d", ctport1),
+		-1, t)
+	if intCASrv == nil {
+		t.Fatalf("Failed to get server")
+	}
+
+	d, _ := time.ParseDuration("2h")
+	intCASrv.CA.Config.Signing.Default.Expiry = d
+
+	err = intCASrv.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+
+	// Enroll admin
+	c := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", intCAPort)},
+		HomeDir: clientHome,
+	}
+	eresp, err := c.Enroll(&api.EnrollmentRequest{Name: "admin", Secret: "adminpw"})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	adminID := eresp.Identity
+
+	// Register and revoker a user using admin identity
+	user := "gencrluser"
+	rr := &api.RegistrationRequest{
+		Name:           user,
+		Type:           "user",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 1,
+	}
+	resp, err := adminID.Register(rr)
+	if err != nil {
+		t.Fatalf("Failed to register user '%s': %s", user, err)
+	}
+	req := &api.EnrollmentRequest{
+		Name:   user,
+		Secret: resp.Secret,
+	}
+	eresp, err = c.Enroll(req)
+	if err != nil {
+		t.Fatalf("Failed to enroll user '%s': %s", user, err)
+	}
+	_, err = adminID.Revoke(&api.RevocationRequest{Name: user})
+	if err != nil {
+		t.Fatalf("Failed to revoke user '%s': %s", user, err)
+	}
+	return rootCASrv, intCASrv, adminID
 }
 
 func setupGenCRLTest(t *testing.T, serverHome, clientHome string) (*Server, *Identity) {

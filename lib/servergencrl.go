@@ -19,6 +19,7 @@ package lib
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 )
 
 // The response to the GET /info request
@@ -76,7 +78,7 @@ func genCRLHandler(ctx *serverRequestContext) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Successfully generated CRL: %s\n", crl)
+	log.Debugf("Successfully generated CRL")
 
 	resp := &genCRLResponseNet{CRL: crl}
 	return resp, nil
@@ -90,34 +92,31 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 		revokedBefore = time.Now().UTC()
 	}
 	if req.RevokedAfter.After(revokedBefore) {
-		log.Errorf("GenCRLRequest.RevokedAfter timestamp %s is greater than the GenCRLRequest.RevokedBefore timestamp %s",
-			req.RevokedAfter.Format(time.RFC3339), revokedBefore.Format(time.RFC3339))
-		return nil, newHTTPErr(400, ErrInvalidRevokedAfter, "Invalid revokedafter value. It must not be a timestamp greater than revokedbefore")
+		return nil, newHTTPErr(400, ErrInvalidRevokedAfter, "Invalid 'revokedafter' value. It must not be a timestamp greater than 'revokedbefore'")
 	}
 
 	if req.ExpireAfter.After(req.ExpireBefore) {
-		log.Errorf("GenCRLRequest.ExpireAfter timestamp %s is greater than the GenCRLRequest.ExpireBefore timestamp %s",
-			req.ExpireAfter.Format(time.RFC3339), req.ExpireBefore.Format(time.RFC3339))
-		return nil, newHTTPErr(400, ErrInvalidExpiredAfter, "Invalid expireafter value. It must not be a timestamp greater than expirebefore")
+		return nil, newHTTPErr(400, ErrInvalidExpiredAfter, "Invalid 'expireafter' value. It must not be a timestamp greater than 'expirebefore'")
 	}
 
 	// Get revoked certificates from the database
 	certs, err := ca.certDBAccessor.GetRevokedCertificates(req.ExpireAfter, req.ExpireBefore, req.RevokedAfter, revokedBefore)
 	if err != nil {
-		log.Errorf("Failed to get revoked certificates from the database: %s", err)
 		return nil, newHTTPErr(500, ErrRevokedCertsFromDB, "Failed to get revoked certificates from the database: %s", err)
 	}
 
 	caCert, err := getCACert(ca)
 	if err != nil {
-		log.Errorf("Failed to get certificate for the CA %s: %s", ca.HomeDir, err)
 		return nil, newHTTPErr(500, ErrGetCACert, "Failed to get certficate for the CA '%s': %s", ca.HomeDir, err)
+	}
+
+	if !canSignCRL(caCert) {
+		return nil, newHTTPErr(500, ErrNoCrlSignAuth, "The CA does not have authority to generate a CRL. Its certificate does not have 'crl sign' key usage")
 	}
 
 	// Get the signer for the CA
 	_, signer, err := util.GetSignerFromCert(caCert, ca.csp)
 	if err != nil {
-		log.Errorf("Failed to get signer for the CA %s: %s", ca.HomeDir, err)
 		return nil, newHTTPErr(500, ErrGetCASigner, "Failed to get signer for the CA '%s': %s", ca.HomeDir, err)
 	}
 
@@ -137,8 +136,7 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 
 	crl, err := crl.CreateGenericCRL(revokedCerts, signer, caCert, expiry)
 	if err != nil {
-		log.Errorf("Failed to generate CRL for the CA %s: %s", ca.HomeDir, err)
-		return nil, newHTTPErr(500, ErrGenCRL, "Failed to generate the CRL: %s", err)
+		return nil, newHTTPErr(500, ErrGenCRL, "Failed to generate the CRL for the CA '%s': %s", ca.HomeDir, err)
 	}
 	return crl, nil
 }
@@ -147,13 +145,11 @@ func getCACert(ca *CA) (*x509.Certificate, error) {
 	// Get CA certificate
 	caCertBytes, err := ioutil.ReadFile(ca.Config.CA.Certfile)
 	if err != nil {
-		log.Errorf("Failed to read certificate for the CA %s: %s", ca.HomeDir, err)
-		return nil, err
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to read certificate for the CA '%s'", ca.HomeDir))
 	}
 	caCert, err := BytesToX509Cert(caCertBytes)
 	if err != nil {
-		log.Errorf("Failed to get certificate for the CA %s: %s", ca.HomeDir, err)
-		return nil, err
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to get certificate for the CA '%s'", ca.HomeDir))
 	}
 	return caCert, nil
 }

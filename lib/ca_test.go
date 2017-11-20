@@ -63,13 +63,13 @@ func TestCABadCACertificates(t *testing.T) {
 	if err != nil {
 		t.Fatal("newCA failed ", err)
 	}
-	err = ca.validateCert(noCACert, noCAkey)
-	t.Log("validateCert Error: ", err)
+	err = ca.validateCertAndKey(noCACert, noCAkey)
+	t.Log("validateCertAndKey Error: ", err)
 	if err == nil {
 		t.Error("Should have failed, non-CA certificate provided")
 	}
-	err = ca.validateCert(badUsageCert, badUsageKey)
-	t.Log("validateCert Error: ", err)
+	err = ca.validateCertAndKey(badUsageCert, badUsageKey)
+	t.Log("validateCertAndKey Error: ", err)
 	if err == nil {
 		t.Error("Should have failed, incorrect keyusage")
 	}
@@ -107,7 +107,7 @@ func testValidDates(cert *x509.Certificate, t *testing.T) {
 }
 
 func testValidUsages(cert *x509.Certificate, t *testing.T) {
-	err := validateUsage(cert)
+	err := validateUsage(cert, "")
 	t.Log("validateUsage Error: ", err)
 	if err == nil {
 		t.Error("Should have failed, incorrect usage specified for certificate")
@@ -118,10 +118,10 @@ func testValidUsages(cert *x509.Certificate, t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = validateUsage(cert)
+	err = validateUsage(cert, "")
 	t.Log("validateUsage Error: ", err)
 	if assert.Error(t, err, "Should have failed, missing 'Cert Sign' key usage") {
-		assert.Contains(t, err.Error(), "'Cert Sign' key usage is required")
+		assert.Contains(t, err.Error(), "'cert sign' key usage is required")
 	}
 }
 
