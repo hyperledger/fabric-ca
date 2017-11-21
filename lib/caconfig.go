@@ -107,12 +107,18 @@ type CAConfig struct {
 
 // cfgOptions is a CA configuration that allows for setting different options
 type cfgOptions struct {
-	Identities identitiesOptions
+	Identities   identitiesOptions
+	Affiliations affiliationsOptions
 }
 
 // identitiesOptions are options that are related to identities
 type identitiesOptions struct {
 	AllowRemove bool `help:"Enables removal of identities dynamically"`
+}
+
+// affiliationsOptions are options that are related to affiliations
+type affiliationsOptions struct {
+	AllowRemove bool `help:"Enables removal of affiliations dynamically"`
 }
 
 // CAInfo is the CA information on a fabric-ca-server

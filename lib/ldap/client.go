@@ -228,8 +228,8 @@ func (lc *Client) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 }
 
 // DeleteUser deletes a user
-func (lc *Client) DeleteUser(id string) error {
-	return errNotSupported
+func (lc *Client) DeleteUser(id string) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
 }
 
 // GetAffiliation returns an affiliation group
@@ -253,8 +253,8 @@ func (lc *Client) InsertAffiliation(name string, prekey string, version int) err
 }
 
 // DeleteAffiliation deletes an affiliation group
-func (lc *Client) DeleteAffiliation(name string) error {
-	return errNotSupported
+func (lc *Client) DeleteAffiliation(name string, force, identityRemoval bool) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
 }
 
 // GetProperties returns the properties from the database

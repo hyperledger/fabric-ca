@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/crypto/ocsp"
+
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
@@ -148,6 +150,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 	var err error
 
 	srv := TestGetRootServer(t)
+	srv.RegisterBootstrapUser("admin2", "admin2pw", "org2")
 	err = srv.Start()
 	util.FatalError(t, err, "Failed to start server")
 	defer srv.Stop()
@@ -161,11 +164,65 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	admin := resp.Identity
 
+	// Register an admin with "hf.AffiliationMgr" role
+	notAffMgr, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name: "notAffMgr",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.AffiliationMgr",
+				Value: "false",
+			},
+		},
+	})
+
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+
+	admin2 := resp.Identity
+
 	addAffReq := &api.AddAffiliationRequest{}
 	addAffReq.Info.Name = "org3"
 
-	_, err = admin.AddAffiliation(addAffReq)
-	assert.Error(t, err, "Should have failed, not yet implemented")
+	addAffResp, err := notAffMgr.AddAffiliation(addAffReq)
+	assert.Error(t, err, "Should have failed, caller does not have 'hf.AffiliationMgr' attribute")
+
+	addAffResp, err = admin2.AddAffiliation(addAffReq)
+	assert.Error(t, err, "Should have failed affiliation, caller's affilation is 'org2'. Caller can't add affiliation 'org3'")
+
+	addAffResp, err = admin.AddAffiliation(addAffReq)
+	util.FatalError(t, err, "Failed to add affiliation 'org3'")
+
+	if addAffResp.Info.Name != "org3" {
+		t.Error("Incorrect affilation name in response to add 'org3'")
+	}
+
+	addAffResp, err = admin.AddAffiliation(addAffReq)
+	assert.Error(t, err, "Should have failed affiliation 'org3' already exists")
+
+	addAffReq.Info.Name = "org3.dept1"
+	addAffResp, err = admin.AddAffiliation(addAffReq)
+	assert.NoError(t, err, "Failed to affiliation")
+
+	registry := srv.registry
+	_, err = registry.GetAffiliation("org3.dept1")
+	assert.NoError(t, err, "Failed to add affiliation correctly")
+
+	addAffReq.Info.Name = "org4.dept1.team2"
+	addAffResp, err = admin.AddAffiliation(addAffReq)
+	assert.Error(t, err, "Should have failed, parent affiliation does not exist. Force option is required")
+
+	addAffReq.Force = true
+	addAffResp, err = admin.AddAffiliation(addAffReq)
+	assert.NoError(t, err, "Failed to add multiple affiliations with force option")
+
+	_, err = registry.GetAffiliation("org4.dept1.team2")
+	assert.NoError(t, err, "Failed to add affiliation correctly")
+
+	_, err = registry.GetAffiliation("org4.dept1")
+	assert.NoError(t, err, "Failed to add affiliation correctly")
 }
 
 func TestDynamicRemoveAffiliation(t *testing.T) {
@@ -175,6 +232,7 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 	var err error
 
 	srv := TestGetRootServer(t)
+	srv.RegisterBootstrapUser("admin2", "admin2pw", "org2")
 	err = srv.Start()
 	util.FatalError(t, err, "Failed to start server")
 	defer srv.Stop()
@@ -188,12 +246,86 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 
 	admin := resp.Identity
 
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin2'")
+
+	admin2 := resp.Identity
+
+	_, err = admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        "testuser1",
+		Affiliation: "org2",
+	})
+	assert.NoError(t, err, "Failed to register and enroll 'testuser1'")
+
+	registry := srv.CA.registry
+	_, err = registry.GetUser("testuser1", nil)
+	assert.NoError(t, err, "User should exist")
+
+	certdbregistry := srv.CA.certDBAccessor
+	certs, err := certdbregistry.GetCertificatesByID("testuser1")
+	if len(certs) != 1 {
+		t.Error("Failed to correctly enroll identity")
+	}
+
+	_, err = admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        "testuser2",
+		Affiliation: "org2",
+	})
+	assert.NoError(t, err, "Failed to register and enroll 'testuser1'")
+
+	_, err = registry.GetUser("testuser2", nil)
+	assert.NoError(t, err, "User should exist")
+
+	certs, err = certdbregistry.GetCertificatesByID("testuser2")
+	if len(certs) != 1 {
+		t.Error("Failed to correctly enroll identity")
+	}
+
 	removeAffReq := &api.RemoveAffiliationRequest{
-		Name: "org3",
+		Name: "org2",
 	}
 
 	_, err = admin.RemoveAffiliation(removeAffReq)
-	assert.Error(t, err, "Should have failed, not yet implemented")
+	assert.Error(t, err, "Should have failed, affiliation removal not allowed")
+
+	srv.CA.Config.Cfg.Affiliations.AllowRemove = true
+
+	_, err = admin2.RemoveAffiliation(removeAffReq)
+	assert.Error(t, err, "Should have failed, can't remove affiliation as the same level as caller")
+
+	_, err = admin.RemoveAffiliation(removeAffReq)
+	assert.Error(t, err, "Should have failed, there is an identity associated with affiliation. Need to use force option")
+
+	removeAffReq.Force = true
+	_, err = admin.RemoveAffiliation(removeAffReq)
+	assert.Error(t, err, "Should have failed, there is an identity associated with affiliation but identity removal is not allowed")
+
+	srv.CA.Config.Cfg.Identities.AllowRemove = true
+
+	_, err = admin.RemoveAffiliation(removeAffReq)
+	assert.NoError(t, err, "Failed to remove affiliation")
+
+	_, err = registry.GetUser("testuser1", nil)
+	assert.Error(t, err, "User should not exist")
+
+	_, err = registry.GetUser("testuser2", nil)
+	assert.Error(t, err, "User should not exist")
+
+	certs, err = certdbregistry.GetCertificatesByID("testuser1")
+	if certs[0].Status != "revoked" && certs[0].Reason != ocsp.AffiliationChanged {
+		t.Error("Failed to correctly revoke certificate for an identity whose affiliation was removed")
+	}
+
+	certs, err = certdbregistry.GetCertificatesByID("testuser2")
+	if certs[0].Status != "revoked" || certs[0].Reason != ocsp.AffiliationChanged {
+		t.Error("Failed to correctly revoke certificate for an identity whose affiliation was removed")
+	}
+
+	_, err = admin.RemoveAffiliation(removeAffReq)
+	assert.Error(t, err, "Should have failed, trying to remove an affiliation that does not exist")
 }
 
 func TestDynamicModifyAffiliation(t *testing.T) {

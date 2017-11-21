@@ -149,6 +149,14 @@ const (
 	ErrModifyingIdentity = 58
 	// Caller does not have the appropriate role
 	ErrMissingRole = 59
+	// Failed to add new affiliation
+	ErrUpdateConfigAddAff = 60
+	// Failed to remove affiliation
+	ErrUpdateConfigRemoveAff = 61
+	// Error occured while removing affiliation in database
+	ErrRemoveAffDB = 62
+	// Error occured when making a Get request to database
+	ErrDBGet = 63
 )
 
 // Construct a new HTTP error.

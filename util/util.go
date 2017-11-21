@@ -802,7 +802,9 @@ func ValidateAndReturnAbsConf(configFilePath, homeDir, cmdName string) (string, 
 
 // FatalError will check to see if an error occured if so it will cause the test cases exit
 func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
-	msg = fmt.Sprintf(msg, args)
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args)
+	}
 	if !assert.NoError(t, err, msg) {
 		t.Fatal(msg)
 	}

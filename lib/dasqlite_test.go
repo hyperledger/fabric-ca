@@ -339,7 +339,7 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of id: %s, error: %s", insert.Name, err)
 	}
 
-	err = ta.Accessor.DeleteUser(insert.Name)
+	_, err = ta.Accessor.DeleteUser(insert.Name)
 	if err != nil {
 		t.Errorf("Error occured during deletion of ID: %s, error: %s", insert.Name, err)
 	}
@@ -418,7 +418,7 @@ func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank2", err)
 	}
 
-	err = ta.Accessor.DeleteAffiliation("Banks.Bank2")
+	_, err = ta.Accessor.DeleteAffiliation("Banks.Bank2", true, true)
 	if err != nil {
 		t.Errorf("Error occured during deletion of group: %s, error: %s", "Bank2", err)
 	}

@@ -206,7 +206,7 @@ func (c *ClientCmd) runRemoveAffiliation(cmd *cobra.Command, args []string) erro
 		return err
 	}
 
-	fmt.Printf("Successfully modified affiliation: %+v\n", resp)
+	fmt.Printf("Successfully removed affiliation: %+v\n", resp)
 
 	return nil
 }

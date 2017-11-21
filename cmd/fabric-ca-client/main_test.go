@@ -685,14 +685,20 @@ func TestAffiliationCmd(t *testing.T) {
 
 	err = RunMain([]string{
 		cmdName, "affiliation", "add", "org3"})
-	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+	assert.NoError(t, err, "Caller with root affiliation failed to add affiliation 'org3'")
 
 	err = RunMain([]string{
-		cmdName, "affiliation", "modify", "org3"})
-	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+		cmdName, "affiliation", "add", "org4.dept1.team", "--force"})
+	assert.NoError(t, err, "Caller with root affiliation failed to add affiliation 'org4.dept1.team2'")
+
+	server.CA.Config.Cfg.Affiliations.AllowRemove = true
 
 	err = RunMain([]string{
 		cmdName, "affiliation", "remove", "org3"})
+	assert.NoError(t, err, "Failed to remove affiliation")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify", "org3"})
 	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
 }
 
