@@ -54,6 +54,10 @@ const (
 ca:
   # Name of this CA
   name: <<<CANAME>>>
+  # The CA certificate file
+  certfile: ca-cert.pem
+  # The CA key file
+  keyfile: ca-key.pem
 
 #############################################################################
 #  Database section
