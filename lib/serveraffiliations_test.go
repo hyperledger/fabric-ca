@@ -120,10 +120,7 @@ func TestGetAffiliation(t *testing.T) {
 
 	getAffResp, err := admin.GetAffiliation("org2.dept1", "")
 	assert.NoError(t, err, "Failed to get requested affiliations")
-
-	if getAffResp.Info.Name != "org2.dept1" {
-		t.Error("Failed to get correct affiliation")
-	}
+	assert.Equal(t, "org2.dept1", getAffResp.Info.Name)
 
 	getAffResp, err = admin2.GetAffiliation("org1", "")
 	assert.Error(t, err, "Should have failed, caller not authorized to get affiliation")
@@ -194,10 +191,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	util.FatalError(t, err, "Failed to add affiliation 'org3'")
-
-	if addAffResp.Info.Name != "org3" {
-		t.Error("Incorrect affilation name in response to add 'org3'")
-	}
+	assert.Equal(t, "org3", addAffResp.Info.Name)
 
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	assert.Error(t, err, "Should have failed affiliation 'org3' already exists")
@@ -223,6 +217,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	_, err = registry.GetAffiliation("org4.dept1")
 	assert.NoError(t, err, "Failed to add affiliation correctly")
+	assert.Equal(t, "org4.dept1.team2", addAffResp.Info.Name)
 }
 
 func TestDynamicRemoveAffiliation(t *testing.T) {
@@ -259,6 +254,17 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 		Affiliation: "org2",
 	})
 	assert.NoError(t, err, "Failed to register and enroll 'testuser1'")
+
+	notRegistrar, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name: "notregistrar",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.AffiliationMgr",
+				Value: "true",
+			},
+		},
+	})
+	assert.NoError(t, err, "Failed to register and enroll 'notregistrar'")
 
 	registry := srv.CA.registry
 	_, err = registry.GetUser("testuser1", nil)
@@ -305,7 +311,12 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 
 	srv.CA.Config.Cfg.Identities.AllowRemove = true
 
-	_, err = admin.RemoveAffiliation(removeAffReq)
+	_, err = notRegistrar.RemoveAffiliation(removeAffReq)
+	if assert.Error(t, err, "Should have failed, there is an identity associated with affiliation but caller is not a registrar") {
+		assert.Contains(t, err.Error(), "Authorization failure")
+	}
+
+	removeResp, err := admin.RemoveAffiliation(removeAffReq)
 	assert.NoError(t, err, "Failed to remove affiliation")
 
 	_, err = registry.GetUser("testuser1", nil)
@@ -323,6 +334,10 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 	if certs[0].Status != "revoked" || certs[0].Reason != ocsp.AffiliationChanged {
 		t.Error("Failed to correctly revoke certificate for an identity whose affiliation was removed")
 	}
+
+	assert.Equal(t, "org2.dept1", removeResp.Affiliations[0].Name)
+	assert.Equal(t, "org2", removeResp.Affiliations[1].Name)
+	assert.Equal(t, "admin2", removeResp.Identities[0].ID)
 
 	_, err = admin.RemoveAffiliation(removeAffReq)
 	assert.Error(t, err, "Should have failed, trying to remove an affiliation that does not exist")
@@ -349,10 +364,45 @@ func TestDynamicModifyAffiliation(t *testing.T) {
 
 	admin := resp.Identity
 
+	notRegistrar, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
+		Name:        "testuser1",
+		Affiliation: "org2",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.AffiliationMgr",
+				Value: "true",
+			},
+		},
+	})
+
 	modifyAffReq := &api.ModifyAffiliationRequest{
-		Name: "org3",
+		Name: "org2",
 	}
-	modifyAffReq.Info.Name = "org2"
+	modifyAffReq.Info.Name = "org3"
+
 	_, err = admin.ModifyAffiliation(modifyAffReq)
-	assert.Error(t, err, "Should have failed, not yet implemented")
+	assert.Error(t, err, "Should have failed, there is an identity associated with affiliation. Need to use force option")
+
+	modifyAffReq.Force = true
+	modifyResp, err := notRegistrar.ModifyAffiliation(modifyAffReq)
+	if assert.Error(t, err, "Should have failed to modify affiliation, identities are affected but caller is not a registrar") {
+		assert.Contains(t, err.Error(), "Authorization failure")
+	}
+
+	modifyResp, err = admin.ModifyAffiliation(modifyAffReq)
+	assert.NoError(t, err, "Failed to modify affiliation")
+
+	registry := srv.registry
+	_, err = registry.GetAffiliation("org3")
+	assert.NoError(t, err, "Failed to modify affiliation to 'org3'")
+
+	user, err := registry.GetUser("testuser1", nil)
+	util.FatalError(t, err, "Failed to get user")
+
+	userAff := GetUserAffiliation(user)
+	assert.Equal(t, "org3", userAff)
+
+	assert.Equal(t, "org2.dept1", modifyResp.Affiliations[0].Name)
+	assert.Equal(t, "org2", modifyResp.Affiliations[1].Name)
+	assert.Equal(t, "testuser1", modifyResp.Identities[0].ID)
 }

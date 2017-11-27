@@ -254,7 +254,7 @@ func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffilia
 	return resp, nil
 }
 
-func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.RemoveAffiliationResponse, error) {
+func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.AffiliationWithIdentityResponse, error) {
 	log.Debug("Processing DELETE request")
 
 	err := ctx.HasRole(attrAffiliationMgr)
@@ -287,31 +287,23 @@ func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (
 		return nil, err
 	}
 
+	_, isRegistrar, err := ctx.isRegistrar()
+	if err != nil {
+		httpErr := getHTTPErr(err)
+		if httpErr.lcode != 20 {
+			return nil, err
+		}
+	}
+
 	identityRemoval := ctx.ca.Config.Cfg.Identities.AllowRemove
-	result, err := ctx.ca.registry.DeleteAffiliation(removeAffiliation, force, identityRemoval)
+	result, err := ctx.ca.registry.DeleteAffiliation(removeAffiliation, force, identityRemoval, isRegistrar)
 	if err != nil {
 		return nil, err
 	}
 
-	affInfo := []api.AffiliationInfo{}
-	for _, affRemoved := range result.Affiliations {
-		affInfo = append(affInfo, api.AffiliationInfo{
-			Name: affRemoved.GetName(),
-		})
-	}
-	idInfo := []api.IdentityInfo{}
-	for _, idRemoved := range result.Identities {
-		id, err := getIDInfo(idRemoved)
-		if err != nil {
-			return nil, err
-		}
-		idInfo = append(idInfo, *id)
-	}
-
-	resp := &api.RemoveAffiliationResponse{
-		Affiliations: affInfo,
-		Identities:   idInfo,
-		CAName:       caname,
+	resp, err := getResponse(result, caname)
+	if err != nil {
+		return nil, err
 	}
 
 	return resp, nil
@@ -401,10 +393,84 @@ func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*a
 	return resp, nil
 }
 
-func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
+func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*api.AffiliationWithIdentityResponse, error) {
 	log.Debug("Processing PUT request")
 
-	// TODO
+	modifyAffiliation, err := ctx.GetVar("affiliation")
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, errors.New("Not Implemented")
+	var req api.ModifyAffiliationRequestNet
+	err = ctx.ReadBody(&req)
+	if err != nil {
+		return nil, err
+	}
+	newAffiliation := req.Info.Name
+	log.Debugf("Request to modify affiliation '%s' to '%s'", modifyAffiliation, newAffiliation)
+
+	err = ctx.ContainsAffiliation(modifyAffiliation)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctx.ContainsAffiliation(newAffiliation)
+	if err != nil {
+		return nil, err
+	}
+
+	force := false
+	forceStr := ctx.req.URL.Query().Get("force")
+	if forceStr != "" {
+		force, err = strconv.ParseBool(forceStr)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrUpdateConfigAddAff, "The 'force' query parameter value must be a boolean: %s", err)
+		}
+
+	}
+
+	_, isRegistrar, err := ctx.isRegistrar()
+	if err != nil {
+		httpErr := getHTTPErr(err)
+		if httpErr.lcode != 20 {
+			return nil, err
+		}
+	}
+
+	registry := ctx.ca.registry
+	result, err := registry.ModifyAffiliation(modifyAffiliation, newAffiliation, force, isRegistrar)
+	if err != nil {
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to modify affiliation from '%s' to '%s'", modifyAffiliation, newAffiliation))
+	}
+
+	resp, err := getResponse(result, caname)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func getResponse(result *spi.DbTxResult, caname string) (*api.AffiliationWithIdentityResponse, error) {
+	affInfo := []api.AffiliationInfo{}
+	for _, aff := range result.Affiliations {
+		fmt.Println("getResponse - aff: ", aff.GetName())
+		info := &api.AffiliationInfo{
+			Name: aff.GetName(),
+		}
+		affInfo = append(affInfo, *info)
+	}
+	idInfo := []api.IdentityInfo{}
+	for _, identity := range result.Identities {
+		id, err := getIDInfo(identity)
+		if err != nil {
+			return nil, err
+		}
+		idInfo = append(idInfo, *id)
+	}
+	return &api.AffiliationWithIdentityResponse{
+		Affiliations: affInfo,
+		Identities:   idInfo,
+		CAName:       caname,
+	}, nil
 }

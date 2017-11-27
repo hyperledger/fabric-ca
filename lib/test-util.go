@@ -71,8 +71,9 @@ func TestGetServer2(deleteHome bool, port int, home, parentURL string, maxEnroll
 			"fabric-ca": nil,
 			"sdk":       nil,
 		},
-		"org2": []string{"dept1"},
-		"org1": nil,
+		"org2":      []string{"dept1"},
+		"org1":      nil,
+		"org2dept1": nil,
 	}
 	profiles := map[string]*config.SigningProfile{
 		"tls": &config.SigningProfile{

@@ -161,13 +161,14 @@ func getIDs(ctx *serverRequestContext, caller spi.User, caname string) error {
 	w := ctx.resp
 	flusher, _ := w.(http.Flusher)
 
-	callerTypes, isRegistrar, err := ctx.IsRegistrar()
+	callerTypes, isRegistrar, err := ctx.isRegistrar()
 	if err != nil {
 		return err
 	}
 	if !isRegistrar {
 		return newAuthErr(ErrGettingUser, "Caller is not a registrar")
 	}
+
 	// Getting all identities of appropriate affiliation and type
 	callerAff := GetUserAffiliation(caller)
 	registry := ctx.ca.registry
@@ -291,13 +292,17 @@ func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.Identi
 	}
 
 	registry := ctx.ca.registry
-
 	userToRemove, err := ctx.GetUser(removeID)
 	if err != nil {
 		return nil, err
 	}
 
-	registry.DeleteUser(removeID)
+	err = ctx.CanManageUser(userToRemove)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = registry.DeleteUser(removeID)
 	if err != nil {
 		return nil, newHTTPErr(500, ErrRemoveIdentity, "Failed to remove identity: ", err)
 	}

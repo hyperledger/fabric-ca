@@ -139,6 +139,7 @@ Fabric-CA Server's Configuration File
               hf.IntermediateCA: true
               hf.GenCRL: true
               hf.Registrar.Attributes: "*"
+              hf.AffiliationMgr: true
     
     #############################################################################
     #  Database section

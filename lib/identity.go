@@ -271,7 +271,7 @@ func (i *Identity) ModifyIdentity(req *api.ModifyIdentityRequest) (*api.Identity
 
 	// Send a put to the "identities" endpoint with req as body
 	result := &api.IdentityResponse{}
-	err = i.Put(fmt.Sprintf("identities/%s", req.ID), reqBody, result)
+	err = i.Put(fmt.Sprintf("identities/%s", req.ID), reqBody, nil, result)
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +351,7 @@ func (i *Identity) AddAffiliation(req *api.AddAffiliationRequest) (*api.Affiliat
 }
 
 // ModifyAffiliation renames an existing affiliation on the server
-func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.AffiliationResponse, error) {
+func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.AffiliationWithIdentityResponse, error) {
 	log.Debugf("Entering identity.ModifyAffiliation with request: %+v", req)
 	modifyAff := req.Name
 	if modifyAff == "" {
@@ -362,14 +362,16 @@ func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.Af
 		return nil, errors.New("New affiliation not specified")
 	}
 
-	reqBody, err := util.Marshal(req.Info, "modifyIdentity")
+	reqBody, err := util.Marshal(req, "modifyIdentity")
 	if err != nil {
 		return nil, err
 	}
 
 	// Send a put to the "affiliations" endpoint with req as body
-	result := &api.AffiliationResponse{}
-	err = i.Put(fmt.Sprintf("affiliations/%s", modifyAff), reqBody, result)
+	result := &api.AffiliationWithIdentityResponse{}
+	queryParam := make(map[string]string)
+	queryParam["force"] = strconv.FormatBool(req.Force)
+	err = i.Put(fmt.Sprintf("affiliations/%s", modifyAff), reqBody, queryParam, result)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +381,7 @@ func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.Af
 }
 
 // RemoveAffiliation removes an existing affiliation from the server
-func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.RemoveAffiliationResponse, error) {
+func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.AffiliationWithIdentityResponse, error) {
 	log.Debugf("Entering identity.RemoveAffiliation with request: %+v", req)
 	removeAff := req.Name
 	if removeAff == "" {
@@ -387,7 +389,7 @@ func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.Re
 	}
 
 	// Send a delete to the "affiliations" endpoint with the affiliation as a path parameter
-	result := &api.RemoveAffiliationResponse{}
+	result := &api.AffiliationWithIdentityResponse{}
 	queryParam := make(map[string]string)
 	queryParam["force"] = strconv.FormatBool(req.Force)
 	queryParam["ca"] = req.CAName
@@ -441,10 +443,15 @@ func (i *Identity) GetStreamResponse(endpoint, caname, stream string, cb func(*j
 }
 
 // Put sends a put request to an endpoint
-func (i *Identity) Put(endpoint string, reqBody []byte, result interface{}) error {
+func (i *Identity) Put(endpoint string, reqBody []byte, queryParam map[string]string, result interface{}) error {
 	req, err := i.client.newPut(endpoint, reqBody)
 	if err != nil {
 		return err
+	}
+	if queryParam != nil {
+		for key, value := range queryParam {
+			addQueryParm(req, key, value)
+		}
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {

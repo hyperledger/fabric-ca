@@ -51,6 +51,7 @@ func (c *ClientCmd) newListAffiliationCommand() *cobra.Command {
 		Short: "List affiliations",
 		Long:  "List affiliations visible to caller",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
+			log.Level = log.LevelWarning
 			err := c.configInit()
 			if err != nil {
 				return err
@@ -174,6 +175,7 @@ func (c *ClientCmd) runModifyAffiliation(cmd *cobra.Command, args []string) erro
 
 	req := &api.ModifyAffiliationRequest{}
 	req.Name = args[0]
+	req.Info.Name = c.dynamicAffiliation.modify.Info.Name
 	req.CAName = c.clientCfg.CAName
 	req.Force = c.dynamicAffiliation.modify.Force
 

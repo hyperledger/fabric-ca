@@ -418,7 +418,7 @@ func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank2", err)
 	}
 
-	_, err = ta.Accessor.DeleteAffiliation("Banks.Bank2", true, true)
+	_, err = ta.Accessor.DeleteAffiliation("Banks.Bank2", true, true, true)
 	if err != nil {
 		t.Errorf("Error occured during deletion of group: %s, error: %s", "Bank2", err)
 	}

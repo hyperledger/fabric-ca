@@ -693,13 +693,22 @@ func TestAffiliationCmd(t *testing.T) {
 
 	server.CA.Config.Cfg.Affiliations.AllowRemove = true
 
+	registry := server.CA.DBAccessor()
+
 	err = RunMain([]string{
 		cmdName, "affiliation", "remove", "org3"})
 	assert.NoError(t, err, "Failed to remove affiliation")
 
+	_, err = registry.GetAffiliation("org3")
+	assert.Error(t, err, "Failed to remove 'org3' successfully")
+
 	err = RunMain([]string{
-		cmdName, "affiliation", "modify", "org3"})
-	assert.Error(t, err, "Should have failed, affiliation endpoint does not exist")
+		cmdName, "affiliation", "modify", "org1", "--name", "org3"})
+	assert.NoError(t, err, "Failed to rename affiliation from 'org2' to 'org3'")
+
+	_, err = registry.GetAffiliation("org3")
+	assert.NoError(t, err, "Failed to rename 'org1' to 'org3' successfully")
+
 }
 
 // Verify the certificate has attribute 'name' with a value of 'val'

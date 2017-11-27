@@ -228,7 +228,7 @@ func (lc *Client) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 }
 
 // DeleteUser deletes a user
-func (lc *Client) DeleteUser(id string) (*spi.DbTxResult, error) {
+func (lc *Client) DeleteUser(id string) (spi.User, error) {
 	return nil, errNotSupported
 }
 
@@ -253,7 +253,12 @@ func (lc *Client) InsertAffiliation(name string, prekey string, version int) err
 }
 
 // DeleteAffiliation deletes an affiliation group
-func (lc *Client) DeleteAffiliation(name string, force, identityRemoval bool) (*spi.DbTxResult, error) {
+func (lc *Client) DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
+}
+
+// ModifyAffiliation renames the affiliation and updates all identities to use the new affiliation
+func (lc *Client) ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*spi.DbTxResult, error) {
 	return nil, errNotSupported
 }
 

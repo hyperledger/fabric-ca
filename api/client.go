@@ -283,8 +283,8 @@ type RemoveAffiliationRequest struct {
 	CAName string `json:"caname,omitempty"`
 }
 
-// RemoveAffiliationResponse contains the response from removing an affiliation request
-type RemoveAffiliationResponse struct {
+// AffiliationWithIdentityResponse contains the response from removing an affiliation request
+type AffiliationWithIdentityResponse struct {
 	Affiliations []AffiliationInfo `json:"affiliations"`
 	Identities   []IdentityInfo    `json:"identities"`
 	CAName       string            `json:"caname,omitempty"`

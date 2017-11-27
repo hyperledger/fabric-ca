@@ -77,13 +77,14 @@ type UserRegistry interface {
 	GetUser(id string, attrs []string) (User, error)
 	InsertUser(user *UserInfo) error
 	UpdateUser(user *UserInfo, updatePass bool) error
-	DeleteUser(id string) (*DbTxResult, error)
+	DeleteUser(id string) (User, error)
 	GetAffiliation(name string) (Affiliation, error)
 	GetAllAffiliations(name string) (*sqlx.Rows, error)
 	InsertAffiliation(name string, prekey string, level int) error
-	DeleteAffiliation(name string, force, identityRemoval bool) (*DbTxResult, error)
 	// GetProperties returns the properties by name from the database
 	GetProperties(name []string) (map[string]string, error)
 	GetUserLessThanLevel(version int) ([]User, error)
 	GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error)
+	DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*DbTxResult, error)
+	ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*DbTxResult, error)
 }
