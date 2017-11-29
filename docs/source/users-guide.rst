@@ -1177,6 +1177,11 @@ The following command will install CA2's certificate chain into peer1's MSP dire
     export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
     fabric-ca-client getcacert -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
 
+By default, the Fabric CA server returns the CA chain in child-first order. This means that each CA
+certificate in the chain is followed by its issuer's CA certificate. If you need the Fabric CA server
+to return the CA chain in the opposite order, then set the environment variable ``CA_CHAIN_PARENT_FIRST``
+to ``true`` and restart the Fabric CA server. The Fabric CA client will handle either order appropriately.
+
 Reenrolling an Identity
 ~~~~~~~~~~~~~~~~~~~~~~~
 

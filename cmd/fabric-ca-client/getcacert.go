@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
+	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"net/url"
@@ -87,8 +89,8 @@ func (c *ClientCmd) runGetCACert() error {
 }
 
 // Store the CAChain in the CACerts folder of MSP (Membership Service Provider)
-// The 1st cert in the chain goes into MSP 'cacerts' directory.
-// The others (if any) go into the MSP 'intermediates' directory.
+// The root cert in the chain goes into MSP 'cacerts' directory.
+// The others (if any) go into the MSP 'intermediatecerts' directory.
 func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error {
 	mspDir := config.MSPDir
 	// Get a unique name to use for filenames
@@ -102,23 +104,64 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 	}
 	fname = strings.Replace(fname, ":", "-", -1)
 	fname = strings.Replace(fname, ".", "-", -1) + ".pem"
-	// Split the root and intermediate certs
-	block, intermediateCerts := pem.Decode(si.CAChain)
-	if block == nil {
-		return errors.New("No root certificate was found")
+	tlsfname := fmt.Sprintf("tls-%s", fname)
+
+	rootCACertsDir := path.Join(mspDir, "cacerts")
+	intCACertsDir := path.Join(mspDir, "intermediatecerts")
+	tlsRootCACertsDir := path.Join(mspDir, "tlscacerts")
+	tlsIntCACertsDir := path.Join(mspDir, "tlsintermediatecerts")
+
+	var rootBlks [][]byte
+	var intBlks [][]byte
+	chain := si.CAChain
+	for len(chain) > 0 {
+		var block *pem.Block
+		block, chain = pem.Decode(chain)
+		if block == nil {
+			break
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return errors.Wrap(err, "Failed to parse certificate in the CA chain")
+		}
+
+		if !cert.IsCA {
+			return errors.New("A certificate in the CA chain is not a CA certificate")
+		}
+
+		// If authority key id is not present or if it is present and equal to subject key id,
+		// then it is a root certificate
+		if len(cert.AuthorityKeyId) == 0 || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+			rootBlks = append(rootBlks, pem.EncodeToMemory(block))
+		} else {
+			intBlks = append(intBlks, pem.EncodeToMemory(block))
+		}
 	}
-	rootCert := pem.EncodeToMemory(block)
-	dirPrefix := dirPrefixByProfile(config.Enrollment.Profile)
-	// Store the root certificate in "cacerts"
-	certsDir := fmt.Sprintf("%scacerts", dirPrefix)
-	err = storeCerts("root certificate", mspDir, certsDir, fname, rootCert)
-	if err != nil {
-		return err
+
+	// Store the root certificates in the "cacerts" msp folder
+	certBytes := bytes.Join(rootBlks, []byte(""))
+	if config.Enrollment.Profile == "tls" {
+		err := storeCert("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = storeCert("root CA certificate", rootCACertsDir, fname, certBytes)
+		if err != nil {
+			return err
+		}
 	}
-	// Store the intermediate certs if there are any
-	if len(intermediateCerts) > 0 {
-		certsDir = fmt.Sprintf("%sintermediatecerts", dirPrefix)
-		err = storeCerts("intermediate certificates", mspDir, certsDir, fname, intermediateCerts)
+
+	// Store the intermediate certificates in the "intermediatecerts" msp folder
+	certBytes = bytes.Join(intBlks, []byte(""))
+	if config.Enrollment.Profile == "tls" {
+		err = storeCert("TLS intermediate certificates", tlsIntCACertsDir, tlsfname, certBytes)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = storeCert("intermediate CA certificates", intCACertsDir, fname, certBytes)
 		if err != nil {
 			return err
 		}
@@ -126,22 +169,7 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 	return nil
 }
 
-func storeCerts(what, mspDir, subDir, fname string, cert []byte) error {
-	err := storeFile(fmt.Sprintf("CA %s", what), mspDir, subDir, fname, cert)
-	if err != nil {
-		return err
-	}
-	tlsfname := fmt.Sprintf("tls-%s", fname)
-	tlsCertsDir := fmt.Sprintf("tls%s", subDir)
-	err = storeFile(fmt.Sprintf("TLS %s", what), mspDir, tlsCertsDir, tlsfname, cert)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func storeFile(what, mspDir, subDir, fname string, contents []byte) error {
-	dir := path.Join(mspDir, subDir)
+func storeCert(what, dir, fname string, contents []byte) error {
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create directory for %s at '%s'", what, dir)
@@ -153,15 +181,4 @@ func storeFile(what, mspDir, subDir, fname string, contents []byte) error {
 	}
 	log.Infof("Stored %s at %s", what, fpath)
 	return nil
-}
-
-// Return the prefix to add to the "cacerts" and "intermediatecerts" directories
-// based on the target profile.  If the profile is "tls", these directories become
-// "tlscacerts" and "tlsintermediatecerts", respectively.  There is no prefix for
-// any other profile.
-func dirPrefixByProfile(profile string) string {
-	if profile == "tls" {
-		return "tls"
-	}
-	return ""
 }
