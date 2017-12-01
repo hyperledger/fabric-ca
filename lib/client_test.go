@@ -387,6 +387,31 @@ func testRegister(c *Client, t *testing.T) {
 	if err == nil {
 		t.Fatalf("Enroll should have failed because %s does not have attr3", userName)
 	}
+
+	// Register a user with no attributes.
+	userName = "MyTestUserWithNoAttrs"
+	registerReq = &api.RegistrationRequest{
+		Name:        userName,
+		Type:        "client",
+		Affiliation: "hyperledger",
+	}
+	resp, err = adminID.Register(registerReq)
+	if err != nil {
+		t.Fatalf("Register of %s failed: %s", userName, err)
+	}
+	// Try to enroll the user with no attributes with the "ca" profile.
+	// Since the identity doesn't have the "hf.IntermediateCA" attribute,
+	// this should fail.
+	req = &api.EnrollmentRequest{
+		Name:    userName,
+		Secret:  resp.Secret,
+		Profile: "ca",
+	}
+	_, err = c.Enroll(req)
+	if err == nil {
+		t.Fatalf("Enroll to 'ca' profile should have failed because %s does not have the hf.IntermediateCA attribute", userName)
+	}
+
 }
 
 func checkAttrResult(t *testing.T, name, val string, attrs *attrmgr.Attributes) {

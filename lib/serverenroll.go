@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
@@ -178,25 +179,16 @@ func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverR
 	if (req.Subject != nil && req.Subject.CN != id) || csrReq.Subject.CommonName != id {
 		return errors.New("The CSR subject common name must equal the enrollment ID")
 	}
-	// Check the CSR for the X.509 BasicConstraints extension (RFC 5280, 4.2.1.9)
-	for _, val := range csrReq.Extensions {
-		if val.Id.Equal(basicConstraintsOID) {
-			var constraints csr.BasicConstraints
-			var rest []byte
-			if rest, err = asn1.Unmarshal(val.Value, &constraints); err != nil {
-				return newHTTPErr(400, ErrBadCSR, "Failed parsing CSR constraints: %s", err)
-			} else if len(rest) != 0 {
-				return newHTTPErr(400, ErrBadCSR, "Trailing data after X.509 BasicConstraints")
-			}
-			if constraints.IsCA {
-				log.Debug("sign request received for an intermediate CA")
-				// This is a request for a CA certificate, so make sure the caller
-				// has the 'hf.IntermediateCA' attribute
-				err := ca.attributeIsTrue(id, "hf.IntermediateCA")
-				if err != nil {
-					return err
-				}
-			}
+	isForCACert, err := isRequestForCASigningCert(csrReq, ca, req.Profile)
+	if err != nil {
+		return err
+	}
+	if isForCACert {
+		// This is a request for a CA certificate, so make sure the caller
+		// has the 'hf.IntermediateCA' attribute
+		err := ca.attributeIsTrue(id, "hf.IntermediateCA")
+		if err != nil {
+			return err
 		}
 	}
 	// Check the CSR input length
@@ -212,6 +204,48 @@ func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverR
 	setRequestOUs(req, caller)
 	log.Debug("Finished processing sign request")
 	return nil
+}
+
+// Check to see if this is a request for a CA signing certificate.
+// This can occur if the profile or the CSR has the IsCA bit set.
+// See the X.509 BasicConstraints extension (RFC 5280, 4.2.1.9).
+func isRequestForCASigningCert(csrReq *x509.CertificateRequest, ca *CA, profile string) (bool, error) {
+	// Check the profile to see if the IsCA bit is set
+	sp := getSigningProfile(ca, profile)
+	if sp == nil {
+		return false, errors.Errorf("Invalid profile: '%s'", profile)
+	}
+	if sp.CAConstraint.IsCA {
+		log.Debugf("Request is for a CA signing certificate as set in profile '%s'", profile)
+		return true, nil
+	}
+	// Check the CSR to see if the IsCA bit is set
+	for _, val := range csrReq.Extensions {
+		if val.Id.Equal(basicConstraintsOID) {
+			var constraints csr.BasicConstraints
+			var rest []byte
+			var err error
+			if rest, err = asn1.Unmarshal(val.Value, &constraints); err != nil {
+				return false, newHTTPErr(400, ErrBadCSR, "Failed parsing CSR constraints: %s", err)
+			} else if len(rest) != 0 {
+				return false, newHTTPErr(400, ErrBadCSR, "Trailing data after X.509 BasicConstraints")
+			}
+			if constraints.IsCA {
+				log.Debug("Request is for a CA signing certificate as indicated in the CSR")
+				return true, nil
+			}
+		}
+	}
+	// The IsCA bit was not set
+	log.Debug("Request is not for a CA signing certificate")
+	return false, nil
+}
+
+func getSigningProfile(ca *CA, profile string) *config.SigningProfile {
+	if profile == "" {
+		return ca.Config.Signing.Default
+	}
+	return ca.Config.Signing.Profiles[profile]
 }
 
 // Checks to make sure that character limits are not exceeded for CSR fields
