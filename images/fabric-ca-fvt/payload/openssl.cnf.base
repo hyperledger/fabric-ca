@@ -70,6 +70,7 @@ stateOrProvinceName     = optional      # Must be the same as the CA
 organizationName        = optional      # Must be the same as the CA
 organizationalUnitName  = optional      # not required
 commonName              = supplied      # must be there, whatever it is
+serialNumber            = optional      # not required
 emailAddress            = optional      # not required
 
 ####################################################################
@@ -83,6 +84,7 @@ localityName            = optional
 organizationName        = optional
 organizationalUnitName  = optional
 commonName              = supplied
+serialNumber            = optional      # not required
 emailAddress            = optional
 
 ####################################################################
@@ -289,7 +291,7 @@ fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.der
 #onlysomereasons=$IDPREASON
 
 [ cdp_section ]
-fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.der
+fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.pem
 # revocation reason, where reason is one of:
 #    unspecified
 #    keyCompromise
