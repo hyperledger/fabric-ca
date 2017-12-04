@@ -140,6 +140,18 @@ func TestErrors(t *testing.T) {
 	viper.SetDefault("ca.name", "acme.com")
 }
 
+func TestOneTimePass(t *testing.T) {
+	testDir := "oneTimePass"
+	os.RemoveAll(testDir)
+	defer os.RemoveAll(testDir)
+	// Test with "-b" option
+	err := RunMain([]string{cmdName, "init", "-b", "admin:adminpw",
+		"--registry.maxenrollments", "1", "-c", path.Join(testDir, "config.yaml")})
+	if err != nil {
+		t.Fatalf("Failed to init server with one time passwords: %s", err)
+	}
+}
+
 func TestLDAP(t *testing.T) {
 	os.RemoveAll(ldapTestDir)
 	defer os.RemoveAll(ldapTestDir)
