@@ -33,7 +33,7 @@ import (
 // ServerTLSConfig defines key material for a TLS server
 type ServerTLSConfig struct {
 	Enabled    bool   `help:"Enable TLS on the listening port"`
-	CertFile   string `help:"PEM-encoded TLS certificate file for server's listening port"`
+	CertFile   string `def:"tls-cert.pem" help:"PEM-encoded TLS certificate file for server's listening port"`
 	KeyFile    string `help:"PEM-encoded TLS key for server's listening port"`
 	ClientAuth ClientAuth
 }

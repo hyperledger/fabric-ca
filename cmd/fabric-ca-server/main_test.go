@@ -337,6 +337,31 @@ func TestRegistrarAttribute(t *testing.T) {
 	assert.NoError(t, err, "Bootstrap user 'admin' should have been able to register a user with attributes")
 }
 
+// TestTLSEnabledButCertfileNotSpecified tests if the server with default config starts
+// fine with --tls.enabled and with or without --tls.certfile flag. When
+// --tls.certfile is not specified, it should use default name 'tls-cert.pem'
+func TestTLSEnabledButCertfileNotSpecified(t *testing.T) {
+	blockingStart = false
+	rootHomeDir := "tlsintCATestRootSrvHome"
+	err := os.RemoveAll(rootHomeDir)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", rootHomeDir, err)
+	}
+	defer os.RemoveAll(rootHomeDir)
+
+	err = RunMain([]string{cmdName, "start", "-p", "7100", "-H", rootHomeDir, "-d", "-b", "admin:admin", "--tls.enabled"})
+	if err != nil {
+		t.Error("Server should not have failed to start when TLS is enabled and TLS cert file name is not specified...it should have used default TLS cert file name 'tls-cert.pem'", err)
+	}
+
+	// start the root server with TLS enabled
+	err = RunMain([]string{cmdName, "start", "-p", "7101", "-H", rootHomeDir, "-d", "-b", "admin:admin", "--tls.enabled",
+		"--tls.certfile", "tls-cert.pem"})
+	if err != nil {
+		t.Error("Server should not have failed to start when TLS is enabled and TLS cert file name is specified.", err)
+	}
+}
+
 func TestVersion(t *testing.T) {
 	err := RunMain([]string{cmdName, "version"})
 	if err != nil {

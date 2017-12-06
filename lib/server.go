@@ -513,26 +513,24 @@ func (s *Server) listenAndServe() (err error) {
 		log.Debug("TLS is enabled")
 		addrStr = fmt.Sprintf("https://%s", addr)
 
-		if c.TLS.CertFile == "" {
-			return errors.New("TLS is enabled but no TLS certificate provided")
-		}
-
-		// If key file provided but certificate file does not exist than need to error out and not start server
-		if c.TLS.KeyFile != "" && !util.FileExists(c.TLS.CertFile) {
-			if util.FileExists(c.TLS.KeyFile) {
-				return fmt.Errorf("Found key file '%s' but could not find certificate file '%s'. Please check your configuration", c.TLS.KeyFile, c.TLS.CertFile)
+		// If key file is specified and it does not exist or its corresponding certificate file does not exist
+		// then need to return error and not start the server. The TLS key file is specified when the user
+		// wants the server to use custom tls key and cert and don't want server to auto generate its own. So,
+		// when the key file is specified, it must exist on the file system
+		if c.TLS.KeyFile != "" {
+			if !util.FileExists(c.TLS.KeyFile) {
+				return fmt.Errorf("File specified by 'tls.keyfile' does not exist: %s", c.TLS.KeyFile)
 			}
-			return fmt.Errorf("Certificate file '%s' does not exist; key file '%s' must not be specified in order to automatically generate the key", c.TLS.CertFile, c.TLS.KeyFile)
-		}
-
-		// TLS enabled but no TLS certificate exists
-		if !util.FileExists(c.TLS.CertFile) {
+			if !util.FileExists(c.TLS.CertFile) {
+				return fmt.Errorf("File specified by 'tls.certfile' does not exist: %s", c.TLS.CertFile)
+			}
+		} else if !util.FileExists(c.TLS.CertFile) {
+			// TLS key file is not specified, generate TLS key and cert if they are not already generated
 			err = s.autoGenerateTLSCertificateKey()
 			if err != nil {
 				return fmt.Errorf("Failed to automatically generate TLS certificate and key: %s", err)
 			}
 		}
-
 		log.Debugf("TLS Certificate: %s, TLS Key: %s", c.TLS.CertFile, c.TLS.KeyFile)
 
 		cer, err := util.LoadX509KeyPair(c.TLS.CertFile, c.TLS.KeyFile, s.csp)
