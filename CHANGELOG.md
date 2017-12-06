@@ -1,3 +1,10 @@
+## v1.0.5
+Wed Dec  6 11:37:49 WET 2017
+
+* [1cb0c8c](https://github.com/hyperledger/fabric-ca/commit/1cb0c8c) [FAB-6991](https://jira.hyperledger.org/browse/FAB-6991) Fix max enrollments for bootstrap user
+* [048c434](https://github.com/hyperledger/fabric-ca/commit/048c434) [FAB-7055](https://jira.hyperledger.org/browse/FAB-7055) Backport [FAB-5786] to release
+* [26110c0](https://github.com/hyperledger/fabric-ca/commit/26110c0) [FAB-6796](https://jira.hyperledger.org/browse/FAB-6796) Prepare fabric-ca for v1.0.5 development
+
 ## v1.0.4
 Tue Oct 31 15:14:49 EDT 2017
 
