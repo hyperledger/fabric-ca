@@ -270,12 +270,12 @@ EOF
       if test "$SERVER" = "$INTERMEDIATE_PROXY_PORT"; then
          dbname=$INTDBNAME
          userdir=$INTUSERDIR
-         stype=root
+         stype=intermediate
          backend=intserver
       else
          dbname=$DBNAME
          userdir=$ROOTUSERDIR
-         stype=intermediate
+         stype=root
          backend=server
       fi
 

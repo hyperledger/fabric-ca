@@ -316,13 +316,6 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		cert = ecert.Cert()
 		// Store the chain file as the concatenation of the parent's chain plus the cert.
 		chainPath := ca.Config.CA.Chainfile
-		if chainPath == "" {
-			chainPath, err = util.MakeFileAbs("ca-chain.pem", ca.HomeDir)
-			if err != nil {
-				return nil, errors.WithMessage(err, "Failed to create intermediate chain file path")
-			}
-			ca.Config.CA.Chainfile = chainPath
-		}
 		chain, err := ca.concatChain(resp.ServerInfo.CAChain, cert)
 		if err != nil {
 			return nil, err
@@ -440,6 +433,9 @@ func (ca *CA) initConfig() (err error) {
 	}
 	if cfg.CA.Keyfile == "" {
 		cfg.CA.Keyfile = "ca-key.pem"
+	}
+	if cfg.CA.Chainfile == "" {
+		cfg.CA.Chainfile = "ca-chain.pem"
 	}
 	if cfg.CSR.CA == nil {
 		cfg.CSR.CA = &cfcsr.CAConfig{}

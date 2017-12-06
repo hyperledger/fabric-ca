@@ -109,7 +109,7 @@ type CAInfo struct {
 	Name      string `opt:"n" help:"Certificate Authority name"`
 	Keyfile   string `help:"PEM-encoded CA key file"`
 	Certfile  string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
-	Chainfile string `help:"PEM-encoded CA chain file"`
+	Chainfile string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
 }
 
 // CAConfigDB is the database part of the server's config
