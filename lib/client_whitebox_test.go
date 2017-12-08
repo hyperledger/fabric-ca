@@ -539,7 +539,7 @@ func TestCWBNewCertificateRequest(t *testing.T) {
 	req := &api.CSRInfo{
 		Names:      []csr.Name{},
 		Hosts:      []string{},
-		KeyRequest: csr.NewBasicKeyRequest(),
+		KeyRequest: api.NewBasicKeyRequest(),
 	}
 	if c.newCertificateRequest(req) == nil {
 		t.Error("newCertificateRequest failed")

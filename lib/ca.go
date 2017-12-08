@@ -341,12 +341,20 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if csr.CA.Expiry == "" {
 			csr.CA.Expiry = defaultRootCACertificateExpiration
 		}
+		if csr.KeyRequest == nil {
+			if ca.Config.CSP.SwOpts != nil {
+				csr.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: ca.Config.CSP.SwOpts.SecLevel}
+			} else if ca.Config.CSP.Pkcs11Opts != nil {
+				csr.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: ca.Config.CSP.Pkcs11Opts.SecLevel}
+			} else {
+				csr.KeyRequest = api.NewBasicKeyRequest()
+			}
+		}
 		req := cfcsr.CertificateRequest{
-			CN:    csr.CN,
-			Names: csr.Names,
-			Hosts: csr.Hosts,
-			// FIXME: NewBasicKeyRequest only does ecdsa 256; use config
-			KeyRequest:   cfcsr.NewBasicKeyRequest(),
+			CN:           csr.CN,
+			Names:        csr.Names,
+			Hosts:        csr.Hosts,
+			KeyRequest:   &cfcsr.BasicKeyRequest{A: csr.KeyRequest.Algo, S: csr.KeyRequest.Size},
 			CA:           csr.CA,
 			SerialNumber: csr.SerialNumber,
 		}

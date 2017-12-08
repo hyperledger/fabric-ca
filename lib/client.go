@@ -262,7 +262,7 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 	cr.CN = id
 
 	if cr.KeyRequest == nil {
-		cr.KeyRequest = csr.NewBasicKeyRequest()
+		cr.KeyRequest = newCfsslBasicKeyRequest(api.NewBasicKeyRequest())
 	}
 
 	key, cspSigner, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
@@ -298,7 +298,7 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo) *csr.CertificateRequest
 		}
 	}
 	if req != nil && req.KeyRequest != nil {
-		cr.KeyRequest = req.KeyRequest
+		cr.KeyRequest = newCfsslBasicKeyRequest(req.KeyRequest)
 	}
 	if req != nil {
 		cr.CA = req.CA
@@ -531,6 +531,10 @@ func (c *Client) CheckEnrollment() error {
 		}
 	}
 	return errors.New("Enrollment information does not exist. Please execute enroll command first. Example: fabric-ca-client enroll -u http://user:userpw@serverAddr:serverPort")
+}
+
+func newCfsslBasicKeyRequest(bkr *api.BasicKeyRequest) *csr.BasicKeyRequest {
+	return &csr.BasicKeyRequest{A: bkr.Algo, S: bkr.Size}
 }
 
 // NormalizeURL normalizes a URL (from cfssl)

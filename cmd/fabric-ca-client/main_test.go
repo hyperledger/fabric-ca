@@ -241,13 +241,13 @@ func TestGenCRL(t *testing.T) {
 	t.Log("Testing GenCRL")
 	adminHome := filepath.Join(tdDir, "gencrladminhome")
 
-	// Remove server home directory if it exists
+	// Remove admin home directory if it exists
 	err := os.RemoveAll(adminHome)
 	if err != nil {
 		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
 	}
 
-	// Remove server home directory that this test is going to create before
+	// Remove admin home directory that this test is going to create before
 	// exiting the test case
 	defer os.RemoveAll(adminHome)
 
@@ -255,7 +255,7 @@ func TestGenCRL(t *testing.T) {
 	srv := setupGenCRLTest(t, adminHome)
 
 	// Cleanup before exiting the test case
-	defer cleanupGenCRLTest(t, srv)
+	defer stopAndCleanupServer(t, srv)
 
 	// Error case 1: gencrl command should fail when called without enrollment info
 	tmpHome := filepath.Join(os.TempDir(), "gencrlhome")
@@ -752,6 +752,109 @@ func TestGencsr(t *testing.T) {
 	if err == nil {
 		t.Error("Should have failed: CSR CN not specified.")
 	}
+}
+
+func TestDifferentKeySizeAlgos(t *testing.T) {
+	config := `csr:
+  cn: <<CN>>
+  names:
+    - C: US
+      ST: "North Carolina"
+      L:
+      O: Hyperledger
+      OU: Fabric
+  keyrequest:
+    algo: <<ALGO>>
+    size: <<SIZE>>
+  hosts:
+   - hostname
+`
+	writeConfig := func(cn, algo string, size int, dir string) error {
+		cfg := strings.Replace(config, "<<CN>>", cn, 1)
+		cfg = strings.Replace(cfg, "<<ALGO>>", algo, 1)
+		cfg = strings.Replace(cfg, "<<SIZE>>", strconv.Itoa(size), 1)
+		err := os.MkdirAll(dir, 0755)
+		if err != nil {
+			return err
+		}
+		fileName := filepath.Join(dir, "fabric-ca-client-config.yaml")
+		err = ioutil.WriteFile(fileName, []byte(cfg), os.ModePerm)
+		return err
+	}
+
+	testdata := []struct {
+		algo                  string
+		size                  int
+		errorExpected         bool
+		expectedSignatureAlgo x509.SignatureAlgorithm
+	}{
+		{"ecdsa", 256, false, x509.ECDSAWithSHA256},
+		{"ecdsa", 384, false, x509.ECDSAWithSHA384},
+		{"ecdsa", 521, true, x509.ECDSAWithSHA512},
+		{"rsa", 2048, false, x509.SHA256WithRSA},
+		{"rsa", 3072, false, x509.SHA384WithRSA},
+		{"rsa", 4096, false, x509.SHA512WithRSA},
+	}
+
+	homeDir := filepath.Join(tdDir, "genCSRDiffKeyReqs")
+	err := os.RemoveAll(homeDir)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", homeDir, err)
+	}
+
+	// Remove home directory that this test is going to create before
+	// exiting the test case
+	defer os.RemoveAll(homeDir)
+
+	for _, data := range testdata {
+		cn := "TestGenCSRWithDifferentKeyRequests" + data.algo + strconv.Itoa(data.size)
+		err := writeConfig(cn, data.algo, data.size, homeDir)
+		if err != nil {
+			t.Fatalf("Failed to write client config file in the %s directory: %s", homeDir, err)
+		}
+
+		err = RunMain([]string{cmdName, "gencsr", "-H", homeDir})
+		if !data.errorExpected {
+			assert.NoError(t, err, "GenCSR called with %s algorithm and %d key size should not have failed", data.algo, data.size)
+			csrFileName := cn + ".csr"
+			csrBytes, rerr := ioutil.ReadFile(filepath.Join(homeDir, "msp/signcerts", csrFileName))
+			assert.NoError(t, rerr, "Failed to read the generated CSR from the file %s:", csrFileName)
+
+			block, _ := pem.Decode(csrBytes)
+			if block == nil || block.Type != "CERTIFICATE REQUEST" {
+				t.Errorf("Block type read from the CSR file %s is not of type certificate request", csrFileName)
+			}
+			certReq, perr := x509.ParseCertificateRequest(block.Bytes)
+			assert.NoError(t, perr, "Failed to parse generated CSR")
+			assert.Equal(t, data.expectedSignatureAlgo, certReq.SignatureAlgorithm, "Not expected signature algorithm in the CSR")
+		} else {
+			if assert.Errorf(t, err, "GenCSR called with %s algorithm and %d key size should have failed", data.algo, data.size) {
+				assert.Contains(t, err.Error(), "Unsupported", "Not expected error message")
+			}
+		}
+	}
+
+	// Test enroll with ecdsa algorithm and 384 key size
+	srv := setupGenCSRTest(t, homeDir)
+	defer stopAndCleanupServer(t, srv)
+
+	// Enroll admin
+	err = RunMain([]string{cmdName, "enroll", "-H", homeDir, "-u", "http://admin:adminpw@localhost:7090"})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	certBytes, rerr1 := ioutil.ReadFile(filepath.Join(homeDir, "msp/signcerts/cert.pem"))
+	if rerr1 != nil {
+		t.Fatalf("Failed to read the enrollment certificate: %s", err)
+	}
+
+	block, _ := pem.Decode(certBytes)
+	if block == nil || block.Type != "CERTIFICATE" {
+		t.Errorf("Block type read from the cert file is not of type certificate")
+	}
+	cert, perr1 := x509.ParseCertificate(block.Bytes)
+	assert.NoError(t, perr1, "Failed to parse enrollment certificate")
+	assert.Equal(t, x509.ECDSAWithSHA384, cert.SignatureAlgorithm, "Not expected signature algorithm in the ecert")
 }
 
 // TestMOption tests to make sure that the key is stored in the correct
@@ -1790,9 +1893,9 @@ func setupGenCRLTest(t *testing.T, adminHome string) *lib.Server {
 	return srv
 }
 
-func cleanupGenCRLTest(t *testing.T, srv *lib.Server) {
-	defer os.RemoveAll(srv.HomeDir)
+func stopAndCleanupServer(t *testing.T, srv *lib.Server) {
 	if srv != nil {
+		defer os.RemoveAll(srv.HomeDir)
 		err := srv.Stop()
 		if err != nil {
 			t.Errorf("Server stop failed: %s", err)
@@ -1885,6 +1988,36 @@ func registerAndRevokeUsers(t *testing.T, admin *lib.Identity, num int) []*big.I
 	}
 	t.Logf("Revoked certificates: %v", serials)
 	return serials
+}
+
+func setupGenCSRTest(t *testing.T, adminHome string) *lib.Server {
+	srvHome := filepath.Join(tdDir, "gencsrsrvhome")
+	err := os.RemoveAll(srvHome)
+	if err != nil {
+		t.Fatalf("Failed to remove home directory %s: %s", srvHome, err)
+	}
+
+	srv := lib.TestGetServer(serverPort, srvHome, "", -1, t)
+	srv.Config.Debug = true
+	srv.CA.Config.CSR.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: 384}
+
+	adminName := "admin"
+	adminPass := "adminpw"
+	err = srv.RegisterBootstrapUser(adminName, adminPass, "")
+	if err != nil {
+		t.Fatalf("Failed to register bootstrap user: %s", err)
+	}
+
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("Server start failed: %s", err)
+	}
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", adminHome})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	return srv
 }
 
 func extraArgErrorTest(in *TestData, t *testing.T) {
