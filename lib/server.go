@@ -39,6 +39,7 @@ import (
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/metadata"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/viper"
@@ -51,7 +52,8 @@ import (
 const (
 	defaultClientAuth         = "noclientcert"
 	fabricCAServerProfilePort = "FABRIC_CA_SERVER_PROFILE_PORT"
-	allRoles                  = "user,app,peer,orderer,client,validator,auditor"
+	allRoles                  = "peer,orderer,client,user"
+	apiPathPrefix             = "/api/v1/"
 )
 
 // Attribute names
@@ -62,7 +64,6 @@ const (
 	attrIntermediateCA = "hf.IntermediateCA"
 	attrGenCRL         = "hf.GenCRL"
 	attrRegistrarAttr  = "hf.Registrar.Attributes"
-	apiPathPrefix      = "/api/v1/"
 )
 
 // Server is the fabric-ca server
@@ -90,6 +91,8 @@ type Server struct {
 	wait chan bool
 	// Server mutex
 	mutex sync.Mutex
+	// The server's current levels
+	levels *dbutil.Levels
 }
 
 // Init initializes a fabric-ca server
@@ -104,6 +107,7 @@ func (s *Server) Init(renew bool) (err error) {
 
 // init initializses the server leaving the DB open
 func (s *Server) init(renew bool) (err error) {
+	log.Debugf("Server Version: %s", metadata.GetVersion())
 	// Initialize the config
 	err = s.initConfig()
 	if err != nil {
@@ -231,16 +235,13 @@ func (s *Server) initConfig() (err error) {
 		if err != nil {
 			return errors.Wrap(err, "Failed to get server's home directory")
 		}
-
 	}
-
 	// Make home directory absolute, if not already
 	absoluteHomeDir, err := filepath.Abs(s.HomeDir)
 	if err != nil {
 		return fmt.Errorf("Failed to make server's home directory path absolute: %s", err)
 	}
 	s.HomeDir = absoluteHomeDir
-
 	// Create config if not set
 	if s.Config == nil {
 		s.Config = new(ServerConfig)
@@ -252,10 +253,6 @@ func (s *Server) initConfig() (err error) {
 	}
 	s.CA.server = s
 	s.CA.HomeDir = s.HomeDir
-	err = s.CA.initConfig()
-	if err != nil {
-		return err
-	}
 	err = s.initMultiCAConfig()
 	if err != nil {
 		return err

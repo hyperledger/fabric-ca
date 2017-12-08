@@ -508,6 +508,7 @@ func TestCWBCAConfig(t *testing.T) {
 		t.Errorf("initConfig failed: %s", err)
 	}
 	ca = &CA{}
+	ca.server = &Server{}
 	err = ca.initConfig()
 	if err != nil {
 		t.Errorf("ca.initConfig default failed: %s", err)

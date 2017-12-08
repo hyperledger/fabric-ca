@@ -39,8 +39,8 @@ func init() {
 
 const (
 	insertUser = `
-INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
-	VALUES (:id, :token, :type, :affiliation, :attributes, :state, :max_enrollments);`
+INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level)
+	VALUES (:id, :token, :type, :affiliation, :attributes, :state, :max_enrollments, :level);`
 
 	deleteUser = `
 DELETE FROM users
@@ -48,7 +48,7 @@ DELETE FROM users
 
 	updateUser = `
 UPDATE users
-	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes, state = :state
+	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes, state = :state, level = :level
 	WHERE (id = :id);`
 
 	getUser = `
@@ -56,15 +56,15 @@ SELECT * FROM users
 	WHERE (id = ?)`
 
 	insertAffiliation = `
-INSERT INTO affiliations (name, prekey)
-	VALUES (?, ?)`
+INSERT INTO affiliations (name, prekey, level)
+	VALUES (?, ?, ?)`
 
 	deleteAffiliation = `
 DELETE FROM affiliations
 	WHERE (name = ?)`
 
 	getAffiliation = `
-SELECT name, prekey FROM affiliations
+SELECT * FROM affiliations
 	WHERE (name = ?)`
 )
 
@@ -77,6 +77,14 @@ type UserRecord struct {
 	Attributes     string `db:"attributes"`
 	State          int    `db:"state"`
 	MaxEnrollments int    `db:"max_enrollments"`
+	Level          int    `db:"level"`
+}
+
+// AffiliationRecord defines the properties of an affiliation
+type AffiliationRecord struct {
+	Name   string `db:"name"`
+	Prekey string `db:"prekey"`
+	Level  int    `db:"level"`
 }
 
 // Accessor implements db.Accessor interface.
@@ -85,8 +93,10 @@ type Accessor struct {
 }
 
 // NewDBAccessor is a constructor for the database API
-func NewDBAccessor() *Accessor {
-	return &Accessor{}
+func NewDBAccessor(db *sqlx.DB) *Accessor {
+	return &Accessor{
+		db: db,
+	}
 }
 
 func (d *Accessor) checkDB() error {
@@ -131,6 +141,7 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 		Attributes:     string(attrBytes),
 		State:          user.State,
 		MaxEnrollments: user.MaxEnrollments,
+		Level:          user.Level,
 	})
 
 	if err != nil {
@@ -201,6 +212,7 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 		Attributes:     string(attributes),
 		State:          user.State,
 		MaxEnrollments: user.MaxEnrollments,
+		Level:          user.Level,
 	})
 
 	if err != nil {
@@ -240,7 +252,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 }
 
 // InsertAffiliation inserts affiliation into database
-func (d *Accessor) InsertAffiliation(name string, prekey string) error {
+func (d *Accessor) InsertAffiliation(name string, prekey string, level int) error {
 	log.Debugf("DB: Add affiliation %s", name)
 	err := d.checkDB()
 	if err != nil {
@@ -259,7 +271,7 @@ func (d *Accessor) InsertAffiliation(name string, prekey string) error {
 			return nil
 		}
 	}
-	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, prekey)
+	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, prekey, level)
 	if err != nil {
 		if (!strings.Contains(err.Error(), "UNIQUE constraint failed") && dbType == "sqlite3") || (!strings.Contains(err.Error(), "duplicate key value") && dbType == "postgres") {
 			return err
@@ -296,14 +308,72 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 		return nil, err
 	}
 
-	var affiliation spi.AffiliationImpl
-
-	err = d.db.Get(&affiliation, d.db.Rebind(getAffiliation), name)
+	var affiliationRecord AffiliationRecord
+	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliation), name)
 	if err != nil {
 		return nil, dbGetError(err, "Affiliation")
 	}
 
-	return &affiliation, nil
+	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
+
+	return affiliation, nil
+}
+
+// GetProperties returns the properties from the database
+func (d *Accessor) GetProperties(names []string) (map[string]string, error) {
+	log.Debugf("DB: Get properties %s", names)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	type property struct {
+		Name  string `db:"property"`
+		Value string `db:"value"`
+	}
+
+	properties := []property{}
+
+	query := "SELECT * FROM properties WHERE (property IN (?))"
+	inQuery, args, err := sqlx.In(query, names)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to construct query '%s' for properties '%s'", query, names)
+	}
+	err = d.db.Select(&properties, d.db.Rebind(inQuery), args...)
+	if err != nil {
+		return nil, dbGetError(err, "Properties")
+	}
+
+	propertiesMap := make(map[string]string)
+	for _, prop := range properties {
+		propertiesMap[prop.Name] = prop.Value
+	}
+
+	return propertiesMap, nil
+}
+
+// GetUserLessThanLevel returns all identities that are less than the level specified
+// Otherwise, returns no users if requested level is zero
+func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
+	var users []UserRecord
+
+	if level == 0 {
+		return []spi.User{}, nil
+	}
+
+	err := d.db.Select(&users, d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get identities that need to be updated")
+	}
+
+	allUsers := []spi.User{}
+
+	for _, user := range users {
+		dbUser := d.newDBUser(&user)
+		allUsers = append(allUsers, dbUser)
+	}
+
+	return allUsers, nil
 }
 
 // Creates a DBUser object from the DB user record
@@ -315,6 +385,7 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	user.MaxEnrollments = userRec.MaxEnrollments
 	user.Affiliation = userRec.Affiliation
 	user.Type = userRec.Type
+	user.Level = userRec.Level
 
 	var attrs []api.Attribute
 	json.Unmarshal([]byte(userRec.Attributes), &attrs)
@@ -354,6 +425,34 @@ func (u *DBUser) GetType() string {
 // GetMaxEnrollments returns the max enrollments of the user
 func (u *DBUser) GetMaxEnrollments() int {
 	return u.MaxEnrollments
+}
+
+// GetLevel returns the level of the user
+func (u *DBUser) GetLevel() int {
+	return u.Level
+}
+
+// SetLevel sets the level of the user
+func (u *DBUser) SetLevel(level int) error {
+	query := "UPDATE users SET level = ? where (id = ?)"
+	id := u.GetName()
+	res, err := u.db.Exec(u.db.Rebind(query), level, id)
+	if err != nil {
+		return err
+	}
+	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "Failed to get number of rows affected")
+	}
+
+	if numRowsAffected == 0 {
+		return errors.Errorf("No rows were affected when updating the state of identity %s", id)
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, id)
+	}
+	return nil
 }
 
 // Login the user with a password
@@ -492,6 +591,64 @@ func (u *DBUser) Revoke() error {
 
 	log.Debugf("Successfully incremented state for identity %s to -1", u.Name)
 
+	return nil
+}
+
+// ModifyAttributes adds a new attribute, modifies existing attribute, or delete attribute
+func (u *DBUser) ModifyAttributes(attrs []api.Attribute) error {
+	log.Debugf("Modify Attributes: %+v", attrs)
+	userAttrs, _ := u.GetAttributes(nil)
+	var attr api.Attribute
+	for _, attr = range attrs {
+		log.Debugf("Attribute request: %+v", attr)
+		found := false
+		for i := range userAttrs {
+			if userAttrs[i].Name == attr.Name {
+				if attr.Value == "" {
+					log.Debugf("Deleting attribute: %+v", userAttrs[i])
+					if i == len(userAttrs)-1 {
+						userAttrs = userAttrs[:len(userAttrs)-1]
+					} else {
+						userAttrs = append(userAttrs[:i], userAttrs[i+1:]...)
+					}
+				} else {
+					log.Debugf("Updating existing attribute from '%+v' to '%+v'", userAttrs[i], attr)
+					userAttrs[i].Value = attr.Value
+				}
+				found = true
+				break
+			}
+		}
+		if !found && attr.Value != "" {
+			log.Debugf("Adding '%+v' as new attribute", attr)
+			userAttrs = append(userAttrs, attr)
+		}
+	}
+
+	attrBytes, err := json.Marshal(userAttrs)
+	if err != nil {
+		return err
+	}
+
+	query := "UPDATE users SET attributes = ? where (id = ?)"
+	id := u.GetName()
+	res, err := u.db.Exec(u.db.Rebind(query), string(attrBytes), id)
+	if err != nil {
+		return err
+	}
+
+	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "Failed to get number of rows affected")
+	}
+
+	if numRowsAffected == 0 {
+		return errors.Errorf("No rows were affected when updating the state of identity %s", id)
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, id)
+	}
 	return nil
 }
 

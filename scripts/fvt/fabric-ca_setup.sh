@@ -114,7 +114,7 @@ listFabricCa(){
 function initFabricCa() {
    test -f $FABRIC_CA_SERVEREXEC || ErrorExit "fabric-ca executable not found in src tree"
 
-   $FABRIC_CA_SERVEREXEC init -c $RUNCONFIG $PARENTURL $args
+   $FABRIC_CA_SERVEREXEC init -c $RUNCONFIG $PARENTURL $args || return 1
 
    echo "FABRIC_CA server initialized"
    if $($FABRIC_CA_DEBUG); then

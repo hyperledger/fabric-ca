@@ -17,8 +17,6 @@ package lib
 
 import (
 	"testing"
-
-	"github.com/hyperledger/fabric-ca/lib/spi"
 )
 
 const (
@@ -51,7 +49,7 @@ func TestGetAffliation(t *testing.T) {
 	}
 	defer srv.Stop()
 
-	afs := []spi.AffiliationImpl{}
+	afs := []AffiliationRecord{}
 	err = srv.db.Select(&afs, srv.db.Rebind(getAffiliation), affiliationName)
 	t.Logf("Retrieved %+v for the affiliation %s", afs, affiliationName)
 	if err != nil {

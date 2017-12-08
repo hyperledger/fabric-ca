@@ -31,13 +31,6 @@ function cleanup {
     rm $SERVERLOG
 }
 
-function killserver {
-    echo "killing server $1"
-    kill -9 $1
-    pollFabricCa "" "" "$CA_DEFAULT_PORT" stop 30
-    return $?
-}
-
 function existingIdentity {
     grep "Identity '$1' already registered, loaded identity" $2 &> /dev/null
     if [ $? != 0 ]; then

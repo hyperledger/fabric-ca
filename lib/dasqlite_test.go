@@ -65,8 +65,7 @@ func TestSQLite(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to open connection to DB")
 	}
-	accessor := NewDBAccessor()
-	accessor.SetDB(db)
+	accessor := NewDBAccessor(db)
 
 	ta := TestAccessor{
 		Accessor: accessor,
@@ -119,8 +118,7 @@ func createSQLiteDB(path string, t *testing.T) (*sqlx.DB, *TestAccessor) {
 	db, err := sqlx.Open("sqlite3", path)
 	assert.NoError(t, err, "Failed to open SQLite database")
 
-	accessor := NewDBAccessor()
-	accessor.SetDB(db)
+	accessor := NewDBAccessor(db)
 
 	ta := &TestAccessor{
 		Accessor: accessor,
@@ -138,7 +136,7 @@ func testWithExistingDbAndTablesAndUser(t *testing.T) {
 	os.Remove(rootDB)
 	db, acc := createSQLiteDB(rootDB, t)
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
 	assert.NoError(t, err, "Error creating users table")
 
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
@@ -176,7 +174,7 @@ func testWithExistingDbAndTable(t *testing.T) {
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
 	srv.CA.Config.DB.Datasource = "fabric_ca.db"
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
 	assert.NoError(t, err, "Error creating users table")
 
 	err = srv.Start()
@@ -221,10 +219,11 @@ func removeDatabase() {
 
 func testEverything(ta TestAccessor, t *testing.T) {
 	testInsertAndGetUser(ta, t)
-	testDeleteUser(ta, t)
-	testUpdateUser(ta, t)
-	testInsertAndGetAffiliation(ta, t)
-	testDeleteAffiliation(ta, t)
+	testModifyAttribute(ta, t)
+	// testDeleteUser(ta, t)
+	// testUpdateUser(ta, t)
+	// testInsertAndGetAffiliation(ta, t)
+	// testDeleteAffiliation(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
@@ -232,10 +231,27 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
 	insert := spi.UserInfo{
-		Name:       "testId",
-		Pass:       "123456",
-		Type:       "client",
-		Attributes: []api.Attribute{},
+		Name: "testId",
+		Pass: "123456",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer,client,orderer,user",
+			},
+			api.Attribute{
+				Name:  "hf.Revoker",
+				Value: "false",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.Attributes",
+				Value: "*",
+			},
+			api.Attribute{
+				Name:  "xyz",
+				Value: "xyz",
+			},
+		},
 	}
 
 	err := ta.Accessor.InsertUser(insert)
@@ -251,6 +267,55 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 	if user.GetName() != insert.Name {
 		t.Error("Incorrect ID retrieved")
 	}
+}
+
+func testModifyAttribute(ta TestAccessor, t *testing.T) {
+
+	user, err := ta.Accessor.GetUser("testId", nil)
+	assert.NoError(t, err, "Failed to get user")
+
+	err = user.ModifyAttributes([]api.Attribute{
+		api.Attribute{
+			Name:  "hf.Registrar.Roles",
+			Value: "peer",
+		},
+		api.Attribute{
+			Name:  "hf.Revoker",
+			Value: "",
+		},
+		api.Attribute{
+			Name:  "xyz",
+			Value: "",
+		},
+		api.Attribute{
+			Name:  "hf.IntermediateCA",
+			Value: "true",
+		},
+	})
+	assert.NoError(t, err, "Failed to modify user's attributes")
+
+	user, err = ta.Accessor.GetUser("testId", nil)
+	assert.NoError(t, err, "Failed to get user")
+
+	_, err = user.GetAttribute("hf.Revoker")
+	assert.Error(t, err, "Should have returned an error, attribute should have been deleted")
+
+	// Removes last attribute in the slice, should have correctly removed it
+	_, err = user.GetAttribute("xyz")
+	assert.Error(t, err, "Should have returned an error, attribute should have been deleted")
+
+	attr, err := user.GetAttribute("hf.IntermediateCA")
+	assert.NoError(t, err, "Failed to add attribute")
+	assert.Equal(t, "true", attr.Value, "Incorrect value for attribute 'hf.IntermediateCA")
+
+	attr, err = user.GetAttribute("hf.Registrar.Roles")
+	assert.NoError(t, err, "Failed to get attribute")
+	assert.Equal(t, "peer", attr.Value, "Incorrect value for attribute 'hf.Registrar.Roles")
+
+	// Test to make sure that any existing attributes that were not modified continue to exist in there original state
+	attr, err = user.GetAttribute("hf.Registrar.Attributes")
+	assert.NoError(t, err, "Failed to get attribute")
+	assert.Equal(t, "*", attr.Value)
 }
 
 func testDeleteUser(ta TestAccessor, t *testing.T) {
@@ -319,7 +384,7 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 func testInsertAndGetAffiliation(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
-	err := ta.Accessor.InsertAffiliation("Bank1", "Banks")
+	err := ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
 	if err != nil {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
 	}
@@ -338,7 +403,7 @@ func testInsertAndGetAffiliation(ta TestAccessor, t *testing.T) {
 func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 	ta.Truncate()
 
-	err := ta.Accessor.InsertAffiliation("Banks.Bank2", "Banks")
+	err := ta.Accessor.InsertAffiliation("Banks.Bank2", "Banks", 0)
 	if err != nil {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank2", err)
 	}
@@ -372,8 +437,7 @@ func TestDBErrorMessages(t *testing.T) {
 		t.Error("Failed to open connection to DB")
 	}
 
-	accessor := NewDBAccessor()
-	accessor.SetDB(db)
+	accessor := NewDBAccessor(db)
 
 	ta := TestAccessor{
 		Accessor: accessor,
@@ -391,7 +455,7 @@ func TestDBErrorMessages(t *testing.T) {
 		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "User"))
 	}
 
-	newCertDBAcc := NewCertDBAccessor(db)
+	newCertDBAcc := NewCertDBAccessor(db, 0)
 	_, err = newCertDBAcc.GetCertificateWithID("serial", "aki")
 	if assert.Error(t, err, "Should have errored, and not returned any results") {
 		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "Certificate"))
