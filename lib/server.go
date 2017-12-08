@@ -107,7 +107,14 @@ func (s *Server) Init(renew bool) (err error) {
 
 // init initializses the server leaving the DB open
 func (s *Server) init(renew bool) (err error) {
-	log.Debugf("Server Version: %s", metadata.GetVersion())
+	serverVersion := metadata.GetVersion()
+	log.Infof("Server Version: %s", serverVersion)
+	s.levels, err = metadata.GetLevels(serverVersion)
+	if err != nil {
+		return err
+	}
+	log.Infof("Server Levels: %+v", s.levels)
+
 	// Initialize the config
 	err = s.initConfig()
 	if err != nil {

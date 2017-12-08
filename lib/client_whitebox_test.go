@@ -519,6 +519,7 @@ func TestCWBCAConfig(t *testing.T) {
 		t.Errorf("initConfig failed: %s", err)
 	}
 	ca.Config = new(CAConfig)
+	ca.server = &Server{}
 	ca.Config.CA.Certfile = "../testdata/ec_cert.pem"
 	ca.Config.CA.Keyfile = "../testdata/ec_key.pem"
 	err = ca.initConfig()
@@ -526,6 +527,7 @@ func TestCWBCAConfig(t *testing.T) {
 		t.Errorf("initConfig failed: %s", err)
 	}
 	s := &Server{}
+	s.CA.Config = &CAConfig{}
 	err = s.initConfig()
 	if err != nil {
 		t.Errorf("server.initConfig default failed: %s", err)

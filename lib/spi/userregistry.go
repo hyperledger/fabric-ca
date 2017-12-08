@@ -52,7 +52,7 @@ type User interface {
 	GetAttribute(name string) (*api.Attribute, error)
 	// GetAttributes returns the requested attributes
 	GetAttributes(attrNames []string) ([]api.Attribute, error)
-	// ModifyAttributes adds a new attribute or modifies existing attribute
+	// ModifyAttributes adds, removes, or deletes attribute
 	ModifyAttributes(attrs []api.Attribute) error
 	// LoginComplete completes the login process by incrementing the state of the user
 	LoginComplete() error
@@ -60,6 +60,8 @@ type User interface {
 	Revoke() error
 	// GetLevel returns the level of the user, level is used to verify if the user needs migration
 	GetLevel() int
+	// SetLevel sets the level of the user
+	SetLevel(level int) error
 }
 
 // UserRegistry is the API for retreiving users and groups
@@ -73,4 +75,5 @@ type UserRegistry interface {
 	DeleteAffiliation(name string) error
 	// GetProperties returns the properties by name from the database
 	GetProperties(name []string) (map[string]string, error)
+	GetUserLessThanLevel(version int) ([]User, error)
 }

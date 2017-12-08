@@ -256,6 +256,11 @@ func (lc *Client) GetProperties(name []string) (map[string]string, error) {
 	return nil, errNotSupported
 }
 
+// GetUserLessThanLevel returns all identities that are less than the level specified
+func (lc *Client) GetUserLessThanLevel(version int) ([]spi.User, error) {
+	return nil, errNotSupported
+}
+
 // Connect to the LDAP server and bind as user as admin user as specified in LDAP URL
 func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 	address := fmt.Sprintf("%s:%d", lc.Host, lc.Port)
@@ -316,6 +321,11 @@ func (u *User) GetMaxEnrollments() int {
 // GetLevel returns the level of the user
 func (u *User) GetLevel() int {
 	return 0
+}
+
+// SetLevel sets the level of the user
+func (u *User) SetLevel(level int) error {
+	return errNotSupported
 }
 
 // Login logs a user in using password

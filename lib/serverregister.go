@@ -182,6 +182,7 @@ func registerUserID(req *api.RegistrationRequestNet, ca *CA) (string, error) {
 		Affiliation:    req.Affiliation,
 		Attributes:     req.Attributes,
 		MaxEnrollments: req.MaxEnrollments,
+		Level:          ca.server.levels.Identity,
 	}
 
 	registry := ca.registry
