@@ -28,7 +28,7 @@ import (
 
 type revocationResponseNet struct {
 	RevokedCerts []api.RevokedCert
-	CRL          []byte
+	CRL          string
 }
 
 func newRevokeEndpoint(s *Server) *serverEndpoint {
@@ -158,8 +158,7 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		result.CRL = crl
+		result.CRL = util.B64Encode(crl)
 	}
-
 	return result, nil
 }

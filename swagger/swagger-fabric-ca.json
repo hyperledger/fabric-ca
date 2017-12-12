@@ -125,7 +125,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An HTTP basic authorization header where:  \n*  *user* is the enrollment ID;  \n*  *password* is the enrollment secret.",
@@ -277,7 +278,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -429,7 +431,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -598,7 +601,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -670,8 +674,31 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "string",
-                  "description": "Message related to revocation"
+                  "type": "object",
+                  "properties": {
+                    "revokedcerts": {
+                      "type": "array",
+                      "description": "An array of revoked certificates",
+                      "items": {
+                        "type": "object",
+                        "description": "A revoked certificate",
+                        "properties": {
+                          "serial": {
+                            "type": "string",
+                            "description": "Serial number of the revoked certificate"
+                          },
+                          "aki": {
+                            "type": "string",
+                            "description": "Authority Key Identifier (AKI) of the revoked certificate"
+                          }
+                        }
+                      }
+                    },
+                    "crl": {
+                      "type": "string",
+                      "description": "base64 encoded PEM-encoded CRL"
+                    }
+                  }
                 },
                 "Errors": {
                   "type": "array",
@@ -739,7 +766,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -808,7 +836,7 @@
                   "properties": {
                     "crl": {
                       "type": "string",
-                      "description": "base64 encoded DER bytes of the CRL"
+                      "description": "base64 encoded PEM-encoded CRL"
                     }
                   },
                   "required": [
@@ -881,7 +909,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -922,7 +951,10 @@
                       "description": "Name of the CA containing these affiliations."
                     }
                   },
-                  "required": [ "affiliations", "caname" ]
+                  "required": [
+                    "affiliations",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -988,18 +1020,21 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "force",
             "in": "query",
             "description": "If any of the parent affiliations do not exist and **force** is true, create all parent affiliations also",
             "type": "boolean"
-          }, {
+          },
+          {
             "name": "body",
             "in": "body",
             "description": "The request body",
@@ -1012,7 +1047,10 @@
                   "description": "The affiliation path to create."
                 },
                 "caname": {
-                  "type": [ "string", "null" ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "description": "Name of the CA to send the request to within the Fabric CA server."
                 }
               },
@@ -1044,7 +1082,10 @@
                       "description": "Name of the CA containing this affiliation."
                     }
                   },
-                  "required": [ "affiliation_path", "caname" ]
+                  "required": [
+                    "affiliation_path",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1112,13 +1153,15 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "affiliation",
             "in": "path",
             "description": "An affiliation path",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -1217,24 +1260,28 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "affiliation",
             "in": "path",
             "description": "An affiliation path",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "force",
             "in": "query",
             "description": "If any identities are associated with this affiliation, force causes these identities' affiliations to be renamed; otherwise, an error is returned",
             "type": "boolean"
-          }, {
+          },
+          {
             "name": "body",
             "in": "body",
             "description": "The request body",
@@ -1247,11 +1294,16 @@
                   "description": "The new affiliation path."
                 },
                 "caname": {
-                  "type": [ "string", "null" ],
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "description": "Name of the CA to send the request to within the Fabric CA server."
                 }
               },
-              "required": ["affiliation_path"]
+              "required": [
+                "affiliation_path"
+              ]
             }
           }
         ],
@@ -1277,7 +1329,10 @@
                       "description": "Name of the CA containing this affiliation."
                     }
                   },
-                  "required": [ "affiliation_path", "caname" ]
+                  "required": [
+                    "affiliation_path",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1343,19 +1398,22 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "affiliation",
             "in": "path",
             "description": "An affiliation path",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "force",
             "in": "query",
             "description": "If there are any child affiliations or any identities are associated with this affiliation or child affiliations, force causes these identities and child affiliations to be deleted; otherwise, an error is returned",
             "required": false,
             "type": "boolean"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -1444,11 +1502,15 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing these identities and affiliations."
+                      "type": "string",
+                      "description": "Name of the CA containing these identities and affiliations."
                     }
                   },
-                  "required": [ "affiliations", "identities", "caname" ]
+                  "required": [
+                    "affiliations",
+                    "identities",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1516,7 +1578,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -1590,11 +1653,14 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing these identities."
+                      "type": "string",
+                      "description": "Name of the CA containing these identities."
                     }
                   },
-                  "required": [ "identities", "caname" ]
+                  "required": [
+                    "identities",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1660,7 +1726,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -1807,8 +1874,8 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing this identity."
+                      "type": "string",
+                      "description": "Name of the CA containing this identity."
                     }
                   }
                 },
@@ -1878,13 +1945,15 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "id",
             "in": "path",
             "description": "An enrollment ID",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -1950,8 +2019,8 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing this identity."
+                      "type": "string",
+                      "description": "Name of the CA containing this identity."
                     }
                   }
                 },
@@ -2019,13 +2088,15 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "id",
             "in": "path",
             "description": "An enrollment ID",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -2165,8 +2236,8 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing this identity."
+                      "type": "string",
+                      "description": "Name of the CA containing this identity."
                     }
                   }
                 },
@@ -2234,13 +2305,15 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "id",
             "in": "path",
             "description": "An enrollment ID",
             "required": true,
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
@@ -2310,8 +2383,8 @@
                       }
                     },
                     "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing the deleted identity."
+                      "type": "string",
+                      "description": "Name of the CA containing the deleted identity."
                     }
                   },
                   "required": [
@@ -2385,7 +2458,8 @@
             "in": "query",
             "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
             "type": "string"
-          }, {
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
