@@ -7,7 +7,7 @@ slapd slapd/password2 password $LDAPPASWD\n\
 slapd slapd/internal/adminpw password $LDAPPASWD\n\
 slapd slapd/password1 password $LDAPPASWD\n\
 slapd slapd/domain string example.com\n\
-slapd shared/organization string example.com" | debconf-set-selections 
+slapd shared/organization string example.com" | debconf-set-selections
 apt-get -y update
 apt-get -y install --no-install-recommends slapd ldap-utils
 adduser openldap ssl-cert

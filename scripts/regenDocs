@@ -3,7 +3,7 @@
 ######################################################################
 #
 # This script will use the fabric-ca-server and fabric-ca-client
-# binaries to dynamically generate the CLI flags and the 
+# binaries to dynamically generate the CLI flags and the
 # configuration files for both server and the client and place
 # them in the docs/source folder. These files are referenced for
 # in the fabric-ca documentation when talking about CLI and the
