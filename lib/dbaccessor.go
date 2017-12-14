@@ -474,7 +474,7 @@ func (u *DBUser) Login(pass string, caMaxEnrollments int) error {
 	}
 
 	// If max enrollment value of user is greater than allowed by CA, using CA max enrollment value for user
-	if u.MaxEnrollments > caMaxEnrollments || (u.MaxEnrollments == -1 && caMaxEnrollments != -1) {
+	if caMaxEnrollments != -1 && (u.MaxEnrollments > caMaxEnrollments || u.MaxEnrollments == -1) {
 		log.Debugf("Max enrollment value (%d) of identity is greater than allowed by CA, using CA max enrollment value of %d", u.MaxEnrollments, caMaxEnrollments)
 		u.MaxEnrollments = caMaxEnrollments
 	}

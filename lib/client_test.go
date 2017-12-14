@@ -1179,7 +1179,7 @@ func TestRevokedIdentity(t *testing.T) {
 		Name:           "TestUser",
 		Type:           "user",
 		Affiliation:    "hyperledger",
-		MaxEnrollments: 1,
+		MaxEnrollments: 2,
 	}
 
 	resp, err := admin_id.Register(registerReq)
