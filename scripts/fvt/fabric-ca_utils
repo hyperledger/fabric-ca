@@ -293,16 +293,14 @@ verifyServerTraffic() {
 }
 
 printAuth() {
+   test "$#" -eq 2 || return 1
    local CLIENTCERT="$1"
    local CLIENTKEY="$2"
-
-   : ${CLIENTCERT:="$HOME/fabric-ca/cert.pem"}
-   : ${CLIENTKEY:="$HOME/fabric-ca/key.pem"}
 
    echo CERT:
    openssl x509 -in $CLIENTCERT -text 2>&1 | sed 's/^/    /'
    type=$(cat $CLIENTKEY | head -n1 | awk '{print tolower($2)}')
-   test -z "$type" && type=rsa
+   test "$type" = "private" && type=ec
    echo KEY:
    openssl $type -in $CLIENTKEY -text 2>/dev/null| sed 's/^/    /'
 }
@@ -838,6 +836,9 @@ signing:
          ocspnocheck: true
          notbefore: 2016-12-30T00:00:00Z
 csr:
+  keyrequest:
+    algo: $KEYTYPE
+    size: $KEYLEN 
   names:
     - C: US
       ST: "North Carolina"
