@@ -236,24 +236,9 @@ func (c *ClientCmd) configInit() error {
 		}
 	}
 
-	// Unmarshal the config into 'clientCfg'
-	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
-	// and vendored, the work around code can be deleted.
-	viperIssue327WorkAround := true
-	if viperIssue327WorkAround {
-		sliceFields := []string{
-			"csr.hosts",
-			"tls.certfiles",
-		}
-		err = util.ViperUnmarshal(c.clientCfg, sliceFields, c.myViper)
-		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("Incorrect format in file '%s'", c.cfgFileName))
-		}
-	} else {
-		err = c.myViper.Unmarshal(c.clientCfg)
-		if err != nil {
-			return errors.Wrapf(err, "Incorrect format in file '%s'", c.cfgFileName)
-		}
+	err = c.myViper.Unmarshal(c.clientCfg)
+	if err != nil {
+		return errors.Wrapf(err, "Incorrect format in file '%s'", c.cfgFileName)
 	}
 
 	purl, err := url.Parse(c.clientCfg.URL)

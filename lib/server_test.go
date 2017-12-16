@@ -1780,15 +1780,11 @@ func testIntermediateServer(idx int, t *testing.T) {
 func TestUnmarshalConfig(t *testing.T) {
 	cfg := &ServerConfig{}
 	cfgFile := "../testdata/testviperunmarshal.yaml"
-	err := UnmarshalConfig(cfg, viper.GetViper(), cfgFile, true, true)
+	err := UnmarshalConfig(cfg, viper.GetViper(), cfgFile, true)
 	if err != nil {
-		t.Errorf("UnmarshalConfig workaround=true failed: %s", err)
+		t.Errorf("UnmarshalConfig failed: %s", err)
 	}
-	err = UnmarshalConfig(cfg, viper.GetViper(), cfgFile, true, false)
-	if err != nil {
-		t.Errorf("UnmarshalConfig workaround=false failed: %s", err)
-	}
-	err = UnmarshalConfig(cfg, viper.GetViper(), "foo.yaml", true, false)
+	err = UnmarshalConfig(cfg, viper.GetViper(), "foo.yaml", true)
 	if err == nil {
 		t.Error("UnmarshalConfig invalid file passed but should have failed")
 	}

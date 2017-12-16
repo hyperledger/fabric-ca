@@ -4,16 +4,39 @@ package toml
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"strconv"
 	"unicode"
+)
+
+var escapeSequenceMap = map[rune]rune{
+	'b':  '\b',
+	't':  '\t',
+	'n':  '\n',
+	'f':  '\f',
+	'r':  '\r',
+	'"':  '"',
+	'\\': '\\',
+}
+
+type parseKeyState int
+
+const (
+	BARE parseKeyState = iota
+	BASIC
+	LITERAL
+	ESC
+	UNICODE_4
+	UNICODE_8
 )
 
 func parseKey(key string) ([]string, error) {
 	groups := []string{}
 	var buffer bytes.Buffer
-	inQuotes := false
+	var hex bytes.Buffer
+	state := BARE
 	wasInQuotes := false
-	escapeNext := false
 	ignoreSpace := true
 	expectDot := false
 
@@ -24,30 +47,72 @@ func parseKey(key string) ([]string, error) {
 			}
 			ignoreSpace = false
 		}
-		if escapeNext {
-			buffer.WriteRune(char)
-			escapeNext = false
+
+		if state == ESC {
+			if char == 'u' {
+				state = UNICODE_4
+				hex.Reset()
+			} else if char == 'U' {
+				state = UNICODE_8
+				hex.Reset()
+			} else if newChar, ok := escapeSequenceMap[char]; ok {
+				buffer.WriteRune(newChar)
+				state = BASIC
+			} else {
+				return nil, fmt.Errorf(`invalid escape sequence \%c`, char)
+			}
 			continue
 		}
+
+		if state == UNICODE_4 || state == UNICODE_8 {
+			if isHexDigit(char) {
+				hex.WriteRune(char)
+			}
+			if (state == UNICODE_4 && hex.Len() == 4) || (state == UNICODE_8 && hex.Len() == 8) {
+				if value, err := strconv.ParseInt(hex.String(), 16, 32); err == nil {
+					buffer.WriteRune(rune(value))
+				} else {
+					return nil, err
+				}
+				state = BASIC
+			}
+			continue
+		}
+
 		switch char {
 		case '\\':
-			escapeNext = true
-			continue
-		case '"':
-			if inQuotes {
+			if state == BASIC {
+				state = ESC
+			} else if state == LITERAL {
+				buffer.WriteRune(char)
+			}
+		case '\'':
+			if state == BARE {
+				state = LITERAL
+			} else if state == LITERAL {
 				groups = append(groups, buffer.String())
 				buffer.Reset()
 				wasInQuotes = true
+				state = BARE
 			}
-			inQuotes = !inQuotes
+			expectDot = false
+		case '"':
+			if state == BARE {
+				state = BASIC
+			} else if state == BASIC {
+				groups = append(groups, buffer.String())
+				buffer.Reset()
+				state = BARE
+				wasInQuotes = true
+			}
 			expectDot = false
 		case '.':
-			if inQuotes {
+			if state != BARE {
 				buffer.WriteRune(char)
 			} else {
 				if !wasInQuotes {
 					if buffer.Len() == 0 {
-						return nil, fmt.Errorf("empty key group")
+						return nil, errors.New("empty table key")
 					}
 					groups = append(groups, buffer.String())
 					buffer.Reset()
@@ -57,33 +122,36 @@ func parseKey(key string) ([]string, error) {
 				wasInQuotes = false
 			}
 		case ' ':
-			if inQuotes {
+			if state == BASIC {
 				buffer.WriteRune(char)
 			} else {
 				expectDot = true
 			}
 		default:
-			if !inQuotes && !isValidBareChar(char) {
-				return nil, fmt.Errorf("invalid bare character: %c", char)
-			}
-			if !inQuotes && expectDot {
-				return nil, fmt.Errorf("what?")
+			if state == BARE {
+				if !isValidBareChar(char) {
+					return nil, fmt.Errorf("invalid bare character: %c", char)
+				} else if expectDot {
+					return nil, errors.New("what?")
+				}
 			}
 			buffer.WriteRune(char)
 			expectDot = false
 		}
 	}
-	if inQuotes {
-		return nil, fmt.Errorf("mismatched quotes")
+
+	// state must be BARE at the end
+	if state == ESC {
+		return nil, errors.New("unfinished escape sequence")
+	} else if state != BARE {
+		return nil, errors.New("mismatched quotes")
 	}
-	if escapeNext {
-		return nil, fmt.Errorf("unfinished escape sequence")
-	}
+
 	if buffer.Len() > 0 {
 		groups = append(groups, buffer.String())
 	}
 	if len(groups) == 0 {
-		return nil, fmt.Errorf("empty key")
+		return nil, errors.New("empty key")
 	}
 	return groups, nil
 }

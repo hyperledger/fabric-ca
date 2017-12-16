@@ -418,7 +418,7 @@ func (s *ServerCmd) configInit() (err error) {
 
 	// Read the config
 	s.myViper.AutomaticEnv() // read in environment variables that match
-	err = lib.UnmarshalConfig(s.cfg, s.myViper, s.cfgFileName, true, true)
+	err = lib.UnmarshalConfig(s.cfg, s.myViper, s.cfgFileName, true)
 	if err != nil {
 		return err
 	}

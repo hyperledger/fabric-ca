@@ -331,7 +331,7 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 	// CA config file
 	cfg := &CAConfig{}
 	caViper := viper.New()
-	err = UnmarshalConfig(cfg, caViper, caFile, false, true)
+	err = UnmarshalConfig(cfg, caViper, caFile, false)
 	if err != nil {
 		return err
 	}

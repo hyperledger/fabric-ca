@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -89,49 +88,25 @@ func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-// UnmarshalConfig will use the viperunmarshal workaround to unmarshal a
-// configuration file into a struct
-func UnmarshalConfig(config interface{}, vp *viper.Viper, configFile string, server, viperIssue327WorkAround bool) error {
+// UnmarshalConfig unmarshals a configuration file
+func UnmarshalConfig(config interface{}, vp *viper.Viper, configFile string,
+	server bool) error {
+
 	vp.SetConfigFile(configFile)
 	err := vp.ReadInConfig()
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read config file '%s'", configFile)
 	}
 
-	// Unmarshal the config into 'caConfig'
-	// When viper bug https://github.com/spf13/viper/issues/327 is fixed
-	// and vendored, the work around code can be deleted.
-	if viperIssue327WorkAround {
-		sliceFields := []string{
-			"csr.hosts",
-			"tls.clientauth.certfiles",
-			"ldap.tls.certfiles",
-			"db.tls.certfiles",
-			"cafiles",
-			"intermediate.tls.certfiles",
-		}
-		err = util.ViperUnmarshal(config, sliceFields, vp)
-		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("Incorrect format in file '%s'", configFile))
-		}
-		if server {
-			serverCfg := config.(*ServerConfig)
-			err = util.ViperUnmarshal(&serverCfg.CAcfg, sliceFields, vp)
-			if err != nil {
-				return errors.WithMessage(err, fmt.Sprintf("Incorrect format in file '%s'", configFile))
-			}
-		}
-	} else {
-		err = vp.Unmarshal(config)
+	err = vp.Unmarshal(config)
+	if err != nil {
+		return errors.Wrapf(err, "Incorrect format in file '%s'", configFile)
+	}
+	if server {
+		serverCfg := config.(*ServerConfig)
+		err = vp.Unmarshal(&serverCfg.CAcfg)
 		if err != nil {
 			return errors.Wrapf(err, "Incorrect format in file '%s'", configFile)
-		}
-		if server {
-			serverCfg := config.(*ServerConfig)
-			err = vp.Unmarshal(&serverCfg.CAcfg)
-			if err != nil {
-				return errors.Wrapf(err, "Incorrect format in file '%s'", configFile)
-			}
 		}
 	}
 	return nil
