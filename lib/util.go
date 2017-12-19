@@ -114,17 +114,6 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, configFile string,
 	return nil
 }
 
-// GetAttrValue searches 'attrs' for the attribute with name 'name' and returns
-// its value, or "" if not found.
-func GetAttrValue(attrs []api.Attribute, name string) string {
-	for _, attr := range attrs {
-		if attr.Name == name {
-			return attr.Value
-		}
-	}
-	return ""
-}
-
 func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error) {
 	log.Debugf("Max enrollment value verification - User specified max enrollment: %d, CA max enrollment: %d", userMaxEnrollments, caMaxEnrollments)
 	if userMaxEnrollments < -1 {

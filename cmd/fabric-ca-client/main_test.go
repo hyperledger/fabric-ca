@@ -39,6 +39,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
@@ -1423,11 +1424,11 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	assert.NoError(t, err)
 
 	allAttrs, _ := user.GetAttributes(nil)
-	val := lib.GetAttrValue(allAttrs, fooName)
+	val := attr.GetAttrValue(allAttrs, fooName)
 	if val != fooVal {
 		t.Errorf("Incorrect value returned for attribute '%s', expected '%s' got '%s'", fooName, fooVal, val)
 	}
-	val = lib.GetAttrValue(allAttrs, roleName)
+	val = attr.GetAttrValue(allAttrs, roleName)
 	if val != roleVal {
 		t.Errorf("Incorrect value returned for attribute '%s', expected '%s' got '%s'", roleName, roleVal, val)
 	}

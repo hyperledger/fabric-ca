@@ -327,7 +327,6 @@ func testRegister(c *Client, t *testing.T) {
 		Type:        "client",
 		Affiliation: "hyperledger",
 		Attributes: []api.Attribute{
-			api.Attribute{Name: "hf.EnrollmentID", Value: userName, ECert: true},
 			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
 			api.Attribute{Name: "attr2", Value: "val2"},
 		},
@@ -352,8 +351,8 @@ func testRegister(c *Client, t *testing.T) {
 		t.Fatalf("%s", err)
 	}
 	checkAttrResult(t, "hf.EnrollmentID", userName, attrs)
-	checkAttrResult(t, "hf.Type", "", attrs)
-	checkAttrResult(t, "hf.Affiliation", "", attrs)
+	checkAttrResult(t, "hf.Type", "client", attrs)
+	checkAttrResult(t, "hf.Affiliation", "hyperledger", attrs)
 	checkAttrResult(t, "attr1", "val1", attrs)
 	checkAttrResult(t, "attr2", "", attrs)
 
@@ -364,7 +363,6 @@ func testRegister(c *Client, t *testing.T) {
 		Type:        "client",
 		Affiliation: "hyperledger",
 		Attributes: []api.Attribute{
-			api.Attribute{Name: "hf.EnrollmentID", Value: userName, ECert: true},
 			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
 			api.Attribute{Name: "attr2", Value: "val2"},
 		},
@@ -596,6 +594,16 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		Affiliation:    "org2",
 		MaxEnrollments: 1,
 		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "faux"}},
+	}
+	_, err = adminID.Register(rr)
+	assert.Error(t, err, "Invalid value 'faux' provided for a boolean type attribute")
+	// register and enroll revoker2
+	rr = &api.RegistrationRequest{
+		Name:           revoker2,
+		Type:           "user",
+		Affiliation:    "org2",
+		MaxEnrollments: 1,
+		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "false"}},
 	}
 	resp, err = adminID.Register(rr)
 	if err != nil {

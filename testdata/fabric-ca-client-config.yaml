@@ -81,5 +81,5 @@ id:
   attributes:
     - name: hf.Revoker
       value: true
-    - name: hf.foo
+    - name: foo
       value: bar

@@ -242,10 +242,10 @@ func cleanTestSlateSQ(t *testing.T) {
 func testEverything(ta TestAccessor, t *testing.T) {
 	testInsertAndGetUser(ta, t)
 	testModifyAttribute(ta, t)
-	// testDeleteUser(ta, t)
-	// testUpdateUser(ta, t)
-	// testInsertAndGetAffiliation(ta, t)
-	// testDeleteAffiliation(ta, t)
+	testDeleteUser(ta, t)
+	testUpdateUser(ta, t)
+	testInsertAndGetAffiliation(ta, t)
+	testDeleteAffiliation(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
