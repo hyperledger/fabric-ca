@@ -165,13 +165,17 @@ func (i *Identity) Revoke(req *api.RevocationRequest) (*api.RevocationResponse, 
 	if err != nil {
 		return nil, err
 	}
-	var result api.RevocationResponse
+	var result revocationResponseNet
 	err = i.Post("revoke", reqBody, &result)
 	if err != nil {
 		return nil, err
 	}
 	log.Debugf("Successfully revoked certificates: %+v", req)
-	return &result, nil
+	crl, err := util.B64Decode(result.CRL)
+	if err != nil {
+		return nil, err
+	}
+	return &api.RevocationResponse{RevokedCerts: result.RevokedCerts, CRL: crl}, nil
 }
 
 // RevokeSelf revokes the current identity and all certificates
@@ -191,13 +195,17 @@ func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result api.GenCRLResponse
+	var result genCRLResponseNet
 	err = i.Post("gencrl", reqBody, &result)
 	if err != nil {
 		return nil, err
 	}
 	log.Debugf("Successfully generated CRL: %+v", req)
-	return &result, nil
+	crl, err := util.B64Decode(result.CRL)
+	if err != nil {
+		return nil, err
+	}
+	return &api.GenCRLResponse{CRL: crl}, nil
 }
 
 // GetIdentity returns information about the requested identity

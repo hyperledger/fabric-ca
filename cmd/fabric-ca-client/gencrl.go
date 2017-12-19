@@ -13,7 +13,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,10 +31,6 @@ const (
 	crlsFolder = "crls"
 	// crlFile is the name of the file used to the generate CRL
 	crlFile = "crl.pem"
-	// crlPemHeader is the header of a X509 CRL
-	crlPemHeader = "-----BEGIN X509 CRL-----\n"
-	// crlPemFooter is the footer of a X509 CRL
-	crlPemFooter = "\n-----END X509 CRL-----\n"
 )
 
 func (c *ClientCmd) newGenCRLCommand() *cobra.Command {
@@ -134,7 +129,7 @@ func (c *ClientCmd) runGenCRL() error {
 }
 
 // Store the CRL
-func storeCRL(config *lib.ClientConfig, crl string) error {
+func storeCRL(config *lib.ClientConfig, crl []byte) error {
 	dirName := path.Join(config.MSPDir, crlsFolder)
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		mkdirErr := os.MkdirAll(dirName, os.ModeDir|0755)
@@ -143,7 +138,7 @@ func storeCRL(config *lib.ClientConfig, crl string) error {
 		}
 	}
 	fileName := path.Join(dirName, crlFile)
-	err := util.WriteFile(fileName, []byte(fmt.Sprintf("%s%s%s", crlPemHeader, crl, crlPemFooter)), 0644)
+	err := util.WriteFile(fileName, crl, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to write CRL to the file %s", fileName)
 	}

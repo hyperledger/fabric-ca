@@ -124,8 +124,8 @@ type RevocationRequest struct {
 type RevocationResponse struct {
 	// RevokedCerts is an array of certificates that were revoked
 	RevokedCerts []RevokedCert
-	// CRL is base64 encoded DER bytes of a CRL that contains all unexpired revoked certificates
-	CRL string
+	// CRL is PEM-encoded certificate revocation list (CRL) that contains all unexpired revoked certificates
+	CRL []byte
 }
 
 // RevokedCert represents a revoked certificate
@@ -189,7 +189,8 @@ type GenCRLRequest struct {
 
 // GenCRLResponse represents a response to get CRL
 type GenCRLResponse struct {
-	CRL string
+	// CRL is PEM-encoded certificate revocation list (CRL) that contains requested unexpired revoked certificates
+	CRL []byte
 }
 
 // AddIdentityRequest represents the request to add a new identity to the
