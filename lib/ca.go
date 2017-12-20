@@ -238,20 +238,21 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 		// stored by BCCSP, so check for that now.
 		if certFileExists {
 			_, _, _, err = util.GetSignerFromCertFile(certFile, ca.csp)
-			if err == nil {
-				// Yes, it is stored by BCCSP
-				log.Info("The CA key and certificate already exist")
-				log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
-				log.Infof("The certificate is at: %s", certFile)
-				// Load CN from existing enrollment information and set CSR accordingly
-				// CN needs to be set, having a multi CA setup requires a unique CN and can't
-				// be left blank
-				ca.Config.CSR.CN, err = ca.loadCNFromEnrollmentInfo(certFile)
-				if err != nil {
-					return err
-				}
-				return nil
+			if err != nil {
+				return errors.WithMessage(err, fmt.Sprintf("Failed to find private key for certificate in '%s'", certFile))
 			}
+			// Yes, it is stored by BCCSP
+			log.Info("The CA key and certificate already exist")
+			log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
+			log.Infof("The certificate is at: %s", certFile)
+			// Load CN from existing enrollment information and set CSR accordingly
+			// CN needs to be set, having a multi CA setup requires a unique CN and can't
+			// be left blank
+			ca.Config.CSR.CN, err = ca.loadCNFromEnrollmentInfo(certFile)
+			if err != nil {
+				return errors.WithMessage(err, fmt.Sprintf("Failed to get CN for certificate in '%s'", certFile))
+			}
+			return nil
 		}
 	}
 

@@ -618,15 +618,19 @@ func TestSRVIntermediateServerWithTLS(t *testing.T) {
 }
 
 func TestSRVRunningTLSServer(t *testing.T) {
-	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
+	testDir := "tlsTestDir"
+	os.RemoveAll(testDir)
+	defer os.RemoveAll(testDir)
+
+	srv := TestGetServer(rootPort, testDir, "", -1, t)
 
 	srv.Config.TLS.Enabled = true
-	srv.Config.TLS.CertFile = "../testdata/tls_server-cert.pem"
-	srv.Config.TLS.KeyFile = "../testdata/tls_server-key.pem"
+	srv.Config.TLS.CertFile = "../../testdata/tls_server-cert.pem"
+	srv.Config.TLS.KeyFile = "../../testdata/tls_server-key.pem"
 
 	err := srv.Start()
 	if err != nil {
-		t.Errorf("Server start failed: %s", err)
+		t.Fatalf("Server start failed: %s", err)
 	}
 	defer func() {
 		err = srv.Stop()
