@@ -269,7 +269,10 @@ func TestCACountWithAbsPath(t *testing.T) {
 func TestMultiCA(t *testing.T) {
 	blockingStart = false
 
-	err := RunMain([]string{cmdName, "start", "-d", "-p", "7056", "-c", "../../testdata/test.yaml", "-b", "user:pass", "--cacount", "0", "--cafiles", "ca/rootca/ca1/fabric-ca-server-config.yaml", "--cafiles", "ca/rootca/ca2/fabric-ca-server-config.yaml"})
+	cleanUpMultiCAFiles()
+	defer cleanUpMultiCAFiles()
+
+	err := RunMain([]string{cmdName, "start", "-d", "-p", "7056", "-c", "../../testdata/test.yaml", "-b", "user:pass", "--cafiles", "ca/rootca/ca1/fabric-ca-server-config.yaml", "--cafiles", "ca/rootca/ca2/fabric-ca-server-config.yaml"})
 	if err != nil {
 		t.Error("Failed to start server with multiple CAs using the --cafiles flag from command line: ", err)
 	}
@@ -282,8 +285,6 @@ func TestMultiCA(t *testing.T) {
 	if err == nil {
 		t.Error("Should have failed to start server, can't specify values for both --cacount and --cafiles")
 	}
-
-	cleanUpMultiCAFiles()
 }
 
 // Tests to see that the bootstrap by default has permission to register any attibute

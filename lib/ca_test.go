@@ -60,6 +60,7 @@ var cfg CAConfig
 var srv Server
 
 func TestCABadCACertificates(t *testing.T) {
+	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
 		t.Fatal("newCA failed ", err)
@@ -434,6 +435,7 @@ func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
 }
 
 func TestCAgetUserAffiliation(t *testing.T) {
+	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
 		t.Fatal("newCA failed ", err)
@@ -447,6 +449,7 @@ func TestCAgetUserAffiliation(t *testing.T) {
 }
 
 func TestCAuserHasAttribute(t *testing.T) {
+	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
 		t.Fatal("newCA failed ", err)
@@ -460,6 +463,7 @@ func TestCAuserHasAttribute(t *testing.T) {
 }
 
 func TestCAgetUserAttrValue(t *testing.T) {
+	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
 		t.Fatal("newCA failed: ", err)
@@ -473,6 +477,7 @@ func TestCAgetUserAttrValue(t *testing.T) {
 }
 
 func TestCAaddIdentity(t *testing.T) {
+	testDirClean(t)
 	id := &CAConfigIdentity{
 		Name: "admin",
 		Pass: "adminpw",
@@ -498,18 +503,11 @@ func TestCAaddIdentity(t *testing.T) {
 }
 
 func TestCAinitUserRegistry(t *testing.T) {
-	err := os.RemoveAll(testdir + dbname)
-	if err != nil {
-		t.Fatal("RemoveAll failed: ", err)
-	}
-	err = os.RemoveAll(configFile)
-	if err != nil {
-		t.Fatal("RemoveAll failed: ", err)
-	}
+	testDirClean(t)
 	cfg = CAConfig{}
 	cfg.LDAP.Enabled = true
 	cfg.LDAP.URL = "ldap://CN=admin,dc=example,dc=com:adminpw@localhost:389/dc=example,dc=com"
-	_, err = newCA(configFile, &cfg, &srv, false)
+	_, err := newCA(configFile, &cfg, &srv, false)
 	if err != nil {
 		t.Fatal("newCA FAILED", err)
 	}
@@ -520,7 +518,7 @@ func TestCAinitUserRegistry(t *testing.T) {
 }
 
 func TestCAgetCaCert(t *testing.T) {
-	CAclean(nil, t)
+	testDirClean(t)
 	os.Remove(configFile)
 	cfg = CAConfig{}
 
@@ -556,8 +554,7 @@ func TestCAgetCaCert(t *testing.T) {
 }
 
 func TestCAinitEnrollmentSigner(t *testing.T) {
-	os.Remove(testdir + dbname)
-	os.Remove(configFile)
+	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, true)
 	if err != nil {
@@ -605,8 +602,7 @@ func TestCADBinit(t *testing.T) {
 }
 
 func TestCAloadAffiliationsTableR(t *testing.T) {
-	os.Remove(testdir + dbname)
-	os.Remove(configFile)
+	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, true)
 	if err != nil {
@@ -636,16 +632,11 @@ func TestCAloadAffiliationsTableR(t *testing.T) {
 	if err == nil {
 		t.Error("ca.loadAffiliationsTableR should have failed ", err)
 	}
-
-	os.Remove(testdir + dbname)
+	CAclean(ca, t)
 }
 
 func TestCAloadUsersTable(t *testing.T) {
-	CAclean(nil, t)
-	err := os.RemoveAll(configFile)
-	if err != nil {
-		t.Fatalf("RemoveAll failed: %s", err)
-	}
+	testDirClean(t)
 	cfg = CAConfig{}
 	u := &CAConfigIdentity{Name: "a", MaxEnrollments: -10}
 	cfg.Registry = CAConfigRegistry{Identities: []CAConfigIdentity{*u}, MaxEnrollments: 10}
@@ -704,11 +695,11 @@ func TestCAloadUsersTable(t *testing.T) {
 	if err == nil {
 		t.Error("ca.loadUsersTable should have failed due to DB error ", err)
 	}
+	CAclean(ca, t)
 }
 
 func TestCAVerifyCertificate(t *testing.T) {
-	CAclean(nil, t)
-	os.Remove(configFile)
+	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, false)
 	if err != nil {
@@ -835,6 +826,10 @@ func CAclean(ca *CA, t *testing.T) {
 			t.Error("CloseDB failed: ", err)
 		}
 	}
+	testDirClean(t)
+}
+
+func testDirClean(t *testing.T) {
 	err := os.RemoveAll(testdir + "msp")
 	if err != nil {
 		t.Fatal("RemoveAll failed: ", err)
@@ -851,4 +846,5 @@ func CAclean(ca *CA, t *testing.T) {
 	if err != nil {
 		t.Fatal("RemoveAll failed: ", err)
 	}
+	os.Remove(configFile)
 }
