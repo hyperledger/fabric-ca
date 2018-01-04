@@ -117,9 +117,9 @@ const (
 	ErrRegAttrAuth = 42
 	// Registrar does not own 'hf.Registrar.Attributes'
 	ErrMissingRegAttr = 43
-	// Failed to get caller's affiliation
+	// Caller does not have appropriate affiliation to perform requested action
 	ErrCallerNotAffiliated = 44
-	// Failed to verify if caller has appropriate
+	// Failed to verify if caller has appropriate type
 	ErrGettingType = 45
 	// CA cert does not have 'crl sign' usage
 	ErrNoCrlSignAuth = 46
@@ -127,6 +127,12 @@ const (
 	ErrDBLevel = 47
 	// Incorrect level of configuration file
 	ErrConfigFileLevel = 48
+	// Failed to get user from database
+	ErrGettingUser = 49
+	// Error processing HTTP request
+	ErrHTTPRequest = 50
+	// Error connecting to database
+	ErrConnectingDB = 51
 )
 
 // Construct a new HTTP error.

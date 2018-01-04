@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
@@ -258,6 +259,11 @@ func (lc *Client) GetProperties(name []string) (map[string]string, error) {
 
 // GetUserLessThanLevel returns all identities that are less than the level specified
 func (lc *Client) GetUserLessThanLevel(version int) ([]spi.User, error) {
+	return nil, errNotSupported
+}
+
+// GetFilteredUsers returns all identities that fall under the affiliation and types
+func (lc *Client) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error) {
 	return nil, errNotSupported
 }
 

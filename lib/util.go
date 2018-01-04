@@ -20,7 +20,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -168,4 +170,15 @@ func addQueryParm(req *http.Request, name, value string) {
 	url := req.URL.Query()
 	url.Add(name, value)
 	req.URL.RawQuery = url.Encode()
+}
+
+// IdentityDecoder decodes streams of data coming from the server into an Identity object
+func IdentityDecoder(decoder *json.Decoder) error {
+	var id api.IdentityInfo
+	err := decoder.Decode(&id)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Attributes: %+v\n", id.ID, id.Type, id.Affiliation, id.MaxEnrollments, id.Attributes)
+	return nil
 }

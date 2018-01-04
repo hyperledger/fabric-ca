@@ -22,6 +22,7 @@ package spi
 
 import (
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/jmoiron/sqlx"
 )
 
 // UserInfo contains information about a user
@@ -76,4 +77,5 @@ type UserRegistry interface {
 	// GetProperties returns the properties by name from the database
 	GetProperties(name []string) (map[string]string, error)
 	GetUserLessThanLevel(version int) ([]User, error)
+	GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error)
 }

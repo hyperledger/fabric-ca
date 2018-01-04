@@ -35,6 +35,7 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/streamer"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -498,6 +499,32 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 	if result != nil {
 		return mapstructure.Decode(body.Result, result)
 	}
+	return nil
+}
+
+// StreamResponse reads the response as it comes back from the server
+func (c *Client) StreamResponse(req *http.Request, stream string, cb func(*json.Decoder) error) (err error) {
+
+	reqStr := util.HTTPRequestToString(req)
+	log.Debugf("Sending request\n%s", reqStr)
+
+	err = c.Init()
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrapf(err, "%s failure of request: %s", req.Method, reqStr)
+	}
+	defer resp.Body.Close()
+
+	dec := json.NewDecoder(resp.Body)
+	err = streamer.StreamJSONArray(dec, stream, cb)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

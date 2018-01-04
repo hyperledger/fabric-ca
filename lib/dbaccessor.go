@@ -376,6 +376,47 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
 	return allUsers, nil
 }
 
+// GetFilteredUsers returns all identities that fall under the affiliation and types
+func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error) {
+	log.Debugf("DB: Get all identities per affiliation '%s' and types '%s'", affiliation, types)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	typesArray := strings.Split(types, ",")
+	for i := range typesArray {
+		typesArray[i] = strings.TrimSpace(typesArray[i])
+	}
+
+	if affiliation == "" {
+		query := "SELECT * FROM users WHERE (type IN (?))"
+		query, args, err := sqlx.In(query, typesArray)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to construct query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+		}
+		rows, err := d.db.Queryx(d.db.Rebind(query), args...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+		}
+		return rows, nil
+	}
+
+	subAffiliation := affiliation + ".%"
+	query := "SELECT * FROM users WHERE ((affiliation = ?) OR (affiliation LIKE ?)) AND (type IN (?))"
+	inQuery, args, err := sqlx.In(query, affiliation, subAffiliation, typesArray)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to construct query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+	}
+	rows, err := d.db.Queryx(d.db.Rebind(inQuery), args...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+	}
+
+	return rows, nil
+
+}
+
 // Creates a DBUser object from the DB user record
 func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 	var user = new(DBUser)
@@ -657,4 +698,11 @@ func dbGetError(err error, prefix string) error {
 		return errors.Errorf("%s not found", prefix)
 	}
 	return err
+}
+
+func getUserError(err error) error {
+	if err.Error() == "not found" {
+		return newHTTPErr(404, ErrGettingUser, "Failed to get user: %s", err)
+	}
+	return newHTTPErr(504, ErrConnectingDB, "Failed to connect to database")
 }

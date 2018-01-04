@@ -29,6 +29,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
+	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
@@ -51,7 +52,12 @@ type serverRequestContext struct {
 		buf  []byte // the body itself
 		err  error  // any error from reading the body
 	}
+	callerRoles map[string]bool
 }
+
+const (
+	registrarRole = "hf.Registrar.Roles"
+)
 
 // newServerRequestContext is the constructor for a serverRequestContext
 func newServerRequestContext(r *http.Request, w http.ResponseWriter, se *serverEndpoint) *serverRequestContext {
@@ -321,6 +327,28 @@ func (ctx *serverRequestContext) ReadBodyBytes() ([]byte, error) {
 	return ctx.body.buf, nil
 }
 
+// CanManageUser determines if the caller has the right type and affiliation to act on on a user
+func (ctx *serverRequestContext) CanManageUser(user spi.User) error {
+	userAff := strings.Join(user.GetAffiliationPath(), ".")
+	validAffiliation, err := ctx.ContainsAffiliation(userAff)
+	if err != nil {
+		return err
+	}
+	if !validAffiliation {
+		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", userAff)
+	}
+
+	userType := user.GetType()
+	canAct, err := ctx.CanActOnType(userType)
+	if err != nil {
+		return err
+	}
+	if !canAct {
+		return newAuthErr(ErrCallerNotAffiliated, "Registrar does not have authority to act on type '%s'", userType)
+	}
+	return nil
+}
+
 // GetCaller gets the user who is making this server request
 func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 	if ctx.caller != nil {
@@ -342,28 +370,6 @@ func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 		return nil, errors.WithMessage(err, "Failed to get user")
 	}
 	return ctx.caller, nil
-}
-
-// CanManageUser determines if the caller has the right type and affiliation to act on on a user
-func (ctx *serverRequestContext) CanManageUser(user spi.User) error {
-	userAff := strings.Join(user.GetAffiliationPath(), ".")
-	validAffiliation, err := ctx.ContainsAffiliation(userAff)
-	if err != nil {
-		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to get ID: %s", err)
-	}
-	if !validAffiliation {
-		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", userAff)
-	}
-
-	userType := user.GetType()
-	canAct, err := ctx.CanActOnType(userType)
-	if err != nil {
-		return newHTTPErr(500, ErrGettingType, "Failed to verify if user can act on type '%s': %s", userType, err)
-	}
-	if !canAct {
-		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on type '%s'", userType)
-	}
-	return nil
 }
 
 // IsRegistrar returns back true if the caller is a registrar along with the types the registrar is allowed to register
@@ -440,6 +446,16 @@ func (ctx *serverRequestContext) ContainsAffiliation(affiliation string) (bool, 
 	}
 
 	return false, nil
+}
+
+// CanActOnType returns true if the caller has the proper authority to take action on specific type
+func (ctx *serverRequestContext) GetVar(name string) (string, error) {
+	vars := gmux.Vars(ctx.req)
+	if vars == nil {
+		return "", newHTTPErr(500, ErrHTTPRequest, "Failed to correctly handle HTTP request")
+	}
+	value := vars[name]
+	return value, nil
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {

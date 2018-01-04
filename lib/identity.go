@@ -17,6 +17,7 @@ limitations under the License.
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -222,15 +223,14 @@ func (i *Identity) GetIdentity(id, caname string) (*api.GetIDResponse, error) {
 }
 
 // GetAllIdentities returns all identities that the caller is authorized to see
-func (i *Identity) GetAllIdentities(caname string) (*api.GetAllIDsResponse, error) {
+func (i *Identity) GetAllIdentities(caname string, cb func(*json.Decoder) error) error {
 	log.Debugf("Entering identity.GetAllIdentities")
-	result := &api.GetAllIDsResponse{}
-	err := i.Get("identities", caname, result)
+	err := i.GetStreamResponse("identities", caname, "result.identities", cb)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	log.Debugf("Successfully retrieved identities: %+v", result)
-	return result, nil
+	log.Debugf("Successfully retrieved identities")
+	return nil
 }
 
 // IdentityResponse is the response from the any add/modify/remove identity call
@@ -327,6 +327,22 @@ func (i *Identity) Get(endpoint, caname string, result interface{}) error {
 		return err
 	}
 	return i.client.SendReq(req, result)
+}
+
+// GetStreamResponse sends a request to an endpoint and streams the response
+func (i *Identity) GetStreamResponse(endpoint, caname, stream string, cb func(*json.Decoder) error) error {
+	req, err := i.client.newGet(endpoint)
+	if err != nil {
+		return err
+	}
+	if caname != "" {
+		addQueryParm(req, "ca", caname)
+	}
+	err = i.addTokenAuthHdr(req, nil)
+	if err != nil {
+		return err
+	}
+	return i.client.StreamResponse(req, stream, cb)
 }
 
 // Put sends a put request to an endpoint
