@@ -61,7 +61,6 @@ GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
 
-DOCKER_ORG = hyperledger
 IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-orderer $(PROJECT_NAME)-peer $(PROJECT_NAME)-tools
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
@@ -120,19 +119,13 @@ build/docker/bin/%:
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
 		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
-		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
+		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@touch $@
 
-build/docker/busybox:
-	@echo "Building $@"
-	@$(DRUN) \
-		hyperledger/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		make -f busybox/Makefile install BINDIR=$(@D)
-
 build/image/%/$(DUMMY): Makefile build/image/%/payload
 	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
-	$(eval DOCKER_NAME = $(DOCKER_ORG)/$(TARGET))
+	$(eval DOCKER_NAME = $(DOCKER_NS)/$(TARGET))
 	@echo "Building docker $(TARGET) image"
 	@cat images/$(TARGET)/Dockerfile.in \
 		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
@@ -218,7 +211,7 @@ ci-tests: docker-clean docker-fvt unit-tests docs
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
-	-docker images -q $(DOCKER_ORG)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
+	-docker images -q $(DOCKER_NS)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
