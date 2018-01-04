@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
 
@@ -41,12 +40,7 @@ func (c *ClientCmd) newEnrollCommand() *cobra.Command {
 				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
-			_, _, err := util.GetUser(c.myViper)
-			if err != nil {
-				return err
-			}
-
-			err = c.configInit()
+			err := c.configInit()
 			if err != nil {
 				return err
 			}

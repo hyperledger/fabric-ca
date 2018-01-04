@@ -582,7 +582,7 @@ func GetUser(v *viper.Viper) (string, string, error) {
 
 	user := URL.User
 	if user == nil {
-		return "", "", errors.New("No username and password provided as part of URL")
+		return "", "", errors.New("No username and password provided as part of the Fabric CA server URL")
 	}
 
 	eid := user.Username()

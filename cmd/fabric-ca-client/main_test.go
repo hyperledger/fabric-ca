@@ -236,6 +236,64 @@ func TestClientCommandsNoTLS(t *testing.T) {
 	}
 }
 
+func TestEnroll(t *testing.T) {
+	t.Log("Testing Enroll")
+	adminHome := filepath.Join(tdDir, "enrolladminhome")
+
+	// Remove admin home directory if it exists
+	err := os.RemoveAll(adminHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+	}
+
+	// Remove admin home directory that this test is going to create before
+	// exiting the test case
+	defer os.RemoveAll(adminHome)
+
+	srv := setupEnrollTest(t)
+
+	// Cleanup before exiting the test case
+	defer stopAndCleanupServer(t, srv)
+
+	// Enroll with -u parameter. Value of the -u parameter is used as server URL
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL, "-H", adminHome})
+	if err != nil {
+		t.Errorf("client enroll -u failed: %s", err)
+	}
+
+	// Enroll without -u parameter, should fail as the server URL is picked
+	// from the configuration file but userid and password are not part of the
+	// URL
+	err = RunMain([]string{cmdName, "enroll", "-d", "-H", adminHome})
+	if err == nil {
+		t.Errorf("No username/password provided, should have errored")
+	}
+
+	// Remove admin home
+	err = os.RemoveAll(adminHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+	}
+
+	// Enroll without -u parameter but with FABRIC_CA_CLIENT_URL env variable
+	// Default client configuration file will be generated. Value of the
+	// FABRIC_CA_CLIENT_URL env variable is used as server URL
+	os.Setenv("FABRIC_CA_CLIENT_URL", enrollURL1)
+	defer os.Unsetenv("FABRIC_CA_CLIENT_URL")
+	err = RunMain([]string{cmdName, "enroll", "-d", "-H", adminHome})
+	if err != nil {
+		t.Errorf("client enroll with FABRIC_CA_CLIENT_URL env variable failed: %s", err)
+	}
+
+	// Enroll without -u parameter but with FABRIC_CA_CLIENT_URL env variable
+	// Existing client configuration file will be used. Value of the
+	// FABRIC_CA_CLIENT_URL env variable is used as server URL
+	err = RunMain([]string{cmdName, "enroll", "-d", "-H", adminHome})
+	if err != nil {
+		t.Errorf("client enroll with FABRIC_CA_CLIENT_URL env variable failed: %s", err)
+	}
+}
+
 // Test cases for gencrl command
 func TestGenCRL(t *testing.T) {
 	t.Log("Testing GenCRL")
@@ -1859,6 +1917,39 @@ func getSerialAKIByID(id string) (serial, aki string, err error) {
 	aki = hex.EncodeToString(x509Cert.AuthorityKeyId)
 
 	return
+}
+
+func setupEnrollTest(t *testing.T) *lib.Server {
+	srvHome := filepath.Join(tdDir, "enrollsrvhome")
+	err := os.RemoveAll(srvHome)
+	if err != nil {
+		t.Fatalf("Failed to remove home directory %s: %s", srvHome, err)
+	}
+	srv = lib.TestGetServer(serverPort, srvHome, "", -1, t)
+	srv.Config.Debug = true
+
+	err = srv.RegisterBootstrapUser("admin", "adminpw", "")
+	if err != nil {
+		t.Errorf("Failed to register bootstrap user: %s", err)
+	}
+
+	err = srv.RegisterBootstrapUser("admin2", "adminpw2", "hyperledger")
+	if err != nil {
+		t.Errorf("Failed to register bootstrap user: %s", err)
+	}
+
+	aff := make(map[string]interface{})
+	aff["hyperledger"] = []string{"org1", "org2", "org3"}
+	aff["company1"] = []string{"dept1"}
+	aff["company2"] = []string{}
+
+	srv.CA.Config.Affiliations = aff
+
+	err = srv.Start()
+	if err != nil {
+		t.Errorf("Server start failed: %s", err)
+	}
+	return srv
 }
 
 func setupGenCRLTest(t *testing.T, adminHome string) *lib.Server {
