@@ -230,7 +230,7 @@ func (c *ClientCmd) runModifyIdentity(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Successfully modified identity: %+v\n", resp)
+	fmt.Printf("Successfully modified identity: %+v\n", resp.IdentityInfo)
 
 	return nil
 }

@@ -48,7 +48,7 @@ DELETE FROM users
 
 	updateUser = `
 UPDATE users
-	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes, state = :state, level = :level
+	SET token = :token, type = :type, affiliation = :affiliation, attributes = :attributes, state = :state, max_enrollments = :max_enrollments, level = :level
 	WHERE (id = :id);`
 
 	getUser = `
@@ -112,7 +112,10 @@ func (d *Accessor) SetDB(db *sqlx.DB) {
 }
 
 // InsertUser inserts user into database
-func (d *Accessor) InsertUser(user spi.UserInfo) error {
+func (d *Accessor) InsertUser(user *spi.UserInfo) error {
+	if user == nil {
+		return errors.New("User is not defined")
+	}
 	log.Debugf("DB: Add identity %s", user.Name)
 
 	err := d.checkDB()
@@ -190,7 +193,11 @@ func deleteUserTx(tx *sqlx.Tx, args ...interface{}) error {
 }
 
 // UpdateUser updates user in database
-func (d *Accessor) UpdateUser(user spi.UserInfo) error {
+func (d *Accessor) UpdateUser(user *spi.UserInfo, updatePass bool) error {
+	if user == nil {
+		return errors.New("User is not defined")
+	}
+
 	log.Debugf("DB: Update identity %s", user.Name)
 	err := d.checkDB()
 	if err != nil {
@@ -204,9 +211,11 @@ func (d *Accessor) UpdateUser(user spi.UserInfo) error {
 
 	// Hash the password before storing it
 	pwd := []byte(user.Pass)
-	pwd, err = bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
-	if err != nil {
-		return errors.Wrap(err, "Failed to hash password")
+	if updatePass {
+		pwd, err = bcrypt.GenerateFromPassword(pwd, bcrypt.DefaultCost)
+		if err != nil {
+			return errors.Wrap(err, "Failed to hash password")
+		}
 	}
 
 	// Store the updated user entry
@@ -665,35 +674,10 @@ func (u *DBUser) Revoke() error {
 }
 
 // ModifyAttributes adds a new attribute, modifies existing attribute, or delete attribute
-func (u *DBUser) ModifyAttributes(attrs []api.Attribute) error {
-	log.Debugf("Modify Attributes: %+v", attrs)
-	userAttrs, _ := u.GetAttributes(nil)
-	var attr api.Attribute
-	for _, attr = range attrs {
-		log.Debugf("Attribute request: %+v", attr)
-		found := false
-		for i := range userAttrs {
-			if userAttrs[i].Name == attr.Name {
-				if attr.Value == "" {
-					log.Debugf("Deleting attribute: %+v", userAttrs[i])
-					if i == len(userAttrs)-1 {
-						userAttrs = userAttrs[:len(userAttrs)-1]
-					} else {
-						userAttrs = append(userAttrs[:i], userAttrs[i+1:]...)
-					}
-				} else {
-					log.Debugf("Updating existing attribute from '%+v' to '%+v'", userAttrs[i], attr)
-					userAttrs[i].Value = attr.Value
-				}
-				found = true
-				break
-			}
-		}
-		if !found && attr.Value != "" {
-			log.Debugf("Adding '%+v' as new attribute", attr)
-			userAttrs = append(userAttrs, attr)
-		}
-	}
+func (u *DBUser) ModifyAttributes(newAttrs []api.Attribute) error {
+	log.Debugf("Modify Attributes: %+v", newAttrs)
+	currentAttrs, _ := u.GetAttributes(nil)
+	userAttrs := getNewAttributes(currentAttrs, newAttrs)
 
 	attrBytes, err := json.Marshal(userAttrs)
 	if err != nil {

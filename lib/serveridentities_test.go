@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -291,11 +292,6 @@ func TestDynamicAddIdentity(t *testing.T) {
 
 	_, err = admin.AddIdentity(addReq)
 	assert.NoError(t, err, "Failed to add identity")
-
-	modReq.ID = "testuser"
-	modReq.Type = "peer"
-	_, err = admin.ModifyIdentity(modReq)
-	assert.Error(t, err, "Not yet implemented")
 }
 
 func TestDynamicRemoveIdentity(t *testing.T) {
@@ -404,6 +400,316 @@ func TestDynamicRemoveIdentity(t *testing.T) {
 	certs, err := srv.CA.certDBAccessor.GetCertificatesByID(remReq.ID)
 	if len(certs) != 0 {
 		t.Errorf("Failed to delete certificates for a removed identity '%s'", remReq.ID)
+	}
+}
+
+func TestDynamicModifyIdentity(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+
+	var err error
+
+	srv := TestGetRootServer(t)
+	srv.RegisterBootstrapUser("admin2", "admin2pw", "hyperledger")
+	err = srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	client := getTestClient(7075)
+	resp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+
+	admin := resp.Identity
+
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin2'")
+
+	admin2 := resp.Identity
+
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:           "admin3",
+		Type:           "client",
+		Secret:         "admin3pw",
+		MaxEnrollments: 10,
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "client",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.Attributes",
+				Value: "hf.Revoker, foo",
+			},
+		},
+	})
+	util.FatalError(t, err, "Failed to register user 'testuser'")
+
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin3",
+		Secret: "admin3pw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin3'")
+
+	admin3 := resp.Identity
+
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:           "testuser",
+		Type:           "peer",
+		Secret:         "testuserpw",
+		MaxEnrollments: 10,
+		Affiliation:    "org2",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "foo",
+				Value: "bar",
+			},
+		},
+	})
+	util.FatalError(t, err, "Failed to register user 'testuser'")
+
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:           "testuser2",
+		Type:           "client",
+		Secret:         "testuserpw",
+		MaxEnrollments: 10,
+		Affiliation:    "hyperledger",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "foo",
+				Value: "bar",
+			},
+		},
+	})
+	util.FatalError(t, err, "Failed to register user 'testuser2'")
+
+	modReq := &api.ModifyIdentityRequest{}
+
+	modReq.ID = "testuser"
+	modReq.Type = "client"
+	// Should error, caller is not part of the right affiliation
+	_, err = admin2.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, caller is not part of the right affiliation")
+
+	// Should error, caller is not allowed to act on type
+	_, err = admin3.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, caller is not allowed to act on type")
+
+	// Should error, caller is not allowed to change to the requested affiliation.
+	// Caller is part of the 'hyperledger' affiliation
+	modReq.ID = "testuser2"
+	modReq.Affiliation = "org2"
+	_, err = admin2.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, caller is not to change to the requested affiliation")
+
+	modReq.Affiliation = "hyperledger.fake"
+	_, err = admin2.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, affiliation does not exist")
+
+	// Should error, caller is not allowed to change to the requested type.
+	// Caller can only issue type 'client'
+	modReq.ID = "testuser2"
+	modReq.Type = "peer"
+	modReq.Affiliation = "org2"
+	_, err = admin3.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, caller is not allowed to change to the requested type")
+
+	// Should error, caller is not allowed to register this attribute
+	modReq.Type = "client"
+	modReq.Attributes = []api.Attribute{api.Attribute{
+		Name:  "hf.IntermediateCA",
+		Value: "true",
+	}}
+	_, err = admin3.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, caller is not allowed to register this attribute")
+
+	// Should not error, caller is allowed to register this attribute
+	modReq.Attributes = []api.Attribute{
+		api.Attribute{
+			Name:  "hf.Type",
+			Value: "client",
+		},
+	}
+	_, err = admin.ModifyIdentity(modReq)
+	assert.Error(t, err, "Should have failed, can't modify a reserved attribute")
+
+	// Should not error, caller is allowed to register this attribute
+	modReq.Attributes = []api.Attribute{
+		api.Attribute{
+			Name:  "hf.Revoker",
+			Value: "true",
+		},
+		api.Attribute{
+			Name:  "foo",
+			Value: "bar2",
+		},
+	}
+	_, err = admin3.ModifyIdentity(modReq)
+	assert.NoError(t, err, "Failed to register these attribute")
+
+	modReq.MaxEnrollments = -2
+	modReq.Secret = "password"
+	_, err = admin.ModifyIdentity(modReq)
+	assert.NoError(t, err, "Failed to modify identity")
+
+	user, err := srv.CA.registry.GetUser("testuser2", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser2'")
+
+	maxEnroll := user.(*DBUser).UserInfo.MaxEnrollments
+	if maxEnroll != 0 {
+		t.Error("Failed to correctly modify max enrollments for user 'testuser2'")
+	}
+
+	userAff := strings.Join(user.GetAffiliationPath(), ".")
+	if userAff != "org2" {
+		t.Errorf("Failed to correctly modify affiliation for user 'testuser2'")
+	}
+
+	attr, err := user.GetAttribute("foo")
+	assert.NoError(t, err, "Failed to get attribute 'foo'")
+	if attr.Value != "bar2" {
+		t.Errorf("Failed to correctly modify existing attribute for user 'testuser2'")
+	}
+	attr, err = user.GetAttribute("hf.Revoker")
+	assert.NoError(t, err, "Failed to get attribute 'foo'")
+	if attr.Value != "true" {
+		t.Errorf("Failed to correctly add a new attribute for user 'testuser2'")
+	}
+	attr, err = user.GetAttribute("hf.Type")
+	assert.NoError(t, err, "Failed to get attribute 'foo'")
+	if attr.Value != "client" {
+		t.Errorf("Failed to correctly update 'hf.Type' when type of identity was modified to 'client'")
+	}
+	attr, err = user.GetAttribute("hf.Affiliation")
+	assert.NoError(t, err, "Failed to get attribute 'foo'")
+	if attr.Value != "org2" {
+		t.Errorf("Failed to correctly update 'hf.Affiliation' when affiliation of identity was modified to 'org2'")
+	}
+
+	// Delete attribute 'foo'
+	modReq.Attributes = []api.Attribute{
+		api.Attribute{
+			Name:  "foo",
+			Value: "",
+		},
+	}
+	_, err = admin.ModifyIdentity(modReq)
+	assert.NoError(t, err, "Failed to modify identity")
+
+	user, err = srv.CA.registry.GetUser("testuser2", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser2'")
+
+	_, err = user.GetAttribute("foo")
+	assert.Error(t, err, "Should have failed to get attribute 'foo', should have been deleted")
+
+	modReq.MaxEnrollments = 5
+	modReq.Affiliation = "."
+	_, err = admin.ModifyIdentity(modReq)
+	assert.NoError(t, err, "Failed to modify identity")
+
+	user, err = srv.CA.registry.GetUser("testuser2", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser2'")
+
+	maxEnroll = user.(*DBUser).UserInfo.MaxEnrollments
+	if maxEnroll != 5 {
+		t.Error("Failed to correctly modify max enrollments for user 'testuser2'")
+	}
+
+	userAff = strings.Join(user.GetAffiliationPath(), ".")
+	if userAff != "" {
+		t.Errorf("Failed to correctly modify affiliation to root affiliation for user 'testuser2'")
+	}
+
+}
+
+func TestDynamicWithMultCA(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.RemoveAll("../testdata/msp")
+	defer os.RemoveAll("../testdata/msp")
+	defer cleanMultiCADir(t)
+
+	var err error
+
+	srv := TestGetRootServer(t)
+	srv.Config.CAfiles = []string{"../../testdata/ca/rootca/ca1/fabric-ca-server-config.yaml", "../../testdata/ca/rootca/ca2/fabric-ca-server-config.yaml"}
+	err = srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	client := getTestClient(7075)
+	resp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		CAName: "rootca2",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+
+	admin := resp.Identity
+
+	addReq := &api.AddIdentityRequest{}
+	addReq.ID = "testuser"
+	addReq.Type = "client"
+	addReq.Affiliation = "org2"
+	addReq.CAName = "rootca2"
+	resp2, err := admin.AddIdentity(addReq)
+	assert.NoError(t, err, "Failed to add identity")
+
+	if resp2.CAName != "rootca2" {
+		t.Error("Failed to get response back from the right ca")
+	}
+
+	modReq := &api.ModifyIdentityRequest{}
+	modReq.ID = "testuser"
+	modReq.Type = "peer"
+	modReq.CAName = "rootca2"
+	resp2, err = admin.ModifyIdentity(modReq)
+	assert.NoError(t, err, "Failed to modify identity")
+
+	if resp2.CAName != "rootca2" {
+		t.Error("Failed to get response back from the right ca")
+	}
+
+	srv.caMap["rootca2"].Config.Cfg.Identities.AllowRemove = true
+
+	remReq := &api.RemoveIdentityRequest{}
+	remReq.ID = "testuser"
+	remReq.CAName = "rootca2"
+	resp2, err = admin.RemoveIdentity(remReq)
+	assert.NoError(t, err, "Failed to remove identity")
+
+	if resp2.CAName != "rootca2" {
+		t.Error("Failed to get response back from the right ca")
+	}
+
+}
+
+func cleanMultiCADir(t *testing.T) {
+	var err error
+	caFolder := "../testdata/ca"
+	toplevelFolders := []string{"rootca"}
+	nestedFolders := []string{"ca1", "ca2"}
+	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
+
+	for _, topFolder := range toplevelFolders {
+		for _, nestedFolder := range nestedFolders {
+			path := filepath.Join(caFolder, topFolder, nestedFolder)
+			for _, file := range removeFiles {
+				err = os.RemoveAll(filepath.Join(path, file))
+				if err != nil {
+					t.Errorf("RemoveAll failed: %s", err)
+				}
+			}
+			err = os.RemoveAll(filepath.Join(path, "msp"))
+			if err != nil {
+				t.Errorf("RemoveAll failed: %s", err)
+			}
+		}
 	}
 }
 

@@ -192,7 +192,7 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 		return "", errors.Errorf("Identity '%s' is already registered", req.Name)
 	}
 
-	err = registry.InsertUser(insert)
+	err = registry.InsertUser(&insert)
 	if err != nil {
 		return "", err
 	}

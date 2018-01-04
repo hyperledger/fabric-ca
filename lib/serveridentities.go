@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -293,17 +292,12 @@ func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.Identi
 
 	registry := ctx.ca.registry
 
-	userToRemove, err := registry.GetUser(removeID, nil)
+	userToRemove, err := ctx.GetUser(removeID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = performIdentityAuthCheck(userToRemove, ctx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Caller is not authorized to remove identity")
-	}
-
-	err = registry.DeleteUser(removeID)
+	registry.DeleteUser(removeID)
 	if err != nil {
 		return nil, newHTTPErr(500, ErrRemoveIdentity, "Failed to remove identity: ", err)
 	}
@@ -333,7 +327,7 @@ func processPostRequest(ctx *serverRequestContext, caname string) (*api.Identity
 	}
 
 	if req.ID == "" {
-		return nil, newHTTPErr(400, ErrAddIdentity, "Missing 'ID' in request to add a new intentity")
+		return nil, newHTTPErr(400, ErrAddIdentity, "Missing 'ID' in request to add a new identity")
 	}
 	addReq := &api.RegistrationRequest{
 		Name:           req.ID,
@@ -373,44 +367,127 @@ func processPostRequest(ctx *serverRequestContext, caname string) (*api.Identity
 	resp.IdentityInfo = *idInfo
 
 	log.Debugf("Identity successfully added")
-
 	return resp, nil
 }
 
-func processPutRequest(ctx *serverRequestContext, caname string) (interface{}, error) {
+func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing PUT request")
-	return nil, errors.Errorf("Not Implemented")
+
+	modifyID, err := ctx.GetVar("id")
+	if err != nil {
+		return nil, err
+	}
+
+	if modifyID == "" {
+		return nil, newHTTPErr(400, ErrModifyingIdentity, "No ID name specified in modify request")
+	}
+
+	log.Debugf("Modifying identity '%s'", modifyID)
+	userToModify, err := ctx.GetUser(modifyID)
+	if err != nil {
+		return nil, err
+	}
+
+	registry := ctx.ca.registry
+
+	var req api.ModifyIdentityRequest
+	err = ctx.ReadBody(&req)
+	if err != nil {
+		return nil, err
+	}
+
+	var checkAff, checkType, checkAttrs bool
+	modReq, setPass := getModifyReq(userToModify, req)
+	log.Debugf("Modify Request: %+v", util.StructToString(modReq))
+
+	if req.Affiliation != "" {
+		newAff := req.Affiliation
+		if newAff != "." { // Only need to check if not requesting root affiliation
+			aff, _ := registry.GetAffiliation(newAff)
+			if aff == nil {
+				return nil, newHTTPErr(400, ErrModifyingIdentity, "Affiliation '%s' is not supported", newAff)
+			}
+		}
+		checkAff = true
+	}
+
+	if req.Type != "" {
+		checkType = true
+	}
+
+	if len(req.Attributes) != 0 {
+		checkAttrs = true
+	}
+
+	err = ctx.CanModifyUser(req.Affiliation, checkAff, req.Type, checkType, req.Attributes, checkAttrs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = registry.UpdateUser(modReq, setPass)
+	if err != nil {
+		return nil, err
+	}
+
+	userToModify, err = ctx.GetUser(modifyID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &api.IdentityResponse{
+		Secret: modReq.Pass,
+		CAName: caname,
+	}
+	idInfo, err := getIDInfo(userToModify)
+	if err != nil {
+		return nil, err
+	}
+	resp.IdentityInfo = *idInfo
+
+	log.Debugf("Identity successfully modified")
+	return resp, nil
 }
 
-func performIdentityAuthCheck(user spi.User, ctx *serverRequestContext) error {
-	userRole := user.GetType()
-	userAff := strings.Join(user.GetAffiliationPath(), ".")
+// Function takes the modification request and fills in missing information with the current user information
+// and parses the modification request to generate the correct input to be stored in the database
+func getModifyReq(user spi.User, req api.ModifyIdentityRequest) (*spi.UserInfo, bool) {
+	modifyUserInfo := user.(*DBUser).UserInfo
+	userPass := user.(*DBUser).pass
+	setPass := false
 
-	_, isRegistrar, err := ctx.IsRegistrar()
-	if err != nil {
-		return newAuthErr(ErrUpdateConfigAuth, "Caller is unable to edit identities: %s", err)
-	}
-	if !isRegistrar {
-		return newAuthErr(ErrUpdateConfigAuth, "Caller does not have the attribute '%s', unable to edit identities", registrarRole)
-	}
-
-	canActOnRole, err := ctx.CanActOnType(userRole)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to validate if registrar has proper authority to act on role")
-	}
-	if !canActOnRole {
-		return newAuthErr(ErrRegistrarInvalidType, "Registrar does not have authority to action on role '%s'", userRole)
+	if req.Secret != "" {
+		setPass = true
+		modifyUserInfo.Pass = req.Secret
+	} else {
+		modifyUserInfo.Pass = string(userPass)
 	}
 
-	validAffiliation, err := ctx.ContainsAffiliation(userAff)
-	if err != nil {
-		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to remove identity affiliation: %s", err)
-	}
-	if !validAffiliation {
-		return newAuthErr(ErrRegistrarNotAffiliated, "Registrar does not have authority to action on affiliation '%s'", userAff)
+	if req.MaxEnrollments == -2 {
+		modifyUserInfo.MaxEnrollments = 0
+	} else if req.MaxEnrollments != 0 {
+		modifyUserInfo.MaxEnrollments = req.MaxEnrollments
 	}
 
-	return nil
+	if req.Affiliation == "." {
+		modifyUserInfo.Affiliation = ""
+		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Affiliation", Value: ""})
+	} else if req.Affiliation != "" {
+		modifyUserInfo.Affiliation = req.Affiliation
+		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Affiliation", Value: req.Affiliation})
+	}
+
+	if req.Type != "" {
+		modifyUserInfo.Type = req.Type
+		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Type", Value: req.Type})
+	}
+
+	// Update existing attribute, or add attribute if it does not already exist
+	if len(req.Attributes) != 0 {
+		userAttrs := getNewAttributes(modifyUserInfo.Attributes, req.Attributes)
+		modifyUserInfo.Attributes = userAttrs
+	}
+
+	return &modifyUserInfo, setPass
 }
 
 func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
@@ -425,4 +502,36 @@ func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
 		Attributes:     allAttributes,
 		MaxEnrollments: user.GetMaxEnrollments(),
 	}, nil
+}
+
+// Update existing attribute, or add attribute if it does not already exist
+func getNewAttributes(modifyAttrs, newAttrs []api.Attribute) []api.Attribute {
+	var attr api.Attribute
+	for _, attr = range newAttrs {
+		log.Debugf("Attribute request: %+v", attr)
+		found := false
+		for i := range modifyAttrs {
+			if modifyAttrs[i].Name == attr.Name {
+				if attr.Value == "" {
+					log.Debugf("Deleting attribute: %+v", modifyAttrs[i])
+					if i == len(modifyAttrs)-1 {
+						modifyAttrs = modifyAttrs[:len(modifyAttrs)-1]
+					} else {
+						modifyAttrs = append(modifyAttrs[:i], modifyAttrs[i+1:]...)
+					}
+				} else {
+					log.Debugf("Updating existing attribute from '%+v' to '%+v'", modifyAttrs[i], attr)
+					modifyAttrs[i].Value = attr.Value
+					modifyAttrs[i].ECert = attr.ECert
+				}
+				found = true
+				break
+			}
+		}
+		if !found && attr.Value != "" {
+			log.Debugf("Adding '%+v' as new attribute", attr)
+			modifyAttrs = append(modifyAttrs, attr)
+		}
+	}
+	return modifyAttrs
 }

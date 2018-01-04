@@ -112,7 +112,7 @@ type cfgOptions struct {
 
 // identitiesOptions are options that are related to identities
 type identitiesOptions struct {
-	AllowRemove bool `help:"Enables removing of identities dynamically"`
+	AllowRemove bool `help:"Enables removal of identities dynamically"`
 }
 
 // CAInfo is the CA information on a fabric-ca-server

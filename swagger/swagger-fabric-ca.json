@@ -2314,6 +2314,12 @@
             "type": "string"
           },
           {
+            "name": "force",
+            "in": "query",
+            "description": "Required to delete your own identity",
+            "type": "boolean"
+          },
+          {
             "name": "Authorization",
             "in": "header",
             "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",

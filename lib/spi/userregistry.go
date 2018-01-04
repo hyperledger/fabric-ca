@@ -28,7 +28,7 @@ import (
 // UserInfo contains information about a user
 type UserInfo struct {
 	Name           string
-	Pass           string
+	Pass           string `mask:"password"`
 	Type           string
 	Affiliation    string
 	Attributes     []api.Attribute
@@ -68,8 +68,8 @@ type User interface {
 // UserRegistry is the API for retreiving users and groups
 type UserRegistry interface {
 	GetUser(id string, attrs []string) (User, error)
-	InsertUser(user UserInfo) error
-	UpdateUser(user UserInfo) error
+	InsertUser(user *UserInfo) error
+	UpdateUser(user *UserInfo, updatePass bool) error
 	DeleteUser(id string) error
 	GetAffiliation(name string) (Affiliation, error)
 	InsertAffiliation(name string, prekey string, level int) error

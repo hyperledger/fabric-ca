@@ -1482,13 +1482,13 @@ The first method is via the `--json` flag where you describe the identity in a J
 
 .. code:: bash
 
-    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}'
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
 
 The following adds a user with root affiliation. Note that an affiliation name of "." means the root affiliation.
 
 .. code:: bash
 
-    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": ".", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}'
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": ".", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
 
 The second method for adding an identity is to use direct flags. See the example below for adding 'user1'.
 
@@ -1524,9 +1524,11 @@ is not modified will retain its original value.
 
 NOTE: A maxenrollments value of "-2" specifies that the CA's max enrollment setting is to be used.
 
+The command below make multiple modification to an identity using the --json flag.
+
 .. code:: bash
 
-    fabric-ca-client identity modify user1 --json '{"secret": "newPassword", "affiliation": "."}'
+    fabric-ca-client identity modify user1 --json '{"secret": "newPassword", "affiliation": ".", "attrs": [{"name": "hf.Regisrar.Roles", "value": "peer,client"},{"name": "hf.Revoker", "value": "true"}]}'
 
 The commands below make modifcations using direct flags. The following updates the enrollment secret (or password) for identity 'user1' to 'newsecret'.
 
