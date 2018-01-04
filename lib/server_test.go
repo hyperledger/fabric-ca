@@ -2115,14 +2115,7 @@ func TestAutoTLSCertificateGeneration(t *testing.T) {
 
 	err = srv.Start()
 	if assert.Error(t, err, "Should have failed to start server where TLS key is specified but certificate does not exist") {
-		assert.Contains(t, err.Error(), "must not be specified in order to automatically generate the key")
-	}
-
-	// TLS certificate does not exist
-	srv.Config.TLS.CertFile = ""
-	err = srv.Start()
-	if assert.Error(t, err, "Should have failed to start server where, no TLS certificate provided") {
-		assert.Contains(t, err.Error(), "TLS is enabled but no TLS certificate provided")
+		assert.Contains(t, err.Error(), fmt.Sprintf("File specified by 'tls.keyfile' does not exist: %s", srv.Config.TLS.KeyFile))
 	}
 }
 func TestRegisterationAffiliation(t *testing.T) {
