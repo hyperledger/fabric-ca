@@ -241,7 +241,7 @@ func TestGetID(t *testing.T) {
 
 }
 
-func TestDynamicIdentity(t *testing.T) {
+func TestDynamicAddIdentity(t *testing.T) {
 	os.RemoveAll(rootDir)
 	defer os.RemoveAll(rootDir)
 
@@ -261,6 +261,20 @@ func TestDynamicIdentity(t *testing.T) {
 
 	admin := resp.Identity
 
+	regResp, err := admin.Register(&api.RegistrationRequest{
+		Name:        "notregistrar",
+		Type:        "client",
+		Affiliation: "org2",
+	})
+
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "notregistrar",
+		Secret: regResp.Secret,
+	})
+	util.FatalError(t, err, "Failed to enroll user 'notregistrar'")
+
+	notregistrar := resp.Identity
+
 	addReq := &api.AddIdentityRequest{}
 	_, err = admin.AddIdentity(addReq)
 	assert.Error(t, err, "Should have failed, no name specified in request")
@@ -269,22 +283,128 @@ func TestDynamicIdentity(t *testing.T) {
 	_, err = admin.ModifyIdentity(modReq)
 	assert.Error(t, err, "Should have failed, no name specified in request")
 
-	remReq := &api.RemoveIdentityRequest{}
-	_, err = admin.RemoveIdentity(remReq)
-	assert.Error(t, err, "Should have failed, no name specified in request")
-
 	addReq.ID = "testuser"
+	addReq.Type = "client"
+	addReq.Affiliation = "org2"
+	_, err = notregistrar.AddIdentity(addReq)
+	assert.Error(t, err, "Should have failed to add identity, caller is not a registrar")
+
 	_, err = admin.AddIdentity(addReq)
-	assert.Error(t, err, "Not yet implemented")
+	assert.NoError(t, err, "Failed to add identity")
 
 	modReq.ID = "testuser"
 	modReq.Type = "peer"
 	_, err = admin.ModifyIdentity(modReq)
 	assert.Error(t, err, "Not yet implemented")
+}
 
+func TestDynamicRemoveIdentity(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+
+	var err error
+
+	srv := TestGetRootServer(t)
+	err = srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	client := getTestClient(7075)
+	resp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+
+	admin := resp.Identity
+
+	// Register and enroll a user that is not a registrar
+	regResp, err := admin.Register(&api.RegistrationRequest{
+		Name:        "notregistrar",
+		Type:        "client",
+		Affiliation: "org2",
+	})
+
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "notregistrar",
+		Secret: regResp.Secret,
+	})
+	util.FatalError(t, err, "Failed to enroll user 'notregistrar'")
+
+	notregistrar := resp.Identity
+
+	// Register and enroll a registrar that is has limited ability
+	// to act on identities
+	regResp, err = admin.Register(&api.RegistrationRequest{
+		Name:        "admin2",
+		Secret:      "admin2pw",
+		Type:        "peer",
+		Affiliation: "org2",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer",
+			},
+		},
+	})
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin2'")
+	admin2 := resp.Identity
+
+	// Registers users that will be removed
+	regResp, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser",
+		Type:        "client",
+		Affiliation: "org2",
+	})
+
+	regResp, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser2",
+		Type:        "peer",
+		Affiliation: "hyperledger",
+	})
+	_, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "testuser2",
+		Secret: regResp.Secret,
+	})
+	util.FatalError(t, err, "Failed to enroll user 'testuser2'")
+
+	remReq := &api.RemoveIdentityRequest{}
 	remReq.ID = "testuser"
 	_, err = admin.RemoveIdentity(remReq)
-	assert.Error(t, err, "Not yet implemented")
+	assert.Error(t, err, "Should have failed to remove identities; identity removal is not enabled on server")
+
+	srv.CA.Config.Cfg.Identities.AllowRemove = true
+
+	remReq.ID = ""
+	_, err = admin.RemoveIdentity(remReq)
+	assert.Error(t, err, "Should have failed; no name specified in request")
+
+	remReq.ID = "testuser"
+	_, err = admin2.RemoveIdentity(remReq)
+	assert.Error(t, err, "Should have failed to remove identity; caller does not have the right type")
+
+	remReq.ID = "testuser2"
+	_, err = admin2.RemoveIdentity(remReq)
+	assert.Error(t, err, "Should have failed to remove identity; caller does not have the right affiliation")
+
+	_, err = notregistrar.RemoveIdentity(remReq)
+	assert.Error(t, err, "Should have failed to remove identity; caller is not a registrar")
+
+	_, err = admin.RemoveIdentity(remReq)
+	assert.NoError(t, err, "Failed to remove user")
+
+	registry := srv.CA.registry
+	_, err = registry.GetUser(remReq.ID, nil)
+	assert.Error(t, err, "User should not exist")
+
+	certs, err := srv.CA.certDBAccessor.GetCertificatesByID(remReq.ID)
+	if len(certs) != 0 {
+		t.Errorf("Failed to delete certificates for a removed identity '%s'", remReq.ID)
+	}
 }
 
 func captureOutput(f func(string, func(*json.Decoder) error) error, caname string, cb func(*json.Decoder) error) (string, error) {

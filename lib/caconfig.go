@@ -89,6 +89,7 @@ csr:
 // "skip" - to skip the field.
 type CAConfig struct {
 	Version      string `skip:"true"`
+	Cfg          cfgOptions
 	CA           CAInfo
 	Signing      *config.Signing
 	CSR          api.CSRInfo
@@ -102,6 +103,16 @@ type CAConfig struct {
 	Client       *ClientConfig
 	Intermediate IntermediateCA
 	CRL          CRLConfig
+}
+
+// cfgOptions is a CA configuration that allows for setting different options
+type cfgOptions struct {
+	Identities identitiesOptions
+}
+
+// identitiesOptions are options that are related to identities
+type identitiesOptions struct {
+	AllowRemove bool `help:"Enables removing of identities dynamically"`
 }
 
 // CAInfo is the CA information on a fabric-ca-server

@@ -220,6 +220,7 @@ type ModifyIdentityRequest struct {
 // fabric-ca-server
 type RemoveIdentityRequest struct {
 	ID     string `json:"id" skip:"true"`
+	Force  bool   `json:"force"`
 	CAName string `json:"caname,omitempty" skip:"true"`
 }
 

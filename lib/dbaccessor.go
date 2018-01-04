@@ -170,14 +170,20 @@ func (d *Accessor) InsertUser(user spi.UserInfo) error {
 // DeleteUser deletes user from database
 func (d *Accessor) DeleteUser(id string) error {
 	log.Debugf("DB: Delete identity %s", id)
-	err := d.checkDB()
+
+	return d.doTransaction(deleteUserTx, id)
+}
+
+func deleteUserTx(tx *sqlx.Tx, args ...interface{}) error {
+	id := args[0].(string)
+	_, err := tx.Exec(tx.Rebind(deleteUser), id)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Error deleting identity '%s'", id)
 	}
 
-	_, err = d.db.Exec(deleteUser, id)
+	_, err = tx.Exec(tx.Rebind(deleteCertificatebyID), id)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Error deleting certificates for '%s'", id)
 	}
 
 	return nil
@@ -245,7 +251,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	var userRec UserRecord
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return nil, dbGetError(err, "User")
+		return nil, getUserError(dbGetError(err, "User"))
 	}
 
 	return d.newDBUser(&userRec), nil
@@ -415,6 +421,29 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 
 	return rows, nil
 
+}
+
+func (d *Accessor) doTransaction(doit func(tx *sqlx.Tx, args ...interface{}) error, args ...interface{}) error {
+	err := d.checkDB()
+	if err != nil {
+		return err
+	}
+	tx := d.db.MustBegin()
+	err = doit(tx, args...)
+	if err != nil {
+		err2 := tx.Rollback()
+		if err2 != nil {
+			log.Errorf("Error encounted while rolling back transaction: %s", err2)
+			return err
+		}
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "Error encountered while committing transaction")
+	}
+	return nil
 }
 
 // Creates a DBUser object from the DB user record
@@ -704,5 +733,5 @@ func getUserError(err error) error {
 	if err.Error() == "not found" {
 		return newHTTPErr(404, ErrGettingUser, "Failed to get user: %s", err)
 	}
-	return newHTTPErr(504, ErrConnectingDB, "Failed to connect to database")
+	return newHTTPErr(504, ErrConnectingDB, "Failed to process database request: %s", err)
 }

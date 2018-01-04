@@ -482,7 +482,6 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{cmdName, "register", "--id.name", "test user"})
 	util.FatalError(t, err, "Failed to register user")
 
-	// Negative test cases
 	err = RunMain([]string{
 		cmdName, "identity", "list"})
 	assert.NoError(t, err, "Failed to get all ids")
@@ -528,18 +527,6 @@ func TestIdentityCmd(t *testing.T) {
 	}
 
 	err = RunMain([]string{
-		cmdName, "identity", "add", "testuser", "--json", `{"type": "peer"}`})
-	assert.Error(t, err, "Should have failed, not yet implemented")
-
-	err = RunMain([]string{
-		cmdName, "identity", "modify", "testuser", "--type", "client"})
-	assert.Error(t, err, "Should have failed, not yet implemented")
-
-	err = RunMain([]string{
-		cmdName, "identity", "remove", "testuser"})
-	assert.Error(t, err, "Should have failed, not yet implemented")
-
-	err = RunMain([]string{
 		cmdName, "identity", "add", "testuser", "--json", `{"type": "peer"}`, "--type", "peer"})
 	if assert.Error(t, err, "Should have failed") {
 		assert.Contains(t, err.Error(), "Can't use 'json' flag in conjunction with other flags")
@@ -562,6 +549,46 @@ func TestIdentityCmd(t *testing.T) {
 	if assert.Error(t, err, "Should have failed") {
 		assert.Contains(t, err.Error(), "Can't use 'json' flag in conjunction with other flags")
 	}
+
+	// Add user using JSON
+	err = RunMain([]string{
+		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}`})
+	assert.NoError(t, err, "Failed to add user 'testuser1'")
+
+	err = RunMain([]string{
+		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "true"}]}`})
+	assert.Error(t, err, "Should have failed to add same user twice")
+
+	// Add user using flags
+	err = RunMain([]string{
+		cmdName, "identity", "add", "testuser2", "--secret", "user2pw", "--type", "user", "--affiliation", ".", "--maxenrollments", "1", "--attrs", "hf.Revoker=true"})
+	assert.NoError(t, err, "Failed to add user 'testuser2'")
+
+	// Check that the secret got correctly configured
+	err = RunMain([]string{
+		cmdName, "enroll", "-u", "http://testuser2:user2pw@localhost:7090", "-d"})
+	assert.NoError(t, err, "Failed to enroll user 'testuser2'")
+
+	// Enroll admin back to use it credentials for next commands
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	server.CA.Config.Cfg.Identities.AllowRemove = true
+
+	registry := server.CA.DBAccessor()
+	_, err = registry.GetUser("testuser1", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser1'")
+
+	_, err = registry.GetUser("testuser2", nil)
+	assert.NoError(t, err, "Failed to get user 'testuser2'")
+
+	err = RunMain([]string{
+		cmdName, "identity", "remove", "testuser1"})
+	assert.NoError(t, err, "Failed to remove user")
+
+	err = RunMain([]string{
+		cmdName, "identity", "modify", "testuser", "--type", "peer"})
+	assert.Error(t, err, "Should have failed, not yet implemented")
 }
 
 // Verify the certificate has attribute 'name' with a value of 'val'
