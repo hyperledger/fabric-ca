@@ -145,7 +145,7 @@ func (c *ClientCmd) runListIdentity(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("Identity: %+v\n", resp.IdentityInfo)
+		fmt.Printf("%+v\n", resp.IdentityInfo)
 		return nil
 	}
 

@@ -50,7 +50,7 @@ func TestGetAffliation(t *testing.T) {
 	defer srv.Stop()
 
 	afs := []AffiliationRecord{}
-	err = srv.db.Select(&afs, srv.db.Rebind(getAffiliation), affiliationName)
+	err = srv.db.Select(&afs, srv.db.Rebind(getAffiliationQuery), affiliationName)
 	t.Logf("Retrieved %+v for the affiliation %s", afs, affiliationName)
 	if err != nil {
 		t.Fatalf("Failed to get affiliation %s: %v", affiliationName, err)

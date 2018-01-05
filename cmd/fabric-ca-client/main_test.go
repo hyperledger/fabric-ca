@@ -24,6 +24,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -540,13 +541,16 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{cmdName, "register", "--id.name", "test user"})
 	util.FatalError(t, err, "Failed to register user")
 
-	err = RunMain([]string{
+	result, err := captureOutput(RunMain, []string{
 		cmdName, "identity", "list"})
 	assert.NoError(t, err, "Failed to get all ids")
+	assert.Contains(t, result, "admin")
+	assert.Contains(t, result, "test user")
 
-	err = RunMain([]string{
+	result, err = captureOutput(RunMain, []string{
 		cmdName, "identity", "list", "--id", "test user"})
 	assert.NoError(t, err, "Failed to get id 'test user'")
+	assert.Contains(t, result, "test user")
 
 	err = RunMain([]string{
 		cmdName, "identity", "add"})
@@ -678,6 +682,91 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{
 		cmdName, "identity", "remove", "testuser1"})
 	assert.NoError(t, err, "Failed to remove user")
+}
+
+func TestAffiliationCmd(t *testing.T) {
+	var err error
+
+	// Start with a clean test dir
+	os.RemoveAll("affiliation")
+	defer os.RemoveAll("affiliation")
+
+	// Start the server
+	server := startServer("affiliation", 7090, "", t)
+	defer server.Stop()
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	result, err := captureOutput(RunMain, []string{cmdName, "affiliation", "list"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, "org1\n", result)
+
+	err = RunMain([]string{cmdName, "affiliation", "list", "--affiliation", "org2"})
+	assert.Error(t, err, "Should failed to get the requested affiliation, affiliation does not exist")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove"})
+	if assert.Error(t, err, "Should have failed, no arguments provided") {
+		assert.Contains(t, err.Error(), "affiliation name is required")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove", "org3", "badinput"})
+	if assert.Error(t, err, "Should have failed, too many arguments") {
+		assert.Contains(t, err.Error(), "Unknown argument")
+	}
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add", "org3"})
+	assert.NoError(t, err, "Caller with root affiliation failed to add affiliation 'org3'")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "add", "org4.dept1.team", "--force"})
+	assert.NoError(t, err, "Caller with root affiliation failed to add affiliation 'org4.dept1.team2'")
+
+	server.CA.Config.Cfg.Affiliations.AllowRemove = true
+
+	registry := server.CA.DBAccessor()
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "remove", "org3"})
+	assert.NoError(t, err, "Failed to remove affiliation")
+
+	_, err = registry.GetAffiliation("org3")
+	assert.Error(t, err, "Failed to remove 'org3' successfully")
+
+	err = RunMain([]string{
+		cmdName, "affiliation", "modify", "org1", "--name", "org3"})
+	assert.NoError(t, err, "Failed to rename affiliation from 'org2' to 'org3'")
+
+	_, err = registry.GetAffiliation("org3")
+	assert.NoError(t, err, "Failed to rename 'org1' to 'org3' successfully")
+
 }
 
 // Verify the certificate has attribute 'name' with a value of 'val'
@@ -1918,6 +2007,24 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to get fabric-ca-client version: ", err)
 	}
+}
+
+func captureOutput(f func(args []string) error, args []string) (string, error) {
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	os.Stdout = w
+	err = f(args)
+	if err != nil {
+		return "", err
+	}
+	w.Close()
+	os.Stdout = old
+	var buf bytes.Buffer
+	io.Copy(&buf, r)
+	return buf.String(), nil
 }
 
 func getServer() *lib.Server {

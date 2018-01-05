@@ -85,9 +85,14 @@ type ModifyIdentityRequestNet struct {
 	ModifyIdentityRequest
 }
 
-// RemoveIdentityRequestNet is a network request for removing an existing identity
-type RemoveIdentityRequestNet struct {
-	RemoveIdentityRequest
+// AddAffiliationRequestNet is a network request for adding a new affiliation
+type AddAffiliationRequestNet struct {
+	Info AffiliationInfo `json:"info"`
+}
+
+// ModifyAffiliationRequestNet is a network request for modifying an existing affiliation
+type ModifyAffiliationRequestNet struct {
+	Info AffiliationInfo `json:"info"`
 }
 
 // KeySig is a public key, signature, and signature algorithm tuple

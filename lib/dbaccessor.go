@@ -26,6 +26,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/ocsp"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -63,9 +64,13 @@ INSERT INTO affiliations (name, prekey, level)
 DELETE FROM affiliations
 	WHERE (name = ?)`
 
-	getAffiliation = `
+	getAffiliationQuery = `
 SELECT * FROM affiliations
 	WHERE (name = ?)`
+
+	getAllAffiliationsQuery = `
+SELECT * FROM affiliations
+	WHERE ((name = ?) OR (name LIKE ?))`
 )
 
 // UserRecord defines the properties of a user
@@ -171,25 +176,46 @@ func (d *Accessor) InsertUser(user *spi.UserInfo) error {
 }
 
 // DeleteUser deletes user from database
-func (d *Accessor) DeleteUser(id string) error {
+func (d *Accessor) DeleteUser(id string) (spi.User, error) {
 	log.Debugf("DB: Delete identity %s", id)
 
-	return d.doTransaction(deleteUserTx, id)
+	result, err := d.doTransaction(d.deleteUserTx, id, ocsp.CessationOfOperation) // 5 (cessationofoperation) reason for certificate revocation
+	if err != nil {
+		return nil, err
+	}
+
+	userRec := result.(*UserRecord)
+	user := d.newDBUser(userRec)
+
+	return user, nil
 }
 
-func deleteUserTx(tx *sqlx.Tx, args ...interface{}) error {
+func (d *Accessor) deleteUserTx(tx *sqlx.Tx, args ...interface{}) (interface{}, error) {
 	id := args[0].(string)
-	_, err := tx.Exec(tx.Rebind(deleteUser), id)
+	reason := args[1].(int)
+
+	var userRec UserRecord
+	err := tx.Get(&userRec, tx.Rebind(getUser), id)
 	if err != nil {
-		return errors.Wrapf(err, "Error deleting identity '%s'", id)
+		return nil, getError(err, "User")
 	}
 
-	_, err = tx.Exec(tx.Rebind(deleteCertificatebyID), id)
+	_, err = tx.Exec(tx.Rebind(deleteUser), id)
 	if err != nil {
-		return errors.Wrapf(err, "Error deleting certificates for '%s'", id)
+		return nil, newHTTPErr(500, ErrDBDeleteUser, "Error deleting identity '%s': %s", id, err)
 	}
 
-	return nil
+	record := &CertRecord{
+		ID: id,
+	}
+	record.Reason = reason
+
+	_, err = tx.NamedExec(tx.Rebind(updateRevokeSQL), record)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrDBDeleteUser, "Error encountered while revoking certificates for identity '%s' that is being deleted: %s", id, err)
+	}
+
+	return &userRec, nil
 }
 
 // UpdateUser updates user in database
@@ -260,7 +286,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 	var userRec UserRecord
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return nil, getUserError(dbGetError(err, "User"))
+		return nil, getError(err, "User")
 	}
 
 	return d.newDBUser(&userRec), nil
@@ -299,20 +325,126 @@ func (d *Accessor) InsertAffiliation(name string, prekey string, level int) erro
 	return nil
 }
 
-// DeleteAffiliation deletes affiliation from database
-func (d *Accessor) DeleteAffiliation(name string) error {
+// DeleteAffiliation deletes affiliation from database. Using the force option with identity removal allowed
+// this will also delete the identities associated with removed affiliations, and also delete the certificates
+// for the identities removed
+func (d *Accessor) DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*spi.DbTxResult, error) {
 	log.Debugf("DB: Delete affiliation %s", name)
-	err := d.checkDB()
+
+	_, err := d.GetAffiliation(name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = d.db.Exec(deleteAffiliation, name)
+	result, err := d.doTransaction(d.deleteAffiliationTx, name, force, identityRemoval, isRegistrar)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	deletedInfo := result.(*spi.DbTxResult)
+
+	return deletedInfo, nil
+}
+
+func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interface{}, error) {
+	var err error
+
+	name := args[0].(string)
+	force := args[1].(bool)
+	identityRemoval := args[2].(bool)
+	isRegistar := args[3].(bool)
+
+	query := "SELECT * FROM users WHERE (affiliation = ?)"
+	ids := []UserRecord{}
+	err = tx.Select(&ids, tx.Rebind(query), name)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to select users with affiliation '%s': %s", name, err)
+	}
+
+	subAffName := name + ".%"
+	query = "SELECT * FROM users WHERE (affiliation LIKE ?)"
+	subAffIds := []UserRecord{}
+	err = tx.Select(&subAffIds, tx.Rebind(query), subAffName)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to select users with sub-affiliation of '%s': %s", name, err)
+	}
+
+	ids = append(ids, subAffIds...)
+	idNames := []string{}
+	for _, id := range ids {
+		idNames = append(idNames, id.Name)
+	}
+	idNamesStr := strings.Join(idNames, ",")
+
+	if len(ids) > 0 {
+		if !isRegistar {
+			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Removing affiliation affects identities, but caller is not a registrar")
+		}
+
+		// Force enabled, delete any associated identities and certificates
+		if force {
+			log.Debugf("IDs '%s' to removed based on affiliation '%s' removal", idNamesStr, name)
+
+			if !identityRemoval {
+				return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Identity removal is not allowed on server")
+			}
+
+			// Delete all the identities in one database request
+			query := "DELETE FROM users WHERE (id IN (?))"
+			inQuery, args, err := sqlx.In(query, idNames)
+			if err != nil {
+				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
+			}
+			_, err = tx.Exec(tx.Rebind(inQuery), args...)
+			if err != nil {
+				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple identity removal: %s", query, err)
+			}
+
+			// Revoke all the certificates associated with the removed identities above with reason of "affiliationchange" (3)
+			query = "UPDATE certificates SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason = ? WHERE (id IN (?) AND status != 'revoked')"
+			inQuery, args, err = sqlx.In(query, ocsp.AffiliationChanged, idNames)
+			if err != nil {
+				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
+			}
+			_, err = tx.Exec(tx.Rebind(inQuery), args...)
+			if err != nil {
+				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple certificate removal: %s", query, err)
+			}
+		} else {
+			// If force option is not specified, only delete affiliation if there are no identities that have that affiliation
+			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "The request to remove affiliation '%s' has the following identities associated: %s. Need to use 'force' to remove identities and affiliation", name, idNamesStr)
+		}
+	}
+
+	aff := AffiliationRecord{}
+	err = tx.Get(&aff, tx.Rebind(getAffiliationQuery), name)
+	if err != nil {
+		return nil, getError(err, "Affiliation")
+	}
+	// Getting all the sub-affiliations that are going to be deleted
+	allAffs := []AffiliationRecord{}
+	err = tx.Select(&allAffs, tx.Rebind("Select * FROM affiliations where (name LIKE ?)"), subAffName)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to select sub-affiliations of '%s': %s", allAffs, err)
+	}
+	allAffs = append(allAffs, aff)
+	log.Debug("All affiliations to be removed: ", allAffs)
+
+	// Delete the requested affiliation
+	_, err = tx.Exec(tx.Rebind(deleteAffiliation), name)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to delete affiliation '%s': %s", name, err)
+	}
+	// Delete all the sub-affiliations
+	_, err = tx.Exec(tx.Rebind("DELETE FROM affiliations where (name LIKE ?)"), subAffName)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to delete affiliations: %s", err)
+	}
+
+	// Return the identities and affiliations that were removed
+	result := d.getResult(ids, allAffs)
+
+	return result, nil
 }
 
 // GetAffiliation gets affiliation from database
@@ -324,9 +456,10 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 	}
 
 	var affiliationRecord AffiliationRecord
-	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliation), name)
+
+	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
-		return nil, dbGetError(err, "Affiliation")
+		return nil, getError(err, "Affiliation")
 	}
 
 	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
@@ -356,7 +489,7 @@ func (d *Accessor) GetProperties(names []string) (map[string]string, error) {
 	}
 	err = d.db.Select(&properties, d.db.Rebind(inQuery), args...)
 	if err != nil {
-		return nil, dbGetError(err, "Properties")
+		return nil, getError(err, "Properties")
 	}
 
 	propertiesMap := make(map[string]string)
@@ -389,6 +522,30 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
 	}
 
 	return allUsers, nil
+}
+
+// GetAllAffiliations gets the requested affiliation and any sub affiliations from the database
+func (d *Accessor) GetAllAffiliations(name string) (*sqlx.Rows, error) {
+	log.Debugf("DB: Get affiliation %s", name)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	if name == "" { // Requesting all affiliations
+		rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM affiliations"))
+		if err != nil {
+			return nil, err
+		}
+		return rows, nil
+	}
+
+	rows, err := d.db.Queryx(d.db.Rebind(getAllAffiliationsQuery), name, name+".%")
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
 }
 
 // GetFilteredUsers returns all identities that fall under the affiliation and types
@@ -432,27 +589,174 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 
 }
 
-func (d *Accessor) doTransaction(doit func(tx *sqlx.Tx, args ...interface{}) error, args ...interface{}) error {
+// ModifyAffiliation renames the affiliation and updates all identities to use the new affiliation depending on
+// the value of the "force" parameter
+func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*spi.DbTxResult, error) {
+	log.Debugf("DB: Modify affiliation from '%s' to '%s'", oldAffiliation, newAffiliation)
 	err := d.checkDB()
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Check to see if the affiliation being modifies exists in the affiliation table
+	_, err = d.GetAffiliation(oldAffiliation)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check to see if the new affiliation being requested exists in the affiliation table
+	_, err = d.GetAffiliation(newAffiliation)
+	if err == nil {
+		return nil, newHTTPErr(400, ErrUpdateConfigModifyAff, "Affiliation '%s' already exists", newAffiliation)
+	}
+
+	result, err := d.doTransaction(d.modifyAffiliationTx, oldAffiliation, newAffiliation, force, isRegistrar)
+	if err != nil {
+		return nil, err
+	}
+
+	modifiedInfo := result.(*spi.DbTxResult)
+
+	return modifiedInfo, nil
+}
+
+func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interface{}, error) {
+	oldAffiliation := args[0].(string)
+	newAffiliation := args[1].(string)
+	force := args[2].(bool)
+	isRegistar := args[3].(bool)
+
+	// Get the affiliation record
+	query := "SELECT name, prekey FROM affiliations WHERE (name = ?)"
+	var oldAffiliationRecord AffiliationRecord
+	err := tx.Get(&oldAffiliationRecord, tx.Rebind(query), oldAffiliation)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the affiliation records for all sub affiliations
+	query = "SELECT name, prekey FROM affiliations WHERE (name LIKE ?)"
+	var allOldAffiliations []AffiliationRecord
+	err = tx.Select(&allOldAffiliations, tx.Rebind(query), oldAffiliation+".%")
+	if err != nil {
+		return nil, err
+	}
+
+	allOldAffiliations = append(allOldAffiliations, oldAffiliationRecord)
+
+	log.Debugf("Affiliations to be modified %+v", allOldAffiliations)
+	var idsWithOldAff []UserRecord
+	var allIds []UserRecord
+
+	// Iterate through all the affiliations found and update to use new affiliation path
+	for _, affiliation := range allOldAffiliations {
+		oldPath := affiliation.Name
+		oldParentPath := affiliation.Prekey
+		newPath := strings.Replace(oldPath, oldAffiliation, newAffiliation, 1)
+		newParentPath := strings.Replace(oldParentPath, oldAffiliation, newAffiliation, 1)
+		log.Debugf("oldPath: %s, newPath: %s, oldParentPath: %s, newParentPath: %s", oldPath, newPath, oldParentPath, newParentPath)
+
+		// Select all users that are using the old affiliation
+		query = "SELECT * FROM users WHERE (affiliation = ?)"
+		err = tx.Select(&idsWithOldAff, tx.Rebind(query), oldPath)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(idsWithOldAff) > 0 {
+			if !isRegistar {
+				return nil, newAuthErr(ErrMissingRegAttr, "Modifying affiliation affects identities, but caller is not a registrar")
+			}
+			// Get the list of names of the identities that need to be updated to use new affiliation
+			ids := []string{}
+			for _, id := range idsWithOldAff {
+				ids = append(ids, id.Name)
+			}
+
+			if force {
+				log.Debugf("Identities %s to be updated to use new affiliation of '%s' from '%s'", ids, newPath, oldPath)
+
+				query := "Update users SET affiliation = ? WHERE (id IN (?))"
+				inQuery, args, err := sqlx.In(query, newPath, ids)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Failed to construct query '%s'", query)
+				}
+				_, err = tx.Exec(tx.Rebind(inQuery), args...)
+				if err != nil {
+					return nil, errors.Wrapf(err, "Failed to execute query '%s' for multiple certificate removal", query)
+				}
+			} else {
+				// If force option is not specified, can only modify affiliation if there are no identities that have that affiliation
+				idNamesStr := strings.Join(ids, ",")
+				return nil, newHTTPErr(400, ErrUpdateConfigModifyAff, "The request to modify affiliation '%s' has the following identities associated: %s. Need to use 'force' to remove identities and affiliation", oldAffiliation, idNamesStr)
+			}
+		}
+
+		// Update the affiliation record in the database to use new affiliation path
+		query = "Update affiliations SET name = ?, prekey = ? WHERE (name = ?)"
+		res := tx.MustExec(tx.Rebind(query), newPath, newParentPath, oldPath)
+		numRowsAffected, err := res.RowsAffected()
+		if err != nil {
+			return nil, errors.Errorf("Failed to get number of rows affected")
+		}
+		if numRowsAffected == 0 {
+			return nil, errors.Errorf("Failed to update any affiliation records for '%s'", oldPath)
+		}
+
+		for _, id := range idsWithOldAff {
+			allIds = append(allIds, id)
+		}
+	}
+
+	// Return the identities and affiliations that were modified
+	result := d.getResult(allIds, allOldAffiliations)
+
+	return result, nil
+}
+
+func (d *Accessor) doTransaction(doit func(tx *sqlx.Tx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
 	}
 	tx := d.db.MustBegin()
-	err = doit(tx, args...)
+	result, err := doit(tx, args...)
 	if err != nil {
 		err2 := tx.Rollback()
 		if err2 != nil {
 			log.Errorf("Error encounted while rolling back transaction: %s", err2)
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return errors.Wrap(err, "Error encountered while committing transaction")
+		return nil, errors.Wrap(err, "Error encountered while committing transaction")
 	}
-	return nil
+
+	return result, nil
+}
+
+// Returns the identities and affiliations that were modified
+func (d *Accessor) getResult(ids []UserRecord, affs []AffiliationRecord) *spi.DbTxResult {
+	// Collect all the identities that were modified
+	identities := []spi.User{}
+	for _, id := range ids {
+		identities = append(identities, d.newDBUser(&id))
+	}
+
+	// Collect the name of all affiliations that were modified
+	affiliations := []spi.Affiliation{}
+	for _, aff := range affs {
+		newAff := spi.NewAffiliation(aff.Name, aff.Prekey, aff.Level)
+		affiliations = append(affiliations, newAff)
+	}
+
+	return &spi.DbTxResult{
+		Affiliations: affiliations,
+		Identities:   identities,
+	}
 }
 
 // Creates a DBUser object from the DB user record
@@ -706,16 +1010,9 @@ func (u *DBUser) ModifyAttributes(newAttrs []api.Attribute) error {
 	return nil
 }
 
-func dbGetError(err error, prefix string) error {
+func getError(err error, getType string) error {
 	if err.Error() == "sql: no rows in result set" {
-		return errors.Errorf("%s not found", prefix)
-	}
-	return err
-}
-
-func getUserError(err error) error {
-	if err.Error() == "not found" {
-		return newHTTPErr(404, ErrGettingUser, "Failed to get user: %s", err)
+		return newHTTPErr(404, ErrDBGet, "Failed to get %s: %s", getType, err)
 	}
 	return newHTTPErr(504, ErrConnectingDB, "Failed to process database request: %s", err)
 }

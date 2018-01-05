@@ -679,7 +679,7 @@ func masqueradeReenroll(c *Client, id string, identity *Identity, passInSubject 
 	}
 	// Send the CSR to the fabric-ca server with basic auth header
 	var result enrollmentResponseNet
-	err = identity.Post("reenroll", body, &result)
+	err = identity.Post("reenroll", body, &result, nil)
 	if err != nil {
 		return nil, err
 	}

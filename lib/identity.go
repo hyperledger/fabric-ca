@@ -72,7 +72,7 @@ func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, erro
 	if err != nil {
 		return nil, err
 	}
-	err = i.Post("tcert", reqBody, nil)
+	err = i.Post("tcert", reqBody, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationR
 
 	// Send a post to the "register" endpoint with req as body
 	resp := &api.RegistrationResponse{}
-	err = i.Post("register", reqBody, resp)
+	err = i.Post("register", reqBody, resp, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, 
 		return nil, err
 	}
 	var result enrollmentResponseNet
-	err = i.Post("reenroll", body, &result)
+	err = i.Post("reenroll", body, &result, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (i *Identity) Revoke(req *api.RevocationRequest) (*api.RevocationResponse, 
 		return nil, err
 	}
 	var result revocationResponseNet
-	err = i.Post("revoke", reqBody, &result)
+	err = i.Post("revoke", reqBody, &result, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
 		return nil, err
 	}
 	var result genCRLResponseNet
-	err = i.Post("gencrl", reqBody, &result)
+	err = i.Post("gencrl", reqBody, &result, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (i *Identity) AddIdentity(req *api.AddIdentityRequest) (*api.IdentityRespon
 
 	// Send a post to the "identities" endpoint with req as body
 	result := &api.IdentityResponse{}
-	err = i.Post("identities", reqBody, result)
+	err = i.Post("identities", reqBody, result, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (i *Identity) ModifyIdentity(req *api.ModifyIdentityRequest) (*api.Identity
 
 	// Send a put to the "identities" endpoint with req as body
 	result := &api.IdentityResponse{}
-	err = i.Put(fmt.Sprintf("identities/%s", req.ID), reqBody, result)
+	err = i.Put(fmt.Sprintf("identities/%s", req.ID), reqBody, nil, result)
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +299,106 @@ func (i *Identity) RemoveIdentity(req *api.RemoveIdentityRequest) (*api.Identity
 	}
 
 	log.Debugf("Successfully removed identity: %s", id)
+	return result, nil
+}
+
+// GetAffiliation returns information about the requested affiliation
+func (i *Identity) GetAffiliation(affiliation, caname string) (*api.AffiliationResponse, error) {
+	log.Debugf("Entering identity.GetAffiliation %+v", affiliation)
+	result := &api.AffiliationResponse{}
+	err := i.Get(fmt.Sprintf("affiliations/%s", affiliation), caname, result)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully retrieved affiliation: %+v", result)
+	return result, nil
+}
+
+// GetAllAffiliations returns all affiliations that the caller is authorized to see
+func (i *Identity) GetAllAffiliations(caname string, cb func(*json.Decoder) error) error {
+	log.Debugf("Entering identity.GetAllAffiliations")
+	err := i.GetStreamResponse("affiliations", caname, "result.affiliations", cb)
+	if err != nil {
+		return err
+	}
+	log.Debug("Successfully retrieved affiliations")
+	return nil
+}
+
+// AddAffiliation adds a new affiliation to the server
+func (i *Identity) AddAffiliation(req *api.AddAffiliationRequest) (*api.AffiliationResponse, error) {
+	log.Debugf("Entering identity.AddAffiliation with request: %+v", req)
+	if req.Info.Name == "" {
+		return nil, errors.New("Affiliation to add was not specified")
+	}
+
+	reqBody, err := util.Marshal(req, "addAffiliation")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a post to the "affiliations" endpoint with req as body
+	result := &api.AffiliationResponse{}
+	queryParam := make(map[string]string)
+	queryParam["force"] = strconv.FormatBool(req.Force)
+	err = i.Post("affiliations", reqBody, result, queryParam)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully added new affiliation")
+	return result, nil
+}
+
+// ModifyAffiliation renames an existing affiliation on the server
+func (i *Identity) ModifyAffiliation(req *api.ModifyAffiliationRequest) (*api.AffiliationWithIdentityResponse, error) {
+	log.Debugf("Entering identity.ModifyAffiliation with request: %+v", req)
+	modifyAff := req.Name
+	if modifyAff == "" {
+		return nil, errors.New("Affiliation to modify was not specified")
+	}
+
+	if req.Info.Name == "" {
+		return nil, errors.New("New affiliation not specified")
+	}
+
+	reqBody, err := util.Marshal(req, "modifyIdentity")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a put to the "affiliations" endpoint with req as body
+	result := &api.AffiliationWithIdentityResponse{}
+	queryParam := make(map[string]string)
+	queryParam["force"] = strconv.FormatBool(req.Force)
+	err = i.Put(fmt.Sprintf("affiliations/%s", modifyAff), reqBody, queryParam, result)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully modified affiliation")
+	return result, nil
+}
+
+// RemoveAffiliation removes an existing affiliation from the server
+func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.AffiliationWithIdentityResponse, error) {
+	log.Debugf("Entering identity.RemoveAffiliation with request: %+v", req)
+	removeAff := req.Name
+	if removeAff == "" {
+		return nil, errors.New("Affiliation to remove was not specified")
+	}
+
+	// Send a delete to the "affiliations" endpoint with the affiliation as a path parameter
+	result := &api.AffiliationWithIdentityResponse{}
+	queryParam := make(map[string]string)
+	queryParam["force"] = strconv.FormatBool(req.Force)
+	queryParam["ca"] = req.CAName
+	err := i.Delete(fmt.Sprintf("affiliations/%s", removeAff), result, queryParam)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Successfully removed affiliation")
 	return result, nil
 }
 
@@ -343,10 +443,15 @@ func (i *Identity) GetStreamResponse(endpoint, caname, stream string, cb func(*j
 }
 
 // Put sends a put request to an endpoint
-func (i *Identity) Put(endpoint string, reqBody []byte, result interface{}) error {
+func (i *Identity) Put(endpoint string, reqBody []byte, queryParam map[string]string, result interface{}) error {
 	req, err := i.client.newPut(endpoint, reqBody)
 	if err != nil {
 		return err
+	}
+	if queryParam != nil {
+		for key, value := range queryParam {
+			addQueryParm(req, key, value)
+		}
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {
@@ -377,10 +482,15 @@ func (i *Identity) Delete(endpoint string, result interface{}, queryParam map[st
 // This adds an authorization header which contains the signature
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.
-func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}) error {
+func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}, queryParam map[string]string) error {
 	req, err := i.client.newPost(endpoint, reqBody)
 	if err != nil {
 		return err
+	}
+	if queryParam != nil {
+		for key, value := range queryParam {
+			addQueryParm(req, key, value)
+		}
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {

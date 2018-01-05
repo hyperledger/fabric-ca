@@ -255,12 +255,17 @@ func (lc *Client) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 }
 
 // DeleteUser deletes a user
-func (lc *Client) DeleteUser(id string) error {
-	return errNotSupported
+func (lc *Client) DeleteUser(id string) (spi.User, error) {
+	return nil, errNotSupported
 }
 
 // GetAffiliation returns an affiliation group
 func (lc *Client) GetAffiliation(name string) (spi.Affiliation, error) {
+	return nil, errNotSupported
+}
+
+// GetAllAffiliations gets affiliation and any sub affiliation from the database
+func (lc *Client) GetAllAffiliations(name string) (*sqlx.Rows, error) {
 	return nil, errNotSupported
 }
 
@@ -275,8 +280,13 @@ func (lc *Client) InsertAffiliation(name string, prekey string, version int) err
 }
 
 // DeleteAffiliation deletes an affiliation group
-func (lc *Client) DeleteAffiliation(name string) error {
-	return errNotSupported
+func (lc *Client) DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
+}
+
+// ModifyAffiliation renames the affiliation and updates all identities to use the new affiliation
+func (lc *Client) ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
 }
 
 // GetProperties returns the properties from the database

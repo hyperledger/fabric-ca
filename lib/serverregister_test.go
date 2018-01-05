@@ -345,3 +345,79 @@ func registerTestUser(username string, attribute []api.Attribute) *api.Registrat
 		Attributes:  attribute,
 	}
 }
+
+func TestAffiliationAndTypeCheck(t *testing.T) {
+	os.RemoveAll(rootDir)
+	os.RemoveAll("../testdata/msp")
+	defer os.RemoveAll(rootDir)
+	defer os.RemoveAll("../testdata/msp")
+
+	var err error
+
+	srv := TestGetRootServer(t)
+
+	registry := &srv.CA.Config.Registry
+
+	// admin2 own attributes but does not have 'hf.Registrar.Attributes' attribute
+	id := CAConfigIdentity{
+		Name:           "admin2",
+		Pass:           "admin2pw",
+		Type:           "user",
+		Affiliation:    "org2",
+		MaxEnrollments: -1,
+		Attrs: map[string]string{
+			attrRoles: allRoles,
+		},
+	}
+	registry.Identities = append(registry.Identities, id)
+
+	err = srv.Start()
+	if !assert.NoError(t, err, "Failed to start server") {
+		t.Fatal("Failed to start server: ", err)
+	}
+
+	// Enroll admin2
+	client := getTestClient(rootPort)
+	enrollResp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin2",
+		Secret: "admin2pw",
+	})
+	assert.NoError(t, err, "Failed to enroll 'admin' user")
+
+	registrar := enrollResp.Identity
+
+	// Negative case: Registrar does not have the attribute 'hf.Registrar.Attributes'
+	_, err = registrar.Register(&api.RegistrationRequest{
+		Name:        "testuser",
+		Affiliation: "org2dept1",
+	})
+	assert.Error(t, err, "Should have failed to register, registrar with affiliation 'org1' can't register 'org1dept1'")
+
+	_, err = registrar.Register(&api.RegistrationRequest{
+		Name:        "testuser",
+		Affiliation: "org2",
+	})
+	assert.NoError(t, err, "Failed to register user 'testuser' with appropriate affiliation")
+
+	_, err = registrar.Register(&api.RegistrationRequest{
+		Name:        "testuser2",
+		Affiliation: "org2.dept1",
+	})
+	assert.NoError(t, err, "Failed to register user 'testuser2' with appropriate affiliation")
+
+	_, err = registrar.Register(&api.RegistrationRequest{
+		Name: "testuser3",
+	})
+	assert.NoError(t, err, "Failed to register user 'testuser2' with appropriate affiliation")
+
+	db := srv.CA.registry
+
+	user, err := db.GetUser("testuser3", nil)
+	assert.NoError(t, err, "Failed to get user")
+
+	assert.Equal(t, "user", user.GetType(), "Failed to set correct default type for a registering user")
+	assert.Equal(t, "org2", GetUserAffiliation(user), "Failed to set correct default affiliation for a registering userr")
+
+	err = srv.Stop()
+	assert.NoError(t, err, "Failed to start server")
+}

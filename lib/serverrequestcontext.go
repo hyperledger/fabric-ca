@@ -435,9 +435,15 @@ func (ctx *serverRequestContext) containsAffiliation(affiliation string) (bool, 
 
 	// If the caller has root affiliation return "true"
 	if callerAffiliationPath == "" {
+		log.Debug("Caller has root affiliation")
 		return true, nil
 	}
 
+	if affiliation == callerAffiliationPath {
+		return true, nil
+	}
+
+	callerAffiliationPath = callerAffiliationPath + "."
 	if strings.HasPrefix(affiliation, callerAffiliationPath) {
 		return true, nil
 	}
@@ -445,8 +451,21 @@ func (ctx *serverRequestContext) containsAffiliation(affiliation string) (bool, 
 	return false, nil
 }
 
-// IsRegistrar returns back true if the caller is a registrar along with the types the registrar is allowed to register
-func (ctx *serverRequestContext) IsRegistrar() (string, bool, error) {
+// IsRegistrar returns an error if the caller is not a registrar
+func (ctx *serverRequestContext) IsRegistrar() error {
+	_, isRegistrar, err := ctx.isRegistrar()
+	if err != nil {
+		return err
+	}
+	if !isRegistrar {
+		return newAuthErr(ErrMissingRegAttr, "Caller is not a registrar")
+	}
+
+	return nil
+}
+
+// isRegistrar returns back true if the caller is a registrar along with the types the registrar is allowed to register
+func (ctx *serverRequestContext) isRegistrar() (string, bool, error) {
 	caller, err := ctx.GetCaller()
 	if err != nil {
 		return "", false, err
@@ -487,7 +506,7 @@ func (ctx *serverRequestContext) canActOnType(requestedType string) (bool, error
 
 	log.Debugf("Checking to see if caller '%s' can act on type '%s'", caller.GetName(), requestedType)
 
-	typesStr, isRegistrar, err := ctx.IsRegistrar()
+	typesStr, isRegistrar, err := ctx.isRegistrar()
 	if err != nil {
 		return false, err
 	}
@@ -510,13 +529,70 @@ func (ctx *serverRequestContext) canActOnType(requestedType string) (bool, error
 	return true, nil
 }
 
-// CanActOnType returns true if the caller has the proper authority to take action on specific type
+// HasRole returns an error if the caller does not have the attribute or the value is false for a boolean attribute
+func (ctx *serverRequestContext) HasRole(role string) error {
+	hasRole, err := ctx.hasRole(role)
+	if err != nil {
+		return err
+	}
+	if !hasRole {
+		return newHTTPErr(400, ErrMissingRole, "Caller has a value of 'false' for attribute/role '%s'", role)
+	}
+	return nil
+}
+
+// HasRole returns true if the caller has the attribute and value of the attribute is true
+func (ctx *serverRequestContext) hasRole(role string) (bool, error) {
+	if ctx.callerRoles == nil {
+		ctx.callerRoles = make(map[string]bool)
+	}
+
+	roleStatus, hasRole := ctx.callerRoles[role]
+	if hasRole {
+		return roleStatus, nil
+	}
+
+	caller, err := ctx.GetCaller()
+	if err != nil {
+		return false, err
+	}
+
+	roleAttr, err := caller.GetAttribute(role)
+	if err != nil {
+		return false, err
+	}
+	roleStatus, err = strconv.ParseBool(roleAttr.Value)
+	if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("Failed to get boolean value of '%s'", role))
+	}
+	ctx.callerRoles[role] = roleStatus
+
+	return ctx.callerRoles[role], nil
+}
+
+// GetVar returns the parameter path variable from the URL
 func (ctx *serverRequestContext) GetVar(name string) (string, error) {
 	vars := gmux.Vars(ctx.req)
 	if vars == nil {
 		return "", newHTTPErr(500, ErrHTTPRequest, "Failed to correctly handle HTTP request")
 	}
 	value := vars[name]
+	return value, nil
+}
+
+// GetBoolQueryParm returns query parameter from the URL
+func (ctx *serverRequestContext) GetBoolQueryParm(name string) (bool, error) {
+	var err error
+
+	value := false
+	param := ctx.req.URL.Query().Get(name)
+	if param != "" {
+		value, err = strconv.ParseBool(param)
+		if err != nil {
+			return false, newHTTPErr(400, ErrUpdateConfigRemoveAff, "Failed to correctly parse value of '%s' query parameter: %s", name, err)
+		}
+	}
+
 	return value, nil
 }
 
@@ -586,22 +662,6 @@ func registrarCanRegisterAttr(requestedAttr string, hfRegistrarAttrsSlice []stri
 		}
 	}
 	return errors.Errorf("Attribute is not part of '%s' attribute", attrRegistrarAttr)
-}
-
-// GetBoolQueryParm returns query parameter from the URL
-func (ctx *serverRequestContext) GetBoolQueryParm(name string) (bool, error) {
-	var err error
-
-	value := false
-	param := ctx.req.URL.Query().Get(name)
-	if param != "" {
-		value, err = strconv.ParseBool(param)
-		if err != nil {
-			return false, newHTTPErr(400, ErrGettingBoolQueryParm, "Failed to correctly parse value of '%s' query parameter: %s", name, err)
-		}
-	}
-
-	return value, nil
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {

@@ -79,27 +79,13 @@ func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx *s
 	if err != nil {
 		return "", err
 	}
+
+	normalizeRegistrationRequest(req, registrarUser)
+
 	// Check the permissions of member named 'registrar' to perform this registration
-	err = canRegister(registrar, req, registrarUser, ctx)
+	err = canRegister(registrarUser, req, registrarUser, ctx)
 	if err != nil {
 		log.Debugf("Registration of '%s' failed: %s", req.Name, err)
-		return "", err
-	}
-
-	// Check that the affiliation requested is of the appropriate level
-	registrarAff := GetUserAffiliation(registrarUser)
-	err = validateAffiliation(registrarAff, req)
-	if err != nil {
-		return "", fmt.Errorf("Registration of '%s' failed in affiliation validation: %s", req.Name, err)
-	}
-
-	err = validateID(req, ca)
-	if err != nil {
-		return "", errors.WithMessage(err, fmt.Sprintf("Registration of '%s' to validate", req.Name))
-	}
-
-	err = validateRequestedAttributes(req.Attributes, registrarUser)
-	if err != nil {
 		return "", err
 	}
 
@@ -113,36 +99,35 @@ func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx *s
 	return secret, nil
 }
 
-func validateAffiliation(registrarAff string, req *api.RegistrationRequest) error {
-	log.Debug("Validate Affiliation")
+func normalizeRegistrationRequest(req *api.RegistrationRequest, registrar spi.User) {
 	if req.Affiliation == "" {
-		log.Debugf("No affiliation provided in registeration request, will default to using registrar's affiliation of '%s'", registrarAff)
+		registrarAff := GetUserAffiliation(registrar)
+		log.Debugf("No affiliation provided in registration request, will default to using registrar's affiliation of '%s'", registrarAff)
 		req.Affiliation = registrarAff
-	} else {
-		log.Debugf("Affiliation of '%s' specified in registration request", req.Affiliation)
-		if registrarAff != "" {
-			log.Debug("Registrar does not have absolute root affiliation path, checking to see if registrar has proper authority to register requested affiliation")
-			if !strings.Contains(req.Affiliation, registrarAff) {
-				return fmt.Errorf("Registrar does not have authority to request '%s' affiliation", req.Affiliation)
-			}
-		} else if req.Affiliation == "." {
-			// Affiliation request of '.' signifies request for root affiliation
-			req.Affiliation = ""
-		}
+	} else if req.Affiliation == "." {
+		// Affiliation request of '.' signifies request for root affiliation
+		req.Affiliation = ""
 	}
 
+	if req.Type == "" {
+		req.Type = registrar.GetType()
+	}
+}
+
+func validateAffiliation(req *api.RegistrationRequest, ctx *serverRequestContext) error {
+	log.Debug("Validate Affiliation")
+	err := ctx.ContainsAffiliation(req.Affiliation)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func validateID(req *api.RegistrationRequest, ca *CA) error {
 	log.Debug("Validate ID")
-	// Check whether the affiliation is required for the current user.
-	if requireAffiliation(req.Type) {
-		// If yes, is the affiliation valid
-		err := isValidAffiliation(req.Affiliation, ca)
-		if err != nil {
-			return err
-		}
+	err := isValidAffiliation(req.Affiliation, ca)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -203,7 +188,7 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 func isValidAffiliation(affiliation string, ca *CA) error {
 	log.Debug("Validating affiliation: " + affiliation)
 
-	// If requested affiliation is for root then don't need to do lookup in affiliaton's table
+	// If requested affiliation is for root then don't need to do lookup in affiliation's table
 	if affiliation == "" {
 		return nil
 	}
@@ -216,17 +201,11 @@ func isValidAffiliation(affiliation string, ca *CA) error {
 	return nil
 }
 
-func requireAffiliation(idType string) bool {
-	log.Debugf("An affiliation is required for identity type %s", idType)
-	// Require an affiliation for all identity types
-	return true
-}
-
-func canRegister(registrar string, req *api.RegistrationRequest, user spi.User, ctx *serverRequestContext) error {
-	log.Debugf("canRegister - Check to see if user %s can register", registrar)
+func canRegister(registrar spi.User, req *api.RegistrationRequest, user spi.User, ctx *serverRequestContext) error {
+	log.Debugf("canRegister - Check to see if user '%s' can register", registrar.GetName())
 
 	var roles []string
-	rolesStr, isRegistrar, err := ctx.IsRegistrar()
+	rolesStr, isRegistrar, err := ctx.isRegistrar()
 	if err != nil {
 		return err
 	}
@@ -244,6 +223,23 @@ func canRegister(registrar string, req *api.RegistrationRequest, user spi.User, 
 	if !util.StrContained(req.Type, roles) {
 		return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, req.Type)
 	}
+
+	// Check that the affiliation requested is of the appropriate level
+	err = validateAffiliation(req, ctx)
+	if err != nil {
+		return fmt.Errorf("Registration of '%s' failed in affiliation validation: %s", req.Name, err)
+	}
+
+	err = validateID(req, ctx.ca)
+	if err != nil {
+		return errors.WithMessage(err, fmt.Sprintf("Registration of '%s' to validate", req.Name))
+	}
+
+	err = validateRequestedAttributes(req.Attributes, registrar)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

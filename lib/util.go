@@ -182,3 +182,14 @@ func IdentityDecoder(decoder *json.Decoder) error {
 	fmt.Printf("Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Attributes: %+v\n", id.ID, id.Type, id.Affiliation, id.MaxEnrollments, id.Attributes)
 	return nil
 }
+
+// AffiliationDecoder decodes streams of data coming from the server into an Affiliation object
+func AffiliationDecoder(decoder *json.Decoder) error {
+	var aff api.AffiliationInfo
+	err := decoder.Decode(&aff)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s\n", aff.Name)
+	return nil
+}

@@ -936,13 +936,13 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "affiliation_path": {
+                          "name": {
                             "type": "string",
                             "description": "The affiliation path"
                           }
                         },
                         "required": [
-                          "affiliation_path"
+                          "name"
                         ]
                       }
                     },
@@ -1042,7 +1042,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "affiliation_path": {
+                "name": {
                   "type": "string",
                   "description": "The affiliation path to create."
                 },
@@ -1055,7 +1055,7 @@
                 }
               },
               "required": [
-                "affiliation_path"
+                "name"
               ]
             }
           }
@@ -1073,7 +1073,7 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path that was created."
                     },
@@ -1082,10 +1082,7 @@
                       "description": "Name of the CA containing this affiliation."
                     }
                   },
-                  "required": [
-                    "affiliation_path",
-                    "caname"
-                  ]
+                  "required": [ "name", "caname" ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1182,7 +1179,7 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path"
                     },
@@ -1192,7 +1189,7 @@
                     }
                   },
                   "required": [
-                    "affiliation_path",
+                    "name",
                     "caname"
                   ]
                 },
@@ -1289,7 +1286,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "affiliation_path": {
+                "name": {
                   "type": "string",
                   "description": "The new affiliation path."
                 },
@@ -1301,9 +1298,7 @@
                   "description": "Name of the CA to send the request to within the Fabric CA server."
                 }
               },
-              "required": [
-                "affiliation_path"
-              ]
+              "required": ["name"]
             }
           }
         ],
@@ -1320,19 +1315,79 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "affiliation_path": {
-                      "type": "string",
-                      "description": "The affiliation path"
+                    "affiliations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The affiliation path"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    },
+                    "identities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The enrollment ID which uniquely identifies an identity"
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                          },
+                          "max_enrollments": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The affiliation path of the new identity.\n"
+                          },
+                          "attrs": {
+                            "type": "array",
+                            "description": "An array of attribute names and values to give to the new identity.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Attribute name"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "description": "Value of attribute"
+                                },
+                                "ecert": {
+                                  "type": "boolean",
+                                  "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "value"
+                              ]
+                            }
+                          }
+                        }
+                      }
                     },
                     "caname": {
-                      "type": "string",
-                      "description": "Name of the CA containing this affiliation."
+                       "type": "string",
+                       "description": "Name of the CA containing these identities and affiliations."
                     }
                   },
-                  "required": [
-                    "affiliation_path",
-                    "caname"
-                  ]
+                  "required": [ "affiliations", "identities", "caname" ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1439,13 +1494,13 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "affiliation_path": {
+                          "name": {
                             "type": "string",
                             "description": "The affiliation path"
                           }
                         },
                         "required": [
-                          "affiliation_path"
+                          "name"
                         ]
                       }
                     },
@@ -1469,7 +1524,7 @@
                             ],
                             "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                           },
-                          "affiliation_path": {
+                          "name": {
                             "type": "string",
                             "description": "The affiliation path of the new identity.\n"
                           },
@@ -1620,7 +1675,7 @@
                             ],
                             "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                           },
-                          "affiliation_path": {
+                          "name": {
                             "type": "string",
                             "description": "The affiliation path of the new identity.\n"
                           },
@@ -1764,7 +1819,7 @@
                   ],
                   "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                 },
-                "affiliation_path": {
+                "name": {
                   "type": "string",
                   "description": "The affiliation path of the new identity.\n"
                 },
@@ -1803,7 +1858,7 @@
               },
               "required": [
                 "id",
-                "affiliation_path",
+                "name",
                 "attrs"
               ]
             }
@@ -1844,7 +1899,7 @@
                       ],
                       "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                     },
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path of the new identity.\n"
                     },
@@ -1989,7 +2044,7 @@
                       ],
                       "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                     },
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path of the new identity.\n"
                     },
@@ -2129,7 +2184,7 @@
                   ],
                   "description": "The new maximum number of times that the secret can be used to enroll.   \nIf -1, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                 },
-                "affiliation_path": {
+                "name": {
                   "type": "string",
                   "description": "The affiliation path of the identity.\n"
                 },
@@ -2206,7 +2261,7 @@
                       ],
                       "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                     },
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path of the new identity.\n"
                     },
@@ -2359,7 +2414,7 @@
                       ],
                       "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
                     },
-                    "affiliation_path": {
+                    "name": {
                       "type": "string",
                       "description": "The affiliation path of the new identity.\n"
                     },
@@ -2395,7 +2450,7 @@
                   },
                   "required": [
                     "id",
-                    "affiliation_path",
+                    "name",
                     "attrs"
                   ]
                 },
