@@ -348,6 +348,9 @@ enroll() {
    : ${username:="admin"}
    local userpswd="$2"
    : ${userpswd:="adminpw"}
+   if [ $# -gt 2 ]; then
+      ATTRS="--enrollment.attrs $3"
+   fi
    local FABRIC_CA_ENROLLMENT_DIR="$CA_CFG_PATH/$username"
    local FABRIC_CA_CERT_FILE="$FABRIC_CA_ENROLLMENT_DIR/$MSP_CERT_DIR/cert.pem"
    local FABRIC_CA_KEY_FILE="$FABRIC_CA_ENROLLMENT_DIR/$MSP_KEY_DIR/key.pem"
@@ -364,7 +367,7 @@ enroll() {
    # Determines the PROTO and TLSOPT values based on FABRIC_TLS setting
    setTLS
    $FABRIC_CA_CLIENTEXEC enroll -u "${PROTO}${username}:${userpswd}@${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
-                         -c $ENROLLCONFIG \
+                         -c $ENROLLCONFIG $ATTRS \
                          --csr.hosts "$username@fab-client.raleigh.ibm.com" \
                          --csr.hosts "$username.fabric.raleigh.ibm.com,127.0.0.2"
    RC=$?
@@ -403,7 +406,6 @@ reenroll() {
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver
    return $RC
 }
-
 
 register() {
    local REGISTRAR="$1"
@@ -793,6 +795,21 @@ $registry
 ldap:
   enabled: $LDAP_ENABLE
   url: ${LDAP_PROTO}CN=admin,dc=example,dc=com:adminpw@localhost:$LDAP_PORT/dc=example,dc=com
+  attribute:
+    names: ["uid"]
+    converters:
+      - name: hf.Revoker
+        value: attr("uid") =~ "revoker*"
+      - name: hf.Registrar.Roles
+        value: if( attr("uid") =~ "revoker*", "client", "")
+      - name: mapattr
+        value: map("foo1,foo2,foo3","map1")
+    maps:
+       map1:
+          - name: foo1
+            value: bar1
+          - name: foo2
+            value: bar2
   tls:
     certfiles:
       - $TLS_ROOTCERT

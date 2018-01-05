@@ -210,11 +210,52 @@ ldap:
    enabled: false
    # The URL of the LDAP server
    url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
+   # TLS configuration for the client connection to the LDAP server
    tls:
       certfiles:
       client:
          certfile:
          keyfile:
+   # Attribute related configuration for mapping from LDAP entries to Fabric CA attributes
+   attribute:
+      # 'names' is an array of strings containing the LDAP attribute names which are
+      # requested from the LDAP server for an LDAP identity's entry
+      names: ['uid','member']
+      # The 'converters' section is used to convert an LDAP entry to the value of
+      # a fabric CA attribute.
+      # For example, the following converts an LDAP 'uid' attribute
+      # whose value begins with 'revoker' to a fabric CA attribute
+      # named "hf.Revoker" with a value of "true" (because the boolean expression
+      # evaluates to true).
+      #    converters:
+      #       - name: hf.Revoker
+      #         value: attr("uid") =~ "revoker*"
+      converters:
+         - name:
+           value:
+      # The 'maps' section contains named maps which may be referenced by the 'map' 
+      # function in the 'converters' section to map LDAP responses to arbitrary values.
+      # For example, assume a user has an LDAP attribute named 'member' which has multiple
+      # values which are each a distinguished name (i.e. a DN). For simplicity, assume the
+      # values of the 'member' attribute are 'dn1', 'dn2', and 'dn3'.
+      # Further assume the following configuration.
+      #    converters:
+      #       - name: hf.Registrar.Roles
+      #         value: map(attr("member"),"groups")
+      #    maps:
+      #       groups:
+      #          - name: dn1
+      #            value: peer
+      #          - name: dn2
+      #            value: client
+      # The value of the user's 'hf.Registrar.Roles' attribute is then computed to be
+      # "peer,client,dn3".  This is because the value of 'attr("member")' is
+      # "dn1,dn2,dn3", and the call to 'map' with a 2nd argument of
+      # "group" replaces "dn1" with "peer" and "dn2" with "client".
+      maps:
+         groups:
+            - name:
+              value:
 
 #############################################################################
 #  Affiliation section

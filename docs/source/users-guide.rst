@@ -735,7 +735,45 @@ server to connect to an LDAP server.
        enabled: false
        # The URL of the LDAP server
        url: <scheme>://<adminDN>:<adminPassword>@<host>:<port>/<base>
-       userfilter: filter
+       userfilter: <filter>
+       attribute:
+          # 'names' is an array of strings that identify the specific attributes
+          # which are requested from the LDAP server.
+          names: <LDAPAttrs>
+          # The 'converters' section is used to convert LDAP attribute values
+          # to fabric CA attribute values.
+          #
+          # For example, the following converts an LDAP 'uid' attribute
+          # whose value begins with 'revoker' to a fabric CA attribute
+          # named "hf.Revoker" with a value of "true" (because the expression
+          # evaluates to true).
+          #    converters:
+          #       - name: hf.Revoker
+          #         value: attr("uid") =~ "revoker*"
+          #
+          # As another example, assume a user has an LDAP attribute named
+          # 'member' which has multiple values of "dn1", "dn2", and "dn3".
+          # Further assume the following configuration.
+          #    converters:
+          #       - name: myAttr
+          #         value: map(attr("member"),"groups")
+          #    maps:
+          #       groups:
+          #          - name: dn1
+          #            value: orderer
+          #          - name: dn2
+          #            value: peer
+          # The value of the user's 'myAttr' attribute is then computed to be
+          # "orderer,peer,dn3".  This is because the value of 'attr("member")' is
+          # "dn1,dn2,dn3", and the call to 'map' with a 2nd argument of
+          # "group" replaces "dn1" with "orderer" and "dn2" with "peer".
+          converters:
+            - name: <fcaAttrName>
+              value: <fcaExpr>
+          maps:
+            <mapName>:
+                - name: <from>
+                  value: <to>
 
 Where:
 
@@ -751,8 +789,64 @@ Where:
     ``(uid=%s)`` searches for LDAP entries with the value of a ``uid``
     attribute whose value is the login user name. Similarly,
     ``(email=%s)`` may be used to login with an email address.
+  * ``LDAPAttrs` is an array of LDAP attribute names to request from the
+    LDAP server on a user's behalf;
+  * the attribute.converters section is used to convert LDAP attributes to fabric
+    CA attributes, where
+    * ``fcaAttrName`` is the name of a fabric CA attribute;
+    * ``fcaExpr`` is an expression whose evaluated value is assigned to
+      the fabric CA attribute.
+    For example, suppose that <LDAPAttrs> is ["uid"], <fcaAttrName> is 'hf.Revoker',
+    and <fcaExpr> is 'attr("uid") =~ "revoker*"'.  This means that an attribute
+    named "uid" is requested from the LDAP server on a user's behalf.  The user is
+    then given a value of 'true' for the 'hf.Revoker' attribute if the value of
+    the user's 'uid' LDAP attribute begins with 'revoker'; otherwise, the user
+    is given a value of 'false' for the 'hf.Revoker' attribute.
+  * the attribute.maps section is used to map LDAP response values.  The typical
+    use case is to map a distinquished name associated with an LDAP group to an
+    identity type.
 
-The following is a sample configuration section for the default settings
+The LDAP expression language uses the govaluate package as described at
+https://github.com/Knetic/govaluate/blob/master/MANUAL.md.  This defines
+operators such as "=~" and literals such as "revoker*", which is a regular
+expression.  The LDAP-specific variables and functions which extend the
+base govaluate language are as follows.
+  * ``DN`` is a variable equal to the user's distinguished name.
+  * ``affiliation`` is a variable equal to the user's affiliation.
+  * ``attr`` is a function which takes 1 or 2 arguments.  The 1st argument
+    is an LDAP attribute name.  The 2nd argument is a separator string which is
+    used to join multiple values into a single string; the default separator
+    string is ",". The ``attr`` function always returns a value of type
+    'string'.
+  * ``map`` is a function which takes 2 arguments.  The 1st argument
+    is any string.  The second argument is the name of a map which is used to
+    perform string substitution on the string from the 1st argument.
+  * ``if`` is a function which takes a 3 arguments where the first argument
+    must resolve to a boolean value.  If it evaluates to true, the second
+    argument is returned; otherwise, the third argument is returned.
+
+For example, the following expression evaluates to true if the user has
+a distinguished name ending in "O=org1,C=US", or if the user has an affiliation
+beginning with "org1.dept2." and also has the "admin" attribute of "true".
+
+  **DN =~ "*O=org1,C=US" || (affiliation =~ "org1.dept2.*" && attr('admin') = 'true')**
+
+NOTE: Since the ``attr`` function always returns a value of type 'string',
+numeric operators may not be used to construct expressions.
+For example, the following is NOT a valid expression:
+
+.. code:: yaml
+
+     value: attr("gidNumber) >= 10000 && attr("gidNumber) < 10006
+
+Alternatively, a regular expression enclosed in quotes as shown below may be used
+to return an equivalent result:
+
+.. code:: yaml
+
+     value: attr("gidNumber") =~ "1000[0-5]$" || attr("mail") == "root@example.com"
+
+The following is a sample configuration section for the default setting
 for the OpenLDAP server whose docker image is at
 ``https://github.com/osixia/docker-openldap``.
 
