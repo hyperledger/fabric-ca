@@ -209,6 +209,10 @@ func (c *ClientCmd) configInit() error {
 
 	log.Debugf("Home directory: %s", c.homeDirectory)
 
+	// Set configuration file name for viper and configure it read env variables
+	c.myViper.SetConfigFile(c.cfgFileName)
+	c.myViper.AutomaticEnv() // read in environment variables that match
+
 	// If the config file doesn't exist, create a default one if enroll
 	// command being executed. Enroll should be the first command to be
 	// executed, and furthermore the default configuration file requires
@@ -227,8 +231,6 @@ func (c *ClientCmd) configInit() error {
 	}
 
 	// Call viper to read the config
-	c.myViper.SetConfigFile(c.cfgFileName)
-	c.myViper.AutomaticEnv() // read in environment variables that match
 	if util.FileExists(c.cfgFileName) {
 		err = c.myViper.ReadInConfig()
 		if err != nil {
