@@ -67,7 +67,7 @@ func TestCLIClientConfigStat(t *testing.T) {
 	defer func() {
 		err = os.RemoveAll(td)
 		if err != nil {
-			t.Fatalf("RemoveAll failed: %s", err)
+			t.Errorf("RemoveAll failed: %s", err)
 		}
 	}()
 	err = os.Chdir(td)
@@ -113,31 +113,38 @@ func TestCLIClientInit(t *testing.T) {
 	if err == nil {
 		t.Errorf("Init should have failed to create keystoreDir")
 	}
+	defer func() {
+		err = os.RemoveAll(filepath.Join(os.TempDir(), "signcerts"))
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(filepath.Join(os.TempDir(), "cacerts"))
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(filepath.Join(os.TempDir(), "keystore"))
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
+
 	client.Config.MSPDir = strings.Repeat("a", 260)
 	err = client.CheckEnrollment()
 	t.Logf("Client CheckEnrollment() error %v", err)
 	if err == nil {
 		t.Errorf("CheckEnrollment should have failed: %s", err)
 	}
-	client.Config.MSPDir = "/tmp"
-	err = os.RemoveAll("/tmp/signcerts")
+	client.Config.MSPDir = os.TempDir()
+	_, err = os.Create(filepath.Join(os.TempDir(), "signcerts"))
 	if err != nil {
-		t.Fatalf("Failed to remove /tmp/signcerts: %s", err)
-	}
-	err = os.RemoveAll("/tmp/cacerts")
-	if err != nil {
-		t.Fatalf("Failed to remove /tmp/cacerts: %s", err)
-	}
-	_, err = os.Create("/tmp/signcerts")
-	if err != nil {
-		t.Fatalf("Failed to create /tmp/signcerts: %s", err)
+		t.Fatalf("Failed to create cert file: %s", err)
 	}
 	err = client.Init()
 	t.Logf("Client Init() error %v", err)
 	if err == nil {
 		t.Fatalf("Init should have failed to create certDir")
 	}
-	err = os.Rename("/tmp/signcerts", "/tmp/cacerts")
+	err = os.Rename(filepath.Join(os.TempDir(), "signcerts"), filepath.Join(os.TempDir(), "cacerts"))
 	if err != nil {
 		t.Fatalf("Failed to rename cert dir: %s", err)
 	}
@@ -145,10 +152,6 @@ func TestCLIClientInit(t *testing.T) {
 	t.Logf("Client Init() error %v", err)
 	if err == nil {
 		t.Errorf("Init should have failed to create cacertsDir")
-	}
-	err = os.RemoveAll("/tmp/cacerts")
-	if err != nil {
-		t.Fatalf("Failed to remove /tmp/cacerts: %s", err)
 	}
 }
 
@@ -161,7 +164,27 @@ func TestCLIClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
-	defer server.Stop()
+	stopserver := true
+	defer func() {
+		if stopserver {
+			err = server.Stop()
+			if err != nil {
+				t.Errorf("Failed to stop server: %s", err)
+			}
+		}
+		err = os.RemoveAll(serversDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	c := getTestClient(ctport1)
 
@@ -181,10 +204,13 @@ func TestCLIClient(t *testing.T) {
 	testLoadBadCSRInfo(c, t)
 	testEnrollMiscFailures(c, t)
 
-	server.Stop()
+	stopserver = false
+	err = server.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
 
 	testWhenServerIsDown(c, t)
-
 }
 
 func testGetCAInfo(c *Client, t *testing.T) {
@@ -702,8 +728,6 @@ func testLoadIdentity(c *Client, t *testing.T) {
 }
 
 func TestCLICustomizableMaxEnroll(t *testing.T) {
-	os.Remove("../testdata/fabric-ca-server.db")
-
 	srv := TestGetServer(ctport2, path.Join(serversDir, "c2"), "", 3, t)
 	if srv == nil {
 		return
@@ -716,6 +740,20 @@ func TestCLICustomizableMaxEnroll(t *testing.T) {
 	if err != nil {
 		t.Errorf("Server start failed: %s", err)
 	}
+	defer func() {
+		err = os.RemoveAll("../testdata/fabric-ca-server.db")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll(serversDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("../testdata/msp")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	testTooManyEnrollments(t)
 	testIncorrectEnrollment(t)
@@ -1086,8 +1124,12 @@ func TestCLIGenCSR(t *testing.T) {
 
 	homeDir := filepath.Join(testdataDir, "identity")
 
-	os.RemoveAll(homeDir)
-	defer os.RemoveAll(homeDir)
+	defer func() {
+		err := os.RemoveAll(homeDir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	config.CSR.CN = "identity"
 	err := config.GenCSR(homeDir)
@@ -1099,7 +1141,10 @@ func TestCLIGenCSR(t *testing.T) {
 	if os.IsNotExist(err) {
 		t.Fatalf("CSR file does not exist at %s", csrFile)
 	}
-	os.RemoveAll(homeDir)
+	err = os.RemoveAll(homeDir)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 
 	// Error cases
 	//CN is missing
@@ -1145,16 +1190,26 @@ func TestCLIGenCSR(t *testing.T) {
 // invoked by revoked user should be rejected by server for all its issued certificates
 func TestRevokedIdentity(t *testing.T) {
 	serverdir := filepath.Join(testdataDir, "server")
-	os.RemoveAll(serverdir)
-	os.RemoveAll("client")
-	defer os.RemoveAll(serverdir)
-	defer os.RemoveAll("client")
 
 	srv := TestGetServer(ctport1, serverdir, "", -1, t)
 	err := srv.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
+	defer func() {
+		err := srv.Stop()
+		if err != nil {
+			t.Errorf("Server stop failed: %s", err)
+		}
+		err = os.RemoveAll(serverdir)
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+		err = os.RemoveAll("client")
+		if err != nil {
+			t.Errorf("RemoveAll failed: %s", err)
+		}
+	}()
 
 	// Enroll admin
 	c := &Client{
@@ -1350,10 +1405,6 @@ func TestRevokedIdentity(t *testing.T) {
 	if err == nil {
 		t.Error("Sending post with bad Init should have failed")
 	}
-	err = srv.Stop()
-	if err != nil {
-		t.Errorf("Server stop failed: %s", err)
-	}
 }
 
 func testWhenServerIsDown(c *Client, t *testing.T) {
@@ -1386,13 +1437,4 @@ func testWhenServerIsDown(c *Client, t *testing.T) {
 	if err == nil {
 		t.Error("GetTCertBatch while server is down should have failed")
 	}
-}
-
-func TestCLILast(t *testing.T) {
-	// Cleanup
-	os.RemoveAll("../testdata/msp")
-	os.RemoveAll(serversDir)
-	os.RemoveAll("multica")
-	os.RemoveAll("rootDir")
-	os.RemoveAll("msp")
 }

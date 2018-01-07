@@ -26,10 +26,8 @@ import (
 )
 
 func TestStateUpdate(t *testing.T) {
-	os.RemoveAll(rootDir)
-	os.RemoveAll("../testdata/msp")
-	defer os.RemoveAll(rootDir)
-	defer os.RemoveAll("../testdata/msp")
+	cleanTestSlateSE(t)
+	defer cleanTestSlateSE(t)
 
 	var err error
 	srv := TestGetRootServer(t)
@@ -77,4 +75,15 @@ func TestStateUpdate(t *testing.T) {
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to stop server")
 
+}
+
+func cleanTestSlateSE(t *testing.T) {
+	err := os.RemoveAll(rootDir)
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
+	err = os.RemoveAll("../testdata/msp")
+	if err != nil {
+		t.Errorf("RemoveAll failed: %s", err)
+	}
 }
