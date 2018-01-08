@@ -39,6 +39,7 @@ import (
 	"github.com/cloudflare/cfssl/initca"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
+	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
@@ -1018,6 +1019,25 @@ func (ca *CA) validateCertAndKey(certFile string, keyFile string) error {
 	log.Debug("Validation of CA certificate and key successful")
 
 	return nil
+}
+
+// Returns expiration of the CA certificate
+func (ca *CA) getCACertExpiry() (time.Time, error) {
+	var caexpiry time.Time
+	signer, ok := ca.enrollSigner.(*cflocalsigner.Signer)
+	if ok {
+		cacert, err := signer.Certificate("", "ca")
+		if err != nil {
+			log.Errorf("Failed to get CA certificate for CA %s: %s", ca.Config.CA.Name, err)
+			return caexpiry, err
+		} else if cacert != nil {
+			caexpiry = cacert.NotAfter
+		}
+	} else {
+		log.Errorf("Not expected condition as the enrollSigner can only be cfssl/signer/local/Signer")
+		return caexpiry, errors.New("Unexpected error while getting CA certificate expiration")
+	}
+	return caexpiry, nil
 }
 
 func canSignCRL(cert *x509.Certificate) bool {

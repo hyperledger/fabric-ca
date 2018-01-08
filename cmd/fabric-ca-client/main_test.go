@@ -36,6 +36,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
@@ -293,6 +294,54 @@ func TestEnroll(t *testing.T) {
 	if err != nil {
 		t.Errorf("client enroll with FABRIC_CA_CLIENT_URL env variable failed: %s", err)
 	}
+}
+
+// Tests expiration of enrollment certificate is not after the expiration
+// of the CA certificate that issued the enrollment certificate.
+func TestEnrollmentCertExpiry(t *testing.T) {
+	certExpiryTestDir := "certexpirytest"
+	os.RemoveAll(certExpiryTestDir)
+	defer os.RemoveAll(certExpiryTestDir)
+
+	exprStr := "720h"
+	srv := startServerWithCustomExpiry(path.Join(certExpiryTestDir, "rootServer"), serverPort, exprStr, t)
+	defer srv.Stop()
+
+	adminHome := filepath.Join(tdDir, "certexpadminhome")
+	err := os.RemoveAll(adminHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+	}
+	defer os.RemoveAll(adminHome)
+
+	// Enroll admin identity
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL, "-H", adminHome})
+	if err != nil {
+		t.Errorf("Enrollment of admin failed: %s", err)
+	}
+
+	certfile := filepath.Join(adminHome, "msp/signcerts/cert.pem")
+	cacertFile := filepath.Join(adminHome, "msp/cacerts/localhost-"+strconv.Itoa(serverPort)+".pem")
+
+	certbytes, err := ioutil.ReadFile(certfile)
+	assert.NoError(t, err, "Failed to read the cert from the file %s", certfile)
+	cert, err := lib.BytesToX509Cert(certbytes)
+	assert.NoError(t, err, "Failed to convert bytes to certificate")
+
+	certbytes, err = ioutil.ReadFile(cacertFile)
+	assert.NoError(t, err, "Failed to read the cert from the file %s", cacertFile)
+	cacert, err := lib.BytesToX509Cert(certbytes)
+	assert.NoError(t, err, "Failed to convert bytes to certificate")
+
+	y, m, d := cacert.NotAfter.Date()
+	dur, _ := time.ParseDuration(exprStr)
+	y1, m1, d1 := time.Now().UTC().Add(dur).Date()
+	assert.Equal(t, y1, y, "CA cert's expiration year is not as expected")
+	assert.Equal(t, m1, m, "CA cert's expiration month is not as expected")
+	assert.Equal(t, d1, d, "CA cert's expiration day is not as expected")
+
+	assert.False(t, cert.NotAfter.After(cacert.NotAfter),
+		"Enrollment certificate expires after CA cert")
 }
 
 // Test cases for gencrl command
@@ -1204,13 +1253,25 @@ func testThreeCAHierarchy(t *testing.T) {
 		if os.Getenv(lib.CAChainParentFirstEnvVar) != "" {
 			// Assert that first int CA cert's issuer must be root CA's subject
 			assert.True(t, bytes.Equal(intcerts[0].RawIssuer, rootcerts[0].RawSubject), "Intermediate CA's issuer should be root CA's subject")
-			// Assert that second int CA cert's issuer must be second int CA's subject
+
+			// Assert that second int CA cert's issuer must be first int CA's subject
 			assert.True(t, bytes.Equal(intcerts[1].RawIssuer, intcerts[0].RawSubject), "Issuing CA's issuer should be intermediate CA's subject")
+
+			// Assert that first int CA's cert expires before or on root CA cert's expiry
+			assert.False(t, intcerts[0].NotAfter.After(rootcerts[0].NotAfter), "Intermediate CA certificate expires after root CA's certificate")
+
+			// Assert that second int CA's cert expires before or on first int CA cert's expiry
+			assert.False(t, intcerts[1].NotAfter.After(intcerts[0].NotAfter), "Issuing CA certificate expires after intermediate CA's certificate")
 		} else {
 			// Assert that first int CA cert's issuer must be second int CA's subject
 			assert.True(t, bytes.Equal(intcerts[0].RawIssuer, intcerts[1].RawSubject), "Issuing CA's issuer should be intermediate CA's subject")
 			// Assert that second int CA cert's issuer must be root CA's subject
 			assert.True(t, bytes.Equal(intcerts[1].RawIssuer, rootcerts[0].RawSubject), "Intermediate CA's issuer should be root CA's subject")
+
+			// Assert that first int CA's cert expires before or on second int CA cert's expiry
+			assert.False(t, intcerts[0].NotAfter.After(intcerts[1].NotAfter), "Issuing CA certificate expires after intermediate CA's certificate")
+			// Assert that second int CA's cert expires before or on root CA cert's expiry
+			assert.False(t, intcerts[1].NotAfter.After(rootcerts[0].NotAfter), "Intermediate CA certificate expires after root CA's certificate")
 		}
 	}
 
@@ -1220,19 +1281,14 @@ func testThreeCAHierarchy(t *testing.T) {
 
 	// Create and start the Root CA server
 	rootCAPort := 7173
-	rootServer := startServer(path.Join(multiIntCATestDir, "rootServer"), rootCAPort, "", t)
-	if rootServer == nil {
-		return
-	}
+	// Set root server cert expiry to 30 days and start the server
+	rootServer := startServerWithCustomExpiry(path.Join(multiIntCATestDir, "rootServer"), rootCAPort, "720h", t)
 	defer rootServer.Stop()
 
 	// Create and start the Intermediate CA server
 	rootCAURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", rootCAPort)
 	intCAPort := 7174
 	intServer := startServer(path.Join(multiIntCATestDir, "intServer"), intCAPort, rootCAURL, t)
-	if intServer == nil {
-		return
-	}
 	defer intServer.Stop()
 
 	// Stop the Intermediate CA server to register identity of the Issuing CA
@@ -1259,9 +1315,6 @@ func testThreeCAHierarchy(t *testing.T) {
 	intCAURL := fmt.Sprintf("http://%s:adminpw@localhost:%d", intCA1Admin, intCAPort)
 	intCA1Port := 7175
 	intServer1 := startServer(path.Join(multiIntCATestDir, "intServer1"), intCA1Port, intCAURL, t)
-	if intServer1 == nil {
-		return
-	}
 	defer intServer1.Stop()
 
 	// Enroll bootstrap admin of the Issuing CA
@@ -2344,4 +2397,37 @@ func getAttrsMap(attrs []api.Attribute) map[string]api.Attribute {
 		}
 	}
 	return attrMap
+}
+
+func startServerWithCustomExpiry(home string, port int, certExpiry string, t *testing.T) *lib.Server {
+	affiliations := map[string]interface{}{"org1": nil}
+	srv := &lib.Server{
+		HomeDir: home,
+		Config: &lib.ServerConfig{
+			Debug: true,
+			Port:  port,
+		},
+		CA: lib.CA{
+			Config: &lib.CAConfig{
+				Affiliations: affiliations,
+				Registry: lib.CAConfigRegistry{
+					MaxEnrollments: -1,
+				},
+				CSR: api.CSRInfo{
+					CA: &csr.CAConfig{
+						Expiry: certExpiry,
+					},
+				},
+			},
+		},
+	}
+	err := srv.RegisterBootstrapUser("admin", "adminpw", "")
+	if err != nil {
+		t.Fatalf("Failed to register bootstrap user: %s", err)
+	}
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+	return srv
 }

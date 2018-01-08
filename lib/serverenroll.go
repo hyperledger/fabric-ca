@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -119,6 +120,29 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	// If NotAfter is not set in the request, then set it to the expiry in the
+	// specified profile
+	if req.NotAfter.IsZero() {
+		profile := ca.Config.Signing.Default
+		if req.Profile != "" && ca.Config.Signing != nil &&
+			ca.Config.Signing.Profiles != nil && ca.Config.Signing.Profiles[req.Profile] != nil {
+			profile = ca.Config.Signing.Profiles[req.Profile]
+		}
+		req.NotAfter = time.Now().Round(time.Minute).Add(profile.Expiry).UTC()
+	}
+	caexpiry, err := ca.getCACertExpiry()
+	if err != nil {
+		return nil, errors.New("Failed to get CA certificate information")
+	}
+
+	// Make sure requested expiration for enrollment certificate is not after CA certificate
+	// expiration
+	if !caexpiry.IsZero() && req.NotAfter.After(caexpiry) {
+		log.Debugf("Requested expiry '%s' is after the CA certificate expiry '%s'. Will use CA cert expiry",
+			req.NotAfter, caexpiry)
+		req.NotAfter = caexpiry
+	}
+
 	// Process the sign request from the caller.
 	// Make sure it is authorized and do any swizzling appropriate to the request.
 	err = processSignRequest(id, &req.SignRequest, ca, ctx)

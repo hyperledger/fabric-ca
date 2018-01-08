@@ -1892,7 +1892,7 @@ func testIntermediateServer(idx int, t *testing.T) {
 	// Verify that the duration of the newly created intermediate certificate is 5 years
 	d, err := util.GetCertificateDurationFromFile(path.Join(intermediateServer.HomeDir, "ca-cert.pem"))
 	assert.NoError(t, err)
-	assert.True(t, d.Hours() == 43800, fmt.Sprintf("Expecting 43800 but found %f", d.Hours()))
+	assert.True(t, int(d.Hours()) == 43800, fmt.Sprintf("Expecting 43800 but found %f", d.Hours()))
 	// Start it
 	err = intermediateServer.Start()
 	if err != nil {
