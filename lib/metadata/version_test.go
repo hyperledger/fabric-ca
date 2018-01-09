@@ -34,9 +34,9 @@ func TestVersion(t *testing.T) {
 	cmpVersion(t, "1.0.0.0.1", "1.0", -1)
 	cmpLevels(t, "1.0.0", 0, 0, 0)
 	cmpLevels(t, "1.0.4", 0, 0, 0)
-	cmpLevels(t, "1.1.0", 1, 0, 0)
-	cmpLevels(t, "1.1.1", 1, 0, 0)
-	cmpLevels(t, "1.2.1", 1, 0, 0)
+	cmpLevels(t, "1.1.0", 1, 1, 1)
+	cmpLevels(t, "1.1.1", 1, 1, 1)
+	cmpLevels(t, "1.2.1", 1, 1, 1)
 	// Negative test cases
 	_, err := metadata.CmpVersion("1.x.2.0", "1.7.8")
 	if err == nil {

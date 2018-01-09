@@ -17,6 +17,88 @@ export FABRIC_CA_CLIENT_HOME="/tmp/db_migration/admin"
 export FABRIC_CA_SERVER_HOME="$TESTDIR"
 export CA_CFG_PATH="$TESTDIR"
 
+###### SQLITE #####
+
+mkdir -p $FABRIC_CA_SERVER_HOME
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes TEXT, state INTEGER,  max_enrollments INTEGER);'
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64));'
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(64), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier));'
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO affiliations (name) VALUES ('org1');"
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO affiliations (name) VALUES ('org1.dep1');"
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO certificates (id, serial_number, authority_key_identifier) VALUES ('registrar', '1234', '12345');"
+
+# Start up the server and the schema should get updated
+$SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d sqlite3
+
+enroll
+if test $? -ne 0; then
+    ErrorMsg "Failed to enroll $REGISTRAR"
+fi
+
+$SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
+
+# Check that the new schema took affect
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'pragma table_info(users)' > $TESTDIR/output.txt
+grep 'id|VARCHAR(255)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'id' should have character limit of 255"
+fi
+grep 'type|VARCHAR(256)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'type' should have character limit of 256"
+fi
+grep 'affiliation|VARCHAR(1024)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'affiliation' should have character limit of 1024"
+fi
+grep 'attributes|TEXT' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'attributes' should be a TEXT field"
+fi
+grep 'level|INTEGER' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'level' should be a INTEGER field"
+fi
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'SELECT value FROM properties WHERE (property = "identity.level")' | grep '1'
+if [ $? != 0 ]; then
+    ErrorMsg "Incorrect level found for 'identity.level' in properties table"
+fi
+
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'pragma table_info(affiliations)' > $TESTDIR/output.txt
+grep 'name|VARCHAR(1024)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'name' should have character limit of 1024"
+fi
+grep 'prekey|VARCHAR(1024)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'prekey' should have character limit of 1024"
+fi
+grep 'level|INTEGER' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'level' should be a INTEGER field"
+fi
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'SELECT value FROM properties WHERE (property = "affiliation.level")' | grep '1'
+if [ $? != 0 ]; then
+    ErrorMsg "Incorrect level found for 'affiliation.level' in properties table"
+fi
+
+
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'pragma table_info(certificates)' > $TESTDIR/output.txt
+grep 'id|VARCHAR(255)' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'id' should have character limit of 255"
+fi
+grep 'level|INTEGER' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'level' should be a INTEGER field"
+fi
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'SELECT value FROM properties WHERE (property = "certificate.level")' | grep '1'
+if [ $? != 0 ]; then
+    ErrorMsg "Incorrect level found for 'certificate.level' in properties table"
+fi
+
+rm $FABRIC_CA_SERVER_HOME/$DBNAME
+
 ###### MYSQL ######
 
 $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d mysql # Start up the server and the new schema should get created
@@ -73,9 +155,9 @@ grep 'type'$'\t''256' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should have character limit of 256"
 fi
-grep 'affiliation'$'\t''256' $TESTDIR/text.txt
+grep 'affiliation'$'\t''1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
-    ErrorMsg "Database column 'affiliation' should have character limit of 256"
+    ErrorMsg "Database column 'affiliation' should have character limit of 1024"
 fi
 grep 'attributes'$'\t''65535' $TESTDIR/text.txt
 if [ $? != 0 ]; then
@@ -153,9 +235,9 @@ grep 'type            |                      256' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should have character limit of 256"
 fi
-grep 'affiliation     |                      256' $TESTDIR/text.txt
+grep 'affiliation     |                     1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
-    ErrorMsg "Database column 'affiliation' should have character limit of 256"
+    ErrorMsg "Database column 'affiliation' should have character limit of 1024"
 fi
 psql -d $DBNAME -c "SELECT data_type FROM information_schema.columns where table_name = 'users' AND column_name = 'attributes';" | grep "text"
 if [ $? != 0 ]; then

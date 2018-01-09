@@ -60,6 +60,11 @@ var cfg CAConfig
 var srv Server
 
 func TestCABadCACertificates(t *testing.T) {
+	srv.levels = &dbutil.Levels{
+		Identity:    1,
+		Affiliation: 1,
+		Certificate: 1,
+	}
 	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
