@@ -558,17 +558,17 @@ func GetUser() (string, string, error) {
 
 	user := URL.User
 	if user == nil {
-		return "", "", errors.New("No username and password provided as part of URL")
+		return "", "", errors.New("No username and password provided as part of the Fabric CA server URL")
 	}
 
 	eid := user.Username()
 	if eid == "" {
-		return "", "", errors.New("No username provided as part of URL")
+		return "", "", errors.New("No username provided as part of the Fabric CA server URL")
 	}
 
 	pass, _ := user.Password()
 	if pass == "" {
-		return "", "", errors.New("No password provided as part of URL")
+		return "", "", errors.New("No password provided as part of the Fabric CA server URL")
 	}
 
 	return eid, pass, nil

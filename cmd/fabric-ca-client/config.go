@@ -225,6 +225,10 @@ func configInit(command string) error {
 		}
 	}
 
+	// Set configuration file name for viper and configure it to read env variables
+	viper.SetConfigFile(cfgFileName)
+	viper.AutomaticEnv()
+
 	// Commands other than 'enroll' and 'getcacert' require that client already
 	// be enrolled
 	if cmd.requiresEnrollment() {
@@ -252,8 +256,6 @@ func configInit(command string) error {
 	}
 
 	// Call viper to read the config
-	viper.SetConfigFile(cfgFileName)
-	viper.AutomaticEnv() // read in environment variables that match
 	if util.FileExists(cfgFileName) {
 		err = viper.ReadInConfig()
 		if err != nil {
