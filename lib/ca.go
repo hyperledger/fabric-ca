@@ -615,7 +615,7 @@ func (ca *CA) initDB() error {
 	}
 
 	// Update the database to use the latest schema
-	err = dbutil.UpdateSchema(ca.db)
+	err = dbutil.UpdateSchema(ca.db, ca.server.levels)
 	if err != nil {
 		return errors.Wrap(err, "Failed to update schema")
 	}

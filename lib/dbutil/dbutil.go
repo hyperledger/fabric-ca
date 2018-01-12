@@ -80,18 +80,11 @@ func createSQLiteDBTables(datasource string) error {
 	}
 	defer db.Close()
 
-	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)"); err != nil {
-		return errors.Wrap(err, "Error creating users table")
+	err = doTransaction(db, createAllSQLiteTables)
+	if err != nil {
+		return err
 	}
-	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
-		return errors.Wrap(err, "Error creating affiliations table")
-	}
-	log.Debug("Creating certificates table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
-		return errors.Wrap(err, "Error creating certificates table")
-	}
+
 	log.Debug("Creating properties table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
@@ -101,6 +94,46 @@ func createSQLiteDBTables(datasource string) error {
 		if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return errors.Wrap(err, "Failed to initialize properties table")
 		}
+	}
+	return nil
+}
+
+func createAllSQLiteTables(tx *sqlx.Tx, args ...interface{}) error {
+	err := createSQLiteIdentityTable(tx)
+	if err != nil {
+		return err
+	}
+	err = createSQLiteAffiliationTable(tx)
+	if err != nil {
+		return err
+	}
+	err = createSQLiteCertificateTable(tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createSQLiteIdentityTable(tx *sqlx.Tx) error {
+	log.Debug("Creating users table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)"); err != nil {
+		return errors.Wrap(err, "Error creating users table")
+	}
+	return nil
+}
+
+func createSQLiteAffiliationTable(tx *sqlx.Tx) error {
+	log.Debug("Creating affiliations table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
+		return errors.Wrap(err, "Error creating affiliations table")
+	}
+	return nil
+}
+
+func createSQLiteCertificateTable(tx *sqlx.Tx) error {
+	log.Debug("Creating certificates table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+		return errors.Wrap(err, "Error creating certificates table")
 	}
 	return nil
 }
@@ -366,12 +399,12 @@ func MaskDBCred(str string) string {
 }
 
 // UpdateSchema updates the database tables to use the latest schema
-func UpdateSchema(db *sqlx.DB) error {
+func UpdateSchema(db *sqlx.DB, levels *Levels) error {
 	log.Debug("Checking database schema...")
 
 	switch db.DriverName() {
-	case "sqlite3": // SQLite does not support altering columns. However, data types in SQLite are not rigid and thus no action is really required
-		return nil
+	case "sqlite3":
+		return updateSQLiteSchema(db, levels)
 	case "mysql":
 		return updateMySQLSchema(db)
 	case "postgres":
@@ -401,11 +434,159 @@ func UpdateDBLevel(db *sqlx.DB, levels *Levels) error {
 	return nil
 }
 
+func currentDBLevels(db *sqlx.DB) (*Levels, error) {
+	var err error
+	var identityLevel, affiliationLevel, certificateLevel int
+
+	err = db.Get(&identityLevel, "Select value FROM properties WHERE (property = 'identity.level')")
+	if err != nil {
+		return nil, err
+	}
+	err = db.Get(&affiliationLevel, "Select value FROM properties WHERE (property = 'affiliation.level')")
+	if err != nil {
+		return nil, err
+	}
+	err = db.Get(&certificateLevel, "Select value FROM properties WHERE (property = 'certificate.level')")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Levels{
+		Identity:    identityLevel,
+		Affiliation: affiliationLevel,
+		Certificate: certificateLevel,
+	}, nil
+}
+
+func updateSQLiteSchema(db *sqlx.DB, serverLevels *Levels) error {
+	log.Debug("Update SQLite schema, if using outdated schema")
+
+	var err error
+
+	currentLevels, err := currentDBLevels(db)
+	if err != nil {
+		return err
+	}
+
+	if currentLevels.Identity < serverLevels.Identity {
+		log.Debug("Upgrade identities table")
+		err := doTransaction(db, updateIdentitiesTable, currentLevels.Identity)
+		if err != nil {
+			return err
+		}
+	}
+
+	if currentLevels.Affiliation < serverLevels.Affiliation {
+		log.Debug("Upgrade affiliation table")
+		err := doTransaction(db, updateAffiliationsTable, currentLevels.Affiliation)
+		if err != nil {
+			return err
+		}
+	}
+
+	if currentLevels.Certificate < serverLevels.Certificate {
+		log.Debug("Upgrade certificates table")
+		err := doTransaction(db, updateCertificatesTable, currentLevels.Certificate)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SQLite has limited support for altering table columns, to upgrade the schema we
+// require renaming the current users table to users_old and then creating a new user table using
+// the new schema definition. Next, we proceed to copy the data from the old table to
+// new table, and then drop the old table.
+func updateIdentitiesTable(tx *sqlx.Tx, args ...interface{}) error {
+	identityLevel := args[0].(int)
+	// Future schema updates should add to the logic below to handle other levels
+	if identityLevel < 1 {
+		_, err := tx.Exec("ALTER TABLE users RENAME TO users_old")
+		if err != nil {
+			return err
+		}
+		err = createSQLiteIdentityTable(tx)
+		if err != nil {
+			return err
+		}
+		// If coming from a table that did not yet have the level column then we can only copy columns that exist in both the tables
+		_, err = tx.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) SELECT id, token, type, affiliation, attributes, state, max_enrollments FROM users_old")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("DROP TABLE users_old")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SQLite has limited support for altering table columns, to upgrade the schema we
+// require renaming the current affiliations table to affiliations_old and then creating a new user
+// table using the new schema definition. Next, we proceed to copy the data from the old table to
+// new table, and then drop the old table.
+func updateAffiliationsTable(tx *sqlx.Tx, args ...interface{}) error {
+	affiliationLevel := args[0].(int)
+	// Future schema updates should add to the logic below to handle other levels
+	if affiliationLevel < 1 {
+		_, err := tx.Exec("ALTER TABLE affiliations RENAME TO affiliations_old")
+		if err != nil {
+			return err
+		}
+		err = createSQLiteAffiliationTable(tx)
+		if err != nil {
+			return err
+		}
+		// If coming from a table that did not yet have the level column then we can only copy columns that exist in both the tables
+		_, err = tx.Exec("INSERT INTO affiliations (name, prekey) SELECT name, prekey FROM affiliations_old")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("DROP TABLE affiliations_old")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SQLite has limited support for altering table columns, to upgrade the schema we
+// require renaming the current certificates table to certificates_old and then creating a new certificates
+// table using the new schema definition. Next, we proceed to copy the data from the old table to
+// new table, and then drop the old table.
+func updateCertificatesTable(tx *sqlx.Tx, args ...interface{}) error {
+	certificateLevel := args[0].(int)
+	// Future schema updates should add to the logic below to handle other levels
+	if certificateLevel < 1 {
+		_, err := tx.Exec("ALTER TABLE certificates RENAME TO certificates_old")
+		if err != nil {
+			return err
+		}
+		err = createSQLiteCertificateTable(tx)
+		if err != nil {
+			return err
+		}
+		// If coming from a table that did not yet have the level column then we can only copy columns that exist in both the tables
+		_, err = tx.Exec("INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem) SELECT id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem FROM certificates_old")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("DROP TABLE certificates_old")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func updateMySQLSchema(db *sqlx.DB) error {
 	log.Debug("Update MySQL schema if using outdated schema")
 	var err error
 
-	_, err = db.Exec("ALTER TABLE users MODIFY id VARCHAR(255), MODIFY type VARCHAR(256), MODIFY affiliation VARCHAR(256)")
+	_, err = db.Exec("ALTER TABLE users MODIFY id VARCHAR(255), MODIFY type VARCHAR(256), MODIFY affiliation VARCHAR(1024)")
 	if err != nil {
 		return err
 	}
@@ -459,7 +640,7 @@ func updatePostgresSchema(db *sqlx.DB) error {
 	log.Debug("Update Postgres schema if using outdated schema")
 	var err error
 
-	_, err = db.Exec("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255), ALTER COLUMN type TYPE VARCHAR(256), ALTER COLUMN affiliation TYPE VARCHAR(256)")
+	_, err = db.Exec("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255), ALTER COLUMN type TYPE VARCHAR(256), ALTER COLUMN affiliation TYPE VARCHAR(1024)")
 	if err != nil {
 		return err
 	}
@@ -494,5 +675,24 @@ func updatePostgresSchema(db *sqlx.DB) error {
 		return err
 	}
 
+	return nil
+}
+
+func doTransaction(db *sqlx.DB, doit func(tx *sqlx.Tx, args ...interface{}) error, args ...interface{}) error {
+	tx := db.MustBegin()
+	err := doit(tx, args...)
+	if err != nil {
+		err2 := tx.Rollback()
+		if err2 != nil {
+			log.Errorf("Error encounted while rolling back transaction: %s", err2)
+			return err
+		}
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return errors.Wrap(err, "Error encountered while committing transaction")
+	}
 	return nil
 }

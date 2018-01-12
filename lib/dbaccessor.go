@@ -503,20 +503,20 @@ func (d *Accessor) GetProperties(names []string) (map[string]string, error) {
 // GetUserLessThanLevel returns all identities that are less than the level specified
 // Otherwise, returns no users if requested level is zero
 func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
-	var users []UserRecord
-
 	if level == 0 {
 		return []spi.User{}, nil
 	}
 
-	err := d.db.Select(&users, d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
+	rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get identities that need to be updated")
 	}
 
 	allUsers := []spi.User{}
 
-	for _, user := range users {
+	for rows.Next() {
+		var user UserRecord
+		rows.StructScan(&user)
 		dbUser := d.newDBUser(&user)
 		allUsers = append(allUsers, dbUser)
 	}

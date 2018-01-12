@@ -113,11 +113,12 @@ function createDB {
   esac
 }
 
+# loadUsers creates table using old schema and populates the users table with users
 function loadUsers {
   case "$driver" in
     sqlite3)
       mkdir -p $FABRIC_CA_SERVER_HOME
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0);'
+      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER);'
       sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
     VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1');"
       sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
