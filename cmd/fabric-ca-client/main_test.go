@@ -421,6 +421,19 @@ func TestGenCRL(t *testing.T) {
 	assert.NoError(t, err, "gencrl failed")
 	checkCRL(t, admin.GetClient(), revokedCertSerials)
 
+	// success case 6: gencrl invoked with --expireafter, --revokedbefore and --revokedafter args
+	err = RunMain([]string{cmdName, "gencrl", "--expireafter", time.Now().UTC().Format(time.RFC3339),
+		"--revokedafter", pastTime, "--revokedbefore", futureTime})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
+	// success case 6: gencrl invoked with all args
+	err = RunMain([]string{cmdName, "gencrl", "--expireafter", time.Now().UTC().Format(time.RFC3339),
+		"--expirebefore", time.Now().Add(time.Hour * 24 * 365 * 2).UTC().Format(time.RFC3339),
+		"--revokedafter", pastTime, "--revokedbefore", futureTime})
+	assert.NoError(t, err, "gencrl failed")
+	checkCRL(t, admin.GetClient(), revokedCertSerials)
+
 	// Error cases
 	// Error case 2: should fail when invoked with invalid --revokedafter arg
 	err = RunMain([]string{cmdName, "gencrl", "--revokedafter", "foo"})
