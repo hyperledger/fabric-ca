@@ -275,7 +275,7 @@ func testRegister(c *Client, t *testing.T) {
 	// Verify that the duration of the newly created enrollment certificate is 1 year
 	d, err := util.GetCertificateDurationFromFile(c.GetCertFilePath())
 	if assert.NoError(t, err) {
-		assert.True(t, d.Hours() == 8760, "Expecting 8760 but found %f", d.Hours())
+		assert.True(t, int(d.Hours()) == 8760, "Expecting 8760 but found %f", d.Hours())
 	}
 
 	err = c.CheckEnrollment()
