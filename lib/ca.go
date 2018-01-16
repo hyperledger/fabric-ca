@@ -447,6 +447,9 @@ func (ca *CA) initConfig() (err error) {
 	if cfg.CA.Chainfile == "" {
 		cfg.CA.Chainfile = "ca-chain.pem"
 	}
+	if cfg.CA.Chainfile == "" {
+		cfg.CA.Chainfile = "ca-chain.pem"
+	}
 	if cfg.CSR.CA == nil {
 		cfg.CSR.CA = &cfcsr.CAConfig{}
 	}
