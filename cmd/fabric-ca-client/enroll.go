@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/cobra"
 )
 
@@ -44,12 +43,7 @@ var enrollCmd = &cobra.Command{
 			return fmt.Errorf(extraArgsError, args, cmd.UsageString())
 		}
 
-		_, _, err := util.GetUser()
-		if err != nil {
-			return err
-		}
-
-		err = configInit(cmd.Name())
+		err := configInit(cmd.Name())
 		if err != nil {
 			return err
 		}
