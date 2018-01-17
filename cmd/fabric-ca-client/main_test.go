@@ -1571,6 +1571,11 @@ func testRevoke(t *testing.T) {
 		t.Fatalf("Failed to enroll testRegister5 user: %s", err)
 	}
 
+	testRegister5Serial, testRegister5AKI, err := getSerialAKIByID("testRegister5")
+	if err != nil {
+		t.Fatalf("Failed to get serial and aki of the enrollment certificate of the user 'testRegister5': %s", err)
+	}
+
 	// Revoke testRegister5 without --gencrl option, so it does not create a CRL
 	err = RunMain([]string{cmdName, "revoke", "-u", serverURL, "--revoke.name",
 		"testRegister5", "--revoke.serial", "", "--revoke.aki", ""})
@@ -1579,6 +1584,14 @@ func testRevoke(t *testing.T) {
 	}
 	_, err = os.Stat(filepath.Join(clientHome, "msp/crls/crl.pem"))
 	assert.Error(t, err, "CRL should not be created when revoke is called without --gencrl parameter")
+
+	// Revoke testRegister5 certificate that was revoked by the above revoke command, we expect
+	// an error in this case
+	err = RunMain([]string{cmdName, "revoke", "-u", serverURL,
+		"--revoke.serial", testRegister5Serial, "--revoke.aki", testRegister5AKI})
+	if err == nil {
+		t.Error("Revoke of testRegister5's certificate should have failed as it was already revoked")
+	}
 
 	err = RunMain([]string{cmdName, "enroll", "-d", "-u", "http://admin3:adminpw3@localhost:7090"})
 	if err != nil {

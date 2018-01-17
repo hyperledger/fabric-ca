@@ -31,6 +31,16 @@ type revocationResponseNet struct {
 	CRL          string
 }
 
+// CertificateStatus represents status of an enrollment certificate
+type CertificateStatus string
+
+const (
+	// Revoked is the status of a revoked certificate
+	Revoked CertificateStatus = "revoked"
+	// Good is the status of a active certificate
+	Good = "good"
+)
+
 func newRevokeEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
 		Methods: []string{"POST"},
@@ -80,6 +90,11 @@ func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
 		if err != nil {
 			return nil, newHTTPErr(404, ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
 				req.Serial, req.AKI, err)
+		}
+
+		if certificate.Status == string(Revoked) {
+			return nil, newHTTPErr(404, ErrCertAlreadyRevoked, "Certificate with serial %s and AKI %s was already revoked",
+				req.Serial, req.AKI)
 		}
 
 		if req.Name != "" && req.Name != certificate.ID {
