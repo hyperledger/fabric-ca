@@ -608,6 +608,7 @@ func (ue *userExpr) mapFunction(args ...interface{}) (interface{}, error) {
 	if !ok {
 		return nil, errors.Errorf("Second argument to 'map' must be a string; '%s' is not a string", args[1])
 	}
+	mapName = strings.ToLower(mapName)
 	// Get the map
 	maps := ue.client.attrMaps
 	if maps == nil {

@@ -803,9 +803,9 @@ ldap:
       - name: hf.Registrar.Roles
         value: if( attr("uid") =~ "revoker*", "client", "")
       - name: mapattr
-        value: map("foo1,foo2,foo3","map1")
+        value: map("foo1,foo2,foo3","Map1")
     maps:
-       map1:
+       Map1:
           - name: foo1
             value: bar1
           - name: foo2
