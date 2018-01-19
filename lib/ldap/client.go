@@ -419,7 +419,7 @@ func (u *user) GetAttribute(name string) (*api.Attribute, error) {
 		log.Debugf("Getting attribute '%s' from LDAP user '%s'", name, u.name)
 		vals := u.entry.GetAttributeValues(name)
 		if len(vals) == 0 {
-			return nil, fmt.Errorf("No value for attribute '%s'", name)
+			vals = make([]string, 0)
 		}
 		return &api.Attribute{Name: name, Value: strings.Join(vals, ",")}, nil
 	}
@@ -569,7 +569,7 @@ func (ue *userExpr) attrFunction(args ...interface{}) (interface{}, error) {
 	vals := ue.user.entry.GetAttributeValues(attrName)
 	log.Debugf("Values for LDAP attribute '%s' are '%+v'", attrName, vals)
 	if len(vals) == 0 {
-		return nil, fmt.Errorf("No value for attribute '%s'", attrName)
+		vals = make([]string, 0)
 	}
 	return strings.Join(vals, sep), nil
 }
