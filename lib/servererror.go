@@ -161,6 +161,8 @@ const (
 	ErrUpdateConfigModifyAff = 64
 	// Error occured while deleting user
 	ErrDBDeleteUser = 65
+	// Certificate that is being revoked has already been revoked
+	ErrCertAlreadyRevoked = 66
 )
 
 // Construct a new HTTP error.
