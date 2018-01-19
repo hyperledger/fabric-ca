@@ -51,14 +51,6 @@ UPDATE certificates
 SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=:reason
 WHERE (id = :id AND status != 'revoked');`
 
-	selectRevokedSQL = `
-SELECT %s FROM certificates
-	WHERE (expiry > ? AND status='revoked' AND revoked_at > ? AND revoked_at < ?);`
-
-	selectRevokedSQL1 = `
-SELECT %s FROM certificates
-	WHERE (expiry > ? AND expiry < ? AND status='revoked' AND revoked_at > ? AND revoked_at < ?);`
-
 	deleteCertificatebyID = `
 DELETE FROM certificates
 		WHERE (ID = ?);`
@@ -214,20 +206,24 @@ func (d *CertDBAccessor) GetRevokedCertificates(expiredAfter, expiredBefore, rev
 		return nil, err
 	}
 	var crs []certdb.CertificateRecord
-	if expiredBefore.IsZero() {
-		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL),
-			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, revokedAfter, revokedBefore)
-		if err != nil {
-			return crs, getError(err, "Certificate")
-		}
-	} else {
-		err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectRevokedSQL1),
-			sqlstruct.Columns(certdb.CertificateRecord{})), expiredAfter, expiredBefore, revokedAfter, revokedBefore)
-		if err != nil {
-			return crs, getError(err, "Certificate")
-		}
+	revokedSQL := "SELECT %s FROM certificates WHERE (WHERE_CLAUSE);"
+	whereConds := []string{"status='revoked' AND expiry > ? AND revoked_at > ?"}
+	args := []interface{}{expiredAfter, revokedAfter}
+	if !expiredBefore.IsZero() {
+		whereConds = append(whereConds, "expiry < ?")
+		args = append(args, expiredBefore)
 	}
-
+	if !revokedBefore.IsZero() {
+		whereConds = append(whereConds, "revoked_at < ?")
+		args = append(args, revokedBefore)
+	}
+	whereClause := strings.Join(whereConds, " AND ")
+	revokedSQL = strings.Replace(revokedSQL, "WHERE_CLAUSE", whereClause, 1)
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(revokedSQL),
+		sqlstruct.Columns(certdb.CertificateRecord{})), args...)
+	if err != nil {
+		return crs, getError(err, "Certificate")
+	}
 	return crs, nil
 }
 
