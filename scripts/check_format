@@ -4,11 +4,26 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+rc=0
+
 echo "Checking file format ..."
-found=`gofmt -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
+found=$(gofmt -l `find . -path ./vendor -prune -o -type f -regex ".*.go" -print` 2>&1)
 if [[ -n "$found" ]]; then
    echo "The following files need reformatting with 'gofmt -w <file>':"
    echo "$found"
-   exit 1
+   let rc+=1
 fi
+
+echo "Checking for trailing blanks..."
+find . -path ./vendor -prune -o -type f -regex ".*\(regenDocs\|\.\(go\|sh\)\)" \
+                      -exec egrep -q " +$" {} \; \
+                      -exec printf "trailing blanks in {}\n" \; | egrep ".*"
+if test $? -eq 0; then
+   echo "To fix, run"
+   echo '   find . -path ./vendor -prune -o -type f -regex ".*\(regenDocs\|\.\(go\|sh\)\)" -exec sed -i "s/ \+$//" {} \;'
+   echo ""
+   let rc+=1
+fi
+
+test "$rc" -eq 0 || exit "$rc"
 echo "All files are properly formatted"

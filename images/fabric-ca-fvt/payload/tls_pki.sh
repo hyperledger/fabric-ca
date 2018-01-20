@@ -18,8 +18,8 @@ five_year=$(date +"$five%m%d%H%M%SZ")
 two_year=$(date +"$two%m%d%H%M%SZ")
 
 KeyType="$1"
-case ${KeyType:=rsa} in 
-    ec) CaKeyLength=521 
+case ${KeyType:=rsa} in
+    ec) CaKeyLength=521
         CaDigest="sha512"
         EeKeyLength=384
         EeDigest="sha384"
