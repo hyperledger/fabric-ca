@@ -809,3 +809,8 @@ func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
 		t.Fatal(msg)
 	}
 }
+
+// GetSliceFromList will return a slice from a list
+func GetSliceFromList(split string, delim string) []string {
+	return strings.Split(strings.Replace(split, " ", "", -1), delim)
+}

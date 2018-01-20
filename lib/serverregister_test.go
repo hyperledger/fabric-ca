@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,9 +45,9 @@ func TestRegistrarAttribute(t *testing.T) {
 		Affiliation:    "org2",
 		MaxEnrollments: -1,
 		Attrs: map[string]string{
-			attrRoles:   allRoles,
-			attrRevoker: "true",
-			"a.b":       "val1",
+			attr.Roles:   "user,peer",
+			attr.Revoker: "false",
+			"a.b":        "val1",
 		},
 	}
 	registry.Identities = append(registry.Identities, id)
@@ -58,30 +60,76 @@ func TestRegistrarAttribute(t *testing.T) {
 		Affiliation:    "org2",
 		MaxEnrollments: -1,
 		Attrs: map[string]string{
-			attrRoles:          allRoles,
-			attrDelegateRoles:  allRoles,
-			attrRevoker:        "true",
-			attrIntermediateCA: "true",
-			attrRegistrarAttr:  "a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes",
+			attr.Roles:          allRoles,
+			attr.DelegateRoles:  allRoles,
+			attr.Revoker:        "true",
+			attr.IntermediateCA: "true",
+			attr.RegistrarAttr:  "a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker",
+		},
+	}
+	registry.Identities = append(registry.Identities, id)
+
+	// admin4 has 'hf.Registrar.Attributes' attribute but can only register 'hf.' attributes
+	id = CAConfigIdentity{
+		Name:           "admin4",
+		Pass:           "admin4pw",
+		Type:           "user",
+		Affiliation:    "org2",
+		MaxEnrollments: -1,
+		Attrs: map[string]string{
+			attr.Roles:         "user,peer",
+			attr.Revoker:       "false",
+			attr.RegistrarAttr: "hf.*",
 		},
 	}
 	registry.Identities = append(registry.Identities, id)
 
 	err = srv.Start()
-	if !assert.NoError(t, err, "Failed to start server") {
-		t.Fatal("Failed to start server: ", err)
-	}
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
 
 	// Enroll admin2
 	client := getTestClient(rootPort)
-	registrar, err := client.Enroll(&api.EnrollmentRequest{
+
+	negativeCases(t, client)
+	positiveCases(t, client)
+}
+
+func negativeCases(t *testing.T, client *Client) {
+	enrollResp, err := client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin2",
 		Secret: "admin2pw",
 	})
-	assert.NoError(t, err, "Failed to enroll 'admin' user")
+	util.FatalError(t, err, "Failed to enroll 'admin2' user")
+	registrar := enrollResp.Identity
 
+	missingHfRegistrarAttr(t, registrar)
+
+	enrollResp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin4",
+		Secret: "admin4pw",
+	})
+	util.FatalError(t, err, "Failed to enroll 'admin4' user")
+	registrar = enrollResp.Identity
+
+	invalidAttrRequestValues(t, registrar)
+
+	// Enroll request for admin3
+	enrollResp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin3",
+		Secret: "admin3pw",
+	})
+	assert.NoError(t, err, "Failed to enroll 'admin3' user")
+	registrar = enrollResp.Identity
+
+	invalidAttrRequest(t, registrar)
+	invalidHfRegistrarAttrRequest(t, registrar)
+
+}
+
+func missingHfRegistrarAttr(t *testing.T, registrar *Identity) {
 	// Negative case: Registrar does not have the attribute 'hf.Registrar.Attributes'
-	_, err = registrar.Identity.Register(registerTestUser("user1",
+	_, err := registrar.Register(registerTestUser("user1",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "fake.attribute",
@@ -90,44 +138,66 @@ func TestRegistrarAttribute(t *testing.T) {
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrMissingRegAttr))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
 
 	// Negative case: Registrar does not own 'hf.Registrar.Attributes'
-	_, err = registrar.Identity.Register(registerTestUser("user1",
+	_, err = registrar.Register(registerTestUser("user1",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  attrRegistrarAttr,
+				Name:  attr.RegistrarAttr,
 				Value: "val1",
 			},
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrMissingRegAttr))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
+}
 
-	// Negative case: Registrar owns this attribute but does not have the attribute 'hf.Registrar.Attributes'
-	_, err = registrar.Identity.Register(registerTestUser("user1",
+func invalidAttrRequestValues(t *testing.T, registrar *Identity) {
+	_, err := registrar.Register(registerTestUser("user1",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  attrRevoker,
-				Value: "false",
+				Name:  attr.Roles,
+				Value: "user,peer,client",
+			},
+		}),
+	)
+	if assert.Errorf(t, err, "Should have failed to register an identity with inappropriate values for '%s', can only register a subset", attr.Roles) {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+
+	// Negative case: Registrar owns this attribute but with a value of 'false', can't register with a value of 'true'
+	_, err = registrar.Register(registerTestUser("user1",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  attr.Revoker,
+				Value: "true",
 			},
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with an attribute that is not part of 'hf.Registrar.Attributes'") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrMissingRegAttr))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
 
-	// Enroll request for admin3
-	registrar, err = client.Enroll(&api.EnrollmentRequest{
-		Name:   "admin3",
-		Secret: "admin3pw",
-	})
-	assert.NoError(t, err, "Failed to enroll 'admin3' user")
+	// Negative case: Registrar owns this attribute but with a value of 'false', can't register with a value of 'true'
+	_, err = registrar.Register(registerTestUser("user1",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  "hf.FakeAttr",
+				Value: "true",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with an attribute invalid attribute with prefix 'hf.'") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+}
 
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*
-	_, err = registrar.Identity.Register(registerTestUser("user2",
+func invalidAttrRequest(t *testing.T, registrar *Identity) {
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err := registrar.Register(registerTestUser("user2",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "a.b.*",
@@ -136,11 +206,11 @@ func TestRegistrarAttribute(t *testing.T) {
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
 
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user2",
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user2",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "a.b.c.d",
@@ -149,11 +219,11 @@ func TestRegistrarAttribute(t *testing.T) {
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
 
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user2",
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user2",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "test",
@@ -162,11 +232,126 @@ func TestRegistrarAttribute(t *testing.T) {
 		}),
 	)
 	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
 	}
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*
-	_, err = registrar.Identity.Register(registerTestUser("user2",
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user11",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  "*",
+				Value: "val1",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user12",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  "w.x.y.z",
+				Value: "val1",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user13",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  "hf.fakeAttr",
+				Value: "val1",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes (hf.fakeAttr)") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+}
+
+func invalidHfRegistrarAttrRequest(t *testing.T, registrar *Identity) {
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err := registrar.Register(registerTestUser("user7",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  attr.RegistrarAttr,
+				Value: "a.b, x.y",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user7",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  attr.RegistrarAttr,
+				Value: "a.b.c, x.y",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+
+	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user7",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  attr.RegistrarAttr,
+				Value: "hf.Revoker",
+			},
+		}),
+	)
+	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes, identity does not posses 'hf.Revoker'") {
+		assert.Contains(t, err.Error(), strconv.Itoa(ErrAuthFailure))
+	}
+}
+
+func positiveCases(t *testing.T, client *Client) {
+	enrollResp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin3",
+		Secret: "admin3pw",
+	})
+	assert.NoError(t, err, "Failed to enroll 'admin' user")
+
+	registrar := enrollResp.Identity
+
+	registerCustomAttr(t, registrar)
+	registerHfRegistrarAttr(t, registrar)
+
+	// Enroll request for admin
+	enrollResp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	assert.NoError(t, err, "Failed to enroll 'admin' user")
+
+	registrar = enrollResp.Identity
+
+	// Positive case: Registrar's hf.Registrar.Attribute = *
+	_, err = registrar.Register(registerTestUser("user14",
+		[]api.Attribute{
+			api.Attribute{
+				Name:  "*",
+				Value: "val1",
+			},
+		}),
+	)
+	assert.NoError(t, err, "Failed to register an identity with appropriate attributes")
+}
+
+func registerCustomAttr(t *testing.T, registrar *Identity) {
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err := registrar.Register(registerTestUser("user2",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "a.b.c",
@@ -176,8 +361,8 @@ func TestRegistrarAttribute(t *testing.T) {
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user3",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user3",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "testattr1",
@@ -187,8 +372,8 @@ func TestRegistrarAttribute(t *testing.T) {
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user4",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user4",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "x.y.*",
@@ -198,8 +383,8 @@ func TestRegistrarAttribute(t *testing.T) {
 	)
 	assert.NoError(t, err, "Failed to register an identity with appropriate attributes")
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user5",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user5",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "x.y.z",
@@ -208,68 +393,44 @@ func TestRegistrarAttribute(t *testing.T) {
 		}),
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
+}
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user6",
+func registerHfRegistrarAttr(t *testing.T, registrar *Identity) {
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err := registrar.Register(registerTestUser("user6",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  attrRegistrarAttr,
+				Name:  attr.RegistrarAttr,
 				Value: "a.b.c, x.y.*",
 			},
 		}),
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user7",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user7",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  attrRegistrarAttr,
-				Value: "a.b, x.y",
-			},
-		}),
-	)
-	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
-	}
-
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user7",
-		[]api.Attribute{
-			api.Attribute{
-				Name:  attrRegistrarAttr,
-				Value: "a.b.c, x.y",
-			},
-		}),
-	)
-	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
-	}
-
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user7",
-		[]api.Attribute{
-			api.Attribute{
-				Name:  attrRegistrarAttr,
+				Name:  attr.RegistrarAttr,
 				Value: "a.b.c",
 			},
 		}),
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user8",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user8",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  attrRegistrarAttr,
+				Name:  attr.RegistrarAttr,
 				Value: "x.y.z.z",
 			},
 		}),
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user9",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, attr, hf.Registrar.Attributes
+	_, err = registrar.Register(registerTestUser("user9",
 		[]api.Attribute{
 			api.Attribute{
 				Name:  "attr$",
@@ -279,63 +440,16 @@ func TestRegistrarAttribute(t *testing.T) {
 	)
 	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
 
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user10",
+	// Positive case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes, hf.Revoker
+	_, err = registrar.Register(registerTestUser("user10",
 		[]api.Attribute{
 			api.Attribute{
-				Name:  "*",
-				Value: "val1",
+				Name:  attr.RegistrarAttr,
+				Value: "x.y.z.*",
 			},
 		}),
 	)
-	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
-	}
-
-	// Negative case: Registrar's hf.Registrar.Attribute = a.b.c, x.y.*, testattr*, attr$, hf.Registrar.Attributes"
-	_, err = registrar.Identity.Register(registerTestUser("user10",
-		[]api.Attribute{
-			api.Attribute{
-				Name:  "w.x.y.z",
-				Value: "val1",
-			},
-		}),
-	)
-	if assert.Error(t, err, "Should have failed to register an identity with inappropriate attributes") {
-		assert.Contains(t, err.Error(), strconv.Itoa(ErrRegAttrAuth))
-	}
-
-	// Enroll request for admin
-	registrar, err = client.Enroll(&api.EnrollmentRequest{
-		Name:   "admin",
-		Secret: "adminpw",
-	})
-	assert.NoError(t, err, "Failed to enroll 'admin' user")
-
-	// Positive case: Registrar's hf.Registrar.Attribute = *
-	_, err = registrar.Identity.Register(registerTestUser("user10",
-		[]api.Attribute{
-			api.Attribute{
-				Name:  "*",
-				Value: "val1",
-			},
-		}),
-	)
-	assert.NoError(t, err, "Failed to register an identity with appropriate attributes")
-
-	// Positive case: Registrar's hf.Registrar.Attribute = *
-	_, err = registrar.Identity.Register(registerTestUser("user11",
-		[]api.Attribute{
-			api.Attribute{
-				Name:  "made.up.attribute",
-				Value: "val1",
-			},
-		}),
-	)
-	assert.NoError(t, err, "Should have succeeded to register an identity with appropriate attributes")
-
-	err = srv.Stop()
-	assert.NoError(t, err, "Failed to start server")
+	assert.NoError(t, err, "Should not have failed to register appropriate command")
 }
 
 func registerTestUser(username string, attribute []api.Attribute) *api.RegistrationRequest {
@@ -366,7 +480,7 @@ func TestAffiliationAndTypeCheck(t *testing.T) {
 		Affiliation:    "org2",
 		MaxEnrollments: -1,
 		Attrs: map[string]string{
-			attrRoles: allRoles,
+			attr.Roles: allRoles,
 		},
 	}
 	registry.Identities = append(registry.Identities, id)
@@ -386,7 +500,6 @@ func TestAffiliationAndTypeCheck(t *testing.T) {
 
 	registrar := enrollResp.Identity
 
-	// Negative case: Registrar does not have the attribute 'hf.Registrar.Attributes'
 	_, err = registrar.Register(&api.RegistrationRequest{
 		Name:        "testuser",
 		Affiliation: "org2dept1",

@@ -25,6 +25,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -402,7 +403,7 @@ func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityR
 	}
 
 	var checkAff, checkType, checkAttrs bool
-	modReq, setPass := getModifyReq(userToModify, req)
+	modReq, setPass := getModifyReq(userToModify, &req)
 	log.Debugf("Modify Request: %+v", util.StructToString(modReq))
 
 	if req.Affiliation != "" {
@@ -424,7 +425,7 @@ func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityR
 		checkAttrs = true
 	}
 
-	err = ctx.CanModifyUser(req.Affiliation, checkAff, req.Type, checkType, req.Attributes, checkAttrs)
+	err = ctx.CanModifyUser(&req, checkAff, checkType, checkAttrs, userToModify)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +435,7 @@ func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityR
 		return nil, err
 	}
 
-	userToModify, err = ctx.GetUser(modifyID)
+	userToModify, err = registry.GetUser(modifyID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +456,7 @@ func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityR
 
 // Function takes the modification request and fills in missing information with the current user information
 // and parses the modification request to generate the correct input to be stored in the database
-func getModifyReq(user spi.User, req api.ModifyIdentityRequest) (*spi.UserInfo, bool) {
+func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo, bool) {
 	modifyUserInfo := user.(*DBUser).UserInfo
 	userPass := user.(*DBUser).pass
 	setPass := false
@@ -473,23 +474,23 @@ func getModifyReq(user spi.User, req api.ModifyIdentityRequest) (*spi.UserInfo, 
 		modifyUserInfo.MaxEnrollments = req.MaxEnrollments
 	}
 
+	reqAttrs := req.Attributes
 	if req.Affiliation == "." {
 		modifyUserInfo.Affiliation = ""
-		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Affiliation", Value: ""})
+		addAttributeToRequest(attr.Affiliation, "", &reqAttrs)
 	} else if req.Affiliation != "" {
 		modifyUserInfo.Affiliation = req.Affiliation
-		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Affiliation", Value: req.Affiliation})
+		addAttributeToRequest(attr.Affiliation, req.Affiliation, &reqAttrs)
 	}
 
 	if req.Type != "" {
 		modifyUserInfo.Type = req.Type
-		req.Attributes = append(req.Attributes, api.Attribute{Name: "hf.Type", Value: req.Type})
+		addAttributeToRequest(attr.Type, req.Type, &reqAttrs)
 	}
 
 	// Update existing attribute, or add attribute if it does not already exist
-	if len(req.Attributes) != 0 {
-		userAttrs := getNewAttributes(modifyUserInfo.Attributes, req.Attributes)
-		modifyUserInfo.Attributes = userAttrs
+	if len(reqAttrs) != 0 {
+		modifyUserInfo.Attributes = getNewAttributes(modifyUserInfo.Attributes, reqAttrs)
 	}
 
 	return &modifyUserInfo, setPass

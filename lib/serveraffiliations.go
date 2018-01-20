@@ -25,6 +25,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -165,7 +166,7 @@ func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) 
 	w := ctx.resp
 	flusher, _ := w.(http.Flusher)
 
-	err = ctx.HasRole(attrAffiliationMgr)
+	err = ctx.HasRole(attr.AffiliationMgr)
 	if err != nil {
 		return err
 	}
@@ -231,7 +232,7 @@ func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) 
 func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
 	log.Debugf("Requesting affiliation '%s'", requestedAffiliation)
 
-	err := ctx.HasRole(attrAffiliationMgr)
+	err := ctx.HasRole(attr.AffiliationMgr)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffilia
 func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.AffiliationWithIdentityResponse, error) {
 	log.Debug("Processing DELETE request")
 
-	err := ctx.HasRole(attrAffiliationMgr)
+	err := ctx.HasRole(attr.AffiliationMgr)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +315,7 @@ func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*a
 
 	ctx.endpoint.successRC = 201
 
-	err := ctx.HasRole(attrAffiliationMgr)
+	err := ctx.HasRole(attr.AffiliationMgr)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +455,6 @@ func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*ap
 func getResponse(result *spi.DbTxResult, caname string) (*api.AffiliationWithIdentityResponse, error) {
 	affInfo := []api.AffiliationInfo{}
 	for _, aff := range result.Affiliations {
-		fmt.Println("getResponse - aff: ", aff.GetName())
 		info := &api.AffiliationInfo{
 			Name: aff.GetName(),
 		}

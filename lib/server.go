@@ -39,6 +39,7 @@ import (
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
 	gmux "github.com/gorilla/mux"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
@@ -55,17 +56,6 @@ const (
 	fabricCAServerProfilePort = "FABRIC_CA_SERVER_PROFILE_PORT"
 	allRoles                  = "peer,orderer,client,user"
 	apiPathPrefix             = "/api/v1/"
-)
-
-// Attribute names
-const (
-	attrRoles          = "hf.Registrar.Roles"
-	attrDelegateRoles  = "hf.Registrar.DelegateRoles"
-	attrRevoker        = "hf.Revoker"
-	attrIntermediateCA = "hf.IntermediateCA"
-	attrGenCRL         = "hf.GenCRL"
-	attrRegistrarAttr  = "hf.Registrar.Attributes"
-	attrAffiliationMgr = "hf.AffiliationMgr"
 )
 
 // Server is the fabric-ca server
@@ -220,13 +210,13 @@ func (s *Server) RegisterBootstrapUser(user, pass, affiliation string) error {
 		Affiliation:    affiliation,
 		MaxEnrollments: 0, // 0 means to use the server's max enrollment setting
 		Attrs: map[string]string{
-			attrRoles:          allRoles,
-			attrDelegateRoles:  allRoles,
-			attrRevoker:        "true",
-			attrIntermediateCA: "true",
-			attrGenCRL:         "true",
-			attrRegistrarAttr:  "*",
-			attrAffiliationMgr: "true",
+			attr.Roles:          allRoles,
+			attr.DelegateRoles:  allRoles,
+			attr.Revoker:        "true",
+			attr.IntermediateCA: "true",
+			attr.GenCRL:         "true",
+			attr.RegistrarAttr:  "*",
+			attr.AffiliationMgr: "true",
 		},
 	}
 

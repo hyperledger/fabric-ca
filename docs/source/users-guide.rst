@@ -1077,14 +1077,14 @@ registered.
 In particular, three authorization checks are made by the Fabric CA server
 during registration as follows:
 
- 1. The invoker's identity must have the "hf.Registrar.Roles" attribute with a
-    comma-separated list of values where one of the value equals the type of
-    identity being registered; for example, if the invoker's identity has the
-    "hf.Registrar.Roles" attribute with a value of "peer,app,user", the invoker
+ 1. The registrar (i.e. the invoker) must have the "hf.Registrar.Roles" attribute with a
+    comma-separated list of values where one of the values equals the type of
+    identity being registered; for example, if the registrar has the
+    "hf.Registrar.Roles" attribute with a value of "peer,app,user", the registrar
     can register identities of type peer, app, and user, but not orderer.
 
- 2. The affiliation of the invoker's identity must be equal to or a prefix of
-    the affiliation of the identity being registered.  For example, an invoker
+ 2. The affiliation of the registrar must be equal to or a prefix of
+    the affiliation of the identity being registered.  For example, an registrar
     with an affiliation of "a.b" may register an identity with an affiliation
     of "a.b.c" but may not register an identity with an affiliation of "a.c".
     If root affiliation is required for an identity, then the affiliation request
@@ -1092,12 +1092,21 @@ during registration as follows:
     If no affiliation is specified in the registration request, the identity being
     registered will be given the affiliation of the registrar.
 
- 3. The registrar can register a user with attributes if the following conditions
+ 3. The registrar can register a user with attributes if all of the following conditions
     are satisfied:
-      - Registrar has 'hf.Registar.Attributes' attribute with the value of the
-        attribute or pattern being registered. The only supported pattern is a
-        string with a "*" at the end. For example, "a.b.*" is a pattern which
-        matches all attribute names beginning with "a.b.".
+      - Registrar can register Fabric CA reserved attributes that have the prefix
+        'hf.' only if the registrar possesses the attribute and it is part of the value
+        of the 'hf.Registrar.Attributes' attribute. Furthermore, if the attribute
+        is of type list then the value of attribute being registered must be equal to or a subset
+        of the value that the registrar has. If the attribute is of type boolean, the registrar
+        can register the attribute only if the registrar's value for the attribute is 'true'.
+      - Registering custom attributes (i.e. any attribute whose name does not begin with 'hf.')
+        requires that the registrar has the 'hf.Registar.Attributes' attribute with the value of
+        the attribute or pattern being registered. The only supported pattern is a string with
+        a "*" at the end. For example, "a.b.*" is a pattern which matches all attribute names
+        beginning with "a.b.". For example, if the registrar has hf.Registrar.Attributes=orgAdmin,
+        then the only attribute which the registrar can add or remove from an identity is the 'orgAdmin'
+        attribute.
       - If the requested attribute name is 'hf.Registrar.Attributes', an additional
         check is performed to see if the requested values for this attribute
         are equal to or a subset of the registrar's values for 'hf.Registrar.Attributes'.
@@ -1109,33 +1118,67 @@ during registration as follows:
 
     Examples:
       Valid Scenarios:
-        1. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'a.b.c', it is valid 'a.b.c' matches 'a.b.*'.
 
-        2. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'x.y.z', it is valid because 'x.y.z' matches the registrar's
         'x.y.z' value.
 
-        3. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         the requested attribute value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches
         'a.b.*' and 'x.y.z' matches the registrar's 'x.y.z' value.
 
+        4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
+        the requested attribute value is 'peer' or 'peer,client', it is valid because
+        the requested value is equal to or a subset of the registrar's value.
+
       Invalid Scenarios:
-        1. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.*', it is invalid
         because requested attribute 'x.y.*' is not a pattern owned by the registrar. The value
         'x.y.*' is a superset of 'x.y.z'.
 
-        2. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.z, attr1', it is invalid
         because the registrar's 'hf.Registrar.Attributes' attribute values do not contain 'attr1'.
 
-        3. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'a.b', it is invalid because the value 'a.b' is not contained in
         'a.b.*'.
 
-        4. If the Registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+        4. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
         is registering attribute 'x.y', it is invalid because 'x.y' is not contained by 'x.y.z'.
+
+        5. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
+        the requested attribute value is 'peer,client,orderer', it is invalid because
+        the registrar does not have the orderer role in its value of hf.Registrar.Roles
+        attribue.
+
+        6. If the registrar has the attribute 'hf.Revoker = false' and the requested attribute
+        value is 'true', it is invalid because the hf.Revoker attribute is a boolean attribute
+        and the registrar's value for the attribute is not 'true'.
+
+The table below lists all the attributes that can be registered for an identity.
+
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| Name                        | Type       | Description                                                                                                |
++=============================+============+============================================================================================================+
+| hf.Registrar.Roles          | List       | List of roles that the registrar is allowed to manage                                                      |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.Registrar.DelegateRoles  | List       | List of roles that the registrar is allowed to give to a registree for its 'hf.Registrar.Roles' attribute  |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.Registrar.Attributes     | List       | List of attributes that registrar is allowed to register                                                   |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.GenCRL                   | Boolean    | Identity is able to generate CRL if attribute value is true                                                |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.Revoker                  | Boolean    | Identity is able to revoke a user and/or certificates if attribute value is true                           |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.AffiliationMgr           | Boolean    | Identity is able to manage affiliations if attribute value is true                                         |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+| hf.IntermediateCA           | Boolean    | Identity is able to enroll as an intermediate CA if attribute value is true                                |
++-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
+
 
 The following command uses the **admin** identity's credentials to register a new
 user with an enrollment id of "admin2", an affiliation of
