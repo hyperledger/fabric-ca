@@ -63,7 +63,7 @@ function revokeUsers() {
    : ${port:=$PROXY_PORT}
 
    FABRIC_CA_CLIENT_HOME=$dir/admin$ca \
-   $FABRIC_CA_CLIENTEXEC revoke --debug $TLSOPT \
+   $FABRIC_CA_CLIENTEXEC revoke --gencrl --debug $TLSOPT \
      -u ${PROTO}admin:adminpw@localhost:$port \
      --revoke.name ${USERNAME}${ca}-${user} \
      --caname ca$ca >> $dir/admin$ca/log.txt 2>&1
@@ -127,11 +127,11 @@ function DBvalidateUsers() {
    local StatusField=6
    local fsopt=""
 
-   case $DBdriver in
+   case $DRIVER in
       postgres) StatusField=11 ;;
    esac
 
-   DBNAME=$dbname $SCRIPTDIR/fabric-ca_setup.sh -L -d $DBdriver \
+   DBNAME=$dbname $SCRIPTDIR/fabric-ca_setup.sh -L -d $DRIVER \
         -n $NUMSERVER -u $NUMCAS 2>/dev/null |
    awk -v u="$USERNAME" $fsopt \
        -v s="$state" \
@@ -143,7 +143,7 @@ function DBvalidateUsers() {
 }
 
 function showUsers() {
-   $SCRIPTDIR/fabric-ca_setup.sh -L -d $DBdriver  \
+   $SCRIPTDIR/fabric-ca_setup.sh -L -d $DRIVER  \
         -n $NUMSERVER -u $NUMCAS 2>/dev/null |
    awk -v u="$USERNAME" '$1~u'
 }
@@ -185,8 +185,8 @@ function checkStatus() {
 }
 
 
-for DBdriver in mysql postgres; do
-   echo "Testing $DBdriver >>>>>>>>>>>>>"
+for DRIVER in mysql postgres; do
+   echo "Testing $DRIVER >>>>>>>>>>>>>"
    # Delete all of the DBs
    echo -e "   >>>>>>>>>>  Deleting all databases"
    $SCRIPTDIR/fabric-ca_setup.sh -x $ROOTDIR -R -u $NUMCAS
@@ -198,9 +198,9 @@ for DBdriver in mysql postgres; do
    mkdir -p $INTUSERDIR
    echo -e "   >>>>>>>>>>  Initializing Root CAs"
    $SCRIPTDIR/fabric-ca_setup.sh -x $ROOTDIR -I -n 1 -u $NUMCAS \
-                                 -n $NUMSERVER -D -d $DBdriver > $ROOTDIR/log.txt 2>&1
+                                 -n $NUMSERVER -D -d $DRIVER > $ROOTDIR/log.txt 2>&1
    echo -e "   >>>>>>>>>>  Initializing Intermediate CAs"
-   DBNAME=$INTDBNAME $SCRIPTDIR/fabric-ca_setup.sh -D -d $DBdriver -u $NUMCAS -I -r $INTERMEDIATE_CA_DEFAULT_PORT -x $INTDIR \
+   DBNAME=$INTDBNAME $SCRIPTDIR/fabric-ca_setup.sh -D -d $DRIVER -u $NUMCAS -I -r $INTERMEDIATE_CA_DEFAULT_PORT -x $INTDIR \
         -U "${PROTO}$INTUSER:$INTPSWD@$ROOT_CA_ADDR:$CA_DEFAULT_PORT" > $INTDIR/log.txt 2>&1
 
    ##################################################################
@@ -249,7 +249,7 @@ EOF
 
    # Start all Root and intermediate CAs
    echo -e "   >>>>>>>>>>  Starting $NUMSERVER Root CA instances with $NUMCAS servers each"
-   $SCRIPTDIR/fabric-ca_setup.sh -N -X -x $ROOTDIR -S -n $NUMSERVER -D -d $DBdriver \
+   $SCRIPTDIR/fabric-ca_setup.sh -N -X -x $ROOTDIR -S -n $NUMSERVER -D -d $DRIVER \
                                  -- "--cafiles" "$rootCafiles" >> $ROOTDIR/log.txt 2>&1 ||
                                  ErrorExit "Failed to start root servers"
    echo -e "   >>>>>>>>>>  Starting $NUMSERVER Intermediate CA instances with $NUMCAS servers each"
@@ -383,6 +383,27 @@ EOF
          test $revoked -eq $((ITERATIONS/4)) &&
             echo -e "            >>>>>>>>>>  crl check for ca$ca ...PASSED" ||
             ErrorMsg "            >>>>>>>>>>  crl check for ca$ca...FAILED got ('$revoked') revoked certs on localhost:$SERVER"
+      done
+
+      # issue revoke for the third 1/4 of the previously enrolled users;
+      # count the number of entries in the base crl
+      for ca in $(seq $NUMCAS); do
+         #prev_revoked=$(openssl crl -noout -text -in $userdir/admin$ca/msp/crls/crl.pem | grep -c 'Serial Number:')
+         ### @TODO Work-around for FAB-7223: CRL pem file should wrap at 64 characters ###
+         prev_revoked="$(fold -w 64 $userdir/admin$ca/msp/crls/crl.pem | openssl crl -noout -text | grep -c 'Serial Number:')"
+         for user in  $(seq $((ITERATIONS/2+1)) $((ITERATIONS/4*3)) ); do
+            # delete the current crl
+            rm $userdir/admin$ca/msp/crls/crl.pem
+            revokeUsers $SERVER $ca $user $userdir
+            # 2 entries should be added to the base crl for each revocation
+            # since this group of users has re-enrolled (have two e-certs)
+            #curr_revoked=$(openssl crl -noout -text -in $userdir/admin$ca/msp/crls/crl.pem | grep -c 'Serial Number:')
+            curr_revoked="$(fold -w 64 $userdir/admin$ca/msp/crls/crl.pem | openssl crl -noout -text | grep -c 'Serial Number:')"
+            test "$((curr_revoked-prev_revoked))" -eq 2  &&
+               echo -e "            >>>>>>>>>>  revoke/gencrl check for ${stype}CA${ca}...PASSED" ||
+               ErrorMsg "            >>>>>>>>>>  wrong number of certs in CRL for ${stype}CA${ca}...FAILED got ('$curr_revoked') revoked certs on localhost:$SERVER"
+            prev_revoked=$curr_revoked
+         done
       done
    done
    echo ""
