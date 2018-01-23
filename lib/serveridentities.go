@@ -252,15 +252,19 @@ func getID(ctx *serverRequestContext, caller spi.User, id, caname string) (*api.
 		return nil, err
 	}
 
-	resp := &api.GetIDResponse{
-		CAName: caname,
-	}
-
-	idInfo, err := getIDInfo(user)
+	allAttributes, err := user.GetAttributes(nil)
 	if err != nil {
 		return nil, err
 	}
-	resp.IdentityInfo = *idInfo
+
+	resp := &api.GetIDResponse{
+		ID:             user.GetName(),
+		Type:           user.GetType(),
+		Affiliation:    GetUserAffiliation(user),
+		Attributes:     allAttributes,
+		MaxEnrollments: user.GetMaxEnrollments(),
+		CAName:         caname,
+	}
 
 	return resp, nil
 }
@@ -308,15 +312,10 @@ func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.Identi
 		return nil, newHTTPErr(500, ErrRemoveIdentity, "Failed to remove identity: ", err)
 	}
 
-	resp := &api.IdentityResponse{
-		CAName: caname,
-	}
-
-	idInfo, err := getIDInfo(userToRemove)
+	resp, err := getIDResp(userToRemove, "", caname)
 	if err != nil {
 		return nil, err
 	}
-	resp.IdentityInfo = *idInfo
 
 	log.Debugf("Identity '%s' successfully removed", removeID)
 	return resp, nil
@@ -362,15 +361,10 @@ func processPostRequest(ctx *serverRequestContext, caname string) (*api.Identity
 		return nil, err
 	}
 
-	resp := &api.IdentityResponse{
-		Secret: pass,
-		CAName: caname,
-	}
-	idInfo, err := getIDInfo(user)
+	resp, err := getIDResp(user, pass, caname)
 	if err != nil {
 		return nil, err
 	}
-	resp.IdentityInfo = *idInfo
 
 	log.Debugf("Identity successfully added")
 	return resp, nil
@@ -440,15 +434,10 @@ func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityR
 		return nil, err
 	}
 
-	resp := &api.IdentityResponse{
-		Secret: modReq.Pass,
-		CAName: caname,
-	}
-	idInfo, err := getIDInfo(userToModify)
+	resp, err := getIDResp(userToModify, req.Secret, caname)
 	if err != nil {
 		return nil, err
 	}
-	resp.IdentityInfo = *idInfo
 
 	log.Debugf("Identity successfully modified")
 	return resp, nil
@@ -496,17 +485,24 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 	return &modifyUserInfo, setPass
 }
 
-func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
+// Get the identity response
+// Note that the secret will be the empty string unless the
+// caller is permitted to see the secret.  For example,
+// when adding a new identity and a secret is automatically
+// generated, it must be returned to the registrar.
+func getIDResp(user spi.User, secret, caname string) (*api.IdentityResponse, error) {
 	allAttributes, err := user.GetAttributes(nil)
 	if err != nil {
 		return nil, err
 	}
-	return &api.IdentityInfo{
+	return &api.IdentityResponse{
 		ID:             user.GetName(),
 		Type:           user.GetType(),
 		Affiliation:    GetUserAffiliation(user),
 		Attributes:     allAttributes,
 		MaxEnrollments: user.GetMaxEnrollments(),
+		Secret:         secret,
+		CAName:         caname,
 	}, nil
 }
 

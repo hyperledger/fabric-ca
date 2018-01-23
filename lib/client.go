@@ -135,6 +135,8 @@ type GetServerInfoResponse struct {
 	// CAChain is the PEM-encoded bytes of the fabric-ca-server's CA chain.
 	// The 1st element of the chain is the root CA cert
 	CAChain []byte
+	// Version of the server
+	Version string
 }
 
 // GetCAInfo returns generic CA information
@@ -172,6 +174,7 @@ func (c *Client) net2LocalServerInfo(net *serverInfoResponseNet, local *GetServe
 	}
 	local.CAName = net.CAName
 	local.CAChain = caChain
+	local.Version = net.Version
 	return nil
 }
 

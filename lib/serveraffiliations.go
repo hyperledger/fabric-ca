@@ -18,8 +18,6 @@ package lib
 
 import (
 	"fmt"
-	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -27,7 +25,6 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
 
@@ -65,6 +62,10 @@ func affiliationsHandler(ctx *serverRequestContext) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = ctx.HasRole(attr.AffiliationMgr)
+	if err != nil {
+		return nil, err
+	}
 	// Process Request
 	resp, err := processAffiliationRequest(ctx, caname, caller)
 	if err != nil {
@@ -91,6 +92,10 @@ func affiliationsStreamingHandler(ctx *serverRequestContext) (interface{}, error
 	if err != nil {
 		return nil, err
 	}
+	err = ctx.HasRole(attr.AffiliationMgr)
+	if err != nil {
+		return nil, err
+	}
 	// Process Request
 	resp, err := processStreamingAffiliationRequest(ctx, caname, caller)
 	if err != nil {
@@ -107,7 +112,7 @@ func processStreamingAffiliationRequest(ctx *serverRequestContext, caname string
 	method := ctx.req.Method
 	switch method {
 	case "GET":
-		return nil, processGetAllAffiliationsRequest(ctx, caller, caname)
+		return processGetAllAffiliationsRequest(ctx, caller, caname)
 	case "POST":
 		return processAffiliationPostRequest(ctx, caname)
 	default:
@@ -132,18 +137,18 @@ func processAffiliationRequest(ctx *serverRequestContext, caname string, caller 
 	}
 }
 
-func processGetAllAffiliationsRequest(ctx *serverRequestContext, caller spi.User, caname string) error {
+func processGetAllAffiliationsRequest(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET all affiliations request")
 
-	err := getAffiliations(ctx, caller, caname)
+	resp, err := getAffiliations(ctx, caller, caname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return resp, nil
 }
 
-func processGetAffiliationRequest(ctx *serverRequestContext, caller spi.User, caname string) (interface{}, error) {
+func processGetAffiliationRequest(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET affiliation request")
 
 	affiliation, err := ctx.GetVar("affiliation")
@@ -159,109 +164,63 @@ func processGetAffiliationRequest(ctx *serverRequestContext, caller spi.User, ca
 	return resp, nil
 }
 
-func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) error {
+func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Requesting all affiliations that the caller is authorized view")
 	var err error
-
-	w := ctx.resp
-	flusher, _ := w.(http.Flusher)
-
-	err = ctx.HasRole(attr.AffiliationMgr)
-	if err != nil {
-		return err
-	}
-
-	// Get the number of identities to return back to client in a chunk based on the environment variable
-	// If environment variable not set, default to 100 identities
-	numberOfAffiliations := os.Getenv("FABRIC_CA_SERVER_MAX_AFFILIATIONS_PER_CHUNK")
-	var numAffiliations int
-	if numberOfAffiliations == "" {
-		numAffiliations = 100
-	} else {
-		numAffiliations, err = strconv.Atoi(numberOfAffiliations)
-		if err != nil {
-			return newHTTPErr(500, ErrGettingAffiliation, "Incorrect format specified for environment variable 'FABRIC_CA_SERVER_MAX_AFFILIATIONS_PER_CHUNK', an integer value is required: %s", err)
-		}
-	}
 
 	registry := ctx.ca.registry
 	callerAff := GetUserAffiliation(caller)
 	rows, err := registry.GetAllAffiliations(callerAff)
 	if err != nil {
-		return newHTTPErr(500, ErrGettingUser, "Failed to get affiliation: %s", err)
+		return nil, newHTTPErr(500, ErrGettingUser, "Failed to get affiliation: %s", err)
 	}
 
-	w.Write([]byte(`{"affiliations":[`))
-
-	rowNumber := 0
+	an := &affiliationNode{}
 	for rows.Next() {
-		rowNumber++
 		var aff AffiliationRecord
 		err := rows.StructScan(&aff)
 		if err != nil {
-			return newHTTPErr(500, ErrGettingAffiliation, "Failed to get read row: %s", err)
+			return nil, newHTTPErr(500, ErrGettingAffiliation, "Failed to get read row: %s", err)
 		}
 
-		if rowNumber > 1 {
-			w.Write([]byte(","))
-		}
-
-		affInfo := api.AffiliationInfo{
-			Name: aff.Name,
-		}
-
-		resp, err := util.Marshal(affInfo, "identities info")
-		if err != nil {
-			return newHTTPErr(500, ErrGettingUser, "Failed to marshal identity info: %s", err)
-		}
-		w.Write(resp)
-
-		// If hit the number of identities requested then flush
-		if rowNumber%numAffiliations == 0 {
-			flusher.Flush() // Trigger "chunked" encoding and send a chunk...
-		}
+		an.insertByName(aff.Name)
 	}
+	root := an.GetRoot()
 
-	// Close the JSON object
-	w.Write([]byte(fmt.Sprintf("], \"caname\":\"%s\"}", caname)))
-	flusher.Flush()
+	resp := &api.AffiliationResponse{
+		CAName: caname,
+	}
+	resp.Name = root.Name
+	resp.Affiliations = root.Affiliations
+	resp.Identities = root.Identities
 
-	return nil
+	return resp, nil
 }
 
 func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
 	log.Debugf("Requesting affiliation '%s'", requestedAffiliation)
 
-	err := ctx.HasRole(attr.AffiliationMgr)
-	if err != nil {
-		return nil, err
-	}
-
 	registry := ctx.ca.registry
-	err = ctx.ContainsAffiliation(requestedAffiliation)
-	if err != nil {
-		return nil, err
-	}
-	affiliation, err := registry.GetAffiliation(requestedAffiliation)
+	err := ctx.ContainsAffiliation(requestedAffiliation)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := &api.AffiliationResponse{
-		CAName: caname,
+	result, err := registry.GetAffiliationTree(requestedAffiliation)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation: %s", err)
 	}
-	resp.Info.Name = affiliation.GetName()
+
+	resp, err := getResponse(result, caname)
+	if err != nil {
+		return nil, err
+	}
 
 	return resp, nil
 }
 
-func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.AffiliationWithIdentityResponse, error) {
+func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing DELETE request")
-
-	err := ctx.HasRole(attr.AffiliationMgr)
-	if err != nil {
-		return nil, err
-	}
 
 	if !ctx.ca.Config.Cfg.Affiliations.AllowRemove {
 		return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Affiliation removal is disabled")
@@ -315,18 +274,13 @@ func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*a
 
 	ctx.endpoint.successRC = 201
 
-	err := ctx.HasRole(attr.AffiliationMgr)
-	if err != nil {
-		return nil, err
-	}
-
 	var req api.AddAffiliationRequestNet
-	err = ctx.ReadBody(&req)
+	err := ctx.ReadBody(&req)
 	if err != nil {
 		return nil, err
 	}
 
-	addAffiliation := req.Info.Name
+	addAffiliation := req.Name
 	log.Debugf("Request to add affiliation '%s'", addAffiliation)
 
 	registry := ctx.ca.registry
@@ -386,15 +340,13 @@ func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*a
 
 	}
 
-	resp := &api.AffiliationResponse{
-		CAName: caname,
-	}
-	resp.Info.Name = addAffiliation
+	resp := &api.AffiliationResponse{CAName: caname}
+	resp.Name = addAffiliation
 
 	return resp, nil
 }
 
-func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*api.AffiliationWithIdentityResponse, error) {
+func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing PUT request")
 
 	modifyAffiliation, err := ctx.GetVar("affiliation")
@@ -407,7 +359,7 @@ func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*ap
 	if err != nil {
 		return nil, err
 	}
-	newAffiliation := req.Info.Name
+	newAffiliation := req.NewName
 	log.Debugf("Request to modify affiliation '%s' to '%s'", modifyAffiliation, newAffiliation)
 
 	err = ctx.ContainsAffiliation(modifyAffiliation)
@@ -452,25 +404,167 @@ func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*ap
 	return resp, nil
 }
 
-func getResponse(result *spi.DbTxResult, caname string) (*api.AffiliationWithIdentityResponse, error) {
-	affInfo := []api.AffiliationInfo{}
-	for _, aff := range result.Affiliations {
-		info := &api.AffiliationInfo{
-			Name: aff.GetName(),
-		}
-		affInfo = append(affInfo, *info)
+func getResponse(result *spi.DbTxResult, caname string) (*api.AffiliationResponse, error) {
+	resp := &api.AffiliationResponse{CAName: caname}
+	// Get all root affiliation names from the result
+	rootNames := getRootAffiliationNames(result.Affiliations)
+	if len(rootNames) == 0 {
+		return resp, nil
 	}
-	idInfo := []api.IdentityInfo{}
+	if len(rootNames) != 1 {
+		return nil, errors.Errorf("multiple root affiliations found: %+v", rootNames)
+	}
+	affInfo := &api.AffiliationInfo{}
+	err := fillAffiliationInfo(affInfo, rootNames[0], result, result.Affiliations)
+	if err != nil {
+		return nil, err
+	}
+	resp.AffiliationInfo = *affInfo
+	return resp, nil
+}
+
+// Get all of the root affiliation names from this list of affiliations
+func getRootAffiliationNames(affiliations []spi.Affiliation) []string {
+	roots := []string{}
+	for _, aff1 := range affiliations {
+		isRoot := true
+		for _, aff2 := range affiliations {
+			if isChildAffiliation(aff2.GetName(), aff1.GetName()) {
+				isRoot = false
+				break
+			}
+		}
+		if isRoot {
+			roots = append(roots, aff1.GetName())
+		}
+	}
+	return roots
+}
+
+// Fill 'info' with affiliation info associated with affiliation 'name' hierarchically.
+// Use 'affiliations' to find child affiliations for this affiliation, and
+// 'identities' to find identities associated with this affiliation.
+func fillAffiliationInfo(info *api.AffiliationInfo, name string, result *spi.DbTxResult, affiliations []spi.Affiliation) error {
+	info.Name = name
+	// Add identities which have this affiliation
+	identities := []api.IdentityInfo{}
 	for _, identity := range result.Identities {
-		id, err := getIDInfo(identity)
-		if err != nil {
-			return nil, err
+		idAff := strings.Join(identity.GetAffiliationPath(), ".")
+		if idAff == name {
+			id, err := getIDInfo(identity)
+			if err != nil {
+				return err
+			}
+			identities = append(identities, *id)
 		}
-		idInfo = append(idInfo, *id)
 	}
-	return &api.AffiliationWithIdentityResponse{
-		Affiliations: affInfo,
-		Identities:   idInfo,
-		CAName:       caname,
+	if len(identities) > 0 {
+		info.Identities = identities
+	}
+	// Create child affiliations (if any)
+	children := []api.AffiliationInfo{}
+	var child spi.Affiliation
+	for {
+		child = nil
+		// Search for a child affiliations
+		for idx, aff := range affiliations {
+			affName := aff.GetName()
+			if isChildAffiliation(name, affName) {
+				child = aff
+				// Remove this child affiliation
+				affiliations = append(affiliations[:idx], affiliations[idx+1:]...)
+				break
+			}
+		}
+		if child == nil {
+			// No more children of this affiliation 'name' found
+			break
+		}
+		// Found a child of affiliation 'name'
+		childAff := api.AffiliationInfo{Name: child.GetName()}
+		err := fillAffiliationInfo(&childAff, child.GetName(), result, affiliations)
+		if err != nil {
+			return err
+		}
+		children = append(children, childAff)
+	}
+	if len(children) > 0 {
+		info.Affiliations = children
+	}
+	return nil
+}
+
+// Determine if the affiliation with name 'child' is a child of affiliation with name 'name'
+func isChildAffiliation(name, child string) bool {
+	if !strings.HasPrefix(child, name+".") {
+		return false
+	}
+	nameParts := strings.Split(name, ".")
+	childParts := strings.Split(child, ".")
+	if len(childParts) != len(nameParts)+1 {
+		return false
+	}
+	return true
+}
+
+func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
+	allAttributes, err := user.GetAttributes(nil)
+	if err != nil {
+		return nil, err
+	}
+	return &api.IdentityInfo{
+		ID:             user.GetName(),
+		Type:           user.GetType(),
+		Affiliation:    GetUserAffiliation(user),
+		Attributes:     allAttributes,
+		MaxEnrollments: user.GetMaxEnrollments(),
 	}, nil
+}
+
+type affiliationNode struct {
+	children map[string]*affiliationNode
+}
+
+func (an *affiliationNode) insertByName(name string) {
+	an.insertByPath(strings.Split(name, "."))
+}
+
+func (an *affiliationNode) insertByPath(path []string) {
+	if len(path) == 0 {
+		return
+	}
+	if an.children == nil {
+		an.children = map[string]*affiliationNode{}
+	}
+	node := an.children[path[0]]
+	if node == nil {
+		node = &affiliationNode{}
+		an.children[path[0]] = node
+	}
+	node.insertByPath(path[1:])
+}
+
+func (an *affiliationNode) GetRoot() *api.AffiliationInfo {
+	result := &api.AffiliationInfo{}
+	an.fill([]string{}, result)
+	switch len(result.Affiliations) {
+	case 0:
+		return nil
+	case 1:
+		return &result.Affiliations[0]
+	default:
+		return result
+	}
+}
+
+func (an *affiliationNode) fill(path []string, ai *api.AffiliationInfo) {
+	ai.Name = strings.Join(path, ".")
+	if len(an.children) > 0 {
+		ai.Affiliations = make([]api.AffiliationInfo, len(an.children))
+		idx := 0
+		for key, child := range an.children {
+			child.fill(append(path, key), &ai.Affiliations[idx])
+			idx++
+		}
+	}
 }

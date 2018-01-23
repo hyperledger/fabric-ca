@@ -82,9 +82,7 @@ func (c *ClientCmd) newAddIdentityCommand() *cobra.Command {
 		RunE:    c.runAddIdentity,
 	}
 	flags := identityAddCmd.Flags()
-	util.RegisterFlags(c.myViper, flags, &c.dynamicIdentity.add.IdentityInfo, nil)
-	flags.StringVarP(
-		&c.dynamicIdentity.add.Secret, "secret", "", "", "The enrollment secret for the identity being registered")
+	util.RegisterFlags(c.myViper, flags, &c.dynamicIdentity.add, nil)
 	flags.StringSliceVarP(
 		&c.cfgAttrs, "attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
 	flags.StringVarP(
@@ -105,9 +103,7 @@ func (c *ClientCmd) newModifyIdentityCommand() *cobra.Command {
 	tags := map[string]string{
 		"skip.id": "true",
 	}
-	util.RegisterFlags(c.myViper, flags, &c.dynamicIdentity.modify.IdentityInfo, tags)
-	flags.StringVarP(
-		&c.dynamicIdentity.modify.Secret, "secret", "", "", "The enrollment secret for the identity being registered")
+	util.RegisterFlags(c.myViper, flags, &c.dynamicIdentity.modify, tags)
 	flags.StringSliceVarP(
 		&c.cfgAttrs, "attrs", "", nil, "A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)")
 	flags.StringVarP(
@@ -145,7 +141,7 @@ func (c *ClientCmd) runListIdentity(cmd *cobra.Command, args []string) error {
 			return err
 		}
 
-		fmt.Printf("%+v\n", resp.IdentityInfo)
+		fmt.Printf("Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Attributes: %+v\n", resp.ID, resp.Type, resp.Affiliation, resp.MaxEnrollments, resp.Attributes)
 		return nil
 	}
 
@@ -172,28 +168,23 @@ func (c *ClientCmd) runAddIdentity(cmd *cobra.Command, args []string) error {
 	req := &api.AddIdentityRequest{}
 
 	if c.dynamicIdentity.json != "" {
-		newIdentity := api.IdentityInfo{}
-		err := util.Unmarshal([]byte(c.dynamicIdentity.json), &newIdentity, "addIdentity")
+		err := util.Unmarshal([]byte(c.dynamicIdentity.json), &req, "addIdentity")
 		if err != nil {
 			return errors.Wrap(err, "Invalid value for --json option")
 		}
-		req.IdentityInfo = newIdentity
 	} else {
-		req.IdentityInfo = c.dynamicIdentity.add.IdentityInfo
-		req.IdentityInfo.Attributes = c.clientCfg.ID.Attributes
+		req = &c.dynamicIdentity.add
+		req.Attributes = c.clientCfg.ID.Attributes
 	}
 
 	req.ID = args[0]
 	req.CAName = c.clientCfg.CAName
-	req.Secret = c.dynamicIdentity.add.Secret
 	resp, err := id.AddIdentity(req)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Successfully added identity: %+v\n", resp.IdentityInfo)
-	fmt.Printf("Secret: %s\n", resp.Secret)
-
+	fmt.Printf("Successfully added identity - Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Secret: %s, Attributes: %+v\n", resp.ID, resp.Type, resp.Affiliation, resp.MaxEnrollments, resp.Secret, resp.Attributes)
 	return nil
 }
 
@@ -212,15 +203,13 @@ func (c *ClientCmd) runModifyIdentity(cmd *cobra.Command, args []string) error {
 	}
 
 	if c.dynamicIdentity.json != "" {
-		modifyIdentity := &api.IdentityInfo{}
-		err := util.Unmarshal([]byte(c.dynamicIdentity.json), modifyIdentity, "modifyIdentity")
+		err := util.Unmarshal([]byte(c.dynamicIdentity.json), req, "modifyIdentity")
 		if err != nil {
 			return errors.Wrap(err, "Invalid value for --json option")
 		}
-		req.IdentityInfo = *modifyIdentity
 	} else {
-		req.IdentityInfo = c.dynamicIdentity.modify.IdentityInfo
-		req.IdentityInfo.Attributes = c.clientCfg.ID.Attributes
+		req = &c.dynamicIdentity.modify
+		req.Attributes = c.clientCfg.ID.Attributes
 	}
 
 	req.ID = args[0]
@@ -230,8 +219,7 @@ func (c *ClientCmd) runModifyIdentity(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Successfully modified identity: %+v\n", resp.IdentityInfo)
-
+	fmt.Printf("Successfully modified identity - Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Secret: %s, Attributes: %+v\n", resp.ID, resp.Type, resp.Affiliation, resp.MaxEnrollments, resp.Secret, resp.Attributes)
 	return nil
 }
 
@@ -252,8 +240,7 @@ func (c *ClientCmd) runRemoveIdentity(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Successfully removed identity: %+v\n", resp.IdentityInfo)
-
+	fmt.Printf("Successfully removed identity - Name: %s, Type: %s, Affiliation: %s, Max Enrollments: %d, Attributes: %+v\n", resp.ID, resp.Type, resp.Affiliation, resp.MaxEnrollments, resp.Attributes)
 	return nil
 }
 

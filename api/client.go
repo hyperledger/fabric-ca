@@ -196,38 +196,46 @@ type GenCRLResponse struct {
 // AddIdentityRequest represents the request to add a new identity to the
 // fabric-ca-server
 type AddIdentityRequest struct {
-	IdentityInfo `json:"info"`
+	ID             string      `json:"id" skip:"true"`
+	Type           string      `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Affiliation    string      `json:"affiliation" help:"The identity's affiliation"`
+	Attributes     []Attribute `json:"attrs" mapstructure:"attrs" `
+	MaxEnrollments int         `json:"max_enrollments" mapstructure:"max_enrollments"  def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
 	// Secret is an optional password.  If not specified,
 	// a random secret is generated.  In both cases, the secret
 	// is returned in the RegistrationResponse.
-	Secret string `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity being registered"`
+	Secret string `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity being added"`
 	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // ModifyIdentityRequest represents the request to modify an existing identity on the
 // fabric-ca-server
 type ModifyIdentityRequest struct {
-	ID           string `json:"id"`
-	IdentityInfo `json:"info"`
-	// Secret is an optional password.  If not specified,
-	// a random secret is generated.  In both cases, the secret
-	// is returned in the RegistrationResponse.a
-	Secret string `json:"secret,omitempty" mask:"password"`
-	CAName string `json:"caname,omitempty" skip:"true"`
+	ID             string      `skip:"true"`
+	Type           string      `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Affiliation    string      `json:"affiliation" help:"The identity's affiliation"`
+	Attributes     []Attribute `mapstructure:"attrs" json:"attrs"`
+	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
+	Secret         string      `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity"`
+	CAName         string      `json:"caname,omitempty" skip:"true"`
 }
 
 // RemoveIdentityRequest represents the request to remove an existing identity from the
 // fabric-ca-server
 type RemoveIdentityRequest struct {
-	ID     string `json:"id" skip:"true"`
+	ID     string `skip:"true"`
 	Force  bool   `json:"force"`
 	CAName string `json:"caname,omitempty" skip:"true"`
 }
 
 // GetIDResponse is the response from the GetIdentity call
 type GetIDResponse struct {
-	IdentityInfo `mapstructure:",squash"`
-	CAName       string `json:"caname,omitempty"`
+	ID             string      `json:"id" skip:"true"`
+	Type           string      `json:"type" def:"user"`
+	Affiliation    string      `json:"affiliation"`
+	Attributes     []Attribute `json:"attrs" mapstructure:"attrs" `
+	MaxEnrollments int         `json:"max_enrollments" mapstructure:"max_enrollments"`
+	CAName         string      `json:"caname,omitempty"`
 }
 
 // GetAllIDsResponse is the response from the GetAllIdentities call
@@ -238,67 +246,61 @@ type GetAllIDsResponse struct {
 
 // IdentityResponse is the response from the any add/modify/remove identity call
 type IdentityResponse struct {
-	IdentityInfo `mapstructure:",squash"`
-	Secret       string `json:"secret,omitempty"`
-	CAName       string `json:"caname,omitempty"`
+	ID             string      `json:"id" skip:"true"`
+	Type           string      `json:"type,omitempty"`
+	Affiliation    string      `json:"affiliation"`
+	Attributes     []Attribute `json:"attrs,omitempty" mapstructure:"attrs"`
+	MaxEnrollments int         `json:"max_enrollments,omitempty" mapstructure:"max_enrollments"`
+	Secret         string      `json:"secret,omitempty"`
+	CAName         string      `json:"caname,omitempty"`
 }
 
 // IdentityInfo contains information about an identity
 type IdentityInfo struct {
-	ID             string      `json:"id" skip:"true"`
-	Type           string      `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
-	Affiliation    string      `json:"affiliation" help:"The identity's affiliation"`
-	Attributes     []Attribute `mapstructure:"attrs" json:"attrs"`
-	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" def:"-1" help:"The maximum number of times the secret can be reused to enroll."`
-}
-
-// GetAllAffiliationsResponse is the response from the GetAllAffiliations call
-type GetAllAffiliationsResponse struct {
-	Affiliations []AffiliationInfo `json:"affiliations"`
-	CAName       string            `json:"caname,omitempty"`
+	ID             string      `json:"id"`
+	Type           string      `json:"type"`
+	Affiliation    string      `json:"affiliation"`
+	Attributes     []Attribute `json:"attrs" mapstructure:"attrs"`
+	MaxEnrollments int         `json:"max_enrollments" mapstructure:"max_enrollments"`
 }
 
 // AddAffiliationRequest represents the request to add a new affiliation to the
 // fabric-ca-server
 type AddAffiliationRequest struct {
-	Info   AffiliationInfo `json:"info"`
-	Force  bool            `json:"force"`
-	CAName string          `json:"caname,omitempty"`
-}
-
-// ModifyAffiliationRequest represents the request to modify an existing affiliation on the
-// fabric-ca-server
-type ModifyAffiliationRequest struct {
-	Name   string          `json:"name"`
-	Info   AffiliationInfo `json:"info"`
-	Force  bool            `json:"force"`
-	CAName string          `json:"caname,omitempty"`
-}
-
-// RemoveAffiliationRequest represents the request to remove an existing affiliation from the
-// fabric-ca-server
-type RemoveAffiliationRequest struct {
 	Name   string `json:"name"`
 	Force  bool   `json:"force"`
 	CAName string `json:"caname,omitempty"`
 }
 
-// AffiliationWithIdentityResponse contains the response from removing an affiliation request
-type AffiliationWithIdentityResponse struct {
-	Affiliations []AffiliationInfo `json:"affiliations"`
-	Identities   []IdentityInfo    `json:"identities"`
-	CAName       string            `json:"caname,omitempty"`
+// ModifyAffiliationRequest represents the request to modify an existing affiliation on the
+// fabric-ca-server
+type ModifyAffiliationRequest struct {
+	Name    string
+	NewName string `json:"name"`
+	Force   bool   `json:"force"`
+	CAName  string `json:"caname,omitempty"`
 }
 
-// AffiliationResponse is the response from the any add/modify/remove affiliation call
+// RemoveAffiliationRequest represents the request to remove an existing affiliation from the
+// fabric-ca-server
+type RemoveAffiliationRequest struct {
+	Name   string
+	Force  bool   `json:"force"`
+	CAName string `json:"caname,omitempty"`
+}
+
+// AffiliationResponse contains the response for get, add, modify, and remove an affiliation
 type AffiliationResponse struct {
-	Info   AffiliationInfo `json:"info"`
-	CAName string          `json:"caname,omitempty"`
+	AffiliationInfo `mapstructure:",squash"`
+	CAName          string `json:"caname,omitempty"`
 }
 
-// AffiliationInfo contains information about the affiliation
+// AffiliationInfo contains the affiliation name, child affiliation info, and identities
+// associated with this affiliation.
 type AffiliationInfo struct {
-	Name string `json:"name"`
+	Name         string            `json:"name"`
+	Affiliations []AffiliationInfo `json:"affiliations,omitempty"`
+	Identities   []IdentityInfo    `json:"identities,omitempty"`
 }
 
 // CSRInfo is Certificate Signing Request (CSR) Information

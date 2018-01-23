@@ -87,4 +87,5 @@ type UserRegistry interface {
 	GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error)
 	DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*DbTxResult, error)
 	ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*DbTxResult, error)
+	GetAffiliationTree(name string) (*DbTxResult, error)
 }

@@ -21,7 +21,6 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -93,7 +92,7 @@ func (c *ClientCmd) newModifyAffiliationCommand() *cobra.Command {
 	}
 	flags := affiliationModifyCmd.Flags()
 	flags.StringVarP(
-		&c.dynamicAffiliation.modify.Info.Name, "name", "", "", "Rename the affiliation")
+		&c.dynamicAffiliation.modify.NewName, "name", "", "", "Rename the affiliation")
 	flags.BoolVarP(
 		&c.dynamicAffiliation.modify.Force, "force", "", false, "Forces identities using old affiliation to use new affiliation")
 	return affiliationModifyCmd
@@ -128,15 +127,16 @@ func (c *ClientCmd) runListAffiliation(cmd *cobra.Command, args []string) error 
 			return err
 		}
 
-		fmt.Printf("%+v\n", resp.Info)
+		printTree(resp)
 		return nil
 	}
 
-	err = id.GetAllAffiliations(c.clientCfg.CAName, lib.AffiliationDecoder)
+	resp, err := id.GetAllAffiliations(c.clientCfg.CAName)
 	if err != nil {
 		return err
 	}
 
+	printTree(resp)
 	return nil
 }
 
@@ -150,7 +150,7 @@ func (c *ClientCmd) runAddAffiliation(cmd *cobra.Command, args []string) error {
 	}
 
 	req := &api.AddAffiliationRequest{}
-	req.Info.Name = args[0]
+	req.Name = args[0]
 	req.CAName = c.clientCfg.CAName
 	req.Force = c.dynamicAffiliation.add.Force
 
@@ -159,7 +159,7 @@ func (c *ClientCmd) runAddAffiliation(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Successfully added affiliation: %+v\n", resp)
+	fmt.Printf("Successfully added affiliation: %+v\n", resp.Name)
 
 	return nil
 }
@@ -175,7 +175,7 @@ func (c *ClientCmd) runModifyAffiliation(cmd *cobra.Command, args []string) erro
 
 	req := &api.ModifyAffiliationRequest{}
 	req.Name = args[0]
-	req.Info.Name = c.dynamicAffiliation.modify.Info.Name
+	req.NewName = c.dynamicAffiliation.modify.NewName
 	req.CAName = c.clientCfg.CAName
 	req.Force = c.dynamicAffiliation.modify.Force
 
@@ -227,4 +227,27 @@ func (c *ClientCmd) affiliationPreRunE(cmd *cobra.Command, args []string) error 
 	log.Debugf("Client configuration settings: %+v", c.clientCfg)
 
 	return nil
+}
+
+func printTree(resp *api.AffiliationResponse) {
+	root := resp.Name
+	if root == "" {
+		root = "."
+	}
+	fmt.Printf("affiliation: %s\n", root)
+	printChildren(resp.Affiliations, 1)
+}
+
+func printChildren(children []api.AffiliationInfo, level int) {
+	if len(children) == 0 {
+		return
+	}
+	for _, child := range children {
+		spaces := ""
+		for i := 0; i < level; i++ {
+			spaces = spaces + "   "
+		}
+		fmt.Printf("%saffiliation :%s\n", spaces, child.Name)
+		printChildren(child.Affiliations, level+1)
+	}
 }

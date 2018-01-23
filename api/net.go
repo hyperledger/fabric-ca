@@ -87,12 +87,12 @@ type ModifyIdentityRequestNet struct {
 
 // AddAffiliationRequestNet is a network request for adding a new affiliation
 type AddAffiliationRequestNet struct {
-	Info AffiliationInfo `json:"info"`
+	AddAffiliationRequest
 }
 
 // ModifyAffiliationRequestNet is a network request for modifying an existing affiliation
 type ModifyAffiliationRequestNet struct {
-	Info AffiliationInfo `json:"info"`
+	ModifyAffiliationRequest
 }
 
 // KeySig is a public key, signature, and signature algorithm tuple

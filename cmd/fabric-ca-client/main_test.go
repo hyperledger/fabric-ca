@@ -684,6 +684,15 @@ func TestIdentityCmd(t *testing.T) {
 		cmdName, "identity", "add", "testuser1", "--json", `{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name:": "hf.Revoker", "value": "false"}]}`})
 	assert.Error(t, err, "Should have failed to add same user twice")
 
+	// Check that the secret got correctly configured
+	err = RunMain([]string{
+		cmdName, "enroll", "-u", "http://testuser1:user1pw@localhost:7090", "-d"})
+	assert.NoError(t, err, "Failed to enroll user 'testuser2'")
+
+	// Enroll admin back to use it credentials for next commands
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
 	// Add user using flags
 	err = RunMain([]string{
 		cmdName, "identity", "add", "testuser2", "--secret", "user2pw", "--type", "user", "--affiliation", ".", "--maxenrollments", "1", "--attrs", "hf.Revoker=true"})
@@ -692,6 +701,20 @@ func TestIdentityCmd(t *testing.T) {
 	// Check that the secret got correctly configured
 	err = RunMain([]string{
 		cmdName, "enroll", "-u", "http://testuser2:user2pw@localhost:7090", "-d"})
+	assert.NoError(t, err, "Failed to enroll user 'testuser2'")
+
+	// Enroll admin back to use it credentials for next commands
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	// modify user secret using flags
+	err = RunMain([]string{
+		cmdName, "identity", "modify", "testuser2", "--secret", "user2pw2"})
+	assert.NoError(t, err, "Failed to add user 'testuser2'")
+
+	// Check that the secret got correctly configured
+	err = RunMain([]string{
+		cmdName, "enroll", "-u", "http://testuser2:user2pw2@localhost:7090", "-d"})
 	assert.NoError(t, err, "Failed to enroll user 'testuser2'")
 
 	// Enroll admin back to use it credentials for next commands
@@ -763,7 +786,7 @@ func TestAffiliationCmd(t *testing.T) {
 
 	result, err := captureOutput(RunMain, []string{cmdName, "affiliation", "list"})
 	assert.NoError(t, err, "Failed to return all affiliations")
-	assert.Equal(t, "org1\n", result)
+	assert.Equal(t, "affiliation: org1\n", result)
 
 	err = RunMain([]string{cmdName, "affiliation", "list", "--affiliation", "org2"})
 	assert.Error(t, err, "Should failed to get the requested affiliation, affiliation does not exist")

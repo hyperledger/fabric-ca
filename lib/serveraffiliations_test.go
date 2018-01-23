@@ -16,8 +16,8 @@ limitations under the License.
 package lib
 
 import (
+	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ocsp"
@@ -55,7 +55,7 @@ func TestGetAllAffiliations(t *testing.T) {
 
 	admin2 := resp.Identity
 
-	result, err := captureOutput(admin.GetAllAffiliations, "", AffiliationDecoder)
+	getResp, err := admin.GetAllAffiliations("")
 	assert.NoError(t, err, "Failed to get all affiliations")
 
 	affiliations := []AffiliationRecord{}
@@ -64,18 +64,19 @@ func TestGetAllAffiliations(t *testing.T) {
 		t.Error("Failed to get all affiliations in database")
 	}
 
+	fmt.Println("affiliations: ", affiliations)
 	for _, aff := range affiliations {
-		if !strings.Contains(result, aff.Name) {
+		if !searchTree(getResp, aff.Name) {
 			t.Error("Failed to get all appropriate affiliations")
 		}
 	}
 
 	// admin2's affilations is "org2"
-	result, err = captureOutput(admin2.GetAllAffiliations, "", AffiliationDecoder)
+	getResp, err = admin2.GetAllAffiliations("")
 	assert.NoError(t, err, "Failed to get all affiliations for admin2")
 
-	if !strings.Contains(result, "org2") {
-		t.Error("Incorrect affiliation received")
+	if !searchTree(getResp, "org2") {
+		t.Error("Failed to get all appropriate affiliations")
 	}
 
 	notAffMgr, err := admin.RegisterAndEnroll(&api.RegistrationRequest{
@@ -83,11 +84,10 @@ func TestGetAllAffiliations(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to register a user that is not affiliation manager")
 
-	err = notAffMgr.GetAllAffiliations("", AffiliationDecoder)
+	_, err = notAffMgr.GetAllAffiliations("")
 	if assert.Error(t, err, "Should have failed, as the caller does not have the attribute 'hf.AffiliationMgr'") {
 		assert.Contains(t, err.Error(), "User does not have attribute 'hf.AffiliationMgr'")
 	}
-
 }
 
 func TestGetAffiliation(t *testing.T) {
@@ -118,9 +118,14 @@ func TestGetAffiliation(t *testing.T) {
 
 	admin2 := resp.Identity
 
-	getAffResp, err := admin.GetAffiliation("org2.dept1", "")
+	getAffResp, err := admin.GetAffiliation("org2", "")
 	assert.NoError(t, err, "Failed to get requested affiliations")
-	assert.Equal(t, "org2.dept1", getAffResp.Info.Name)
+	assert.Equal(t, "org2", getAffResp.Name)
+	assert.Equal(t, "org2.dept1", getAffResp.Affiliations[0].Name)
+
+	getAffResp, err = admin.GetAffiliation("org2.dept1", "")
+	assert.NoError(t, err, "Failed to get requested affiliations")
+	assert.Equal(t, "org2.dept1", getAffResp.Name)
 
 	getAffResp, err = admin2.GetAffiliation("org1", "")
 	assert.Error(t, err, "Should have failed, caller not authorized to get affiliation")
@@ -180,8 +185,9 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	admin2 := resp.Identity
 
-	addAffReq := &api.AddAffiliationRequest{}
-	addAffReq.Info.Name = "org3"
+	addAffReq := &api.AddAffiliationRequest{
+		Name: "org3",
+	}
 
 	addAffResp, err := notAffMgr.AddAffiliation(addAffReq)
 	assert.Error(t, err, "Should have failed, caller does not have 'hf.AffiliationMgr' attribute")
@@ -191,12 +197,12 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	util.FatalError(t, err, "Failed to add affiliation 'org3'")
-	assert.Equal(t, "org3", addAffResp.Info.Name)
+	assert.Equal(t, "org3", addAffResp.Name)
 
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	assert.Error(t, err, "Should have failed affiliation 'org3' already exists")
 
-	addAffReq.Info.Name = "org3.dept1"
+	addAffReq.Name = "org3.dept1"
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	assert.NoError(t, err, "Failed to affiliation")
 
@@ -204,7 +210,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 	_, err = registry.GetAffiliation("org3.dept1")
 	assert.NoError(t, err, "Failed to add affiliation correctly")
 
-	addAffReq.Info.Name = "org4.dept1.team2"
+	addAffReq.Name = "org4.dept1.team2"
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	assert.Error(t, err, "Should have failed, parent affiliation does not exist. Force option is required")
 
@@ -217,7 +223,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 
 	_, err = registry.GetAffiliation("org4.dept1")
 	assert.NoError(t, err, "Failed to add affiliation correctly")
-	assert.Equal(t, "org4.dept1.team2", addAffResp.Info.Name)
+	assert.Equal(t, "org4.dept1.team2", addAffResp.Name)
 }
 
 func TestDynamicRemoveAffiliation(t *testing.T) {
@@ -282,6 +288,11 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 	})
 	assert.NoError(t, err, "Failed to register and enroll 'testuser1'")
 
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser3",
+		Affiliation: "org2.dept1",
+	})
+
 	_, err = registry.GetUser("testuser2", nil)
 	assert.NoError(t, err, "User should exist")
 
@@ -335,8 +346,9 @@ func TestDynamicRemoveAffiliation(t *testing.T) {
 		t.Error("Failed to correctly revoke certificate for an identity whose affiliation was removed")
 	}
 
+	assert.Equal(t, "org2", removeResp.Name)
 	assert.Equal(t, "org2.dept1", removeResp.Affiliations[0].Name)
-	assert.Equal(t, "org2", removeResp.Affiliations[1].Name)
+	assert.Equal(t, "testuser3", removeResp.Affiliations[0].Identities[0].ID)
 	assert.Equal(t, "admin2", removeResp.Identities[0].ID)
 
 	_, err = admin.RemoveAffiliation(removeAffReq)
@@ -375,10 +387,21 @@ func TestDynamicModifyAffiliation(t *testing.T) {
 		},
 	})
 
+	_, err = admin.AddAffiliation(&api.AddAffiliationRequest{
+		Name: "org2.dept1.team1",
+	})
+	assert.NoError(t, err, "Failed to add new affiliation")
+
+	_, err = admin.Register(&api.RegistrationRequest{
+		Name:        "testuser2",
+		Affiliation: "org2.dept1.team1",
+	})
+	assert.NoError(t, err, "Failed to register new user")
+
 	modifyAffReq := &api.ModifyAffiliationRequest{
-		Name: "org2",
+		Name:    "org2",
+		NewName: "org3",
 	}
-	modifyAffReq.Info.Name = "org3"
 
 	_, err = admin.ModifyAffiliation(modifyAffReq)
 	assert.Error(t, err, "Should have failed, there is an identity associated with affiliation. Need to use force option")
@@ -402,7 +425,39 @@ func TestDynamicModifyAffiliation(t *testing.T) {
 	userAff := GetUserAffiliation(user)
 	assert.Equal(t, "org3", userAff)
 
-	assert.Equal(t, "org2.dept1", modifyResp.Affiliations[0].Name)
-	assert.Equal(t, "org2", modifyResp.Affiliations[1].Name)
+	assert.Equal(t, "org3", modifyResp.Name)
+	assert.Equal(t, "org3.dept1", modifyResp.Affiliations[0].Name)
 	assert.Equal(t, "testuser1", modifyResp.Identities[0].ID)
+}
+
+func TestAffiliationNode(t *testing.T) {
+	an := &affiliationNode{}
+	an.insertByName("a.b.c")
+	an.insertByName("a")
+	an.insertByName("a.c.b")
+	root := an.GetRoot()
+	assert.Equal(t, root.Name, "a")
+	assert.Equal(t, root.Affiliations[0].Name, "a.b")
+	assert.Equal(t, root.Affiliations[0].Affiliations[0].Name, "a.b.c")
+	assert.Equal(t, root.Affiliations[1].Name, "a.c")
+	assert.Equal(t, root.Affiliations[1].Affiliations[0].Name, "a.c.b")
+}
+
+func searchTree(resp *api.AffiliationResponse, find string) bool {
+	if resp.Name == find {
+		return true
+	}
+	return searchChildren(resp.Affiliations, find)
+}
+
+func searchChildren(children []api.AffiliationInfo, find string) bool {
+	for _, child := range children {
+		if child.Name == find {
+			return true
+		}
+		if searchChildren(child.Affiliations, find) {
+			return true
+		}
+	}
+	return false
 }

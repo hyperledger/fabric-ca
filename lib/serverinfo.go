@@ -16,12 +16,18 @@ limitations under the License.
 
 package lib
 
+import (
+	"github.com/hyperledger/fabric-ca/lib/metadata"
+)
+
 // The response to the GET /info request
 type serverInfoResponseNet struct {
 	// CAName is a unique name associated with fabric-ca-server's CA
 	CAName string
 	// Base64 encoding of PEM-encoded certificate chain
 	CAChain string
+	// Version of the server
+	Version string
 }
 
 func newCAInfoEndpoint(s *Server) *serverEndpoint {
@@ -43,5 +49,6 @@ func cainfoHandler(ctx *serverRequestContext) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	resp.Version = metadata.GetVersion()
 	return resp, nil
 }

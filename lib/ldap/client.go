@@ -304,6 +304,11 @@ func (lc *Client) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error
 	return nil, errNotSupported
 }
 
+// GetAffiliationTree returns the requested affiliations and all affiliations below it
+func (lc *Client) GetAffiliationTree(name string) (*spi.DbTxResult, error) {
+	return nil, errNotSupported
+}
+
 // Connect to the LDAP server and bind as user as admin user as specified in LDAP URL
 func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 	address := fmt.Sprintf("%s:%d", lc.Host, lc.Port)

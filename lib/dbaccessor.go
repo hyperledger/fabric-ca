@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/hyperledger/fabric-ca/lib/attr"
+
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
@@ -467,6 +469,56 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 	return affiliation, nil
 }
 
+// GetAffiliationTree returns the requested affiliation and affiliations below
+func (d *Accessor) GetAffiliationTree(name string) (*spi.DbTxResult, error) {
+	log.Debugf("DB: Get affiliation tree for '%s'", name)
+
+	if name != "" {
+		_, err := d.GetAffiliation(name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result, err := d.doTransaction(d.getAffiliationTreeTx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	getResult := result.(*spi.DbTxResult)
+
+	return getResult, nil
+}
+
+// GetAffiliation gets affiliation from database
+func (d *Accessor) getAffiliationTreeTx(tx *sqlx.Tx, args ...interface{}) (interface{}, error) {
+	name := args[0].(string)
+
+	log.Debugf("DB: Get affiliation tree for %s", name)
+	err := d.checkDB()
+	if err != nil {
+		return nil, err
+	}
+
+	// Getting affiliations
+	allAffs := []AffiliationRecord{}
+	if name == "" { // Requesting all affiliations
+		err = tx.Select(&allAffs, tx.Rebind("SELECT * FROM affiliations"))
+		if err != nil {
+			return nil, newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation tree for '%s': %s", name, err)
+		}
+	} else {
+		err = tx.Select(&allAffs, tx.Rebind("Select * FROM affiliations where (name LIKE ?) OR (name = ?)"), name+".%", name)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation tree for '%s': %s", name, err)
+		}
+	}
+
+	ids := []UserRecord{} // TODO: Return identities associated with these affiliations
+	result := d.getResult(ids, allAffs)
+	return result, nil
+}
+
 // GetProperties returns the properties from the database
 func (d *Accessor) GetProperties(names []string) (map[string]string, error) {
 	log.Debugf("DB: Get properties %s", names)
@@ -645,11 +697,11 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	allOldAffiliations = append(allOldAffiliations, oldAffiliationRecord)
 
 	log.Debugf("Affiliations to be modified %+v", allOldAffiliations)
-	var idsWithOldAff []UserRecord
-	var allIds []UserRecord
 
 	// Iterate through all the affiliations found and update to use new affiliation path
+	idsUpdated := []string{}
 	for _, affiliation := range allOldAffiliations {
+		var idsWithOldAff []UserRecord
 		oldPath := affiliation.Name
 		oldParentPath := affiliation.Prekey
 		newPath := strings.Replace(oldPath, oldAffiliation, newAffiliation, 1)
@@ -662,7 +714,6 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 		if err != nil {
 			return nil, err
 		}
-
 		if len(idsWithOldAff) > 0 {
 			if !isRegistar {
 				return nil, newAuthErr(ErrMissingRegAttr, "Modifying affiliation affects identities, but caller is not a registrar")
@@ -685,11 +736,53 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 				if err != nil {
 					return nil, errors.Wrapf(err, "Failed to execute query '%s' for multiple certificate removal", query)
 				}
+
+				// If user's affiliation is being updated, need to also update 'hf.Affiliation' attribute of user
+				for _, userRec := range idsWithOldAff {
+					user := d.newDBUser(&userRec)
+					currentAttrs, _ := user.GetAttributes(nil)                            // Get all current user attributes
+					userAff := GetUserAffiliation(user)                                   // Get the current affiliation
+					newAff := strings.Replace(userAff, oldAffiliation, newAffiliation, 1) // Replace old affiliation with new affiliation
+					userAttrs := getNewAttributes(currentAttrs, []api.Attribute{          // Generate the new set of attributes for user
+						api.Attribute{
+							Name:  attr.Affiliation,
+							Value: newAff,
+						},
+					})
+
+					attrBytes, err := json.Marshal(userAttrs)
+					if err != nil {
+						return nil, err
+					}
+
+					// Update attributes
+					query := "UPDATE users SET attributes = ? where (id = ?)"
+					id := user.GetName()
+					res, err := tx.Exec(tx.Rebind(query), string(attrBytes), id)
+					if err != nil {
+						return nil, err
+					}
+
+					numRowsAffected, err := res.RowsAffected()
+					if err != nil {
+						return nil, errors.Wrap(err, "Failed to get number of rows affected")
+					}
+
+					if numRowsAffected == 0 {
+						return nil, errors.Errorf("No rows were affected when updating the state of identity %s", id)
+					}
+
+					if numRowsAffected != 1 {
+						return nil, errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, id)
+					}
+				}
 			} else {
 				// If force option is not specified, can only modify affiliation if there are no identities that have that affiliation
 				idNamesStr := strings.Join(ids, ",")
 				return nil, newHTTPErr(400, ErrUpdateConfigModifyAff, "The request to modify affiliation '%s' has the following identities associated: %s. Need to use 'force' to remove identities and affiliation", oldAffiliation, idNamesStr)
 			}
+
+			idsUpdated = append(idsUpdated, ids...)
 		}
 
 		// Update the affiliation record in the database to use new affiliation path
@@ -702,14 +795,30 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 		if numRowsAffected == 0 {
 			return nil, errors.Errorf("Failed to update any affiliation records for '%s'", oldPath)
 		}
+	}
 
-		for _, id := range idsWithOldAff {
-			allIds = append(allIds, id)
+	// Generate the result set that has all identities with their new affiliation and all renamed affiliations
+	var idsWithNewAff []UserRecord
+	if len(idsUpdated) > 0 {
+		query = "Select * FROM users WHERE (id IN (?))"
+		inQuery, args, err := sqlx.In(query, idsUpdated)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to construct query '%s'", query)
+		}
+		err = tx.Select(&idsWithNewAff, tx.Rebind(inQuery), args...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to execute query '%s' for getting users with new affiliation", query)
 		}
 	}
 
+	allNewAffs := []AffiliationRecord{}
+	err = tx.Select(&allNewAffs, tx.Rebind("Select * FROM affiliations where (name LIKE ?) OR (name = ?)"), newAffiliation+".%", newAffiliation)
+	if err != nil {
+		return nil, newHTTPErr(500, ErrGettingAffiliation, "Failed to get affiliation tree for '%s': %s", newAffiliation, err)
+	}
+
 	// Return the identities and affiliations that were modified
-	result := d.getResult(allIds, allOldAffiliations)
+	result := d.getResult(idsWithNewAff, allNewAffs)
 
 	return result, nil
 }
