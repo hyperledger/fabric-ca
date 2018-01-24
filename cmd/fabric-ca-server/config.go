@@ -234,7 +234,7 @@ ldap:
       converters:
          - name:
            value:
-      # The 'maps' section contains named maps which may be referenced by the 'map' 
+      # The 'maps' section contains named maps which may be referenced by the 'map'
       # function in the 'converters' section to map LDAP responses to arbitrary values.
       # For example, assume a user has an LDAP attribute named 'member' which has multiple
       # values which are each a distinguished name (i.e. a DN). For simplicity, assume the

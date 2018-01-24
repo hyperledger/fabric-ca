@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 : ${TESTCASE="version"}
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
