@@ -33,7 +33,7 @@
 PROJECT_NAME   = fabric-ca
 BASE_VERSION = 1.1.0-alpha
 PREV_VERSION = 1.1.0-preview
-IS_RELEASE = false
+IS_RELEASE = true
 
 ARCH=$(shell uname -m)
 

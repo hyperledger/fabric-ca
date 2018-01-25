@@ -1,3 +1,76 @@
+## v1.1.0-alpha
+Fri Jan 26 14:48:54 EST 2018
+
+* [94604d5](https://github.com/hyperledger/fabric-ca/commit/94604d5) FAB-7783 prepare fabric-ca for v1.1.0-alpha
+* [e33ebdf](https://github.com/hyperledger/fabric-ca/commit/e33ebdf) [FAB-7932](https://jira.hyperledger.org/browse/FAB-7932) Version test failure for release
+* [437d27e](https://github.com/hyperledger/fabric-ca/commit/437d27e) FAB-7924 update fabric-baseimage version
+* [ca705f6](https://github.com/hyperledger/fabric-ca/commit/ca705f6) [FAB-7812](https://jira.hyperledger.org/browse/FAB-7812) Fix the APIs to return info correctly
+* [5594cca](https://github.com/hyperledger/fabric-ca/commit/5594cca) [ FAB-7865 ] Remove trailing blanks from files
+* [d31916c](https://github.com/hyperledger/fabric-ca/commit/d31916c) [FAB-7660](https://jira.hyperledger.org/browse/FAB-7660) Fix LDAP missing attribute error
+* [ad88250](https://github.com/hyperledger/fabric-ca/commit/ad88250) [FAB-7620](https://jira.hyperledger.org/browse/FAB-7620) Return err when revoking revoked cert
+* [135b81c](https://github.com/hyperledger/fabric-ca/commit/135b81c) [ FAB-7207 ] Test CRL as part of revoke
+* [e39b3e4](https://github.com/hyperledger/fabric-ca/commit/e39b3e4) [FAB-7464](https://jira.hyperledger.org/browse/FAB-7464) Don't use RevokedBefore if not set
+* [ea386ca](https://github.com/hyperledger/fabric-ca/commit/ea386ca) [FAB-7465](https://jira.hyperledger.org/browse/FAB-7465) Fix the authority checks on attributes
+* [2c88247](https://github.com/hyperledger/fabric-ca/commit/2c88247) [FAB-7619](https://jira.hyperledger.org/browse/FAB-7619) Fix case handling in LDAP converter
+* [1209e25](https://github.com/hyperledger/fabric-ca/commit/1209e25) [FAB-7662](https://jira.hyperledger.org/browse/FAB-7662) Add SQLite support for migration
+* [52e5d66](https://github.com/hyperledger/fabric-ca/commit/52e5d66) [FAB-7646](https://jira.hyperledger.org/browse/FAB-7646) certs should expire before issuing cert
+* [ebfc050](https://github.com/hyperledger/fabric-ca/commit/ebfc050) [FAB-7471](https://jira.hyperledger.org/browse/FAB-7471) Add missing libs to docker images
+* [c219a5e](https://github.com/hyperledger/fabric-ca/commit/c219a5e) [FAB-7596](https://jira.hyperledger.org/browse/FAB-7596) Modify enroll cmd to read env var
+* [48defd8](https://github.com/hyperledger/fabric-ca/commit/48defd8) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 9. Dynamic Cfg - Aff: Modify
+* [66fafe2](https://github.com/hyperledger/fabric-ca/commit/66fafe2) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 8. Dynamic Cfg - Aff: Add/Remove
+* [e50822a](https://github.com/hyperledger/fabric-ca/commit/e50822a) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 7. Dynamic Cfg - Aff: Get
+* [bc33398](https://github.com/hyperledger/fabric-ca/commit/bc33398) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 6. Dynamic Cfg - Aff: CLI
+* [332d940](https://github.com/hyperledger/fabric-ca/commit/332d940) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 5. Dynamic Cfg - identities: Modify
+* [68c8eec](https://github.com/hyperledger/fabric-ca/commit/68c8eec) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 4. Dynamic Cfg - identities: Add/Remove
+* [ba15457](https://github.com/hyperledger/fabric-ca/commit/ba15457) [FAB-6328](https://jira.hyperledger.org/browse/FAB-6328) Fix cleanup of unit-tests temp files
+* [195992b](https://github.com/hyperledger/fabric-ca/commit/195992b) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 3. Dynamic Cfg - identities: GetIDs
+* [d0fd310](https://github.com/hyperledger/fabric-ca/commit/d0fd310) [FAB-7348](https://jira.hyperledger.org/browse/FAB-7348) Set user max enrollments correctly
+* [6ae8f06](https://github.com/hyperledger/fabric-ca/commit/6ae8f06) [FAB-7524](https://jira.hyperledger.org/browse/FAB-7524) Improve error checking for key lookup
+* [7b4ada4](https://github.com/hyperledger/fabric-ca/commit/7b4ada4) [FAB-3416](https://jira.hyperledger.org/browse/FAB-3416) Map LDAP attrs to fabric CA attrs
+* [98da125](https://github.com/hyperledger/fabric-ca/commit/98da125) [FAB-7458](https://jira.hyperledger.org/browse/FAB-7458) JSON streamer
+* [6c06895](https://github.com/hyperledger/fabric-ca/commit/6c06895) [FAB-6932](https://jira.hyperledger.org/browse/FAB-6932) Unstage key variation test
+* [1443a7d](https://github.com/hyperledger/fabric-ca/commit/1443a7d) [FAB-3416](https://jira.hyperledger.org/browse/FAB-3416) Vendoring govaluate
+* [a82b326](https://github.com/hyperledger/fabric-ca/commit/a82b326) [FAB-3159](https://jira.hyperledger.org/browse/FAB-3159) Update vendored version of viper
+* [bacb382](https://github.com/hyperledger/fabric-ca/commit/bacb382) [FAB-7489](https://jira.hyperledger.org/browse/FAB-7489) TLS test certs are expired
+* [52ea881](https://github.com/hyperledger/fabric-ca/commit/52ea881) [FAB-7223](https://jira.hyperledger.org/browse/FAB-7223) Wrap CRL PEM file at 64 characters
+* [b57c216](https://github.com/hyperledger/fabric-ca/commit/b57c216) [ FAB-7448 ] check_format trailing blanks
+* [be05c87](https://github.com/hyperledger/fabric-ca/commit/be05c87) [ FAB-6452 ] fabric-ca CSR to external CA
+* [6443f43](https://github.com/hyperledger/fabric-ca/commit/6443f43) [ FAB-6448 ] Version command test
+* [25c2411](https://github.com/hyperledger/fabric-ca/commit/25c2411) [FAB-4828](https://jira.hyperledger.org/browse/FAB-4828) Make docker namespace configurable
+* [f5af79b](https://github.com/hyperledger/fabric-ca/commit/f5af79b) [FAB-6932](https://jira.hyperledger.org/browse/FAB-6932) Unmarshal key request object correctly
+* [7f12e2c](https://github.com/hyperledger/fabric-ca/commit/7f12e2c) [FAB-7344](https://jira.hyperledger.org/browse/FAB-7344) Set default TLS cert file name
+* [1c6ef12](https://github.com/hyperledger/fabric-ca/commit/1c6ef12) [FAB-7291](https://jira.hyperledger.org/browse/FAB-7291) Set default value for Chainfile attribute
+* [604a634](https://github.com/hyperledger/fabric-ca/commit/604a634) [FAB-7235](https://jira.hyperledger.org/browse/FAB-7235) Check profile for isCA
+* [f187f3d](https://github.com/hyperledger/fabric-ca/commit/f187f3d) [FAB-6647](https://jira.hyperledger.org/browse/FAB-6647) 2. Maintain backwards compatibility
+* [6b6b294](https://github.com/hyperledger/fabric-ca/commit/6b6b294) [FAB-6647](https://jira.hyperledger.org/browse/FAB-6647) 1. Maintain backwards compatibility
+* [7a17a94](https://github.com/hyperledger/fabric-ca/commit/7a17a94) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 2. Dynamic Cfg - identities: CLI2
+* [3fad051](https://github.com/hyperledger/fabric-ca/commit/3fad051) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) 1. Dynamic Cfg - Identities: CLI
+* [b924bcb](https://github.com/hyperledger/fabric-ca/commit/b924bcb) [FAB-6817](https://jira.hyperledger.org/browse/FAB-6817) Check if CA cert has 'crl sign' usage
+* [77c6498](https://github.com/hyperledger/fabric-ca/commit/77c6498) [FAB-6405](https://jira.hyperledger.org/browse/FAB-6405) Fix cert/key paths with --cacount
+* [e554d99](https://github.com/hyperledger/fabric-ca/commit/e554d99) [FAB-7008](https://jira.hyperledger.org/browse/FAB-7008) Fix compilation error
+* [cd74c8a](https://github.com/hyperledger/fabric-ca/commit/cd74c8a) [FAB-6991](https://jira.hyperledger.org/browse/FAB-6991) Fix max enrollments for bootstrap user
+* [eee7cb7](https://github.com/hyperledger/fabric-ca/commit/eee7cb7) [FAB-6993](https://jira.hyperledger.org/browse/FAB-6993) Add troubleshooting tip
+* [b3c00ea](https://github.com/hyperledger/fabric-ca/commit/b3c00ea) [FAB-6321](https://jira.hyperledger.org/browse/FAB-6321) Store CA certs in child-first order
+* [0587ca8](https://github.com/hyperledger/fabric-ca/commit/0587ca8) [FAB-6871](https://jira.hyperledger.org/browse/FAB-6871) Set OUs in ECerts
+* [69d2d18](https://github.com/hyperledger/fabric-ca/commit/69d2d18) [ FAB-6963 ] Fix binary data in log file
+* [15c7635](https://github.com/hyperledger/fabric-ca/commit/15c7635) [FAB-6710](https://jira.hyperledger.org/browse/FAB-6710) Remove GetUserInfo call
+* [eb3eac0](https://github.com/hyperledger/fabric-ca/commit/eb3eac0) [ FAB-6976 ] Default timeout for cluster test
+* [ae842d0](https://github.com/hyperledger/fabric-ca/commit/ae842d0) [FAB-6964](https://jira.hyperledger.org/browse/FAB-6964) fix load-tester compilation issue
+* [3175ee7](https://github.com/hyperledger/fabric-ca/commit/3175ee7) [FAB-5462](https://jira.hyperledger.org/browse/FAB-5462) Remove non-existent files from yaml
+* [d353303](https://github.com/hyperledger/fabric-ca/commit/d353303) [FAB-6946](https://jira.hyperledger.org/browse/FAB-6946) Add target for fabric-ca image alone
+* [b5285b5](https://github.com/hyperledger/fabric-ca/commit/b5285b5) [FAB-6930](https://jira.hyperledger.org/browse/FAB-6930) Permit lists with brackets
+* [ab7a40b](https://github.com/hyperledger/fabric-ca/commit/ab7a40b) [ FAB-6698 ] Fabric CA clustering
+* [6eb74e1](https://github.com/hyperledger/fabric-ca/commit/6eb74e1) [FAB-6917](https://jira.hyperledger.org/browse/FAB-6917) Vendor gorilla/mux
+* [b5373f6](https://github.com/hyperledger/fabric-ca/commit/b5373f6) [ FAB-6864 ] Increase default start timeout
+* [626f943](https://github.com/hyperledger/fabric-ca/commit/626f943) [FAB-6842](https://jira.hyperledger.org/browse/FAB-6842) Change rc for some endpoints to 201
+* [059753e](https://github.com/hyperledger/fabric-ca/commit/059753e) [FAB-6899](https://jira.hyperledger.org/browse/FAB-6899) Fix affiliation in swagger doc
+* [a9d6569](https://github.com/hyperledger/fabric-ca/commit/a9d6569) [FAB-6745](https://jira.hyperledger.org/browse/FAB-6745) Add netcat to fabric-ca images
+* [dca4740](https://github.com/hyperledger/fabric-ca/commit/dca4740) Fix [FAB-6768](https://jira.hyperledger.org/browse/FAB-6768)
+* [d98663f](https://github.com/hyperledger/fabric-ca/commit/d98663f) [FAB-5726](https://jira.hyperledger.org/browse/FAB-5726) Update swagger for dynamic update
+* [2431f12](https://github.com/hyperledger/fabric-ca/commit/2431f12) FAB-6826 Prepare fabric-ca for next release
+* [33f3629](https://github.com/hyperledger/fabric-ca/commit/33f3629) [FAB-6475](https://jira.hyperledger.org/browse/FAB-6475) Add well-known attributes to identities
+* [60fbd62](https://github.com/hyperledger/fabric-ca/commit/60fbd62) [FAB-5300](https://jira.hyperledger.org/browse/FAB-5300) Added gencrl option to the revoke cmd
+
 ## v1.1.0-preview
 Wed Nov  1 10:12:26 EDT 2017
 
