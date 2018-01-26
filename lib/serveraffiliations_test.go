@@ -435,12 +435,19 @@ func TestAffiliationNode(t *testing.T) {
 	an.insertByName("a.b.c")
 	an.insertByName("a")
 	an.insertByName("a.c.b")
+	an.insertByName("a.d.b.c.e.f.g.h.i.j.z")
 	root := an.GetRoot()
 	assert.Equal(t, root.Name, "a")
-	assert.Equal(t, root.Affiliations[0].Name, "a.b")
-	assert.Equal(t, root.Affiliations[0].Affiliations[0].Name, "a.b.c")
-	assert.Equal(t, root.Affiliations[1].Name, "a.c")
-	assert.Equal(t, root.Affiliations[1].Affiliations[0].Name, "a.c.b")
+	assert.True(t, searchChildren(root.Affiliations, "a.b"))
+	assert.True(t, searchChildren(root.Affiliations, "a.b.c"))
+	assert.True(t, searchChildren(root.Affiliations, "a.c"))
+	assert.True(t, searchChildren(root.Affiliations, "a.d.b.c.e.f.g.h.i.j"))
+	assert.False(t, searchChildren(root.Affiliations, "b"))
+	assert.False(t, searchChildren(root.Affiliations, "c.b"))
+	assert.False(t, searchChildren(root.Affiliations, "z"))
+	an.insertByName("x")
+	root = an.GetRoot()
+	assert.Equal(t, root.Name, "")
 }
 
 func searchTree(resp *api.AffiliationResponse, find string) bool {
