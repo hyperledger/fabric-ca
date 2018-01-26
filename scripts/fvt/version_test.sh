@@ -27,7 +27,12 @@ function checkVersion() {
 
 base_version=$(awk '/^[:blank:]*BASE_VERSION/ {print $NF}' Makefile)
 extra_version="snapshot-$(git rev-parse --short HEAD)"
-project_version=${base_version}-${extra_version}
+if [ "$IS_RELEASE" = "true" ]; then
+   project_version=${base_version}
+else
+   project_version=${base_version}-${extra_version}
+fi
+echo "Project version is: $project_version"
 
 trap "CleanUp 1; exit 1" INT
 $FABRIC_CA_SERVEREXEC version | checkVersion "$project_version" || let RC+=1
