@@ -36,6 +36,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hyperledger/fabric-ca/lib/spi"
+
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -589,17 +591,17 @@ func TestRBAC(t *testing.T) {
 }
 
 func TestIdentityCmd(t *testing.T) {
-	var err error
+	idWithNoAttrs := lib.CAConfigIdentity{
+		Name:           "userWithNoAttrs",
+		Pass:           "userWithNoAttrs",
+		Affiliation:    "org1",
+		MaxEnrollments: 10,
+		Type:           "client",
+	}
+	server := setupIdentityCmdTest(t, idWithNoAttrs)
+	defer stopAndCleanupServer(t, server)
 
-	// Start with a clean test dir
-	os.RemoveAll("identity")
-	defer os.RemoveAll("identity")
-
-	// Start the server
-	server := startServer("identity", 7090, "", t)
-	defer server.Stop()
-
-	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	err := RunMain([]string{cmdName, "enroll", "-u", enrollURL})
 	util.FatalError(t, err, "Failed to enroll user")
 
 	err = RunMain([]string{cmdName, "register", "--id.name", "test user"})
@@ -696,7 +698,7 @@ func TestIdentityCmd(t *testing.T) {
 
 	// Add user using flags
 	err = RunMain([]string{
-		cmdName, "identity", "add", "testuser2", "--secret", "user2pw", "--type", "user", "--affiliation", ".", "--maxenrollments", "1", "--attrs", "hf.Revoker=true"})
+		cmdName, "identity", "add", "testuser2", "--secret", "user2pw", "--type", "client", "--affiliation", ".", "--maxenrollments", "45", "--attrs", "hf.Revoker=true"})
 	assert.NoError(t, err, "Failed to add user 'testuser2'")
 
 	server.CA.Config.Registry.MaxEnrollments = 50
@@ -718,6 +720,40 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{
 		cmdName, "identity", "modify", "testuser2", "--secret", "user2pw2"})
 	assert.NoError(t, err, "Failed to add user 'testuser2'")
+
+	// Modify user's secret, check if no other user attributes were modified
+	userBforeModify, err := getUser(idWithNoAttrs.Name, server)
+	if err != nil {
+		t.Fatalf("Failed to read '%s' from the database", idWithNoAttrs.Name)
+	}
+
+	// modify user with no attrs
+	err = RunMain([]string{
+		cmdName, "identity", "modify", idWithNoAttrs.Name, "--secret", "user2pw2"})
+	assert.NoError(t, err, "Failed to modify user "+idWithNoAttrs.Name)
+
+	userAfterModify, err := getUser(idWithNoAttrs.Name, server)
+	if err != nil {
+		t.Fatalf("Failed to read '%s' from the database", idWithNoAttrs.Name)
+	}
+	assert.Equal(t, userBforeModify.GetType(), userAfterModify.GetType(),
+		"User type must be same after user secret was modified")
+	assert.Equal(t, lib.GetUserAffiliation(userBforeModify),
+		lib.GetUserAffiliation(userAfterModify),
+		"User affiliation must be same after user secret was modified")
+	assert.Equal(t, userBforeModify.GetMaxEnrollments(), userAfterModify.GetMaxEnrollments(),
+		"User max enrollments must be same after user secret was modified")
+
+	origAttrs, err := userBforeModify.GetAttributes(nil)
+	if err != nil {
+		t.Fatalf("Failed to get attributes of the user '%s'", idWithNoAttrs.Name)
+	}
+	modAttrs, err := userAfterModify.GetAttributes(nil)
+	if err != nil {
+		t.Fatalf("Failed to get attributes of the modified user '%s'", idWithNoAttrs.Name)
+	}
+	assert.Equal(t, len(origAttrs), len(modAttrs),
+		"User attributes must be same after user secret was modified")
 
 	// Check that the secret got correctly configured
 	err = RunMain([]string{
@@ -2224,6 +2260,50 @@ func getCAConfig() *lib.CAConfig {
 			CN: "TestCN",
 		},
 	}
+}
+
+func setupIdentityCmdTest(t *testing.T, id lib.CAConfigIdentity) *lib.Server {
+	srvHome := filepath.Join(tdDir, "identityCmdTestHome")
+	err := os.RemoveAll(srvHome)
+	if err != nil {
+		t.Fatalf("Failed to remove home directory %s: %s", srvHome, err)
+	}
+	affiliations := map[string]interface{}{"org1": nil}
+	srv := &lib.Server{
+		HomeDir: srvHome,
+		Config: &lib.ServerConfig{
+			Debug: true,
+			Port:  serverPort,
+		},
+		CA: lib.CA{
+			Config: &lib.CAConfig{
+				Affiliations: affiliations,
+				Registry: lib.CAConfigRegistry{
+					MaxEnrollments: -1,
+				},
+			},
+		},
+	}
+	srv.CA.Config.Registry.Identities = append(srv.CA.Config.Registry.Identities, id)
+
+	err = srv.RegisterBootstrapUser("admin", "adminpw", "")
+	if err != nil {
+		t.Fatalf("Failed to register bootstrap user: %s", err)
+	}
+	err = srv.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+	return srv
+}
+
+func getUser(id string, server *lib.Server) (spi.User, error) {
+	testdb, err := dbutil.NewUserRegistrySQLLite3(server.CA.Config.DB.Datasource)
+	if err != nil {
+		return nil, err
+	}
+	db := lib.NewDBAccessor(testdb)
+	return db.GetUser(id, nil)
 }
 
 func getSerialAKIByID(id string) (serial, aki string, err error) {

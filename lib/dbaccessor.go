@@ -265,7 +265,7 @@ func (d *Accessor) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 	numRowsAffected, err := res.RowsAffected()
 
 	if numRowsAffected == 0 {
-		return errors.New("Failed to update any identity records")
+		return errors.New("No identity records were updated")
 	}
 
 	if numRowsAffected != 1 {
