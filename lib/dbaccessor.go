@@ -378,43 +378,17 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	}
 	idNamesStr := strings.Join(idNames, ",")
 
+	// First check that all settings are correct
 	if len(ids) > 0 {
 		if !isRegistar {
 			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Removing affiliation affects identities, but caller is not a registrar")
 		}
-
-		// Force enabled, delete any associated identities and certificates
-		if force {
-			log.Debugf("IDs '%s' to removed based on affiliation '%s' removal", idNamesStr, name)
-
-			if !identityRemoval {
-				return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Identity removal is not allowed on server")
-			}
-
-			// Delete all the identities in one database request
-			query := "DELETE FROM users WHERE (id IN (?))"
-			inQuery, args, err := sqlx.In(query, idNames)
-			if err != nil {
-				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
-			}
-			_, err = tx.Exec(tx.Rebind(inQuery), args...)
-			if err != nil {
-				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple identity removal: %s", query, err)
-			}
-
-			// Revoke all the certificates associated with the removed identities above with reason of "affiliationchange" (3)
-			query = "UPDATE certificates SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason = ? WHERE (id IN (?) AND status != 'revoked')"
-			inQuery, args, err = sqlx.In(query, ocsp.AffiliationChanged, idNames)
-			if err != nil {
-				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
-			}
-			_, err = tx.Exec(tx.Rebind(inQuery), args...)
-			if err != nil {
-				return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple certificate removal: %s", query, err)
-			}
-		} else {
+		if !identityRemoval {
+			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Identity removal is not allowed on server")
+		}
+		if !force {
 			// If force option is not specified, only delete affiliation if there are no identities that have that affiliation
-			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "The request to remove affiliation '%s' has the following identities associated: %s. Need to use 'force' to remove identities and affiliation", name, idNamesStr)
+			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Cannot delete affiliation '%s'. The affiliation has the following identities associated: %s. Need to use 'force' to remove identities and affiliation", name, idNamesStr)
 		}
 	}
 
@@ -429,7 +403,44 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	if err != nil {
 		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to select sub-affiliations of '%s': %s", allAffs, err)
 	}
+
+	if len(allAffs) > 0 {
+		if !force {
+			// If force option is not specified, only delete affiliation if there are no sub-affiliations
+			return nil, newAuthErr(ErrUpdateConfigRemoveAff, "Cannot delete affiliation '%s'. The affiliation has the following sub-affiliations: %s. Need to use 'force' to remove affiliation and sub-affiliations", name, allAffs)
+		}
+	}
 	allAffs = append(allAffs, aff)
+
+	// Now proceed with deletion
+
+	// delete any associated identities and certificates
+	if len(ids) > 0 {
+		log.Debugf("IDs '%s' to be removed based on affiliation '%s' removal", idNamesStr, name)
+
+		// Delete all the identities in one database request
+		query := "DELETE FROM users WHERE (id IN (?))"
+		inQuery, args, err := sqlx.In(query, idNames)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
+		}
+		_, err = tx.Exec(tx.Rebind(inQuery), args...)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple identity removal: %s", query, err)
+		}
+
+		// Revoke all the certificates associated with the removed identities above with reason of "affiliationchange" (3)
+		query = "UPDATE certificates SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason = ? WHERE (id IN (?) AND status != 'revoked')"
+		inQuery, args, err = sqlx.In(query, ocsp.AffiliationChanged, idNames)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to construct query '%s': %s", query, err)
+		}
+		_, err = tx.Exec(tx.Rebind(inQuery), args...)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to execute query '%s' for multiple certificate removal: %s", query, err)
+		}
+	}
+
 	log.Debug("All affiliations to be removed: ", allAffs)
 
 	// Delete the requested affiliation
@@ -437,12 +448,14 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	if err != nil {
 		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to delete affiliation '%s': %s", name, err)
 	}
-	// Delete all the sub-affiliations
-	_, err = tx.Exec(tx.Rebind("DELETE FROM affiliations where (name LIKE ?)"), subAffName)
-	if err != nil {
-		return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to delete affiliations: %s", err)
-	}
 
+	if len(allAffs) > 1 {
+		// Delete all the sub-affiliations
+		_, err = tx.Exec(tx.Rebind("DELETE FROM affiliations where (name LIKE ?)"), subAffName)
+		if err != nil {
+			return nil, newHTTPErr(500, ErrRemoveAffDB, "Failed to delete affiliations: %s", err)
+		}
+	}
 	// Return the identities and affiliations that were removed
 	result := d.getResult(ids, allAffs)
 
