@@ -685,7 +685,8 @@ echo "    - name: intermediateCa$i
          hf.Registrar.Roles: \"client,user,peer,validator,auditor\"
          hf.Registrar.DelegateRoles: \"client,user,validator,auditor\"
          hf.Revoker: true
-         hf.IntermediateCA: true"
+         hf.IntermediateCA: true
+         hf.AffiliationMgr: true"
 done)
     - name: admin
       pass: adminpw
@@ -699,6 +700,7 @@ done)
         hf.IntermediateCA: true
         hf.Registrar.Attributes: \"*\"
         hf.GenCRL: true
+        hf.AffiliationMgr: true
     - name: admin2
       pass: adminpw2
       type: client
@@ -929,4 +931,8 @@ function killserver {
     kill -9 $1
     pollFabricCa "" "" "$CA_DEFAULT_PORT" stop 30
     return $?
+}
+
+function grepPrint() {
+   tee /dev/stderr| egrep "$1"
 }
