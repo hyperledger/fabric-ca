@@ -117,14 +117,15 @@ Fabric-CA Client's Configuration File
     #  type - Type of identity being registered (e.g. 'peer, app, user')
     #  affiliation - The identity's affiliation
     #  maxenrollments - The maximum number of times the secret can be reused to enroll.
-    #                   Specially, -1 means unlimited; 0 means disabled
+    #                   Specially, -1 means unlimited; 0 means to use CA's max enrollment
+    #                   value.
     #  attributes - List of name/value pairs of attribute for identity
     #############################################################################
     id:
       name:
       type:
       affiliation:
-      maxenrollments: -1
+      maxenrollments: 0
       attributes:
        # - name:
        #   value:

@@ -33,7 +33,7 @@ Fabric-CA Client's CLI
       -H, --home string                    Client's home directory (default "$HOME/.fabric-ca-client")
           --id.affiliation string          The identity's affiliation
           --id.attrs stringSlice           A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
-          --id.maxenrollments int          The maximum number of times the secret can be reused to enroll. (default -1)
+          --id.maxenrollments int          The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
           --id.name string                 Unique name of the identity
           --id.secret string               The enrollment secret for the identity being registered
           --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "client")

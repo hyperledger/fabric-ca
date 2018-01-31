@@ -698,6 +698,12 @@ func TestIdentityCmd(t *testing.T) {
 		cmdName, "identity", "add", "testuser2", "--secret", "user2pw", "--type", "user", "--affiliation", ".", "--maxenrollments", "1", "--attrs", "hf.Revoker=true"})
 	assert.NoError(t, err, "Failed to add user 'testuser2'")
 
+	server.CA.Config.Registry.MaxEnrollments = 50
+	// Test default max enrollment values for adding identity default to using CA's max enrollment value
+	err = RunMain([]string{
+		cmdName, "identity", "add", "testuser3"})
+	assert.NoError(t, err, "Failed to add user 'testuser3'")
+
 	// Check that the secret got correctly configured
 	err = RunMain([]string{
 		cmdName, "enroll", "-u", "http://testuser2:user2pw@localhost:7090", "-d"})
@@ -723,7 +729,7 @@ func TestIdentityCmd(t *testing.T) {
 
 	registry := server.CA.DBAccessor()
 	user, err := registry.GetUser("testuser1", nil)
-	assert.NoError(t, err, "Failed to get user 'testuser1'")
+	util.FatalError(t, err, "Failed to get user 'testuser1'")
 
 	_, err = user.GetAttribute("hf.IntermediateCA")
 	assert.NoError(t, err, "Failed to get attribute")
@@ -737,7 +743,7 @@ func TestIdentityCmd(t *testing.T) {
 	assert.NoError(t, err, "Failed to modify user 'testuser1'")
 
 	user, err = registry.GetUser("testuser1", nil)
-	assert.NoError(t, err, "Failed to get user 'testuser1'")
+	util.FatalError(t, err, "Failed to get user 'testuser1'")
 
 	if user.GetType() != "peer" {
 		t.Error("Failed to correctly modify user 'testuser1'")
@@ -762,6 +768,10 @@ func TestIdentityCmd(t *testing.T) {
 	err = RunMain([]string{
 		cmdName, "identity", "remove", "testuser1"})
 	assert.Error(t, err, "Should have failed, identity removal not allowed on server")
+
+	user, err = registry.GetUser("testuser3", nil)
+	util.FatalError(t, err, "Failed to get user 'testuser1'")
+	assert.Equal(t, 50, user.GetMaxEnrollments())
 
 	server.CA.Config.Cfg.Identities.AllowRemove = true
 
@@ -1504,6 +1514,18 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	assert.NoError(t, err)
 	assert.Equal(t, "client", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
 
+	// Register an identity with no max enrollment specified should pick up CA's make enrollment
+	srv.CA.Config.Registry.MaxEnrollments = 200
+
+	userName = "Test Register6"
+	err = RunMain([]string{cmdName, "register", "-d", "--id.name", userName,
+		"--id.affiliation", "hyperledger.org1"})
+	assert.NoError(t, err, "Failed to register identity "+userName)
+	user, err = db.GetUser(userName, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "client", user.GetType(), "Identity type for '%s' should have been 'user'", userName)
+	assert.Equal(t, 200, user.GetMaxEnrollments())
+
 	os.Remove(defYaml) // Delete default config file
 
 	err = RunMain([]string{cmdName, "register", "-u", "http://localhost:7091"})
@@ -2069,7 +2091,7 @@ func TestCleanUp(t *testing.T) {
 func cleanMultiCADir() {
 	caFolder := "../../testdata/ca/rootca"
 	nestedFolders := []string{"ca1", "ca2"}
-	removeFiles := []string{"msp", "ec.pem", "ec-key.pem",
+	removeFiles := []string{"msp", "ca-cert.pem",
 		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
 
 	for _, nestedFolder := range nestedFolders {
