@@ -37,6 +37,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attr"
@@ -2054,6 +2055,35 @@ func TestHomeDirectory(t *testing.T) {
 		t.Errorf("Failed to correctly created the config (testconfig3.yaml) in the '../../testdata/testhome/testclientcmd3' directory")
 	}
 
+}
+
+func TestDebugSetting(t *testing.T) {
+	os.RemoveAll(testdataDir)
+	defer os.RemoveAll(testdataDir)
+
+	srv = lib.TestGetServer(serverPort, testdataDir, "", -1, t)
+	err := srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	err = RunMain([]string{cmdName, "affiliation", "list"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, 2, log.Level) // Default level for listing affiliations is warning (2)
+
+	err = RunMain([]string{cmdName, "affiliation", "list", "-d"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, 0, log.Level) // With '-d' flag log level should be debug (0)
+
+	err = RunMain([]string{cmdName, "identity", "list"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, 2, log.Level) // Default level for listing identities is warning (2)
+
+	err = RunMain([]string{cmdName, "identity", "list", "-d"})
+	assert.NoError(t, err, "Failed to return all affiliations")
+	assert.Equal(t, 0, log.Level) // With '-d' flag log level should be debug (0)
 }
 
 func TestCleanUp(t *testing.T) {

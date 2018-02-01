@@ -202,6 +202,10 @@ bccsp:
 func (c *ClientCmd) configInit() error {
 	var err error
 
+	if c.debug {
+		log.Level = log.LevelDebug
+	}
+
 	c.cfgFileName, c.homeDirectory, err = util.ValidateAndReturnAbsConf(c.cfgFileName, c.homeDirectory, cmdName)
 	if err != nil {
 		return err

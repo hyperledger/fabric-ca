@@ -247,7 +247,7 @@ func printChildren(children []api.AffiliationInfo, level int) {
 		for i := 0; i < level; i++ {
 			spaces = spaces + "   "
 		}
-		fmt.Printf("%saffiliation :%s\n", spaces, child.Name)
+		fmt.Printf("%saffiliation: %s\n", spaces, child.Name)
 		printChildren(child.Affiliations, level+1)
 	}
 }
