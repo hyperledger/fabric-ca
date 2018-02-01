@@ -285,7 +285,7 @@ func checkHfRegistrarAttrValues(reqAttr *api.Attribute, reqAttrs []api.Attribute
 }
 
 func canRegisterAttr(requestedAttrName string, callerRegisterAttrSlice []string) error {
-	log.Debug("Checking if registrar can register attribute: %s", requestedAttrName)
+	log.Debugf("Checking if registrar can register attribute: %s", requestedAttrName)
 
 	for _, regAttr := range callerRegisterAttrSlice {
 		if strings.HasSuffix(regAttr, "*") { // Wildcard matching
