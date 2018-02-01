@@ -164,7 +164,11 @@ if [ $? != 0 ]; then
     ErrorMsg "Database column 'attributes' should have character limit of 65535"
 fi
 
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'affiliations';" > $TESTDIR/text.txt
+mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length, data_type, extra FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'affiliations';" > $TESTDIR/text.txt
+grep 'id'$'\t''NULL'$'\t''int'$'\t''auto_increment' $TESTDIR/text.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Integer auto_increment column 'id' should be present in the affiliations table"
+fi
 grep 'name'$'\t''1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'name' should have character limit of 1024"
@@ -173,7 +177,6 @@ grep 'prekey'$'\t''1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'prekey' should have character limit of 1024"
 fi
-
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'certificates' AND COLUMN_NAME = 'id';" | grep "255"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"

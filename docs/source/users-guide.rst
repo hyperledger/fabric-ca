@@ -503,7 +503,7 @@ MySQL as described below. Fabric CA supports the following database
 versions in a cluster setup:
 
 - PostgreSQL: 9.5.5 or later
-- MySQL: 5.17.16 or later
+- MySQL: 5.7 or later
 
 PostgreSQL
 ^^^^^^^^^^

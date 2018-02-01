@@ -89,6 +89,7 @@ type UserRecord struct {
 
 // AffiliationRecord defines the properties of an affiliation
 type AffiliationRecord struct {
+	ID     int    `db:"id"`
 	Name   string `db:"name"`
 	Prekey string `db:"prekey"`
 	Level  int    `db:"level"`
