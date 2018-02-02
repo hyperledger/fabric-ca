@@ -19,7 +19,6 @@ package lib
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/pkg/errors"
 
@@ -116,20 +115,24 @@ func normalizeRegistrationRequest(req *api.RegistrationRequest, registrar spi.Us
 }
 
 func validateAffiliation(req *api.RegistrationRequest, ctx *serverRequestContext) error {
-	log.Debug("Validate Affiliation")
-	err := ctx.ContainsAffiliation(req.Affiliation)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+	affiliation := req.Affiliation
+	log.Debugf("Validating affiliation: %s", affiliation)
 
-func validateID(req *api.RegistrationRequest, ca *CA) error {
-	log.Debug("Validate ID")
-	err := isValidAffiliation(req.Affiliation, ca)
+	err := ctx.ContainsAffiliation(affiliation)
 	if err != nil {
 		return err
 	}
+
+	// If requested affiliation is for root then don't need to do lookup in affiliation's table
+	if affiliation == "" {
+		return nil
+	}
+
+	_, err = ctx.ca.registry.GetAffiliation(affiliation)
+	if err != nil {
+		return errors.WithMessage(err, fmt.Sprintf("Failed getting affiliation '%s'", affiliation))
+	}
+
 	return nil
 }
 
@@ -178,54 +181,17 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 	return req.Secret, nil
 }
 
-func isValidAffiliation(affiliation string, ca *CA) error {
-	log.Debugf("Validating affiliation: %s", affiliation)
-
-	// If requested affiliation is for root then don't need to do lookup in affiliation's table
-	if affiliation == "" {
-		return nil
-	}
-
-	_, err := ca.registry.GetAffiliation(affiliation)
-	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Failed getting affiliation '%s'", affiliation))
-	}
-
-	return nil
-}
-
 func canRegister(registrar spi.User, req *api.RegistrationRequest, ctx *serverRequestContext) error {
 	log.Debugf("canRegister - Check to see if user '%s' can register", registrar.GetName())
 
-	var roles []string
-	rolesStr, isRegistrar, err := ctx.isRegistrar()
+	err := ctx.CanActOnType(req.Type)
 	if err != nil {
 		return err
 	}
-	if !isRegistrar {
-		return errors.Errorf("'%s' does not have authority to register identities", registrar)
-	}
-	if rolesStr != "" {
-		roles = strings.Split(rolesStr, ",")
-	} else {
-		roles = make([]string, 0)
-	}
-	if req.Type == "" {
-		req.Type = "client"
-	}
-	if !util.StrContained(req.Type, roles) {
-		return fmt.Errorf("Identity '%s' may not register type '%s'", registrar, req.Type)
-	}
-
 	// Check that the affiliation requested is of the appropriate level
 	err = validateAffiliation(req, ctx)
 	if err != nil {
 		return fmt.Errorf("Registration of '%s' failed in affiliation validation: %s", req.Name, err)
-	}
-
-	err = validateID(req, ctx.ca)
-	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Registration of '%s' to validate", req.Name))
 	}
 
 	err = attr.CanRegisterRequestedAttributes(req.Attributes, nil, registrar)

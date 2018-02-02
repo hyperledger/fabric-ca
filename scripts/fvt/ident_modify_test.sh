@@ -114,7 +114,7 @@ function testRoleAuthorization() {
    # the type of the identity being added must be in the user's hf.Registrar.Roles list
    $FABRIC_CA_CLIENTEXEC identity add userType1 $URI -H $TESTDIR/admin \
         --type account --affiliation ${defaultValues[Affiliation]} 2>&1 |
-           grepPrint "Identity.*admin.*may not register type 'account'" ||
+           grepPrint "Registrar does not have authority to act on type 'account'" ||
            ErrorMsg "admin should not be able to add user of type 'account'"
    $FABRIC_CA_CLIENTEXEC identity modify admin $URI -H $TESTDIR/admin/ -d \
       --attrs '"hf.Registrar.Roles=client,user,peer,validator,auditor,ca,app,role1,role2,role3,role4,role5,role6,role7,role8,apple,orange"'

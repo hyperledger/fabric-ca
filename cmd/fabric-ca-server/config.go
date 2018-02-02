@@ -170,8 +170,8 @@ registry:
        type: client
        affiliation: ""
        attrs:
-          hf.Registrar.Roles: "peer,orderer,client,user"
-          hf.Registrar.DelegateRoles: "peer,orderer,client,user"
+          hf.Registrar.Roles: "*"
+          hf.Registrar.DelegateRoles: "*"
           hf.Revoker: true
           hf.IntermediateCA: true
           hf.GenCRL: true

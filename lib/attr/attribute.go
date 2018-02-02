@@ -238,9 +238,9 @@ func (ac *attributeControl) validateListAttribute(requestedAttr *api.Attribute, 
 		return nil
 	}
 	// Make sure the values requested for attribute is equal to or a subset of the registrar's attribute
-	err := util.IsSubsetOf(requestedAttrValue, callersAttrValue)
+	err := ac.IsSubsetOf(requestedAttrValue, callersAttrValue)
 	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("The requested values for attribute '%s' is a superset of the caller's attribute value", ac.getName()))
+		return err
 	}
 	// If requested attribute is 'hf.Registrar.DeletegateRoles', make sure it is equal or a subset of the user's hf.Registrar.Roles attribute
 	if ac.getName() == DelegateRoles {
@@ -248,6 +248,17 @@ func (ac *attributeControl) validateListAttribute(requestedAttr *api.Attribute, 
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (ac *attributeControl) IsSubsetOf(requestedAttrValue, callersAttrValue string) error {
+	if (ac.getName() == Roles || ac.getName() == DelegateRoles) && util.ListContains(callersAttrValue, "*") {
+		return nil
+	}
+	err := util.IsSubsetOf(requestedAttrValue, callersAttrValue)
+	if err != nil {
+		return errors.WithMessage(err, fmt.Sprintf("The requested values for attribute '%s' is a superset of the caller's attribute value", ac.getName()))
 	}
 	return nil
 }
@@ -312,6 +323,9 @@ func checkDelegateRoleValues(reqAttrs []api.Attribute, user AttributeControl) er
 				roles = currentRoles.GetValue()
 			}
 		}
+	}
+	if util.ListContains(roles, "*") {
+		return nil
 	}
 	delegateRoles := GetAttrValue(reqAttrs, DelegateRoles)
 	err := util.IsSubsetOf(delegateRoles, roles)

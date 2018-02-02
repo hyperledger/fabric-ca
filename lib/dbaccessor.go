@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/util"
 
 	"github.com/pkg/errors"
 
@@ -626,7 +627,17 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 		typesArray[i] = strings.TrimSpace(typesArray[i])
 	}
 
+	// If root affiliation, allowed to get back users of all affiliations
 	if affiliation == "" {
+		if util.ListContains(types, "*") { // If type is '*', allowed to get back of all types
+			query := "SELECT * FROM users"
+			rows, err := d.db.Queryx(d.db.Rebind(query))
+			if err != nil {
+				return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+			}
+			return rows, nil
+		}
+
 		query := "SELECT * FROM users WHERE (type IN (?))"
 		query, args, err := sqlx.In(query, typesArray)
 		if err != nil {
@@ -640,6 +651,15 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 	}
 
 	subAffiliation := affiliation + ".%"
+	if util.ListContains(types, "*") { // If type is '*', allowed to get back of all types for requested affiliation
+		query := "SELECT * FROM users WHERE ((affiliation = ?) OR (affiliation LIKE ?))"
+		rows, err := d.db.Queryx(d.db.Rebind(query))
+		if err != nil {
+			return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
+		}
+		return rows, nil
+	}
+
 	query := "SELECT * FROM users WHERE ((affiliation = ?) OR (affiliation LIKE ?)) AND (type IN (?))"
 	inQuery, args, err := sqlx.In(query, affiliation, subAffiliation, typesArray)
 	if err != nil {
