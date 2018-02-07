@@ -119,12 +119,23 @@ function setupServerEnv() {
 }
 
 function testAffiliationRefs() {
+   # @TODO all of these should be 400 bad request FAB-7466
+   # Ensure affiliations w/ sub-affiliations cannot be deleted w/o --force
+   $FABRIC_CA_CLIENTEXEC affiliation remove org1 $URI -H $TESTDIR/admin/ -d 2>&1 |
+      grep "401 Unauthorized" ||
+         ErrorMsg "should not be able to delete 'org1' w/o force (has sub-affiliations)"
    # Ensure affiliations can be deleted if no ID's are referencing them
-   $FABRIC_CA_CLIENTEXEC affiliation remove org1 $URI -H $TESTDIR/admin/ 2>&1 ||
-      ErrorMsg "should be able to delete 'org1'"
-   # Ensure affiliations cannot be deleted if ID's are referencing them
-   $FABRIC_CA_CLIENTEXEC affiliation remove bank_b $URI -H $TESTDIR/admin/ 2>&1 &&
-      ErrorMsg "should not be able to delete 'bank_b'"
+   $FABRIC_CA_CLIENTEXEC affiliation remove org1.department1 $URI -H $TESTDIR/admin/ -d 2>&1 ||
+         ErrorMsg "should be able to delete org1.department1"
+   $FABRIC_CA_CLIENTEXEC affiliation remove org1 --force $URI -H $TESTDIR/admin/ -d 2>&1 ||
+         ErrorMsg "should be able to delete org1"
+   # Ensure affiliations can be deleted, even if ID's are referencing them, but only w/ --force
+   $FABRIC_CA_CLIENTEXEC affiliation remove bank_b $URI -H $TESTDIR/admin/ -d 2>&1 &&
+      ErrorMsg "should not be able to delete 'bank_b' with references"
+   # Ensure affiliations cannot be deleted if ID's are referencing them,
+   # and --cfg.identities.allowremove is not configed, even w/ --force
+   $FABRIC_CA_CLIENTEXEC affiliation remove bank_b $URI -H $TESTDIR/admin/ --force -d 2>&1 &&
+      ErrorMsg "should be able to delete 'bank_b' without --cfg.identities.allowremove"
 }
 
 function testAllowremove() {
@@ -149,7 +160,8 @@ function testAllowremove() {
    verifyTotals "403 403 403 0" || ErrorMsg "Wrong number of affiliations"
 
    # Ensure all children are deleted
-   $FABRIC_CA_CLIENTEXEC affiliation remove planet2.landmass1 $URI -H $TESTDIR/admin/ 2>&1  || ErrorMsg "should be able to delete 'planet2.landmass1'"
+   $FABRIC_CA_CLIENTEXEC affiliation remove planet2.landmass1 --force $URI -H $TESTDIR/admin/ 2>&1 ||
+      ErrorMsg "should be able to delete 'planet2.landmass1'"
    # make sure entries are deleted
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $dbDriver -D | grep "planet2.landmass1" && ErrorMsg "'planet2.landmass1' not deleted"
    expected=$((dbEntries - 201))
