@@ -21,6 +21,107 @@
       "description": "Fabric CA server APIs"
     }
   ],
+  "definitions": {
+    "identityInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The enrollment ID which uniquely identifies an identity"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+        },
+        "max_enrollments": {
+          "type": [
+            "integer"
+          ],
+          "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments; \nIf -1, infinite max enrollments. \nIf > configured max enrollments of the Fabric CA server, error."
+        },
+        "affiliation": {
+          "type": "string",
+          "description": "The affiliation path of the new identity.\n"
+        },
+        "attrs": {
+          "type": "array",
+          "description": "An array of attribute names and values to give to the new identity.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Attribute name"
+              },
+              "value": {
+                "type": "string",
+                "description": "Value of attribute"
+              },
+              "ecert": {
+                "type": "boolean",
+                "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "affiliation"
+      ]
+    },
+    "affiliationInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The affiliation path"
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/affiliationInfo"
+          }
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/identityInfo"
+          }
+        }
+      }
+    },
+    "affiliationResponse": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The affiliation path"
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/affiliationInfo"
+          }
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/identityInfo"
+          }
+        },
+        "caname": {
+          "type": "string",
+          "description": "The name of the root CA associated with this server."        
+        }
+      }
+    }
+  },
   "paths": {
     "/api/v1/cainfo": {
       "get": {
@@ -929,41 +1030,7 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The affiliation path"
-                    },
-                    "affiliations": {
-                      "type": "array",
-                      "description": "Contains any child affiliations, this continues until last affiliation is returned",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                              "type": "string",
-                              "description": "The affiliation path"
-                          },
-                          "affiliations": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "description": "The affiliation path"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "caname": {
-                      "type": "string",
-                      "description": "Name of the CA containing these affiliations."
-                    }
-                  },
-                  "required": [
-                    "affiliations",
-                    "caname"
-                  ]
+                  "$ref": "#/definitions/affiliationResponse"
                 },
                 "Errors": {
                   "type": "array",
@@ -1186,41 +1253,7 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The affiliation path"
-                    },
-                    "affiliations": {
-                      "type": "array",
-                      "description": "Contains any child affiliations, this continues until last affiliation is returned",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                              "type": "string",
-                              "description": "The affiliation path"
-                          },
-                          "affiliations": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "description": "The affiliation path"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "caname": {
-                      "type": "string",
-                      "description": "Name of the CA containing these affiliations."
-                    }
-                  },
-                  "required": [
-                    "affiliations",
-                    "caname"
-                  ]
+                  "$ref": "#/definitions/affiliationResponse"
                 },
                 "Errors": {
                   "type": "array",
@@ -1342,90 +1375,7 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The affiliation path"
-                    },
-                    "affiliations": {
-                      "type": "array",
-                      "description": "Contains any child affiliations, this continues until last affiliation is returned",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                              "type": "string",
-                              "description": "The affiliation path"
-                          },
-                          "affiliations": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "description": "The affiliation path"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "identities": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "description": "The enrollment ID which uniquely identifies an identity"
-                          },
-                          "type": {
-                            "type": "string",
-                            "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
-                          },
-                          "max_enrollments": {
-                            "type": [
-                              "integer",
-                              "null"
-                            ],
-                            "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
-                          },
-                          "name": {
-                            "type": "string",
-                            "description": "The affiliation path of the new identity.\n"
-                          },
-                          "attrs": {
-                            "type": "array",
-                            "description": "An array of attribute names and values to give to the new identity.",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "description": "Attribute name"
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "Value of attribute"
-                                },
-                                "ecert": {
-                                  "type": "boolean",
-                                  "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
-                                }
-                              },
-                              "required": [
-                                "name",
-                                "value"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "caname": {
-                       "type": "string",
-                       "description": "Name of the CA containing these identities and affiliations."
-                    }
-                  },
-                  "required": [ "affiliations", "identities", "caname" ]
+                  "$ref": "#/definitions/affiliationResponse"
                 },
                 "Errors": {
                   "type": "array",
@@ -1525,94 +1475,7 @@
                   "description": "Boolean indicating if the request was successful."
                 },
                 "Result": {
-                  "type": "object",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The affiliation path"
-                    },
-                    "affiliations": {
-                      "type": "array",
-                      "description": "Contains any child affiliations, this continues until last affiliation is returned",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                              "type": "string",
-                              "description": "The affiliation path"
-                          },
-                          "affiliations": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "description": "The affiliation path"
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "identities": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "description": "The enrollment ID which uniquely identifies an identity"
-                          },
-                          "type": {
-                            "type": "string",
-                            "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
-                          },
-                          "max_enrollments": {
-                            "type": [
-                              "integer",
-                              "null"
-                            ],
-                            "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
-                          },
-                          "name": {
-                            "type": "string",
-                            "description": "The affiliation path of the new identity.\n"
-                          },
-                          "attrs": {
-                            "type": "array",
-                            "description": "An array of attribute names and values to give to the new identity.",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "description": "Attribute name"
-                                },
-                                "value": {
-                                  "type": "string",
-                                  "description": "Value of attribute"
-                                },
-                                "ecert": {
-                                  "type": "boolean",
-                                  "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
-                                }
-                              },
-                              "required": [
-                                "name",
-                                "value"
-                              ]
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "caname": {
-                      "type": "string",
-                      "description": "Name of the CA containing these identities and affiliations."
-                    }
-                  },
-                  "required": [
-                    "affiliations",
-                    "identities",
-                    "caname"
-                  ]
+                  "$ref": "#/definitions/affiliationResponse"
                 },
                 "Errors": {
                   "type": "array",
