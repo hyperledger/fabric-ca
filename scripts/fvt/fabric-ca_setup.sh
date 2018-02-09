@@ -102,7 +102,8 @@ listFabricCa(){
                runPSQL "SELECT * FROM AFFILIATIONS;" "--dbname=${DBNAME}${dbSuffix}" | sed 's/^/   /'
             fi
          ;;
-         sqlite3) sqlite3 "$DATADIR/ca/ca$i/$DBNAME" 'SELECT * FROM USERS ;;' | sed 's/^/   /'
+         sqlite3) test -z $i && DBDIR=$DATADIR || DBDIR="$DATADIR/ca/ca$i"
+                  sqlite3 "$DBDIR/$DBNAME" 'SELECT * FROM USERS ;;' | sed 's/^/   /'
                   if $($FABRIC_CA_DEBUG); then
                      sqlite3 "$DATASRC" 'SELECT * FROM CERTIFICATES;' | sed 's/^/   /'
                      sqlite3 "$DATASRC" 'SELECT * FROM AFFILIATIONS;' | sed 's/^/   /'

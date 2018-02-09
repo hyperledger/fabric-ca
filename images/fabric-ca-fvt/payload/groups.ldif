@@ -1,0 +1,129 @@
+dn: cn=pkiAdmin,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: cn=pkiAdmin
+description: All users with revocation authorization
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=devadmin,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=tstadmin,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Revoker,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Revoker
+description: All users with revocation authorization
+member: uid=rootadmin,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Gencrl,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Gencrl
+description: All users with gencrl authorization
+member: uid=rootadmin,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Ca,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Ca
+description: All users with intermediate CA authorization
+member: uid=rootadmin,dc=example,dc=com
+member: uid=intermediateCa1,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa4,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa5,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa6,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa7,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa8,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa9,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa10,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa11,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa12,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa13,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa14,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa15,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=intermediateCa16,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Client,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Client
+description: All hyperledeger fabric clients
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=devadmin,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=tstadmin,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=notadmin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=expiryUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Peer,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Peer
+description: All hyperledeger fabric peers
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=User,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: User
+description: All hyperledeger fabric users
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=notadmin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=expiryUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser4,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser5,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser6,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=App,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: App
+description: All hyperledeger fabric apps
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=nonrevoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=testUser3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Auditor,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Auditor
+description: All hyperledeger fabric auditors
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=revoker2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=expiryUser,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+
+dn: cn=Validator,ou=groups,dc=example,dc=com
+objectClass: groupOfNames
+cn: Validator
+description: All hyperledeger fabric validators
+member: uid=rootadmin,dc=example,dc=com
+member: uid=admin,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+member: uid=admin2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com

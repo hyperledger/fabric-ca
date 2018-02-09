@@ -4,6 +4,80 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # User group
+dn: cn=rootadmin,dc=example,dc=com
+cn: rootadmin
+objectClass: posixGroup
+gidNumber: 10002
+
+# User account
+dn: uid=rootadmin,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: rootadmin
+cn: admin
+sn: Hyperledeger
+givenName: rootadmin
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10002
+gidNumber: 10002
+mail: rootadmin@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/rootadmin
+userPassword: rootadminpw
+
+dn: cn=devadmin,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: devadmin
+objectClass: posixGroup
+gidNumber: 10002
+
+# User account
+dn: uid=devadmin,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: devadmin
+cn: devadmin
+sn: Hyperledeger
+givenName: devadmin
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10002
+gidNumber: 10002
+mail: devadmin@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/devadmin
+userPassword: devadminpw
+
+# User group
+dn: cn=tstadmin,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: tstadmin
+objectClass: posixGroup
+gidNumber: 10002
+
+# User account
+dn: uid=tstadmin,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: tstadmin
+cn: tstadmin
+sn: Hyperledeger
+givenName: tstadmin
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10002
+gidNumber: 10002
+mail: tstadmin@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/tstadmin
+userPassword: tstadminpw
+
+# User group
 dn: cn=admin,ou=fabric,dc=hyperledeger,dc=example,dc=com
 cn: admin
 objectClass: posixGroup
@@ -277,3 +351,521 @@ mail: testUser3@hyperledeger.example.com
 loginShell: /bin/bash
 homeDirectory: /home/testUser3
 userPassword: testUser3pw
+
+# User group
+dn: cn=testUser4,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser4
+objectClass: posixGroup
+gidNumber: 10009
+
+# User account
+dn: uid=testUser4,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser4
+cn: testUser4
+sn: Hyperledeger
+givenName: testUser4
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10009
+gidNumber: 10009
+mail: testUser4@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser4
+userPassword: testUser4pw
+
+# User group
+dn: cn=testUser5,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser5
+objectClass: posixGroup
+gidNumber: 100010
+
+# User account
+dn: uid=testUser5,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser5
+cn: testUser5
+sn: Hyperledeger
+givenName: testUser5
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100010
+gidNumber: 100010
+mail: testUser5@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser5
+userPassword: testUser5pw
+
+# User group
+dn: cn=testUser6,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser6
+objectClass: posixGroup
+gidNumber: 100011
+
+# User account
+dn: uid=testUser6,ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser6
+cn: testUser6
+sn: Hyperledeger
+givenName: testUser6
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100011
+gidNumber: 100011
+mail: testUser6@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser6
+userPassword: testUser6pw
+
+# User group
+dn: cn=testUser7,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser7
+objectClass: posixGroup
+gidNumber: 10009
+
+# User account
+dn: uid=testUser7,ou=users,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser7
+cn: testUser7
+sn: Hyperledeger
+givenName: testUser7
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 10009
+gidNumber: 10009
+mail: testUser7@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser7
+userPassword: testUser7pw
+
+# User group
+dn: cn=testUser8,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser8
+objectClass: posixGroup
+gidNumber: 100010
+
+# User account
+dn: uid=testUser8,ou=users,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser8
+cn: testUser8
+sn: Hyperledeger
+givenName: testUser8
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100010
+gidNumber: 100010
+mail: testUser8@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser8
+userPassword: testUser8pw
+
+# User group
+dn: cn=testUser9,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: testUser9
+objectClass: posixGroup
+gidNumber: 100011
+
+# User account
+dn: uid=testUser9,ou=users,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: posixAccount
+objectClass: shadowAccount
+objectClass: inetOrgPerson
+uid: testUser9
+cn: testUser9
+sn: Hyperledeger
+givenName: testUser9
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100011
+gidNumber: 100011
+mail: testUser9@hyperledeger.example.com
+loginShell: /bin/bash
+homeDirectory: /home/testUser9
+userPassword: testUser9pw
+
+# User group
+dn: cn=intermediateCa1,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa1
+objectClass: posixGroup
+gidNumber: 100012
+
+# User account
+dn: uid=intermediateCa1,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa1
+cn: intermediateCa1
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100012
+gidNumber: 100012
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa1
+userPassword: intermediateCa1pw
+
+# User group
+dn: cn=intermediateCa2,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa2
+objectClass: posixGroup
+gidNumber: 100013
+
+# User account
+dn: uid=intermediateCa2,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa2
+cn: intermediateCa2
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100013
+gidNumber: 100013
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa2
+userPassword: intermediateCa2pw
+
+# User group
+dn: cn=intermediateCa3,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa3
+objectClass: posixGroup
+gidNumber: 100014
+
+# User account
+dn: uid=intermediateCa3,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa3
+cn: intermediateCa3
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100014
+gidNumber: 100014
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa3
+userPassword: intermediateCa3pw
+
+# User group
+dn: cn=intermediateCa4,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa4
+objectClass: posixGroup
+gidNumber: 100015
+
+# User account
+dn: uid=intermediateCa4,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa4
+cn: intermediateCa4
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100015
+gidNumber: 100015
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa4
+userPassword: intermediateCa4pw
+
+# User group
+dn: cn=intermediateCa5,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa5
+objectClass: posixGroup
+gidNumber: 100016
+
+# User account
+dn: uid=intermediateCa5,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa5
+cn: intermediateCa5
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100016
+gidNumber: 100016
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa5
+userPassword: intermediateCa5pw
+
+# User group
+dn: cn=intermediateCa6,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa6
+objectClass: posixGroup
+gidNumber: 100017
+
+# User account
+dn: uid=intermediateCa6,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa6
+cn: intermediateCa6
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100017
+gidNumber: 100017
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa6
+userPassword: intermediateCa6pw
+
+# User group
+dn: cn=intermediateCa7,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa7
+objectClass: posixGroup
+gidNumber: 100018
+
+# User account
+dn: uid=intermediateCa7,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa7
+cn: intermediateCa7
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100018
+gidNumber: 100018
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa7
+userPassword: intermediateCa7pw
+
+# User group
+dn: cn=intermediateCa8,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa8
+objectClass: posixGroup
+gidNumber: 100019
+
+# User account
+dn: uid=intermediateCa8,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa8
+cn: intermediateCa8
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100019
+gidNumber: 100019
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa8
+userPassword: intermediateCa8pw
+
+# User group
+dn: cn=intermediateCa9,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa9
+objectClass: posixGroup
+gidNumber: 100020
+
+# User account
+dn: uid=intermediateCa9,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa9
+cn: intermediateCa9
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100020
+gidNumber: 100020
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa9
+userPassword: intermediateCa9pw
+
+# User group
+dn: cn=intermediateCa10,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa10
+objectClass: posixGroup
+gidNumber: 100021
+
+# User account
+dn: uid=intermediateCa10,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa10
+cn: intermediateCa10
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100021
+gidNumber: 100021
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa10
+userPassword: intermediateCa10pw
+
+# User group
+dn: cn=intermediateCa11,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa11
+objectClass: posixGroup
+gidNumber: 100022
+
+# User account
+dn: uid=intermediateCa11,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa11
+cn: intermediateCa11
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100022
+gidNumber: 100022
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa11
+userPassword: intermediateCa11pw
+
+# User group
+dn: cn=intermediateCa12,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa12
+objectClass: posixGroup
+gidNumber: 100023
+
+# User account
+dn: uid=intermediateCa12,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa12
+cn: intermediateCa12
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100023
+gidNumber: 100023
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa12
+userPassword: intermediateCa12pw
+
+# User group
+dn: cn=intermediateCa13,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa13
+objectClass: posixGroup
+gidNumber: 100024
+
+# User account
+dn: uid=intermediateCa13,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa13
+cn: intermediateCa13
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100024
+gidNumber: 100024
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa13
+userPassword: intermediateCa13pw
+
+# User group
+dn: cn=intermediateCa14,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa14
+objectClass: posixGroup
+gidNumber: 100025
+
+# User account
+dn: uid=intermediateCa14,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa14
+cn: intermediateCa14
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100025
+gidNumber: 100025
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa14
+userPassword: intermediateCa14pw
+
+# User group
+dn: cn=intermediateCa15,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa15
+objectClass: posixGroup
+gidNumber: 100026
+
+# User account
+dn: uid=intermediateCa15,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa15
+cn: intermediateCa15
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100026
+gidNumber: 100026
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa15
+userPassword: intermediateCa15pw
+
+# User group
+dn: cn=intermediateCa16,ou=fabric,dc=hyperledeger,dc=example,dc=com
+cn: intermediateCa16
+objectClass: posixGroup
+gidNumber: 100027
+
+# User account
+dn: uid=intermediateCa16,ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: shadowAccount
+objectClass: posixAccount
+objectClass: inetOrgPerson
+uid: intermediateCa16
+cn: intermediateCa16
+sn: Hyperledeger
+o: Hyperledger
+ou: Fabric
+st: North Carolina
+uidNumber: 100027
+gidNumber: 100027
+mail: root@hyperledeger.example.com
+homeDirectory: /home/intermediateCa16
+userPassword: intermediateCa16pw

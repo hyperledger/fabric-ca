@@ -8,6 +8,70 @@ objectClass: top
 objectClass: domain
 dc: hyperledeger
 
+dn: ou=groups,dc=example,dc=com
+objectclass: OrganizationalUnit
+ou: groups
+
+dn: ou=bank_a,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_a
+
+dn: ou=department1,ou=bank_a,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_a_department1
+
+dn: ou=bank_b,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_b
+
+dn: ou=department1,ou=bank_b,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_b_department1
+
+dn: ou=bank_c,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_c
+
+dn: ou=department1,ou=bank_c,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: bank_c_department1
+
+dn: ou=org1,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org1
+
+dn: ou=department1,ou=org1,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org1_department1
+
+dn: ou=department2,ou=org1,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org1_department2
+
+dn: ou=org2,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org2
+
+dn: ou=department1,ou=org2,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org2_department1
+
+dn: ou=department2,ou=org2,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: org2_department2
+
 dn: ou=fabric,dc=hyperledeger,dc=example,dc=com
 objectClass: top
 objectClass: OrganizationalUnit
@@ -17,3 +81,33 @@ dn: ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com
 objectClass: top
 objectClass: OrganizationalUnit
 ou: users
+
+dn: ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: dev
+
+dn: ou=users,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: devusers
+
+dn: ou=peers,ou=dev,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: devpeers
+
+dn: ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: tst
+
+dn: ou=users,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: tstusers
+
+dn: ou=peers,ou=tst,ou=fabric,dc=hyperledeger,dc=example,dc=com
+objectClass: top
+objectClass: OrganizationalUnit
+ou: tstpeers

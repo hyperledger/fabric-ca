@@ -409,7 +409,7 @@ func (u *user) GetAffiliationPath() []string {
 	parts := strings.Split(dn, ",")
 	for i := len(parts) - 1; i >= 0; i-- {
 		p := parts[i]
-		if strings.HasPrefix(p, "OU=") {
+		if strings.HasPrefix(strings.ToUpper(p), "OU=") {
 			path = append(path, strings.Trim(p[3:], " "))
 		}
 	}
