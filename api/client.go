@@ -212,10 +212,10 @@ type AddIdentityRequest struct {
 // fabric-ca-server
 type ModifyIdentityRequest struct {
 	ID             string      `skip:"true"`
-	Type           string      `json:"type" def:"user" help:"Type of identity being registered (e.g. 'peer, app, user')"`
+	Type           string      `json:"type" help:"Type of identity being registered (e.g. 'peer, app, user')"`
 	Affiliation    string      `json:"affiliation" help:"The identity's affiliation"`
 	Attributes     []Attribute `mapstructure:"attrs" json:"attrs"`
-	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" def:"-1" help:"The maximum number of times the secret can be reused to enroll"`
+	MaxEnrollments int         `mapstructure:"max_enrollments" json:"max_enrollments" help:"The maximum number of times the secret can be reused to enroll"`
 	Secret         string      `json:"secret,omitempty" mask:"password" help:"The enrollment secret for the identity"`
 	CAName         string      `json:"caname,omitempty" skip:"true"`
 }

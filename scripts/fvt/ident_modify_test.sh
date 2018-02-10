@@ -167,7 +167,7 @@ function testAffiliation() {
    test $($FABRIC_CA_CLIENTEXEC identity list $URI -H $TESTDIR/admin 2>&1 | wc -l) -eq 1 ||
       ErrorMsg "admin 'identity list' failed"
    $FABRIC_CA_CLIENTEXEC identity list $URI -H $TESTDIR/admin 2>&1 |
-      grep  "Name: admin, Type: user, Affiliation: org2.department2" ||
+      grep  "Name: admin, Type: client, Affiliation: org2.department2" ||
          ErrorMsg "admin 'identity list' failed"
    # add a subset of roles - user can only see that explicit list
    $FABRIC_CA_CLIENTEXEC identity modify admin $URI -d -H $TESTDIR/admin2 \
@@ -294,7 +294,8 @@ function testLateralAffiliation() {
    # attempt to modify user in same org
    $FABRIC_CA_CLIENTEXEC identity modify $user $URI -d \
       -H $TESTDIR/$admin --affiliation ${defaultValues[Affiliation]} \
-      --attrs '"hf.Registrar.Roles=client,user,peer,validator,auditor,ca,app,role1,role2,role3,role4,role5,role6,role7,role8,apple,orange,ca"'
+      --attrs '"hf.Registrar.Roles=client,user,peer,validator,auditor,ca,app,role1,role2,role3,role4,role5,role6,role7,role8,apple,orange,ca"' 2>&1 |
+         grepPrint "Authorization failure" || ErrorMsg "$admin should not be able to operate on higher level affiliation ${defaultValues[Affiliation]}"
 
    # register new user in child org
    admin="NewUserOrg1"
