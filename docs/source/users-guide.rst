@@ -1159,7 +1159,8 @@ during registration as follows:
         value is 'true', it is invalid because the hf.Revoker attribute is a boolean attribute
         and the registrar's value for the attribute is not 'true'.
 
-The table below lists all the attributes that can be registered for an identity.
+The table below lists all the attributes that can be registered for an identity. The names of
+attributes are case sensitive.
 
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | Name                        | Type       | Description                                                                                                |
@@ -1179,6 +1180,9 @@ The table below lists all the attributes that can be registered for an identity.
 | hf.IntermediateCA           | Boolean    | Identity is able to enroll as an intermediate CA if attribute value is true                                |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 
+Note: When registering an identity, you specify an array of attribute names and values. If the array
+specifies multiple array elements with the same name, only the last element is currently used. In other words,
+multi-valued attributes are not currently supported.
 
 The following command uses the **admin** identity's credentials to register a new
 user with an enrollment id of "admin2", an affiliation of
