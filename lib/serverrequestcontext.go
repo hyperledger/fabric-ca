@@ -527,7 +527,7 @@ func (ctx *serverRequestContext) canActOnType(requestedType string) (bool, error
 	}
 
 	if !util.StrContained(requestedType, types) {
-		log.Debug("Caller with types '%s' is not authorized to act on '%s'", types, requestedType)
+		log.Debugf("Caller with types '%s' is not authorized to act on '%s'", types, requestedType)
 		return false, nil
 	}
 

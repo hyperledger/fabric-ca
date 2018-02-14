@@ -179,7 +179,7 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 }
 
 func isValidAffiliation(affiliation string, ca *CA) error {
-	log.Debug("Validating affiliation: " + affiliation)
+	log.Debugf("Validating affiliation: %s", affiliation)
 
 	// If requested affiliation is for root then don't need to do lookup in affiliation's table
 	if affiliation == "" {

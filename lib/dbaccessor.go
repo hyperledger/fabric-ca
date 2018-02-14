@@ -442,7 +442,7 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 		}
 	}
 
-	log.Debug("All affiliations to be removed: ", allAffs)
+	log.Debugf("All affiliations to be removed: %s", allAffs)
 
 	// Delete the requested affiliation
 	_, err = tx.Exec(tx.Rebind(deleteAffiliation), name)

@@ -698,7 +698,7 @@ func (ca *CA) initUserRegistry() error {
 	if ldapCfg.Enabled {
 		// Use LDAP for the user registry
 		ca.registry, err = ldap.NewClient(ldapCfg, ca.server.csp)
-		log.Debug("Initialized LDAP identity registry; err=", err)
+		log.Debugf("Initialized LDAP identity registry; err=%s", err)
 		if err == nil {
 			log.Info("Successfully initialized LDAP client")
 		} else {

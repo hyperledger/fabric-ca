@@ -143,7 +143,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 	log.Debugf("Using postgres database, connecting to database...")
 
 	dbName := getDBName(datasource)
-	log.Debug("Database Name: ", dbName)
+	log.Debugf("Database Name: %s", dbName)
 
 	if strings.Contains(dbName, "-") || strings.HasSuffix(dbName, ".db") {
 		return nil, errors.Errorf("Database name '%s' cannot contain any '-' or end with '.db'", dbName)
@@ -166,7 +166,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 
 	for _, dbName := range dbNames {
 		connStr := getConnStr(datasource, dbName)
-		log.Debug("Connecting to PostgreSQL server, using connection string: ", MaskDBCred(connStr))
+		log.Debugf("Connecting to PostgreSQL server, using connection string: %s", MaskDBCred(connStr))
 
 		db, err = sqlx.Open("postgres", connStr)
 		if err != nil {
@@ -249,7 +249,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 	log.Debugf("Using MySQL database, connecting to database...")
 
 	dbName := getDBName(datasource)
-	log.Debug("Database Name: ", dbName)
+	log.Debugf("Database Name: %s", dbName)
 
 	re := regexp.MustCompile(`\/([0-9,a-z,A-Z$_]+)`)
 	connStr := re.ReplaceAllString(datasource, "/")
@@ -263,7 +263,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		mysql.RegisterTLSConfig("custom", tlsConfig)
 	}
 
-	log.Debug("Connecting to MySQL server, using connection string: ", MaskDBCred(connStr))
+	log.Debugf("Connecting to MySQL server, using connection string: %s", MaskDBCred(connStr))
 	db, err := sqlx.Open("mysql", connStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to open MySQL database")
