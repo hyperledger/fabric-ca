@@ -51,10 +51,6 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/jmoiron/sqlx"
-
-	_ "github.com/go-sql-driver/mysql" // import to support MySQL
-	_ "github.com/lib/pq"              // import to support Postgres
-	_ "github.com/mattn/go-sqlite3"    // import to support SQLite3
 )
 
 const (
@@ -344,13 +340,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 			csr.CA.Expiry = defaultRootCACertificateExpiration
 		}
 		if csr.KeyRequest == nil {
-			if ca.Config.CSP.SwOpts != nil {
-				csr.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: ca.Config.CSP.SwOpts.SecLevel}
-			} else if ca.Config.CSP.Pkcs11Opts != nil {
-				csr.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: ca.Config.CSP.Pkcs11Opts.SecLevel}
-			} else {
-				csr.KeyRequest = api.NewBasicKeyRequest()
-			}
+			csr.KeyRequest = GetKeyRequest(ca.Config)
 		}
 		req := cfcsr.CertificateRequest{
 			CN:           csr.CN,

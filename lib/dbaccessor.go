@@ -32,7 +32,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
-	_ "github.com/mattn/go-sqlite3" // Needed to support sqlite
 )
 
 // Match to sqlx
