@@ -1,0 +1,24 @@
+v1.0.6 February 18, 2018
+------------------------
+
+Release Notes
+-------------
+Bug fixes, documentation and test coverage improvements, UX improvements
+based on user feedback and changes to address a variety of static scan
+findings (unused code, static security scanning, spelling, linting and more).
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+none
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/v1.0.6/CHANGELOG.md#v106

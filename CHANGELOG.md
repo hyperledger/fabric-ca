@@ -1,3 +1,10 @@
+## v1.0.6
+Sun Feb 18 11:48:51 EST 2018
+
+* [4816994](https://github.com/hyperledger/fabric-ca/commit/4816994) [FAB-7596](https://jira.hyperledger.org/browse/FAB-7596) Modify enroll cmd to read env var
+* [cd93c3c](https://github.com/hyperledger/fabric-ca/commit/cd93c3c) [FAB-7489](https://jira.hyperledger.org/browse/FAB-7489) TLS test certs are expired
+* [da11ecb](https://github.com/hyperledger/fabric-ca/commit/da11ecb) [FAB-7285](https://jira.hyperledger.org/browse/FAB-7285) Prepare fabric-ca for v1.0.6 release
+
 ## v1.0.5
 Wed Dec  6 11:37:49 WET 2017
 
