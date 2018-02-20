@@ -56,8 +56,9 @@ Table of Contents
    5. `Revoking a certificate or identity`_
    6. `Generating a CRL (Certificate Revocation List)`_
    7. `Attribute-Based Access Control`_
-   8. `Enabling TLS`_
-   9. `Contact specific CA instance`_
+   8. `Dynamic Server Configuration Update`_
+   9. `Enabling TLS`_
+   10. `Contact specific CA instance`_
 
 6. `HSM`_
 
@@ -1957,6 +1958,161 @@ issuing the following command.
 .. code:: bash
 
     fabric-ca-client affiliation list
+
+Manage Certificates
+~~~~~~~~~~~~~~~~~~~~
+
+This section describes how to use fabric-ca-client to manage certificates. The
+following shows how to list and delete certificates.
+
+Listing certificates information
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The certificates that are visible to a caller include:
+
+  - Those certificates which belong to the caller
+  - If the caller possesses the 'hf.Registrar.Roles' attribute or the 'hf.Revoker' attribute with a value of 'true',
+    all certificates which belong to identities in and below the caller's affiliation. For example, if the client's
+    affiliation is "a.b", the client may get certificates for identities who's affiliation
+    is "a.b" or "a.b.c" but not "a" or "a.c".
+
+If executing a list command that requests certificates of more than one identity, only certificates of identities
+with an affiliation that is equal to or heirachically below the caller's affiliation will be listed.
+
+The certificates which will be listed may be filtered based on ID, AKI, serial number, expiration time, and/or revocation time.
+
+ID: List certificates for this enrollment ID
+Serial Number: List certificates that have this serial number
+AKI: List certificates that have this AKI
+Expiration Time: List certificates that have expiration dates that fall within this expiration time
+Revocation Time: List certificates that were revoked within this revocation time
+
+There are two other filters that will further filter your results. You can choose to not return revoked certificates
+and/or not return expired certificates. For example, if you only care about certificates that have expired but have
+not been revoked you can use this filter to get back such results. An example of this case is provided below.
+
+Time should be specified based on RFC3339. For instance, to list certificates that have expirations between
+March 1, 2018 at 1:00 PM and June 15, 2018 at 2:00 AM, the input time string would look like 2018-03-01T13:00:00z
+and 2018-06-15T02:00:00z. If time is not a concern, and only the dates matter then the time part can be left
+of and then the strings become 2018-03-01 and 2018-06-15.
+
+The following command shows how to list certificates using various filters.
+
+List all certificates:
+
+.. code:: bash
+
+ fabric-ca-client certificate list
+
+List all certificates by id:
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin
+
+List certificate by serial and aki:
+
+.. code:: bash
+
+ fabric-ca-client certificate list --serial 1234 --aki 1234
+
+List certificate by id and serial/aki:
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --serial 1234 --aki 1234
+
+List certificates that are neither revoker nor expired by id:
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --notrevoked --notexpired
+
+List all certificates that have not been revoked for an id (admin):
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --notrevoked
+
+List all certificates have not expired for an id (admin):
+
+The "--notexpired" flag is equivalent to "--expiration now::", which means certificates
+will expire some time in the future.
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --notexpired
+
+List all certificates that were revoked between a time range for an id (admin):
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --revocation 2018-01-01T01:30:00z::2018-01-30T05:00:00z
+
+List all certificates that were revoked between a time range but have not expired for an id (admin):
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --revocation 2018-01-01::2018-01-30 --notexpired
+
+List all revoked certificates using duration (revoked between 30 days and 15 days ago) for an id (admin):
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --revocation -30d::-15d
+
+List all revoked certificates before a time
+
+.. code:: bash
+
+ fabric-ca-client certificate list --revocation ::2018-01-30
+
+List all revoked certificates after a time
+
+.. code:: bash
+
+ fabric-ca-client certificate list --revocation 2018-01-30::
+
+List all revoked certificates before now and after a certain date
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --revocation 2018-01-30::now
+
+List all certificate that expired between a time range but have not been revoked for an id (admin):
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --expiration 2018-01-01::2018-01-30 --notrevoked
+
+List all expired certificates using duration (expired between 30 days and 15 days ago) for an id (admin):
+
+.. code:: bash
+
+ fabric-ca-client certificate list --expiration -30d::-15d
+
+List all certificates that have expired or will expire before a certain time
+
+.. code:: bash
+
+ fabric-ca-client certificate list --expiration ::2058-01-30
+
+List all certificates that have expired or will expire after a certain time
+
+.. code:: bash
+
+ fabric-ca-client certificate list --expiration 2018-01-30::
+
+List all expired certificates before now and after a certain date
+
+.. code:: bash
+
+ fabric-ca-client certificate list --expiration 2018-01-30::now
+
+List certificates expiring in the next 10 days:
+
+.. code:: bash
+
+ fabric-ca-client certificate list --id admin --expiration ::+10d --notrevoked
 
 Contact specific CA instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
