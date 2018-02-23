@@ -182,7 +182,9 @@ func testValidKeySize(cert *x509.Certificate, t *testing.T) {
 }
 
 func testValidMatchingKeys(cert *x509.Certificate, t *testing.T) {
-	cert, err := getCertFromFile(ecCert)
+	err := GenerateECDSATestCert()
+	util.FatalError(t, err, "Failed to generate certificate for testing")
+	cert, err = getCertFromFile(ecCert)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -742,6 +744,8 @@ func TestCAVerifyCertificate(t *testing.T) {
 		t.Error("VerifyCertificate should have failed")
 	}
 
+	err = GenerateECDSATestCert()
+	util.FatalError(t, err, "Failed to generate certificate for testing")
 	caCert1, err := ioutil.ReadFile("../testdata/ec_cert.pem")
 	caCert2 := append(caCert1, util.RandomString(128)...)
 	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0644)

@@ -9,5 +9,6 @@ testdata/fabric*ca.db
 testdata/initFabricCaFvt.json
 testdata/openssl.cnf.base.this
 testdata/runFabricCaFvt.json
+testdata/ec_cert.pem
 fabric-ca
 vendor/github.com/cloudflare/cfssl/vendor/github.com/cloudflare/cfssl_trust/ca-bundle/http:*.crt

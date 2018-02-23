@@ -520,6 +520,8 @@ func TestCWBCAConfig(t *testing.T) {
 	}
 
 	//Non error cases
+	err = GenerateECDSATestCert()
+	util.FatalError(t, err, "Failed to generate certificate for testing")
 	ca.Config.CA.Chainfile = "../testdata/ec.pem"
 	_, err = ca.getCAChain()
 	t.Logf("getCAChain err: %v", err)

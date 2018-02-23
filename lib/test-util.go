@@ -17,12 +17,20 @@ limitations under the License.
 package lib
 
 import (
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"math/big"
 	"os"
 	"path"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/cloudflare/cfssl/config"
 )
@@ -153,5 +161,53 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// GenerateECDSATestCert generates EC based certificate for testing purposes
+func GenerateECDSATestCert() error {
+	template := &x509.Certificate{
+		IsCA: true,
+		BasicConstraintsValid: true,
+		SubjectKeyId:          []byte{1, 2, 3},
+		SerialNumber:          big.NewInt(1234),
+		Subject: pkix.Name{
+			Country:      []string{"US"},
+			Organization: []string{"IBM"},
+		},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().AddDate(15, 0, 0),
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+	}
+
+	privKey, err := ioutil.ReadFile("../testdata/ec_key.pem")
+	if err != nil {
+		return err
+	}
+
+	decoded, _ := pem.Decode(privKey)
+	if decoded == nil {
+		return errors.New("Failed to decode the PEM-encoded ECDSA key")
+	}
+	privateKey, err := x509.ParseECPrivateKey(decoded.Bytes)
+	if err != nil {
+		return err
+	}
+
+	publicKey := &privateKey.PublicKey
+
+	var parent = template
+	cert, err := x509.CreateCertificate(rand.Reader, template, parent, publicKey, privateKey)
+	if err != nil {
+		return err
+	}
+
+	certOut, err := os.Create("../testdata/ec_cert.pem")
+	if err != nil {
+		return err
+	}
+	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: cert})
+
 	return nil
 }

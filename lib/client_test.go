@@ -1385,6 +1385,8 @@ func TestRevokedIdentity(t *testing.T) {
 		t.Error("Sending post with bad TLS config should have failed")
 	}
 
+	err = GenerateECDSATestCert()
+	util.FatalError(t, err, "Failed to generate certificate for testing")
 	kc.CertFile = "../testdata/ec_cert.pem"
 	c.Config.TLS.Client = kc
 	req, _ = http.NewRequest("POST", curl, bytes.NewReader(reqBody))
