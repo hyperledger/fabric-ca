@@ -11,4 +11,9 @@ testdata/openssl.cnf.base.this
 testdata/runFabricCaFvt.json
 testdata/ec_cert.pem
 fabric-ca
+/release/darwin-amd64
+/release/linux-amd64
+/release/linux-s390x
+/release/linux-ppc64le
+/release/windows-amd64
 vendor/github.com/cloudflare/cfssl/vendor/github.com/cloudflare/cfssl_trust/ca-bundle/http:*.crt
