@@ -18,6 +18,7 @@ import (
 	"github.com/cloudflare/cfssl/api/bundle"
 	"github.com/cloudflare/cfssl/api/certinfo"
 	"github.com/cloudflare/cfssl/api/crl"
+	"github.com/cloudflare/cfssl/api/gencrl"
 	"github.com/cloudflare/cfssl/api/generator"
 	"github.com/cloudflare/cfssl/api/info"
 	"github.com/cloudflare/cfssl/api/initca"
@@ -119,14 +120,40 @@ var endpoints = map[string]func() (http.Handler, error){
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewHandlerFromSigner(s)
+
+		h, err := signhandler.NewHandlerFromSigner(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
+			sh := h.Handler.(*signhandler.Handler)
+			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
+				return nil, err
+			}
+		}
+
+		return h, nil
 	},
 
 	"authsign": func() (http.Handler, error) {
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return signhandler.NewAuthHandlerFromSigner(s)
+
+		h, err := signhandler.NewAuthHandlerFromSigner(s)
+		if err != nil {
+			return nil, err
+		}
+
+		if conf.CABundleFile != "" && conf.IntBundleFile != "" {
+			sh := h.(api.HTTPHandler).Handler.(*signhandler.AuthHandler)
+			if err := sh.SetBundler(conf.CABundleFile, conf.IntBundleFile); err != nil {
+				return nil, err
+			}
+		}
+
+		return h, nil
 	},
 
 	"info": func() (http.Handler, error) {
@@ -136,11 +163,23 @@ var endpoints = map[string]func() (http.Handler, error){
 		return info.NewHandler(s)
 	},
 
+	"crl": func() (http.Handler, error) {
+		if s == nil {
+			return nil, errBadSigner
+		}
+
+		if db == nil {
+			return nil, errNoCertDBConfigured
+		}
+
+		return crl.NewHandler(certsql.NewAccessor(db), conf.CAFile, conf.CAKeyFile)
+	},
+
 	"gencrl": func() (http.Handler, error) {
 		if s == nil {
 			return nil, errBadSigner
 		}
-		return crl.NewHandler(), nil
+		return gencrl.NewHandler(), nil
 	},
 
 	"newcert": func() (http.Handler, error) {
@@ -205,10 +244,9 @@ var endpoints = map[string]func() (http.Handler, error){
 }
 
 // registerHandlers instantiates various handlers and associate them to corresponding endpoints.
-// COPCHANGE: call wrapHandler
 func registerHandlers() {
 	for path, getHandler := range endpoints {
-		log.Debugf("getHandler for %s",path)
+		log.Debugf("getHandler for %s", path)
 		if handler, err := getHandler(); err != nil {
 			log.Warningf("endpoint '%s' is disabled: %v", path, err)
 		} else {
@@ -317,7 +355,7 @@ func defaultWrapHandler(path string, handler http.Handler, err error) (string, h
 // SetWrapHandler sets the wrap handler which is called for all endpoints
 // A custom wrap handler may be provided in order to add arbitrary server-side pre or post processing
 // of server-side HTTP handling of requests.
-func SetWrapHandler(wh func(path string, handler http.Handler, err error) (string, http.Handler, error) ) {
+func SetWrapHandler(wh func(path string, handler http.Handler, err error) (string, http.Handler, error)) {
 	wrapHandler = wh
 }
 

@@ -16,7 +16,10 @@ limitations under the License.
 
 package api
 
-import "github.com/hyperledger/fabric-ca/lib/tcert"
+import (
+	"github.com/cloudflare/cfssl/signer"
+	"github.com/hyperledger/fabric-ca/lib/tcert"
+)
 
 /*
  * This file contains the structure definitions for the request
@@ -36,13 +39,15 @@ type RegistrationResponseNet struct {
 
 // EnrollmentRequestNet is a request to enroll an identity
 type EnrollmentRequestNet struct {
-	EnrollmentRequest
+	signer.SignRequest
+	CAName string
 }
 
 // ReenrollmentRequestNet is a request to reenroll an identity.
 // This is useful to renew a certificate before it has expired.
 type ReenrollmentRequestNet struct {
-	ReenrollmentRequest
+	signer.SignRequest
+	CAName string
 }
 
 // RevocationRequestNet is a revocation request which flows over the network
@@ -60,7 +65,7 @@ type GetTCertBatchRequestNet struct {
 	GetTCertBatchRequest
 	// KeySigs is an optional array of public keys and corresponding signatures.
 	// If not set, the server generates it's own keys based on a key derivation function
-	// which cryptographically relates the TCert to an ECert.
+	// which cryptographically relates the TCerts to an ECert.
 	KeySigs []KeySig `json:"key_sigs,omitempty"`
 }
 

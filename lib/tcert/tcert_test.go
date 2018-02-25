@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 func TestTCertWithoutAttribute(t *testing.T) {
@@ -32,9 +33,14 @@ func TestTCertWithoutAttribute(t *testing.T) {
 		return
 	}
 
-	ecert, err := LoadCert("../../testdata/ec.pem")
+	ecert, err := LoadCert("/")
+	if err == nil {
+		t.Error("Should have failed")
+	}
+
+	ecert, err = LoadCert("../../testdata/ec.pem")
 	if err != nil {
-		return
+		t.Errorf("LoadCert unable to load ec.pem %v", err)
 	}
 
 	resp, err := mgr.GetBatch(&GetBatchRequest{
@@ -95,7 +101,7 @@ func TestTCertWitAttributes(t *testing.T) {
 func getMgr(t *testing.T) *Mgr {
 	keyFile := "../../testdata/ec-key.pem"
 	certFile := "../../testdata/ec.pem"
-	mgr, err := LoadMgr(keyFile, certFile)
+	mgr, err := LoadMgr(keyFile, certFile, util.GetDefaultBCCSP())
 	if err != nil {
 		t.Errorf("failed loading mgr: %s", err)
 		return nil

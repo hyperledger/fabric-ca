@@ -1,0 +1,14 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+version: "2"
+
+services:
+  fabric-ca-fvt:
+    image: fabric-ca-fvt
+    build: .
+    command: [make, fvt-tests]
+    volumes:
+      - ${GOPATH}/src/github.com/hyperledger/fabric-ca:/opt/gopath/src/github.com/hyperledger/fabric-ca

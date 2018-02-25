@@ -27,346 +27,23 @@
 			"revisionTime": "2016-08-11T09:34:08Z"
 		},
 		{
-			"checksumSHA1": "EpAj/rMG4ZfZATeKOFcTed/M1A8=",
-			"path": "github.com/cloudflare/cfssl/api",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "LwKQh0l+zFJQutpehFazmTR6AaQ=",
-			"path": "github.com/cloudflare/cfssl/api/bundle",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "pqwUu/ZuZ8WLgYaZ1BZdbwnK4iQ=",
-			"path": "github.com/cloudflare/cfssl/api/certinfo",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "lksdmEusgXQWT0KVfTJ4mPkU+YU=",
-			"path": "github.com/cloudflare/cfssl/api/client",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "8pKEE0XjUJv9SGd6NuudhX85AJM=",
-			"path": "github.com/cloudflare/cfssl/api/crl",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "PnrFBw/x2fSWRnN8MN47XOk2QBw=",
-			"path": "github.com/cloudflare/cfssl/api/generator",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "M9tCFyySGIHyCiACu3NDdzSfv84=",
-			"path": "github.com/cloudflare/cfssl/api/info",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "D+VtWSa44FiZUahg5M4r/NzhKtQ=",
-			"path": "github.com/cloudflare/cfssl/api/initca",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "QoVd8elFMXydox6cOwh1eQpCBKU=",
-			"path": "github.com/cloudflare/cfssl/api/ocsp",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "tqVsIup9W/JPOhi3lKj5Vq58T9Q=",
-			"path": "github.com/cloudflare/cfssl/api/revoke",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "dFyFXufdME8phsGDO/AoDYKWzeE=",
-			"path": "github.com/cloudflare/cfssl/api/scan",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "93Kq+fZjO3nR5REGN32nARuq4PY=",
-			"path": "github.com/cloudflare/cfssl/api/signhandler",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "QKZ/nCfJbW5WXdXoaIRTiubeq60=",
-			"path": "github.com/cloudflare/cfssl/auth",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "SUE+RtwmwdQVglOGvoS14C+5dAY=",
-			"path": "github.com/cloudflare/cfssl/bundler",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "iY2l+kVW3jzyGYgwvMaCrdhnA68=",
-			"path": "github.com/cloudflare/cfssl/certdb",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "QjOvP4bAJHcs7ZP5ZfrV5IUmHLk=",
-			"path": "github.com/cloudflare/cfssl/certdb/dbconf",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "0bUdi291hsijtgxwV4bon9tkSFs=",
-			"path": "github.com/cloudflare/cfssl/certdb/sql",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "kYEKNRy+oVG5SFV975/XnHgCQmI=",
-			"path": "github.com/cloudflare/cfssl/certinfo",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "5RACnS5mPrKWcIaCCWAGjHjTdEc=",
-			"path": "github.com/cloudflare/cfssl/cli",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "I5T6tbnk3H0Ut1YLtHMSGuXlgiQ=",
-			"path": "github.com/cloudflare/cfssl/cli/bundle",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "x2p2oSg9cuT9z29tPHd/2aoKXbY=",
-			"path": "github.com/cloudflare/cfssl/cli/certinfo",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "TTR4DcTK/xWsN+W6/49b6febDPo=",
-			"path": "github.com/cloudflare/cfssl/cli/gencert",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "vFqndgqTN6CFk7JIwOys2yZ0k7M=",
-			"path": "github.com/cloudflare/cfssl/cli/gencrl",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "9fUNXz8jRfQ3w3XvfCtytLt9CVA=",
-			"path": "github.com/cloudflare/cfssl/cli/genkey",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "+JieW0B+vT6NwRP+StlXaYVtDbY=",
-			"path": "github.com/cloudflare/cfssl/cli/info",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "C7AqcI1VAkLy5pkqnyj/EHgpynA=",
-			"path": "github.com/cloudflare/cfssl/cli/ocspdump",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "uCEmhIfMx8lODT3PEfLN3dNuWjA=",
-			"path": "github.com/cloudflare/cfssl/cli/ocsprefresh",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "a+TCFU6YEKC09VxHQhjgH76bKAg=",
-			"path": "github.com/cloudflare/cfssl/cli/ocspserve",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "MIVPy3B4+8PHwDkiXevKF/54BCQ=",
-			"path": "github.com/cloudflare/cfssl/cli/ocspsign",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "NiXa5P5IHQRNEtv47uZB8GxGDp4=",
-			"path": "github.com/cloudflare/cfssl/cli/printdefault",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "nmRabQhF0V4URO12L5CiWGX9B8k=",
-			"path": "github.com/cloudflare/cfssl/cli/revoke",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "vz+1aGEHXs0Kb/dh5gkTS9HbCf4=",
-			"path": "github.com/cloudflare/cfssl/cli/scan",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "mg7UpF8tbSuweKfmjLr/ozBnXkQ=",
-			"path": "github.com/cloudflare/cfssl/cli/selfsign",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "wFT0/gCVW+gJSgzKSRBwg7oWiU0=",
-			"path": "github.com/cloudflare/cfssl/cli/serve",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "RN90kaCify+GvMSmEGghuP0A3rM=",
-			"path": "github.com/cloudflare/cfssl/cli/sign",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "OE4RS3cxLi0yC6APkJCuXky5XSk=",
-			"path": "github.com/cloudflare/cfssl/cli/version",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "GYc6f1LH3fYXlYx/uTM1R4OynBQ=",
-			"path": "github.com/cloudflare/cfssl/config",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "VdNJtLHFvm86qKyW9cJyB9zzvJM=",
-			"path": "github.com/cloudflare/cfssl/crl",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "pM8P41YXPXeR01LTnKZXSakd31w=",
-			"path": "github.com/cloudflare/cfssl/crypto/pkcs7",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "On++9JSdklDa+us9IHfWYKcx44s=",
-			"path": "github.com/cloudflare/cfssl/csr",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "EiWstoirAGrf1QXYUCtn/vkDPJ8=",
-			"path": "github.com/cloudflare/cfssl/errors",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "YAlOE4hIkLe1AdVIpsz/4JmleaI=",
-			"path": "github.com/cloudflare/cfssl/helpers",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "hrI9ZAcwbjQ0FVHrpkxIKk4PdfQ=",
-			"path": "github.com/cloudflare/cfssl/helpers/derhelpers",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "nbzsp45GyLeosQUqpNT9fWc1q9U=",
-			"path": "github.com/cloudflare/cfssl/info",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "c2md0JJLuXPrP1ZzQZsw1TGOQUg=",
-			"path": "github.com/cloudflare/cfssl/initca",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "BMy7zAiSQTYYWn1ZzxeEC75pd2g=",
-			"path": "github.com/cloudflare/cfssl/log",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "29/Zcs5U9PgRA4WpFxOtxapyJ8E=",
-			"path": "github.com/cloudflare/cfssl/ocsp",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "OKh9Jo5QeZhPOWkoseDc0J8U1LM=",
-			"path": "github.com/cloudflare/cfssl/ocsp/config",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "/BRHPTW5ufKmcZ3R47e53lFPv6I=",
-			"path": "github.com/cloudflare/cfssl/revoke",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "tz2+146MM3ZKR42HBbgV7D7IHCs=",
-			"path": "github.com/cloudflare/cfssl/scan",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "owqtYPf8qOormxQRcI/WTl7N0TI=",
-			"path": "github.com/cloudflare/cfssl/selfsign",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "OOKbTjHBeWSn+zr4Bf9G1Zl7Olg=",
-			"path": "github.com/cloudflare/cfssl/signer",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "xz2WzjkpK+g8PG/1sZg0MZpXSVA=",
-			"path": "github.com/cloudflare/cfssl/signer/local",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "MSsizLuIQC52aJQCITBNH39f/A4=",
-			"path": "github.com/cloudflare/cfssl/signer/remote",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "k+1s90cSICkfqAhjaOjiTp3TY0o=",
-			"path": "github.com/cloudflare/cfssl/signer/universal",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
-		},
-		{
-			"checksumSHA1": "wlLiM75A/BrIzQkzlRDCnKI2rIU=",
-			"path": "github.com/cloudflare/cfssl/ubiquity",
-			"revision": "cf43e7ea8a406fdef189459716efff42ba926774",
-			"revisionTime": "2016-10-24T21:11:04Z"
+			"checksumSHA1": "PvZ2cPJJQ18o0bdbfrOC5mJX+Y4=",
+			"path": "github.com/cloudflare/cfssl",
+			"revision": "3d15118774e5c893ded05ce1b7193215116dba48",
+			"revisionTime": "2017-07-17T15:33:53Z",
+			"tree": true
 		},
 		{
 			"checksumSHA1": "8i+beEgcVf0q/I7lTqo2ERZM/OU=",
 			"path": "github.com/daaku/go.zipexe",
 			"revision": "a5fe2436ffcb3236e175e5149162b41cd28bd27d",
 			"revisionTime": "2015-03-29T02:31:25Z"
+		},
+		{
+			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
+			"path": "github.com/davecgh/go-spew/spew",
+			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
+			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
 			"checksumSHA1": "hveFTNQ9YEyYRs6SWuXM+XU9qRI=",
@@ -379,36 +56,6 @@
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "2a6c6079c7eff49a7e9d641e109d922f124a3e4c",
 			"revisionTime": "2016-10-26T16:05:54Z"
-		},
-		{
-			"checksumSHA1": "otIZ0qrxQBwCI0x2uZF5IhuPPiU=",
-			"path": "github.com/google/certificate-transparency/go",
-			"revision": "bc5b2ec20f9b00f1b2429bb59fe104dc386b8675",
-			"revisionTime": "2016-10-28T09:38:50Z"
-		},
-		{
-			"checksumSHA1": "l2hfhClo5DB4MybCgXfS3n6dhCc=",
-			"path": "github.com/google/certificate-transparency/go/asn1",
-			"revision": "bc5b2ec20f9b00f1b2429bb59fe104dc386b8675",
-			"revisionTime": "2016-10-28T09:38:50Z"
-		},
-		{
-			"checksumSHA1": "5hPSKXM011gYlMVquHF4R0wnlMk=",
-			"path": "github.com/google/certificate-transparency/go/client",
-			"revision": "bc5b2ec20f9b00f1b2429bb59fe104dc386b8675",
-			"revisionTime": "2016-10-28T09:38:50Z"
-		},
-		{
-			"checksumSHA1": "0c0t9jh1vLotwmMC1neUHtY2ogc=",
-			"path": "github.com/google/certificate-transparency/go/x509",
-			"revision": "bc5b2ec20f9b00f1b2429bb59fe104dc386b8675",
-			"revisionTime": "2016-10-28T09:38:50Z"
-		},
-		{
-			"checksumSHA1": "uezPktTXlVvMZ13HIKl40bl/QIE=",
-			"path": "github.com/google/certificate-transparency/go/x509/pkix",
-			"revision": "bc5b2ec20f9b00f1b2429bb59fe104dc386b8675",
-			"revisionTime": "2016-10-28T09:38:50Z"
 		},
 		{
 			"checksumSHA1": "8OPDk+bKyRGJoKcS4QNw9F7dpE8=",
@@ -465,41 +112,29 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
-			"checksumSHA1": "nQCS/1ymeW+6UYa2vOXtxcvj2mY=",
-			"origin": "github.com/hyperledger/fabric-ca/vendor/github.com/hyperledger/fabric/bccsp",
+			"checksumSHA1": "sMz1FSmJEgzM4/7p2rHzUcUPp64=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"revision": "522618871492f71d7e2ad499a153af65002ae36a",
+			"revisionTime": "2017-08-31T00:00:40Z",
+			"tree": true
 		},
 		{
-			"checksumSHA1": "mpt6sOfAvP1FGrFYcwPSWfM00gs=",
-			"path": "github.com/hyperledger/fabric/bccsp/factory",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"checksumSHA1": "nh/mRF/Q8HaftQ7l6CD/HZ4AdxQ=",
+			"path": "github.com/hyperledger/fabric/common/errors",
+			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
+			"revisionTime": "2017-05-12T16:44:56Z"
 		},
 		{
-			"checksumSHA1": "klpCQmE30Ij8lGToXio9N+MdhcA=",
-			"path": "github.com/hyperledger/fabric/bccsp/pkcs11",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"checksumSHA1": "bJGbjvNRGfR/S4yRVfmJITzkxoI=",
+			"path": "github.com/hyperledger/fabric/common/flogging",
+			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
+			"revisionTime": "2017-05-12T16:44:56Z"
 		},
 		{
-			"checksumSHA1": "kF6Drg4G0a54XNskZlrq0Bazmt0=",
-			"path": "github.com/hyperledger/fabric/bccsp/signer",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
-		},
-		{
-			"checksumSHA1": "MgIVDdd6sgRZVdsMDSj2OA4So+U=",
-			"path": "github.com/hyperledger/fabric/bccsp/sw",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
-		},
-		{
-			"checksumSHA1": "c/VlngqOYcd+b8pGVD2izQZnuHE=",
-			"path": "github.com/hyperledger/fabric/bccsp/utils",
-			"revision": "f78b4b80c9cb7a53bad4174202614eede496786a",
-			"revisionTime": "2017-01-21T00:31:30Z"
+			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
+			"path": "github.com/inconshreveable/mousetrap",
+			"revision": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75",
+			"revisionTime": "2014-10-17T20:07:13Z"
 		},
 		{
 			"checksumSHA1": "e31lcI8tZLaulsX4PZCFBAyC920=",
@@ -562,6 +197,12 @@
 			"revisionTime": "2016-10-28T14:22:18Z"
 		},
 		{
+			"checksumSHA1": "1ZAIf3+ZaKGGwOEglVGjhz/Ax9s=",
+			"path": "github.com/miekg/pkcs11",
+			"revision": "55e2b933bc6d828eca462bf6017215b96981342c",
+			"revisionTime": "2017-01-29T20:05:30Z"
+		},
+		{
 			"checksumSHA1": "UuXgD2dDojfS8AViUEe15gLIWZE=",
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "f3009df150dadf309fdee4a54ed65c124afad715",
@@ -592,10 +233,22 @@
 			"revisionTime": "2016-10-02T05:25:12Z"
 		},
 		{
+			"checksumSHA1": "3c4yRg91RtG0yTo4C/F/22wxO5o=",
+			"path": "github.com/pkg/profile",
+			"revision": "3a8809bd8a80f8ecfe4ee1b34b3f37194968617c",
+			"revisionTime": "2016-12-23T20:39:01Z"
+		},
+		{
 			"checksumSHA1": "k9SlQdp/DTB72G/u4aNecX/fFIg=",
 			"path": "github.com/pkg/sftp",
 			"revision": "4d0e916071f68db74f8a73926335f809396d6b42",
 			"revisionTime": "2016-09-30T22:07:58Z"
+		},
+		{
+			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
+			"path": "github.com/pmezard/go-difflib/difflib",
+			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
+			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
 			"checksumSHA1": "59wTbS4fE2282Q88NrBYImbFGbo=",
@@ -622,6 +275,12 @@
 			"revisionTime": "2016-09-26T08:42:49Z"
 		},
 		{
+			"checksumSHA1": "7qRuI2uyis6CoKEaaWm4Dq8dxvA=",
+			"path": "github.com/spf13/cobra",
+			"revision": "35136c09d8da66b901337c6e86fd8e88a1a255bd",
+			"revisionTime": "2017-01-30T21:45:31Z"
+		},
+		{
 			"checksumSHA1": "dkruahfhuLXXuyeCuRpsWlcRK+8=",
 			"path": "github.com/spf13/jwalterweatherman",
 			"revision": "33c24e77fb80341fe7130ee7c594256ff08ccc46",
@@ -638,6 +297,12 @@
 			"path": "github.com/spf13/viper",
 			"revision": "80ab6657f9ec7e5761f6603320d3d58dfe6970f6",
 			"revisionTime": "2016-10-24T15:49:00Z"
+		},
+		{
+			"checksumSHA1": "CDCY8STi8QAj5gWAaN9GYg0Pymw=",
+			"path": "github.com/stretchr/objx",
+			"revision": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94",
+			"revisionTime": "2015-09-28T12:21:52Z"
 		},
 		{
 			"checksumSHA1": "1ku7TiFH7opIYW1e7QnVdsNK5EE=",
@@ -658,10 +323,35 @@
 			"revisionTime": "2013-08-12T19:02:56Z"
 		},
 		{
+			"checksumSHA1": "JXUVA1jky8ZX8w09p2t5KLs97Nc=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z"
+		},
+		{
+			"checksumSHA1": "WGwMB6WljaeGKzuNCX5M4E8LADE=",
+			"path": "github.com/stretchr/testify/mock",
+			"revision": "4d4bfba8f1d1027c4fdbe371823030df51419987",
+			"revisionTime": "2017-01-30T11:31:45Z",
+			"tree": true
+		},
+		{
 			"checksumSHA1": "05lvaWg4qIggY2tBfxg2To4cPI4=",
 			"path": "github.com/stretchr/tracer",
 			"revision": "66d3696bba973e1697f7d68413b3f19c6d6e2a7c",
 			"revisionTime": "2014-01-24T18:41:52Z"
+		},
+		{
+			"checksumSHA1": "UWjVYmoHlIfHzVIskELHiJQtMOI=",
+			"path": "golang.org/x/crypto/bcrypt",
+			"revision": "a48ac81e47fd6f9ed1258f3b60ae9e75f93cb7ed",
+			"revisionTime": "2017-07-06T12:31:36Z"
+		},
+		{
+			"checksumSHA1": "oVPHWesOmZ02vLq2fglGvf+AMgk=",
+			"path": "golang.org/x/crypto/blowfish",
+			"revision": "a48ac81e47fd6f9ed1258f3b60ae9e75f93cb7ed",
+			"revisionTime": "2017-07-06T12:31:36Z"
 		},
 		{
 			"checksumSHA1": "dwOedwBJ1EIK9+S3t108Bx054Y8=",
@@ -758,6 +448,12 @@
 			"path": "golang.org/x/text/unicode/norm",
 			"revision": "a8b38433e35b65ba247bb267317037dee1b70cea",
 			"revisionTime": "2016-10-19T13:35:53Z"
+		},
+		{
+			"checksumSHA1": "o3e5IH3OMSjhdJX/juumCbZ0hfM=",
+			"path": "google.golang.org/grpc/grpclog",
+			"revision": "1f1a4999ca75ba4fd6d5c91233383a170034a1a5",
+			"revisionTime": "2015-10-22T21:00:00Z"
 		},
 		{
 			"checksumSHA1": "wSu8owMAP7GixsYoSZ4CmKUVhnU=",

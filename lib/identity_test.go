@@ -19,10 +19,13 @@ package lib
 import (
 	"io/ioutil"
 	"testing"
+
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp/factory"
 )
 
 func getIdentity() *Identity {
-	key, _ := ioutil.ReadFile("../tesdata/ec-key.pem")
+	key, _ := util.ImportBCCSPKeyFromPEM("../tesdata/ec-key.pem", factory.GetDefault(), true)
 	cert, _ := ioutil.ReadFile("../tesdata/ec.pem")
 	id := newIdentity(nil, "test", key, cert)
 	return id

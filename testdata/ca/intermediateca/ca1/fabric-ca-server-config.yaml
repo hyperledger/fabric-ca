@@ -1,0 +1,39 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# #############################################################################
+# The CA section contains information specific to this Certificate Authority.
+# Minimally, the name must be unique for all CAs serviced by the same server.
+# Additionally, you may specify any of the settings that are defined in the
+# server's configuration file to override them with a value specific for this CA.
+# For example, you should provide a different username and password for the
+# bootstrap identity as found in the "identities" subsection of the "registry" section.
+
+# See the server's configuration file for comments on all settings.
+# All settings pertaining to the server's listening endpoint are by definition
+# server-specific and so will be ignored in a CA configuration file.
+# #############################################################################
+ca:
+  # Name of this CA
+  name: ca1
+
+###########################################################################
+#  Certificate Signing Request (CSR) section for generating the request
+#  for an intermediate CA certificate.
+###########################################################################
+csr:
+  names:
+    - C: US
+      ST: "North Carolina"
+      L:
+      O: Hyperledger
+      OU: Fabric
+  hosts:
+    - testhost1
+
+intermediate:
+  parentserver:
+    url: http://adminca1:adminca1pw@localhost:7075
+    caname: rootca1

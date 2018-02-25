@@ -22,16 +22,21 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
 )
 
-func newIdentity(client *Client, name string, key []byte, cert []byte) *Identity {
+func newIdentity(client *Client, name string, key bccsp.Key, cert []byte) *Identity {
 	id := new(Identity)
 	id.name = name
 	id.ecert = newSigner(key, cert, id)
 	id.client = client
+	if client != nil {
+		id.CSP = client.csp
+	} else {
+		id.CSP = util.GetDefaultBCCSP()
+	}
 	return id
 }
 
@@ -40,11 +45,17 @@ type Identity struct {
 	name   string
 	ecert  *Signer
 	client *Client
+	CSP    bccsp.BCCSP
 }
 
 // GetName returns the identity name
 func (i *Identity) GetName() string {
 	return i.name
+}
+
+// GetClient returns the client associated with this identity
+func (i *Identity) GetClient() *Client {
+	return i.client
 }
 
 // GetECert returns the enrollment certificate signer for this identity
@@ -58,9 +69,9 @@ func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, erro
 	if err != nil {
 		return nil, err
 	}
-	_, err2 := i.Post("tcert", reqBody)
-	if err2 != nil {
-		return nil, err2
+	err = i.Post("tcert", reqBody, nil)
+	if err != nil {
+		return nil, err
 	}
 	// Ignore the contents of the response for now.  They will be processed in the future when we need to
 	// support the Go SDK.   We currently have Node and Java SDKs which process this and they are the
@@ -70,13 +81,13 @@ func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, erro
 
 // Register registers a new identity
 // @param req The registration request
-func (i *Identity) Register(req *api.RegistrationRequest) (*api.RegistrationResponse, error) {
+func (i *Identity) Register(req *api.RegistrationRequest) (rr *api.RegistrationResponse, err error) {
 	log.Debugf("Register %+v", req)
 	if req.Name == "" {
 		return nil, errors.New("Register was called without a Name set")
 	}
-	if req.Group == "" {
-		return nil, errors.New("Register was called without a Group set")
+	if req.Affiliation == "" {
+		return nil, errors.New("Registration request does not have an affiliation")
 	}
 
 	reqBody, err := util.Marshal(req, "RegistrationRequest")
@@ -85,18 +96,38 @@ func (i *Identity) Register(req *api.RegistrationRequest) (*api.RegistrationResp
 	}
 
 	// Send a post to the "register" endpoint with req as body
-	secret, err := i.Post("register", reqBody)
+	resp := &api.RegistrationResponse{}
+	err = i.Post("register", reqBody, resp)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Debug("The register request completely successfully")
-	return &api.RegistrationResponse{Secret: secret.(string)}, nil
+	return resp, nil
+}
+
+// RegisterAndEnroll registers and enrolls an identity and returns the identity
+func (i *Identity) RegisterAndEnroll(req *api.RegistrationRequest) (*Identity, error) {
+	if i.client == nil {
+		return nil, errors.New("No client is associated with this identity")
+	}
+	rresp, err := i.Register(req)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to register %s: %s", req.Name, err)
+	}
+	eresp, err := i.client.Enroll(&api.EnrollmentRequest{
+		Name:   req.Name,
+		Secret: rresp.Secret,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to enroll %s: %s", req.Name, err)
+	}
+	return eresp.Identity, nil
 }
 
 // Reenroll reenrolls an existing Identity and returns a new Identity
 // @param req The reenrollment request
-func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*Identity, error) {
+func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
 	log.Debugf("Reenrolling %s", req)
 
 	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
@@ -104,24 +135,28 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*Identity, error) {
 		return nil, err
 	}
 
+	reqNet := &api.ReenrollmentRequestNet{
+		CAName: req.CAName,
+	}
+
 	// Get the body of the request
-	sreq := signer.SignRequest{
-		Hosts:   signer.SplitHosts(req.Hosts),
-		Request: string(csrPEM),
-		Profile: req.Profile,
-		Label:   req.Label,
+	if req.CSR != nil {
+		reqNet.SignRequest.Hosts = req.CSR.Hosts
 	}
-	body, err := util.Marshal(sreq, "SignRequest")
+	reqNet.SignRequest.Request = string(csrPEM)
+	reqNet.SignRequest.Profile = req.Profile
+	reqNet.SignRequest.Label = req.Label
+
+	body, err := util.Marshal(reqNet, "SignRequest")
 	if err != nil {
 		return nil, err
 	}
-
-	result, err := i.Post("reenroll", body)
+	var result enrollmentResponseNet
+	err = i.Post("reenroll", body, &result)
 	if err != nil {
 		return nil, err
 	}
-
-	return i.client.newIdentityFromResponse(result, i.GetName(), key)
+	return i.client.newEnrollmentResponse(&result, i.GetName(), key)
 }
 
 // Revoke the identity associated with 'id'
@@ -131,7 +166,7 @@ func (i *Identity) Revoke(req *api.RevocationRequest) error {
 	if err != nil {
 		return err
 	}
-	_, err = i.Post("revoke", reqBody)
+	err = i.Post("revoke", reqBody, nil)
 	if err != nil {
 		return err
 	}
@@ -154,30 +189,30 @@ func (i *Identity) Store() error {
 	if i.client == nil {
 		return fmt.Errorf("An identity with no client may not be stored")
 	}
-	return i.client.StoreMyIdentity(i.ecert.key, i.ecert.cert)
+	return i.client.StoreMyIdentity(i.ecert.cert)
 }
 
 // Post sends arbtrary request body (reqBody) to an endpoint.
 // This adds an authorization header which contains the signature
 // of this identity over the body and non-signature part of the authorization header.
 // The return value is the body of the response.
-func (i *Identity) Post(endpoint string, reqBody []byte) (interface{}, error) {
-	req, err := i.client.NewPost(endpoint, reqBody)
+func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}) error {
+	req, err := i.client.newPost(endpoint, reqBody)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return i.client.SendPost(req)
+	return i.client.SendReq(req, result)
 }
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("adding token-based authorization header")
 	cert := i.ecert.cert
 	key := i.ecert.key
-	token, err := util.CreateToken(cert, key, body)
+	token, err := util.CreateToken(i.CSP, cert, key, body)
 	if err != nil {
 		return fmt.Errorf("Failed to add token authorization header: %s", err)
 	}

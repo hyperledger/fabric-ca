@@ -14,54 +14,78 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package lib
+package lib_test
 
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
 	"testing"
-	"time"
 
-	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/cli/server"
+	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	ctport1     = 7098
+	ctport2     = 7099
+	tdDir       = "../testdata"
+	fcaDB       = path.Join(tdDir, "fabric-ca-server.db")
+	fcaDB2      = path.Join(tdDir, "fabric-ca.db")
+	cfgFile     = path.Join(tdDir, "config.json")
+	testCfgFile = "testconfig.json"
+	csrFile     = path.Join(tdDir, "csr.json")
+	serversDir  = "testservers"
+	adminID     *Identity
 )
 
 const (
-	ClientTLSConfig = "client-config.json"
-	FCADB           = "../testdata/fabric-ca.db"
-	CFGFile         = "testconfig.json"
+	DefaultCA = ""
 )
 
-var serverStarted bool
-var serverExitCode = 0
-var dir string
+func TestClient(t *testing.T) {
+	server := TestGetServer(ctport1, path.Join(serversDir, "c1"), "", 1, t)
+	if server == nil {
+		return
+	}
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
 
-func TestAllClient(t *testing.T) {
-	startServer()
+	c := getTestClient(ctport1)
 
-	clientConfig := filepath.Join(dir, ClientTLSConfig)
-	os.Link("../testdata/client-config.json", clientConfig)
-
-	c := getClient()
-
+	testLoadIdentity(c, t)
+	testGetCAInfo(c, t)
 	testRegister(c, t)
 	testEnrollIncorrectPassword(c, t)
-	testEnroll(c, t)
 	testDoubleEnroll(c, t)
 	testReenroll(c, t)
-	testRevocation(c, t, "revoker", "revokerpw", true, true)
-	testRevocation(c, t, "nonrevoker", "nonrevokerpw", true, false)
-	testRevocation(c, t, "revoker2", "revokerpw2", false, true)
-	testRevocation(c, t, "nonrevoker2", "nonrevokerpw2", false, false)
+	testRevocation(c, t, "revoker1", true, true)
+	testRevocation(c, t, "nonrevoker1", false, true)
+	testRevocation(c, t, "revoker2", true, false)
+	testRevocation(c, t, "nonrevoker2", false, false)
 	testLoadCSRInfo(c, t)
 	testLoadNoCSRInfo(c, t)
 	testLoadBadCSRInfo(c, t)
+
+	server.Stop()
+
+}
+
+func testGetCAInfo(c *Client, t *testing.T) {
+	req := &api.GetCAInfoRequest{}
+	si, err := c.GetCAInfo(req)
+	if err != nil {
+		t.Fatalf("Failed to get server info: %s", err)
+	}
+	if si == nil {
+		t.Fatal("Server info is nil")
+	}
 }
 
 func testRegister(c *Client, t *testing.T) {
@@ -72,28 +96,70 @@ func testRegister(c *Client, t *testing.T) {
 		Secret: "adminpw",
 	}
 
-	id, err := c.Enroll(enrollReq)
+	eresp, err := c.Enroll(enrollReq)
 	if err != nil {
 		t.Fatalf("testRegister enroll of admin failed: %s", err)
 	}
 
-	// Register as admin
-	registerReq := &api.RegistrationRequest{
-		Name:  "TestUser",
-		Type:  "Client",
-		Group: "bank_a",
+	adminID = eresp.Identity
+
+	err = adminID.Store()
+	if err != nil {
+		t.Fatalf("testRegister failed to store admin identity: %s", err)
 	}
 
-	_, err = id.Register(registerReq)
+	// Verify that the duration of the newly created enrollment certificate is 1 year
+	d, err := util.GetCertificateDurationFromFile(c.GetCertFilePath())
+	assert.NoError(t, err)
+	assert.True(t, d.Hours() == 8760, fmt.Sprintf("Expecting 8760 but found %f", d.Hours()))
+
+	err = c.CheckEnrollment()
 	if err != nil {
-		t.Errorf("Register failed: %s", err)
+		t.Fatalf("testRegister failed to check enrollment: %s", err)
+	}
+
+	// Register as admin
+	registerReq := &api.RegistrationRequest{
+		Name:           "MyTestUser",
+		Type:           "Client",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 1,
+	}
+
+	resp, err := adminID.Register(registerReq)
+	if err != nil {
+		t.Fatalf("Register failed: %s", err)
+	}
+
+	req := &api.EnrollmentRequest{
+		Name:   "MyTestUser",
+		Secret: resp.Secret,
+	}
+
+	eresp, err = c.Enroll(req)
+	if err != nil {
+		t.Fatalf("Enroll failed: %s", err)
+	}
+	id := eresp.Identity
+
+	if id.GetName() != "MyTestUser" {
+		t.Fatal("Incorrect name retrieved")
+	}
+
+	if id.GetECert() == nil {
+		t.Fatal("No ECert was returned")
+	}
+
+	_, err = id.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
+	if err != nil {
+		t.Fatal("Failed to get batch of TCerts")
 	}
 }
 
 func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 
 	req := &api.EnrollmentRequest{
-		Name:   "testUser",
+		Name:   "admin",
 		Secret: "incorrect",
 	}
 
@@ -101,38 +167,6 @@ func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 	if err == nil {
 		t.Error("Enroll with incorrect password passed but should have failed")
 	}
-}
-
-func testEnroll(c *Client, t *testing.T) {
-
-	req := &api.EnrollmentRequest{
-		Name:   "testUser",
-		Secret: "user1",
-	}
-
-	id, err := c.Enroll(req)
-	if err != nil {
-		t.Errorf("Enroll failed: %s", err)
-	}
-
-	if id.GetName() != "testUser" {
-		t.Error("Incorrect name retrieved")
-	}
-
-	if id.GetECert() == nil {
-		t.Error("No ECert was returned")
-	}
-
-	_, err = id.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
-	if err != nil {
-		t.Errorf("Failed to get batch of TCerts")
-	}
-
-	err = id.Store()
-	if err != nil {
-		t.Errorf("testEnroll: store failed: %s", err)
-	}
-
 }
 
 func testDoubleEnroll(c *Client, t *testing.T) {
@@ -155,41 +189,71 @@ func testReenroll(c *Client, t *testing.T) {
 		t.Errorf("testReenroll: failed LoadMyIdentity: %s", err)
 		return
 	}
-	id, err = id.Reenroll(&api.ReenrollmentRequest{})
+	eresp, err := id.Reenroll(&api.ReenrollmentRequest{})
 	if err != nil {
 		t.Errorf("testReenroll: failed reenroll: %s", err)
 		return
 	}
+	id = eresp.Identity
 	err = id.Store()
 	if err != nil {
 		t.Errorf("testReenroll: failed Store: %s", err)
 	}
 }
 
-func testRevocation(c *Client, t *testing.T, user, secret string, ecertOnly, shouldPass bool) {
+func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bool) {
+	rr := &api.RegistrationRequest{
+		Name:           user,
+		Type:           "user",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 1,
+	}
+	if withPriv {
+		rr.Attributes = []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "true"}}
+	}
+	resp, err := adminID.Register(rr)
+	if err != nil {
+		t.Fatalf("Failed to register %s: %s", user, err)
+	}
 	req := &api.EnrollmentRequest{
 		Name:   user,
-		Secret: secret,
+		Secret: resp.Secret,
 	}
-	id, err := c.Enroll(req)
+	eresp, err := c.Enroll(req)
 	if err != nil {
-		t.Errorf("enroll of user '%s' with password '%s' failed", user, secret)
+		t.Errorf("enroll of user '%s' failed", user)
 		return
 	}
+	id := eresp.Identity
 	if ecertOnly {
 		err = id.GetECert().RevokeSelf()
 	} else {
 		err = id.RevokeSelf()
 	}
-	if shouldPass && err != nil {
+	if withPriv && err != nil {
 		t.Errorf("testRevocation failed for user %s: %s", user, err)
-	} else if !shouldPass && err == nil {
+		return
+	} else if !withPriv && err == nil {
 		t.Errorf("testRevocation for user %s passed but should have failed", user)
+		return
+	}
+
+	if withPriv {
+		eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
+		if err == nil {
+			t.Errorf("user ecert %s enrolled but ecert should have been revoked", user)
+		}
+		if !ecertOnly {
+			eresp, err = c.Enroll(req)
+			if err == nil {
+				t.Errorf("user %s enrolled but should have been revoked", user)
+			}
+		}
 	}
 }
 
 func testLoadCSRInfo(c *Client, t *testing.T) {
-	_, err := c.LoadCSRInfo("../testdata/csr.json")
+	_, err := c.LoadCSRInfo(csrFile)
 	if err != nil {
 		t.Errorf("testLoadCSRInfo failed: %s", err)
 	}
@@ -203,66 +267,138 @@ func testLoadNoCSRInfo(c *Client, t *testing.T) {
 }
 
 func testLoadBadCSRInfo(c *Client, t *testing.T) {
-	_, err := c.LoadCSRInfo("../testdata/config.json")
+	_, err := c.LoadCSRInfo(cfgFile)
 	if err == nil {
 		t.Error("testLoadBadCSRInfo passed but should have failed")
 	}
 }
 
+func testLoadIdentity(c *Client, t *testing.T) {
+	_, err := c.LoadIdentity("foo", "bar")
+	if err == nil {
+		t.Error("testLoadIdentity foo/bar passed but should have failed")
+	}
+	_, err = c.LoadIdentity("foo", "../testdata/ec.pem")
+	if err == nil {
+		t.Error("testLoadIdentity foo passed but should have failed")
+	}
+	_, err = c.LoadIdentity("../testdata/ec-key.pem", "../testdata/ec.pem")
+	if err != nil {
+		t.Errorf("testLoadIdentity failed: %s", err)
+	}
+}
+
+func TestCustomizableMaxEnroll(t *testing.T) {
+	os.Remove("../testdata/fabric-ca-server.db")
+
+	srv := TestGetServer(ctport2, path.Join(serversDir, "c2"), "", 3, t)
+	if srv == nil {
+		return
+	}
+
+	srv.CA.Config.Registry.MaxEnrollments = 3
+	srv.Config.Debug = true
+
+	err := srv.Start()
+	if err != nil {
+		t.Errorf("Server start failed: %s", err)
+	}
+
+	testTooManyEnrollments(t)
+	testIncorrectEnrollment(t)
+
+	err = srv.Stop()
+	if err != nil {
+		t.Errorf("Server stop failed: %s", err)
+	}
+}
+
+func testTooManyEnrollments(t *testing.T) {
+	clientConfig := &ClientConfig{
+		URL: fmt.Sprintf("http://localhost:%d", ctport2),
+	}
+
+	rawURL := fmt.Sprintf("http://admin:adminpw@localhost:%d", ctport2)
+
+	_, err := clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+
+	_, err = clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+
+	eresp, err := clientConfig.Enroll(rawURL, testdataDir)
+	if err != nil {
+		t.Errorf("Failed to enroll: %s", err)
+	}
+	id := eresp.Identity
+
+	_, err = clientConfig.Enroll(rawURL, testdataDir)
+	if err == nil {
+		t.Errorf("Enroll should have failed, no more enrollments left")
+	}
+
+	id.Store()
+}
+
+func testIncorrectEnrollment(t *testing.T) {
+	c := getTestClient(ctport1)
+
+	id, err := c.LoadMyIdentity()
+	if err != nil {
+		t.Fatal("Failed to load identity")
+	}
+
+	req := &api.RegistrationRequest{
+		Name:           "TestUser",
+		Type:           "Client",
+		Affiliation:    "hyperledger",
+		MaxEnrollments: 4,
+	}
+
+	_, err = id.Register(req)
+	if err == nil {
+		t.Error("Registration should have failed, can't register user with max enrollment greater than server max enrollment setting")
+	}
+}
+
+func TestNormalizeUrl(t *testing.T) {
+	_, err := NormalizeURL("")
+	if err != nil {
+		t.Errorf("normalizeURL empty: %s", err)
+	}
+	_, err = NormalizeURL("http://host:7054:x/path")
+	if err != nil {
+		t.Errorf("normalizeURL colons: %s", err)
+	}
+	_, err = NormalizeURL("http://host:7054/path")
+	if err != nil {
+		t.Errorf("normalizeURL failed: %s", err)
+	}
+}
+
 func TestSendBadPost(t *testing.T) {
 	c := new(Client)
+
+	c.Config = new(ClientConfig)
+
 	curl := "fake"
 	reqBody := []byte("")
 	req, _ := http.NewRequest("POST", curl, bytes.NewReader(reqBody))
-	_, err := c.SendPost(req)
+	err := c.SendReq(req, nil)
 	if err == nil {
 		t.Error("Sending post should have failed")
 	}
 }
 
-func getClient() *Client {
-	fcaServer := fmt.Sprintf(`{"serverURL": "%s"}`, util.GetServerURL())
-	c, err := NewClient(fcaServer)
-	if err != nil {
-		log.Errorf("getClient failed: %s", err)
-	}
-	return c
-}
-
-func startServer() int {
-	var err error
-	dir, err = ioutil.TempDir("", "lib")
-	if err != nil {
-		fmt.Printf("Failed to create temp directory [error: %s]", err)
-		return serverExitCode
-	}
-
-	if !serverStarted {
-		os.Remove(FCADB)
-		os.RemoveAll(dir)
-		serverStarted = true
-		fmt.Println("starting fabric-ca server ...")
-		go runServer()
-		time.Sleep(10 * time.Second)
-		fmt.Println("fabric-ca server started")
-	} else {
-		fmt.Println("fabric-ca server already started")
-	}
-	return serverExitCode
-}
-
-func runServer() {
-	os.Setenv("FABRIC_CA_DEBUG", "true")
-	os.Setenv("FABRIC_CA_HOME", dir)
-	s := new(server.Server)
-	s.ConfigDir = "../testdata"
-	s.ConfigFile = CFGFile
-	s.StartFromConfig = true
-	s.Start()
-}
-
 func TestLast(t *testing.T) {
 	// Cleanup
-	os.Remove(FCADB)
-	os.RemoveAll(dir)
+	os.RemoveAll("../testdata/msp")
+	os.RemoveAll(serversDir)
+	os.RemoveAll("multica")
+	os.RemoveAll("rootDir")
+	os.RemoveAll("msp")
 }

@@ -38,26 +38,6 @@ else
     PACKAGES=${split[@]/#/${REPO_PATH}/}
 fi
 
-go vet $PACKAGES
-if ! which fgt > /dev/null ; then
-    go get github.com/GeertJohan/fgt
-fi
-
-if ! which golint > /dev/null ; then
-    go get github.com/golang/lint/golint
-fi
-
-for package in $PACKAGES
-do
-    fgt golint "${package}"
-done
-
-# check go fmt
-for package in $PACKAGES
-do
-    test -z "$(gofmt -s -l $GOPATH/src/$package/ | tee /dev/stderr)"
-done
-
 # Build and install cfssl executable in PATH
 go install -tags "$BUILD_TAGS" ${REPO_PATH}/cmd/cfssl
 
@@ -69,3 +49,33 @@ do
     [ -s $profile ] && COVPROFILES="$COVPROFILES $profile"
 done
 cat $COVPROFILES > coverprofile.txt
+
+go vet $PACKAGES
+if ! command -v fgt > /dev/null ; then
+    go get github.com/GeertJohan/fgt
+fi
+
+if ! command -v golint > /dev/null ; then
+    go get github.com/golang/lint/golint
+fi
+
+for package in $PACKAGES
+do
+    fgt golint "${package}"
+done
+
+if ! command -v staticcheck  > /dev/null ; then
+    go get -u honnef.co/go/tools/cmd/staticcheck
+fi
+
+for package in $PACKAGES
+do
+    fgt staticcheck "${package}"
+done
+
+# check go fmt
+for package in $PACKAGES
+do
+    echo "gofmt $package"
+    test -z "$(gofmt -s -l -d $GOPATH/src/$package/ | tee /dev/stderr)"
+done

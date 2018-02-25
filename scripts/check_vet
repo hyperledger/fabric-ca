@@ -1,7 +1,11 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 function runvet {
  {
-   go vet *.go
    for dir in `ls`
    do
       if [ -d $dir ]; then

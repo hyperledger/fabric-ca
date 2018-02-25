@@ -1,3 +1,8 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 #HOME                    = .
 #RANDFILE                = $ENV::HOME/.rnd
 DOMAIN                  = FVT
@@ -90,7 +95,7 @@ attributes              = req_attributes         # req attributes
 x509_extensions		= v3_ca  # The extentions to add to self signed certs
 req_extensions		= v3_req # The extensions to add to req's
 
-# This sets a mask for permitted string types. There are several options. 
+# This sets a mask for permitted string types. There are several options.
 # default: PrintableString, T61String, BMPString.
 # pkix   : PrintableString, BMPString.
 # utf8only: only UTF8Strings.
@@ -177,7 +182,7 @@ keyUsage = $KEYUSE
 # ipsecEndSystem -- obsolete
 # ipsecTunnel    -- obsolete
 # ipsecUser      -- obsolete
-# timeStamping 
+# timeStamping
 # OCSPSigning
 #extendedKeyUsage = $EXTKEYUSE
 
@@ -191,7 +196,7 @@ authorityKeyIdentifier=keyid,issuer
 # An alternative to produce certificates that aren't
 # deprecated according to PKIX.
 #subjectAltName=email:move
-subjectAltName=$SUBALT 
+subjectAltName=$SUBALT
 
 ####################################################################
 # Same as above, but cert req already has SubjectAltNames
@@ -216,7 +221,7 @@ keyUsage = $KEYUSE
 # Lets at least make our requests PKIX complaint
 #subjectAltName=email:move
 
-subjectAltName=$SUBALT 
+subjectAltName=$SUBALT
 
 ####################################################################
 # subjectAltName section
@@ -264,7 +269,7 @@ crlDistributionPoints=cdp_section
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid:always,issuer:always
 basicConstraints = critical,CA:true
-#basicConstraints = CA:true 
+#basicConstraints = CA:true
 keyUsage = cRLSign, keyCertSign
 # nsCertType = sslCA, emailCA
 # Copy issuer details
@@ -284,7 +289,7 @@ fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.der
 #onlysomereasons=$IDPREASON
 
 [ cdp_section ]
-fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.der
+fullname=URI:http://localhost:$HTTP_PORT/$DOMAIN/crl/crl.pem
 # revocation reason, where reason is one of: 
 #    unspecified
 #    keyCompromise

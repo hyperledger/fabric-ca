@@ -1,0 +1,701 @@
+#!/bin/bash
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+function usage {
+   echo ""
+   echo "pki - create self-signed, CA, user and CA-signed certificates"
+   echo "   -f) <function>, where <function> is one of"
+   echo "         display  - display certificate contents"
+   echo "         dispcrl  - display CRL for a given CA"
+   echo "         gencrl   - generate a new CRL file"
+   echo "         newca    - add a new root CA Domain"
+   echo "         newcert  - create a new self-signed certificate"
+   echo "         newreq   - create a new cert request"
+   echo "         newsub   - add a new subordinate CA Domain"
+   echo "         pkcs12   - output a pkcs12 package using a list of filenames"
+   echo "                    specified with the '-c' option"
+   echo "         revoke   - revoke a cert issued by a given CA and update CRL"
+   echo "         sign     - sign a cert request with a specific CA"
+   echo "         signcert - sign an exisiting cert with a specific CA"
+   echo "   -n) <X500dn>, where <X500dn> is expressed as a series of RDNs"
+   echo "         in the form:"
+   echo "           /type=val1/type=val2/..."
+   echo "   -d  <digest>"
+   echo "         Supported values:"
+   echo "                  md2|md4|md5|sha|sha1|sha224|sha256|sha384|sha512"
+   echo "   -e) <n-days>    expiration; 'n'=number of days until expire"
+   echo "   -a) <authority>   name of newCA, or signingCA DOMAIN"
+   echo "   -b) <subordinate> name of new subordinateCA (to create subCAs)"
+   echo "   -c) <certfile>  cert to display, sign, or include in pkcs12"
+   echo "   -k) <keyfile>   key for creating pkcs12 packages"
+   echo "   -t) <type>      keytype: rsa|dsa|ec"
+   echo "   -l) <n-bits>    keylength"
+   echo "         Supported vaules for RSA:  384-4096"
+   echo "         Supported vaules for DSA:  256,512,1024,2048,4096"
+   echo "         Supported vaules for ECC:  160,224,256,384,521,570"
+   echo "   -K) <keyUsage> comma-delmited list for inclusion in KU extension"
+   echo "         Supported values: digitalSignature, nonRepudiation, "
+   echo "            keyEncipherment, dataEncipherment, keyAgreement, "
+   echo "            keyCertSign, cRLSign, encipherOnly, decipherOnly "
+   echo "   -E) <extendeKeyUsage> comma-delmited list for inclusion in"
+   echo "        EKU extension"
+   echo "         Supported values: serverAuth, clientAuth, codeSigning,"
+   echo "            emailProtection, timeStamping, ipsecIKE, any"
+   echo "         Supported but deprecated by RFC:"
+   echo "              ipsecEndSystem, ipsecTunnel, ipsecUser)"
+   echo "   -p) <prefix> to use for output files (certificates, keys, pkcs12)"
+   echo "   -m) <reason> for revocation (for revoke function)"
+   echo "         Supported values: unspecified, keyCompromise, CACompromise,"
+   echo "            affiliationChanged, superseded, cessationOfOperation,"
+   echo "            certificateHold, removeFromCRL"
+   echo "   -r) <reasons> CDP revocation reasons: comma-delmited list for"
+   echo "            inclusion in certificate CDP extension"
+   echo "         Supported values: keyCompromise, CACompromise, affiliationChanged,"
+   echo "            superseded, cessationOfOperation, certificateHold,"
+   echo "            privilegeWithdrawn, AACompromise"
+   echo "   -R) <reasons> IDP revocation reasons: comma-delmited list for"
+   echo "            inclusion in CRL IDP extension"
+   echo "         Supported values: same as for CDP above"
+   echo "   -x) used to interactively prompt for subjectAltNames"
+   echo "   -C) exclude CRL distribution point extention"
+   echo "   -o) crl output file (defalut: crl = crl.pem/crl.der)"
+   echo "   -?) usage"
+}
+
+function config_opts {
+      configin="$1"
+
+      cp $configin $configin.this
+      config="$configin.this"
+      chmod 664 $config
+
+      if test "$KUstring" = "none"; then
+         sed 's/keyUsage = $KEYUSE/#keyUsage =$KEYUSE/' \
+                $config > $config.tmp
+         mv $config.tmp $config
+      elif test ! -z "$KUstring"; then
+         sed "s/\(KEYUSE[[:blank:]].*=[[:blank:]]\).*/\1\"$KUstring\"/" \
+                $config > $config.tmp
+         mv $config.tmp $config
+      fi
+
+      if test -z "$EKUstring"; then
+         :
+      else
+         if test "$EKUstring" = "ike"; then
+            sed "s/#\(EXTKEYUSE[[:blank:]].*=[[:blank:]]\).*/\1"${id_kp_ipsecIKE}"/" \
+               $config > $config.tmp
+            mv $config.tmp $config
+         elif test "$EKUstring" = "any"; then
+            sed "s/#\(EXTKEYUSE[[:blank:]].*=[[:blank:]]\).*/\1"${anyExtendedKeyUsage}"/" \
+               $config > $config.tmp
+            mv $config.tmp $config
+         else
+            sed "s/#\(EXTKEYUSE[[:blank:]].*=[[:blank:]]\).*/\1\"${EKUstring}\"/" \
+               $config > $config.tmp
+            mv $config.tmp $config
+         fi
+
+         sed 's/#extendedKeyUsage = /extendedKeyUsage =/' \
+                      $config > $config.tmp
+         mv $config.tmp $config
+      fi
+}
+
+function   newcert {
+      config_opts "$baseconf"
+
+      if test -z "$certauth"; then # create a new self-signed certificate
+         if test "$extensions" = "Y"; then
+            test -z "$subjectAltString" && subjalt
+            sed "s/\(SUBALT[[:blank:]].*=[[:blank:]]\).*/\1$subjectAltString/" \
+                   $config > $config.tmp
+            mv $config.tmp $config
+         fi
+
+         $REQ -config $config -new -newkey $keytype \
+              -nodes -$digest -x509 -subj "$subjectname" -keyout "$keyout.pem" -out "$certout.pem" \
+              -extensions usr_cert
+         if test "$?" -ne 0; then
+            echo "Create newcert failed."
+            exit 1
+         else
+            $DISPLAY "$certout.pem"
+            echo "Certificate is in $certout.pem, private key is in $keyout.pem"
+         fi
+         test -f "${baseconf}.this" && rm "${baseconf}.this"
+      else # generate a new request and sign it with the requested CA
+         if test ! -d ${casign}; then
+            echo ""
+            echo "${casign} does not exist. Create a new CA domain by running:"
+         echo "      \"pki -f newca -a ${casign##/*/} -n <subjname>\""
+            exit 1
+         fi
+         newreq
+         signreq
+      fi
+}
+
+function  newca {
+       typeset ANS
+
+       if test -z "$certauth"; then
+          echo "Need name for new CADOMAIN. Use '-a <name>' option."
+          exit 1
+       fi
+
+       if test -f ${caroot}/serial; then
+          echo "CA Domain ( '${caroot}' ) already exists."
+          read -p "Overwrite existing directory?! [Y/N]: " ANS
+          ANS="$(echo $ANS | tr '[[:lower:]]' '[[:upper:]]')"
+          if test  "$ANS" != "Y" ; then
+             exit 1
+          else
+             rm -rf "${caroot}"
+          fi
+       fi
+
+       # create the directory hierarchy
+       mkcatree
+
+       config="$caroot/$caconf"
+
+       if test "$extensions" = "Y"; then
+          test -z "$subjectAltString" && subjalt
+          sed "s/\(SUBALT[[:blank:]].*=[[:blank:]]\).*/\1$subjectAltString/" \
+             "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       if test "$CDP" = "no"; then
+         sed 's/crlDistr/#crlDistr/' "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+         sed  's/^issuing/#issuing/' "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       if ! test -z "$CDPreason"; then
+         sed "s/^#reasons=\$CDPREASON/reasons=${CDPreason}/" "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       if ! test -z "$IDPreason"; then
+         sed "s/^#onlysomereasons=\$IDPREASON/onlysomereasons=${IDPreason}/" "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       echo "Making CA certificate ..."
+       $REQ -config "$config" \
+            -new -newkey "$keytype" \
+            -nodes \
+            -new -"$digest"\
+            -keyout "${caroot}/private/$cakey" \
+            -subj "$subjectname" \
+            -out "${caroot}/$careq"
+       if test "$?" -ne 0; then
+          echo "Create newca request failed."
+          exit 1
+       else
+#         $CA  -create_serial \
+          $CA  -md "$digest" \
+               -out "${caroot}/$cacert.pem" \
+               -config "$config" -batch \
+               -policy policy_anything\
+               -subj "$subjectname" \
+               -extensions v3_ca_has_san \
+               -keyfile "${caroot}/private/$cakey" \
+               -startdate "$startDate" -enddate "$endDate" \
+               -selfsign -infiles "${caroot}/$careq"
+       fi
+
+       $GENCRL \
+           -keyfile "${caroot}/private/$cakey" \
+           -cert "${caroot}/$cacert.pem" \
+           -md $digest \
+           -crldays $crlexpiration \
+           -out "${caroot}/crl/${CRLoutput}.pem" \
+           -config "$config"
+
+       convert CRL pem der "${caroot}/crl/${CRLoutput}.pem"
+       convert X509 pem der "${caroot}/$cacert.pem"
+       convert $ktype pem der "${caroot}/private/cakey.pem"
+       cp "${caroot}/$cacert.pem" "$HOME/${certauth}-cert.pem"
+       cp "${caroot}/$cacert.der" "$HOME/${certauth}-cert.der"
+       cp "${caroot}/private/cakey.pem" "$HOME/${certauth}-key.pem"
+       cp "${caroot}/private/cakey.der" "$HOME/${certauth}-key.der"
+       echo "CERTFILEs:"
+       ls -l "$HOME/${certauth}-cert.pem" "$HOME/${certauth}-cert.der" | sed 's/^/   /'
+       echo "KEYFILEs:"
+       ls -l "$HOME/${certauth}-key.pem" "$HOME/${certauth}-key.der"  | sed 's/^/   /'
+}
+
+function newsub {
+       if test -z "$certauth"; then
+          echo "Need name for new CADOMAIN. Use '-a <name>' option."
+          exit 1
+       fi
+
+       if test -f ${caroot}/serial; then
+          echo "Sub CA Domain ( '${caroot}' ) already exists."
+          read -p "Overwrite existing directory?! [Y/N]: " ANS
+          ANS="$(echo $ANS | tr '[[:lower:]]' '[[:upper:]]')"
+          if test  "$ANS" != "Y" ; then
+             exit 1
+          else
+             rm -rf "${caroot}"
+          fi
+       fi
+
+       mkcatree
+
+       config="$caroot/$caconf"
+
+       if test "$extensions" = "Y"; then
+          test -z "$subjectAltString" && subjalt
+          sed "s/\(SUBALT[[:blank:]].*=[[:blank:]]\).*/\1$subjectAltString/" \
+             "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       if test "$CDP" = "no"; then
+         sed 's/crlDistr/#crlDistr/' "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+         sed  's/^issuing/#issuing/' "$config" > "${config}.this"
+          mv "${config}.this" "$config"
+       fi
+
+       echo "Making CA certificate ..."
+       $REQ -config "$config" -new -nodes -keyout "${caroot}/private/$cakey" \
+            -new -newkey "$keytype" -nodes \
+            -subj "$subjectname" -out "${caroot}/$careq"
+       if test "$?" -ne 0; then
+          echo "Create newca request failed."
+          exit 1
+       else
+       echo "Siging CA certificate ..."
+          config="${casign}/$caconf"
+          $CA  -md "$digest" \
+               -config "$config" \
+               -batch \
+               -out "${caroot}/$cacert.pem" \
+               -startdate "$startDate" -enddate "$endDate" \
+               -policy policy_anything \
+               -subj "$subjectname" \
+               -keyfile "${casign}/private/$cakey" \
+               -extensions v3_ca_has_san \
+               -infiles "${caroot}/$careq"
+              # -create_serial \
+          RET=$?
+       fi
+
+       config="${caroot}/$caconf"
+       $GENCRL \
+           -keyfile "${caroot}/private/$cakey" \
+           -md $digest \
+           -crldays $crlexpiration \
+           -cert "${caroot}/$cacert.pem" \
+           -out "${caroot}/crl/${CRLoutput}.pem" \
+           -config "$config"
+
+       convert CRL pem der "${caroot}/crl/${CRLoutput}.pem"
+       convert X509 pem der "${caroot}/$cacert.pem"
+       convert $ktype pem der "${caroot}/private/cakey.pem"
+       cp "${caroot}/$cacert.pem" "$HOME/${subca}-cert.pem"
+       cp "${caroot}/$cacert.der" "$HOME/${subca}-cert.der"
+       cp "${caroot}/private/cakey.pem" "$HOME/${subca}-key.pem"
+       cp "${caroot}/private/cakey.der" "$HOME/${subca}-key.der"
+       echo "CERTFILEs:"
+       ls -l "$HOME/${subca}-cert.pem" "$HOME/${subca}-cert.der" | sed 's/^/   /'
+       echo "KEYFILEs:"
+       ls -l "$HOME/${subca}-key.pem" "$HOME/${subca}-key.der"  | sed 's/^/   /'
+}
+
+function  newreq {
+      config="$baseconf"
+      # create a certificate request
+
+      if test "$extensions" = "Y"; then
+         test -z "$subjectAltString" && subjalt
+         sed "s/\(SUBALT[[:blank:]].*=[[:blank:]]\).*/\1$subjectAltString/" \
+                $config > ${config}.req
+         config=${config}.req
+      fi
+
+      $REQ -config "$config" -nodes -new -"$digest"\
+           -newkey "$keytype" -subj "$subjectname" \
+           -keyout "$keyout.pem" -out "$reqout"
+      if test "$?" -eq 0; then
+         echo "Request is in $reqout, private key is in $keyout.pem"
+      fi
+}
+
+function  dispcrl {
+      # display CRL for a given CA
+       if test -z "$certauth"; then
+          echo "Need name of an existing CA. Use '-a <name>' option."
+          exit 1
+       fi
+
+      crlfile="$caroot/crl/${CRLoutput}.der"
+
+      $CRL -in "$crlfile" -inform der -noout -text
+}
+
+function pkcs12 {
+      config=${caroot}/$caconf.tmp
+      test -f "$tmpcertlist" || touch "$tmpcertlist"
+      for i in $cert; do
+        cat "$i" >> "$tmpcertlist"
+      done
+
+      $PKCS12 -export -des3 \
+              -out "$pkcs12out" \
+              -in "$tmpcertlist" \
+              -passout pass:tcpsup \
+              -inkey "$keyfile"
+      echo ""
+      echo "New pkcs12 package is in $pkcs12out"
+      rm "$tmpcertlist"
+      #$PKCS12 -in "$pkcs12out" -info
+}
+
+function signreq {
+      if test ! -d ${casign}; then
+         echo ""
+         echo "${casign} does not exist. Create a new CA domain by running:"
+         echo "      \"pki -f newca -a ${casign##/*/} -n <subjname>\""
+         exit 1
+      fi
+
+      config=${casign}/$caconf
+
+      config_opts $config
+
+      $CA -config $config \
+          -startdate "$startDate" -enddate "$endDate" \
+          -policy policy_anything \
+          -md $digest \
+          -passin pass:tcpsup \
+          -extensions usr_cert_has_san \
+          -out "$certout.pem" \
+          -infiles "$reqout"
+          #$keytype \
+      if test $? -eq 0; then
+       $GENCRL \
+           -keyfile "${caroot}/private/$cakey" \
+           -md $digest \
+           -crldays $crlexpiration \
+           -cert "${caroot}/$cacert.pem" \
+           -passin pass:tcpsup \
+           -out "${caroot}/crl/${CRLoutput}.pem" \
+           -config "$config"
+         cat "$certout.pem"
+         serial_num=$($X509 -in "$certout.pem" -noout -serial|sed 's/.*=\(.*\)/\1/')
+         convert X509 pem der "${casign}/certsdb/$serial_num.pem"
+         convert X509 pem der "$certout.pem"
+         convert CRL pem der "${casign}/crl/${CRLoutput}.pem"
+         echo "PEM-encoded signed certificate is in $certout.pem"
+         echo "PEM-encoded signed key         is in $keyout.pem"
+         echo "DER-encoded signed certificate is in $certout.der"
+         echo "DER-encoded signed key         is in $keyout.der"
+         echo "Copy of signed certificate with serial number $serial_num in ${casign}/certsdb/$serial_num.pem"
+      fi
+}
+
+function gencrl {
+      if test ! -d ${casign}; then
+         echo ""
+         echo "${casign} does not exist. Create a new CA domain by running:"
+         echo "      \"pki -f newca -a <CAname> -n <subjname>\""
+         exit 1
+      fi
+
+      config=${casign}/$caconf
+
+       $GENCRL \
+           -keyfile "${caroot}/private/$cakey" \
+           -md $digest \
+           -crldays $crlexpiration \
+           -cert "${caroot}/$cacert.pem" \
+           -out "${caroot}/crl/${CRLoutput}.pem" \
+           -passin pass:tcpsup \
+           -config "$config"
+      if test $? -eq 0; then
+         convert CRL pem der "${caroot}/crl/${CRLoutput}.pem"
+         $CRL -in "${caroot}/crl/${CRLoutput}.pem" -noout -text
+         echo "Updated CRL file is in ${caroot}/crl/${CRLoutput}.pem"
+      else
+         echo "CRL update failed."
+      fi
+}
+
+function signcert {
+      config=${casign}/$caconf
+
+      if test ! -d ${casign}; then
+         echo ""
+         echo "${casign} does not exist. Create a new CA domain by running:"
+         echo "      \"pki -f newca -a <CAname> -n <subjname>\""
+         exit 1
+      fi
+
+      $X509 -x509toreq -in "$cert" -signkey newkey.pem -out tmp.pem
+      $CA -config $config \
+          -policy policy_anything \
+          -md $digest \
+          -passin pass:tcpsup \
+          -extensions usr_cert_has_san \
+          -out newcert.pem \
+          -infiles tmp.pem
+      $DISPLAY newcert.pem
+      echo "Signed certificate is in newcert.pem"
+}
+
+function revoke {
+      if test ! -d ${casign}; then
+         echo ""
+         echo "${casign} does not exist. Create a new CA domain by running:"
+         echo "      \"pki -f newca -a <CAname> -n <subjname>\""
+         exit 1
+      fi
+
+      config="${casign}/$caconf"
+
+      $CA -revoke "$cert" \
+          -keyfile "${casign}/private/cakey.pem" \
+          -cert "${casign}/cacert.pem" \
+          -crldays $crlexpiration \
+          -passin pass:tcpsup \
+          -config "$config" \
+          ${CRLREASON}
+      if test $? -eq 0; then
+         echo "$cert revoked."
+         gencrl
+         convert CRL pem der "${casign}/crl/${CRLoutput}.pem"
+      else
+         echo "Revoke failed."
+      fi
+}
+
+function subjalt {
+   typeset ANS
+
+   while [ "$ANS" != "Y" ]; do
+     echo -n "IPv4 Identity (blank for none): "
+     read IPV4ID
+     echo -n "IPv6 Identity (blank for none): "
+     read IPV6ID
+     echo -n "FQDN Identity (blank for none): "
+     read FQDNID
+     echo -n "UserAtFQDN Identity (blank for none): "
+     read EMAILID
+     echo ""
+     echo "IPv4 Identity: $IPV4ID"
+     echo "IPv6 Identity: $IPV6ID"
+     echo "FQDN Identity: $FQDNID"
+     echo "UserAtFQDN Identity: $EMAILID"
+     echo ""
+     echo -n "Are the above correct? [Y/N]"
+     read ANS
+     ANS=$(echo "$ANS" | tr '[[:lower:]]' '[[:upper:]]')
+   done
+
+   if [ ! -z $IPV4ID ]; then
+      IPV4ID="IP:$IPV4ID,"
+   fi
+
+   if [ ! -z $IPV6ID ]; then
+      IPV6ID="IP:$IPV6ID,"
+   fi
+
+   if [ ! -z $FQDNID ]; then
+      FQDNID="DNS:$FQDNID,"
+   fi
+
+   if [ ! -z $EMAILID ]; then
+      EMAILID="email:$EMAILID,"
+   fi
+
+   subjectAltString=$(echo "$IPV4ID$IPV6ID$FQDNID$EMAILID" | sed 's/,$//')
+   # example of setting subjectAltString using OIDs
+   # subjectAltString="otherName:1.3.187;UTF8:04 17 43 41 49 58 41 20 45 43 4f 4e 4f 4d 49 43 41 20 46 45 44 45 52 41 4c,otherName:1.3.187;UTF8:04 35 31 39 30 38 31 39 37 37 32 35 30 39 35 32 39 37 38 31 37 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 31 39 35 34 30 33 32 36 38 36 44 45 54 52 41 4e 53 50,otherName:1.3.187;UTF8:04 0e 30 30 33 36 30 33 30 35 30 30 30 31 30 34,otherName:1.3.187;UTF8:04 19 44 41 56 49 53 4f 4e 20 4d 41 52 43 45 4c 20 50 41 53 51 55 41 4c 49 4e 49;$subjectAltString"
+}
+
+function mkcatree {
+   mkdir -p ${caroot}/
+   mkdir -p ${caroot}/certsdb
+   mkdir -p ${caroot}/crl
+   mkdir -p ${caroot}/private
+   chmod -R 775 "${caroot}"
+   chmod -R g+s "${caroot}"
+   seed=$( od -x -N8 -An /dev/urandom | sed 's/[[:blank:]]//g' | tr '[[:lower:]]' '[[:upper:]]')
+   echo "$seed" > "${caroot}/serial"
+   echo "$seed" > "${caroot}/crlnumber"
+   touch ${caroot}/index.txt
+
+   if test -z "$subca"; then
+     domain="$certauth"
+   else
+     domain="$subca"
+   fi
+   sed "s/\(DOMAIN[[:blank:]].*=[[:blank:]]\).*/\1$domain/" $baseconf  > ${caroot}/$caconf
+}
+
+function convert {
+  cmd=$(echo $1| tr a-z A-z)
+  old=$2
+  new=$3
+  src=$4
+  name=${src%%.$old}
+  eval \$${cmd} -in $src -inform $old -outform $new > $name.$new
+}
+
+while getopts "?hxf:n:d:l:s:e:a:c:k:t:p:b:K:E:C:m:r:R:o:S:X:" option
+   do case "$option" in
+         f)   function="$OPTARG"      ;;
+         n)   subjectname="$OPTARG"   ;;
+         d)   digest="$OPTARG"        ;;
+         l)   keylength="$OPTARG"     ;;
+         s)   startDate="$OPTARG"     ;;
+         e)   endDate="$OPTARG"       ;;
+         X)   crlexpiration="$OPTARG" ;;
+         a)   certauth="$OPTARG"      ;;
+         c)   cert="$OPTARG"          ;;
+         x)   extensions="Y"          ;;
+         t)   ktype="$OPTARG"         ;;
+         k)   keyfile="$OPTARG"       ;;
+         p)   prefix="$OPTARG"       ;;
+         b)   subca="$OPTARG"         ;;
+         K)   KUstring="$OPTARG"      ;;
+         E)   EKUstring="$OPTARG"     ;;
+         C)   CDP="$OPTARG"           ;;
+         m)   revreason="$OPTARG"     ;;
+         r)   CDPreason="$OPTARG"     ;;
+         R)   IDPreason="$OPTARG"     ;;
+         o)   CRLoutput="$OPTARG"     ;;
+         S)   subjectAltString="$OPTARG";extensions="Y" ;;
+     ?|h|*)   usage
+              exit 1
+              ;;
+      esac
+   done
+shift $(($OPTIND-1))
+
+: ${function:="newcert"}
+: ${subjectname:="/C=US/ST=NC/L=NC/O=IBM/O=FVT/CN=MVS TEST CERT"}
+: ${digest:="sha1"}
+: ${crlexpiration:="7300"}
+: ${expiration:="7300"}
+: ${keyfile:="newkey.pem"}
+: ${extensions:="N"}
+: ${ktype:="rsa"}
+: ${cert:="$HOME/newcert.pem"}
+: ${prefix:="new."}
+: ${KUstring:=""}
+: ${CDP:="yes"}
+: ${CDPreason:=""}
+: ${IDPreason:=""}
+: ${CRLoutput:="crl"}
+: ${inform:="pem"}
+: ${outform:="der"}
+
+next_year=$(($(date +"%g")+1))
+one_year=$(date +"$next_year%m%d%H%M%SZ")
+now=$(date +"%g%m%d%H%M%SZ")
+test -z "$startDate" && startDate=$now
+test -z "$endDate" && endDate=$one_year
+
+if test ${cert##*.} = 'der'; then
+   inform=der
+   outform=pem
+fi
+
+if ! test -z "$revreason"; then
+   CRLREASON="-crl_reason $revreason"
+fi
+
+id_kp_ipsecIKE="1.3.6.1.5.5.7.3.17"
+anyExtendedKeyUsage="2.5.29.37.0"
+certout="$HOME/${prefix}cert"
+keyout="$HOME/${prefix}key"
+reqout="$HOME/${prefix}req.pem"
+pkcs12out="$HOME/${prefix}pkcs12.p12"
+tmpcertlist="$HOME/${prefix}certlist.in"
+
+if [ -z "$OPENSSL" ]; then OPENSSL=/usr/bin/openssl; fi
+
+if test "$subca" = "$certauth" -a "$function" = newsub; then
+   echo "New intermediate CA ( '$subca' ) == Signing CA ( '$certauth' )"
+   echo "Not allowed."
+   exit 1
+fi
+
+FABRIC_CA="${GOPATH}/src/github.com/hyperledger/fabric-ca"
+TESTDATA="$FABRIC_CA/testdata"
+certdir="/tmp"
+baseconf="$TESTDATA/openssl.cnf.base"
+keyparmdir="$TESTDATA/keyparms"
+caconf="${baseconf##*/}"
+caexpire="7300"   # 20 years
+if test -z "$subca"; then
+   caroot=$certdir/CAs/$certauth
+else
+   caroot=$certdir/CAs/$subca
+fi
+casign=$certdir/CAs/$certauth
+cakey=cakey.pem
+careq=careq.pem
+cacert=cacert
+REQ="$OPENSSL req"
+CA="$OPENSSL ca"
+VERIFY="$OPENSSL verify"
+X509="$OPENSSL x509"
+RSA="$OPENSSL rsa"
+DSA="$OPENSSL dsa"
+EC="$OPENSSL ec"
+CRL="$OPENSSL crl"
+GENCRL="$CA -gencrl"
+PKCS12="$OPENSSL pkcs12"
+DISPLAY="$X509 -noout -text -certopt no_header -nameopt RFC2253 -in "
+
+
+
+if test "$ktype" = rsa; then
+   if test -z "$keylength"; then keylength=1024; fi
+   keytype="rsa:$keylength"
+elif test "$ktype" = dsa -o "$ktype" = ec; then
+   if test -z "$keylength"; then keylength=256; fi
+   if test -f "$keyparmdir/$ktype$keylength" ; then
+      keytype="$ktype:$keyparmdir/$ktype$keylength"
+   else echo "Unsupported keytype:  $ktype,$keylength"
+        exit 1;
+   fi
+else echo "Unsupported keytype:  $ktype,$keylength"
+      exit 1;
+fi
+
+
+case $function in
+   display) if test -f "$cert"; then
+               $DISPLAY "$cert"
+            else
+               echo "$cert not found"
+               exit 1
+            fi
+            ;;
+   dispcrl)  dispcrl  ;;
+   newcert)  newcert  ;;
+   newreq)   newreq   ;;
+   newca)    newca    ;;
+   newsub)   newsub   ;;
+   gencrl)   gencrl   ;;
+   revoke)   revoke   ;;
+   signreq)  signreq  ;;
+   signcert) signcert ;;
+   pkcs12)   pkcs12   ;;
+   convert)  convert X509 $inform $outform $cert ;;
+   *) exit 0
+esac

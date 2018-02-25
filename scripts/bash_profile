@@ -1,5 +1,9 @@
 #!/bin/bash
-
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 # This file contains useful functions for fabric development.
 # Modify the following environment variables as desired.
 # The remaining variables should not need to be change.

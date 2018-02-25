@@ -1,0 +1,15 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+fabric-ca-server:
+   image: hyperledger/fabric-ca
+   container_name: fabric-ca-server
+   ports:
+     - "7054:7054"
+   environment:
+     - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+   volumes:
+     - "./fabric-ca-server:/etc/hyperledger/fabric-ca-server"
+   command: sh -c 'fabric-ca-server start -b admin:adminpw'

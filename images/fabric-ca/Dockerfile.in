@@ -1,17 +1,18 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 FROM hyperledger/fabric-baseos:_BASE_TAG_
-ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca
-RUN mkdir -p $FABRIC_CA_HOME /var/hyperledger/fabric-ca
-COPY payload/fabric-ca /usr/local/bin
-
-# Copy the configuration files
-ADD payload/sampleconfig.tar.bz2 $FABRIC_CA_HOME
+ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca-server
+RUN mkdir -p $FABRIC_CA_HOME /var/hyperledger/fabric-ca-server
+COPY payload/fabric-ca-client /usr/local/bin
+RUN chmod +x /usr/local/bin/fabric-ca-client
+COPY payload/fabric-ca-server /usr/local/bin
+RUN chmod +x /usr/local/bin/fabric-ca-server
 
 # Copy the same certificates that are currently hardcoded into the peers
-COPY payload/root.pem /.fabric-ca/root.pem
-COPY payload/tls_client-cert.pem /.fabric-ca/tls_client-cert.pem
-COPY payload/tls_client-key.pem /.fabric-ca/tls_client-key.pem
-COPY payload/ec-key.pem /.fabric-ca/ec-key.pem
-COPY payload/ec.pem /.fabric-ca/ec.pem
+ADD payload/fabric-ca.tar.bz2 $FABRIC_CA_HOME
 
 EXPOSE 7054
-CMD fabric-ca server start -address 0.0.0.0 -config $FABRIC_CA_HOME/server-config.json
+CMD fabric-ca-server start -b admin:adminpw

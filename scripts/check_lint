@@ -1,7 +1,10 @@
 #!/bin/bash
-
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 function runlint {
-   golint *.go
    for dir in `ls`
    do
       if [ -d $dir ]; then
