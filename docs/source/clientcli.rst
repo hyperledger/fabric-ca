@@ -9,12 +9,10 @@ Fabric-CA Client's CLI
       fabric-ca-client [command]
     
     Available Commands:
-      affiliation Manage affiliations
       enroll      Enroll an identity
       gencrl      Generate a CRL
       gencsr      Generate a CSR
       getcacert   Get CA certificate chain
-      identity    Manage identities
       reenroll    Reenroll an identity
       register    Register an identity
       revoke      Revoke an identity
@@ -33,10 +31,10 @@ Fabric-CA Client's CLI
       -H, --home string                    Client's home directory (default "$HOME/.fabric-ca-client")
           --id.affiliation string          The identity's affiliation
           --id.attrs stringSlice           A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
-          --id.maxenrollments int          The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
+          --id.maxenrollments int          The maximum number of times the secret can be reused to enroll. (default -1)
           --id.name string                 Unique name of the identity
           --id.secret string               The enrollment secret for the identity being registered
-          --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "client")
+          --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "user")
       -M, --mspdir string                  Membership Service Provider directory (default "msp")
       -m, --myhost string                  Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
       -a, --revoke.aki string              AKI (Authority Key Identifier) of the certificate to be revoked

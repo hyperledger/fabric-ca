@@ -1260,6 +1260,30 @@ password (or secret) rather than letting the server generate one for us.
     export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
     fabric-ca-client register --id.name peer1 --id.type peer --id.affiliation org1.department1 --id.secret peer1pw
 
+Note that affiliations are case sensitive except for the non-leaf affiliations that are specified in
+the server configuration file, which are always stored in lower case. For example, if the affiliations
+section of the server configuration file looks like this:
+
+.. code:: bash
+
+    affiliations:
+      BU1:
+        Department1:
+          - Team1
+      BU2:
+        - Department2
+        - Department3
+
+`BU1`, `Department1`, `BU2` are stored in lower case. This is because Fabric CA uses Viper to read configuration.
+Viper treats map keys as case insensitive and always returns lowercase value. To register an identity with
+`Team1` affiliation, `bu1.department1.Team1` would need to be specified to the
+`--id.affiliation` flag as shown below:
+
+.. code:: bash
+
+    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/admin
+    fabric-ca-client register --id.name client1 --id.type client --id.affiliation bu1.department1.Team1
+
 Enrolling a peer identity
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
