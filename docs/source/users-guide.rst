@@ -400,7 +400,7 @@ The fields are as follows:
   -  **C** is the country
 
 If custom values for the CSR are required, you may customize the configuration
-file, delete the files specified by the ``ca.certfile`` and ``ca-keyfile``
+file, delete the files specified by the ``ca.certfile`` and ``ca.keyfile``
 configuration items, and then run the ``fabric-ca-server init -b admin:adminpw``
 command again.
 

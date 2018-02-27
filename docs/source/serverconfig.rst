@@ -15,9 +15,9 @@ Fabric-CA Server's Configuration File
     #      Examples:
     #      a) --port 443
     #         To set the listening port
-    #      b) --ca-keyfile ../mykey.pem
+    #      b) --ca.keyfile ../mykey.pem
     #         To set the "keyfile" element in the "ca" section below;
-    #         note the '-' separator character.
+    #         note the '.' separator character.
     #   2) environment variable
     #      Examples:
     #      a) FABRIC_CA_SERVER_PORT=443
