@@ -167,6 +167,8 @@ const (
 	ErrGettingCert = 67
 	// Error occurred parsing variable as an integer
 	ErrParsingIntEnvVar = 68
+	// CA certificate file is not found warning message
+	ErrCACertFileNotFound = 69
 )
 
 // Construct a new HTTP error.
@@ -243,16 +245,30 @@ func (he *httpErr) writeResponse(w http.ResponseWriter) error {
 	return nil
 }
 
-type fatalErr struct {
+type serverErr struct {
 	code int
 	msg  string
+}
+
+type fatalErr struct {
+	serverErr
+}
+
+func newServerError(code int, format string, args ...interface{}) *serverErr {
+	msg := fmt.Sprintf(format, args...)
+	return &serverErr{
+		code: code,
+		msg:  msg,
+	}
 }
 
 func newFatalError(code int, format string, args ...interface{}) *fatalErr {
 	msg := fmt.Sprintf(format, args...)
 	return &fatalErr{
-		code: code,
-		msg:  msg,
+		serverErr{
+			code: code,
+			msg:  msg,
+		},
 	}
 }
 

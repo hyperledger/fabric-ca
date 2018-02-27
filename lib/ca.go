@@ -249,6 +249,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			}
 			return nil
 		}
+		log.Warning(newServerError(ErrCACertFileNotFound, "The specified CA certificate file %s does not exist", certFile))
 	}
 
 	// Get the CA cert
