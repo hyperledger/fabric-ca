@@ -45,6 +45,7 @@ Table of Contents
    5. `Setting up a cluster`_
    6. `Setting up multiple CAs`_
    7. `Enrolling an intermediate CA`_
+   8. `Upgrading the server`_
 
 5. `Fabric CA Client`_
 
@@ -68,6 +69,7 @@ Table of Contents
    2. `Fabric CA client's configuration file format`_
 
 8. `Troubleshooting`_
+
 
 Overview
 --------
@@ -324,6 +326,8 @@ directory, ``cert.pem`` file in the ``~/config/certs`` directory and the
         keyfile: /abs/path/key.pem
 
 `Back to Top`_
+
+
 
 Fabric CA Server
 ----------------
@@ -776,13 +780,12 @@ Where:
     ``(uid=%s)`` searches for LDAP entries with the value of a ``uid``
     attribute whose value is the login user name. Similarly,
     ``(email=%s)`` may be used to login with an email address.
-  * ``LDAPAttrs` is an array of LDAP attribute names to request from the
+  * ``LDAPAttrs`` is an array of LDAP attribute names to request from the
     LDAP server on a user's behalf;
   * the attribute.converters section is used to convert LDAP attributes to fabric
     CA attributes, where
     * ``fcaAttrName`` is the name of a fabric CA attribute;
-    * ``fcaExpr`` is an expression whose evaluated value is assigned to
-      the fabric CA attribute.
+    * ``fcaExpr`` is an expression whose evaluated value is assigned to the fabric CA attribute.
     For example, suppose that <LDAPAttrs> is ["uid"], <fcaAttrName> is 'hf.Revoker',
     and <fcaExpr> is 'attr("uid") =~ "revoker*"'.  This means that an attribute
     named "uid" is requested from the LDAP server on a user's behalf.  The user is
@@ -797,7 +800,8 @@ The LDAP expression language uses the govaluate package as described at
 https://github.com/Knetic/govaluate/blob/master/MANUAL.md.  This defines
 operators such as "=~" and literals such as "revoker*", which is a regular
 expression.  The LDAP-specific variables and functions which extend the
-base govaluate language are as follows.
+base govaluate language are as follows:
+
   * ``DN`` is a variable equal to the user's distinguished name.
   * ``affiliation`` is a variable equal to the user's affiliation.
   * ``attr`` is a function which takes 1 or 2 arguments.  The 1st argument
@@ -922,7 +926,7 @@ For example, the following command will start 2 default CA instances:
 
 .. code:: bash
 
-    fabric-ca-server start -b admin:adminpw --cacount 2
+   fabric-ca-server start -b admin:adminpw --cacount 2
 
 cafiles:
 ^^^^^^^^
@@ -973,6 +977,7 @@ For example, the following command will start two customized CA instances:
     fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-config.yaml
     --cafiles ca/ca2/fabric-ca-config.yaml
 
+
 Enrolling an intermediate CA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -990,7 +995,120 @@ CA tries to explicitly specify a CN value.
 
 For other intermediate CA flags see `Fabric CA server's configuration file format`_ section.
 
+
+Upgrading the server
+~~~~~~~~~~~~~~~~~~~~
+
+The Fabric CA server must be upgraded before upgrading the Fabric CA client.
+Prior to upgrade, it is suggested that the current database be backed up:
+
+- If using sqlite3, backup the current database file (which is named fabric-ca-server.db by default).
+- For other database types, use the appropriate backup/replication mechanism.
+
+To upgrade a single instance of Fabric CA server:
+
+1. Stop the fabric-ca-server process.
+2. Ensure the current database is backed up.
+3. Replace previous fabric-ca-server binary with the upgraded version.
+4. Launch the fabric-ca-server process.
+5. Verify the fabric-ca-server process is available with the following
+   command where <host> is the hostname on which the server was started::
+
+      fabric-ca-client getcacert -u http://<host>:7054
+
+Upgrading a cluster:
+^^^^^^^^^^^^^^^^^^^^
+To upgrade a cluster of fabric-ca-server instances using either a MySQL or Postgres database, perform the following procedure. We assume that you are using haproxy to load balance to two fabric-ca-server cluster members on host1 and host2, respectively, both listening on port 7054. After this procedure, you will be load balancing to upgraded fabric-ca-server cluster members on host3 and host4 respectively, both listening on port 7054.
+
+In order to monitor the changes using haproxy stats, enable statistics collection. Add the following lines to the global section of the haproxy configuration file:
+
+::
+
+    stats socket /var/run/haproxy.sock mode 666 level operator
+    stats timeout 2m
+
+Restart haproxy to pick up the changes::
+
+    # haproxy -f <configfile> -st $(pgrep haproxy)
+
+To display summary information from the haproxy "show stat" command, the following function may prove useful for parsing the copious amount of CSV data returned:
+
+.. code:: bash
+
+    haProxyShowStats() {
+       echo "show stat" | nc -U /var/run/haproxy.sock |sed '1s/^# *//'|
+          awk -F',' -v fmt="%4s %12s %10s %6s %6s %4s %4s\n" '
+             { if (NR==1) for (i=1;i<=NF;i++) f[tolower($i)]=i }
+             { printf fmt, $f["sid"],$f["pxname"],$f["svname"],$f["status"],
+                           $f["weight"],$f["act"],$f["bck"] }'
+    }
+
+
+1) Initially your haproxy configuration file is similar to the following::
+
+      server server1 host1:7054 check
+      server server2 host2:7054 check
+
+   Change this configuration to the following::
+
+      server server1 host1:7054 check backup
+      server server2 host2:7054 check backup
+      server server3 host3:7054 check
+      server server4 host4:7054 check
+
+2) Restart the HA proxy with the new configuration as follows::
+
+      haproxy -f <configfile> -st $(pgrep haproxy)
+
+   ``"haProxyShowStats"`` will now reflect the modified configuration,
+   with two active, older-version backup servers and two (yet to be started) upgraded servers::
+
+      sid   pxname      svname  status  weig  act  bck
+        1   fabric-cas  server3   DOWN     1    1    0
+        2   fabric-cas  server4   DOWN     1    1    0
+        3   fabric-cas  server1     UP     1    0    1
+        4   fabric-cas  server2     UP     1    0    1
+
+3) Install upgraded binaries of fabric-ca-server on host3 and host4. The new
+   upgraded servers on host3 and host4 should be configured to use the same
+   database as their older counterparts on host1 and host2. After starting
+   the upgraded servers, the database will be automatically migrated. The
+   haproxy will forward all new traffic to the upgraded servers, since they
+   are not configured as backup servers. Verify using the ``"fabric-ca-client getcacert"``
+   command that your cluster is still functioning appropriately before proceeding.
+   Also, ``"haProxyShowStats"`` should now reflect that all servers are active,
+   similar to the following::
+
+      sid   pxname      svname  status  weig  act  bck
+        1   fabric-cas  server3    UP     1    1    0
+        2   fabric-cas  server4    UP     1    1    0
+        3   fabric-cas  server1    UP     1    0    1
+        4   fabric-cas  server2    UP     1    0    1
+
+4) Stop the old servers on host1 and host2. Verify using the
+   ``"fabric-ca-client getcacert"`` command that your new cluster is still
+   functioning appropriately before proceeding. Then remove the older
+   server backup configuration from the haproxy configuration file,
+   so that it looks similar to the following::
+
+      server server3 host3:7054 check
+      server server4 host4:7054 check
+
+5) Restart the HA proxy with the new configuration as follows::
+
+      haproxy -f <configfile> -st $(pgrep haproxy)
+
+   ``"haProxyShowStats"`` will now reflect the modified configuration,
+   with two active servers which have been upgraded to the new version::
+
+      sid   pxname      svname  status  weig  act  bck
+        1   fabric-cas  server3   UP       1    1    0
+        2   fabric-cas  server4   UP       1    1    0
+
+
 `Back to Top`_
+
+
 
 .. _client:
 
@@ -1064,90 +1182,83 @@ registered.
 In particular, three authorization checks are made by the Fabric CA server
 during registration as follows:
 
- 1. The registrar (i.e. the invoker) must have the "hf.Registrar.Roles" attribute with a
-    comma-separated list of values where one of the values equals the type of
-    identity being registered; for example, if the registrar has the
-    "hf.Registrar.Roles" attribute with a value of "peer,app,user", the registrar
-    can register identities of type peer, app, and user, but not orderer.
+1. The registrar (i.e. the invoker) must have the "hf.Registrar.Roles" attribute with a
+   comma-separated list of values where one of the values equals the type of
+   identity being registered; for example, if the registrar has the
+   "hf.Registrar.Roles" attribute with a value of "peer,app,user", the registrar
+   can register identities of type peer, app, and user, but not orderer.
 
- 2. The affiliation of the registrar must be equal to or a prefix of
-    the affiliation of the identity being registered.  For example, an registrar
-    with an affiliation of "a.b" may register an identity with an affiliation
-    of "a.b.c" but may not register an identity with an affiliation of "a.c".
-    If root affiliation is required for an identity, then the affiliation request
-    should be a dot (".") and the registrar must also have root affiliation.
-    If no affiliation is specified in the registration request, the identity being
-    registered will be given the affiliation of the registrar.
+2. The affiliation of the registrar must be equal to or a prefix of
+   the affiliation of the identity being registered.  For example, an registrar
+   with an affiliation of "a.b" may register an identity with an affiliation
+   of "a.b.c" but may not register an identity with an affiliation of "a.c".
+   If root affiliation is required for an identity, then the affiliation request
+   should be a dot (".") and the registrar must also have root affiliation.
+   If no affiliation is specified in the registration request, the identity being
+   registered will be given the affiliation of the registrar.
 
- 3. The registrar can register a user with attributes if all of the following conditions
-    are satisfied:
-      - Registrar can register Fabric CA reserved attributes that have the prefix
-        'hf.' only if the registrar possesses the attribute and it is part of the value
-        of the 'hf.Registrar.Attributes' attribute. Furthermore, if the attribute
-        is of type list then the value of attribute being registered must be equal to or a subset
-        of the value that the registrar has. If the attribute is of type boolean, the registrar
-        can register the attribute only if the registrar's value for the attribute is 'true'.
-      - Registering custom attributes (i.e. any attribute whose name does not begin with 'hf.')
-        requires that the registrar has the 'hf.Registar.Attributes' attribute with the value of
-        the attribute or pattern being registered. The only supported pattern is a string with
-        a "*" at the end. For example, "a.b.*" is a pattern which matches all attribute names
-        beginning with "a.b.". For example, if the registrar has hf.Registrar.Attributes=orgAdmin,
-        then the only attribute which the registrar can add or remove from an identity is the 'orgAdmin'
-        attribute.
-      - If the requested attribute name is 'hf.Registrar.Attributes', an additional
-        check is performed to see if the requested values for this attribute
-        are equal to or a subset of the registrar's values for 'hf.Registrar.Attributes'.
-        For this to be true, each requested value must match a value in the registrar's
-        value for 'hf.Registrar.Attributes' attribute. For example, if the registrar's
-        value for 'hf.Registrar.Attributes' is 'a.b.*, x.y.z' and the requested attribute
-        value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches 'a.b.*' and 'x.y.z'
-        matches the registrar's 'x.y.z' value.
+3. The registrar can register a user with attributes if all of the following conditions
+   are satisfied:
 
-    Examples:
-      Valid Scenarios:
-        1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'a.b.c', it is valid 'a.b.c' matches 'a.b.*'.
+   - Registrar can register Fabric CA reserved attributes that have the prefix 'hf.'
+     only if the registrar possesses the attribute and it is part of the value of the
+     hf.Registrar.Attributes' attribute. Furthermore, if the attribute is of type list
+     then the value of attribute being registered must be equal to or a subset of the
+     value that the registrar has. If the attribute is of type boolean, the registrar
+     can register the attribute only if the registrar's value for the attribute is 'true'.
+   - Registering custom attributes (i.e. any attribute whose name does not begin with 'hf.')
+     requires that the registrar has the 'hf.Registar.Attributes' attribute with the value of
+     the attribute or pattern being registered. The only supported pattern is a string with
+     a "*" at the end. For example, "a.b.*" is a pattern which matches all attribute names
+     beginning with "a.b.". For example, if the registrar has hf.Registrar.Attributes=orgAdmin,
+     then the only attribute which the registrar can add or remove from an identity is the
+     'orgAdmin' attribute.
+   - If the requested attribute name is 'hf.Registrar.Attributes', an additional
+     check is performed to see if the requested values for this attribute are equal
+     to or a subset of the registrar's values for 'hf.Registrar.Attributes'. For this
+     to be true, each requested value must match a value in the registrar's value for
+     'hf.Registrar.Attributes' attribute. For example, if the registrar's value for
+     'hf.Registrar.Attributes' is 'a.b.*, x.y.z' and the requested attribute
+     value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches 'a.b.*' and 'x.y.z'
+     matches the registrar's 'x.y.z' value.
 
-        2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'x.y.z', it is valid because 'x.y.z' matches the registrar's
-        'x.y.z' value.
+Examples:
+   Valid Scenarios:
+      1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'a.b.c', it is valid 'a.b.c' matches 'a.b.*'.
+      2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'x.y.z', it is valid because 'x.y.z' matches the registrar's
+         'x.y.z' value.
+      3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         the requested attribute value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches
+         'a.b.*' and 'x.y.z' matches the registrar's 'x.y.z' value.
+      4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
+         the requested attribute value is 'peer' or 'peer,client', it is valid because
+         the requested value is equal to or a subset of the registrar's value.
 
-        3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        the requested attribute value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches
-        'a.b.*' and 'x.y.z' matches the registrar's 'x.y.z' value.
+   Invalid Scenarios:
+      1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.*', it is invalid
+         because requested attribute 'x.y.*' is not a pattern owned by the registrar. The value
+         'x.y.*' is a superset of 'x.y.z'.
+      2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.z, attr1', it is invalid
+         because the registrar's 'hf.Registrar.Attributes' attribute values do not contain 'attr1'.
+      3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'a.b', it is invalid because the value 'a.b' is not contained in
+         'a.b.*'.
+      4. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
+         is registering attribute 'x.y', it is invalid because 'x.y' is not contained by 'x.y.z'.
+      5. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
+         the requested attribute value is 'peer,client,orderer', it is invalid because
+         the registrar does not have the orderer role in its value of hf.Registrar.Roles
+         attribute.
+      6. If the registrar has the attribute 'hf.Revoker = false' and the requested attribute
+         value is 'true', it is invalid because the hf.Revoker attribute is a boolean attribute
+         and the registrar's value for the attribute is not 'true'.
 
-        4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
-        the requested attribute value is 'peer' or 'peer,client', it is valid because
-        the requested value is equal to or a subset of the registrar's value.
-
-      Invalid Scenarios:
-        1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.*', it is invalid
-        because requested attribute 'x.y.*' is not a pattern owned by the registrar. The value
-        'x.y.*' is a superset of 'x.y.z'.
-
-        2. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'hf.Registar.Attributes = a.b.c, x.y.z, attr1', it is invalid
-        because the registrar's 'hf.Registrar.Attributes' attribute values do not contain 'attr1'.
-
-        3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'a.b', it is invalid because the value 'a.b' is not contained in
-        'a.b.*'.
-
-        4. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
-        is registering attribute 'x.y', it is invalid because 'x.y' is not contained by 'x.y.z'.
-
-        5. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
-        the requested attribute value is 'peer,client,orderer', it is invalid because
-        the registrar does not have the orderer role in its value of hf.Registrar.Roles
-        attribue.
-
-        6. If the registrar has the attribute 'hf.Revoker = false' and the requested attribute
-        value is 'true', it is invalid because the hf.Revoker attribute is a boolean attribute
-        and the registrar's value for the attribute is not 'true'.
-
-The table below lists all the attributes that can be registered for an identity. The names of
-attributes are case sensitive.
+The table below lists all the attributes that can be registered for an identity.
+The names of attributes are case sensitive.
 
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | Name                        | Type       | Description                                                                                                |
