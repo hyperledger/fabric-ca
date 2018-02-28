@@ -67,7 +67,7 @@ Fabric-CA Server's Configuration File
       # Enable TLS (default: false)
       enabled: false
       # TLS for the server's listening port
-      certfile: tls-cert.pem
+      certfile:
       keyfile:
       clientauth:
         type: noclientcert
@@ -86,12 +86,12 @@ Fabric-CA Server's Configuration File
     ca:
       # Name of this CA
       name:
-      # Key file (default: ca-key.pem)
-      keyfile: ca-key.pem
+      # Key file (is only used to import a private key into BCCSP)
+      keyfile:
       # Certificate file (default: ca-cert.pem)
-      certfile: ca-cert.pem
-      # Chain file (default: chain-cert.pem)
-      chainfile: ca-chain.pem
+      certfile:
+      # Chain file
+      chainfile:
     
     #############################################################################
     #  The gencrl REST endpoint is used to generate a CRL that contains revoked
@@ -157,10 +157,9 @@ Fabric-CA Server's Configuration File
       tls:
           enabled: false
           certfiles:
-            - db-server-cert.pem
           client:
-            certfile: db-client-cert.pem
-            keyfile: db-client-key.pem
+            certfile:
+            keyfile:
     
     #############################################################################
     #  LDAP section
@@ -175,15 +174,72 @@ Fabric-CA Server's Configuration File
        enabled: false
        # The URL of the LDAP server
        url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
+       # TLS configuration for the client connection to the LDAP server
        tls:
           certfiles:
-            - ldap-server-cert.pem
           client:
-             certfile: ldap-client-cert.pem
-             keyfile: ldap-client-key.pem
+             certfile:
+             keyfile:
+       # Attribute related configuration for mapping from LDAP entries to Fabric CA attributes
+       attribute:
+          # 'names' is an array of strings containing the LDAP attribute names which are
+          # requested from the LDAP server for an LDAP identity's entry
+          names: ['uid','member']
+          # The 'converters' section is used to convert an LDAP entry to the value of
+          # a fabric CA attribute.
+          # For example, the following converts an LDAP 'uid' attribute
+          # whose value begins with 'revoker' to a fabric CA attribute
+          # named "hf.Revoker" with a value of "true" (because the boolean expression
+          # evaluates to true).
+          #    converters:
+          #       - name: hf.Revoker
+          #         value: attr("uid") =~ "revoker*"
+          converters:
+             - name:
+               value:
+          # The 'maps' section contains named maps which may be referenced by the 'map'
+          # function in the 'converters' section to map LDAP responses to arbitrary values.
+          # For example, assume a user has an LDAP attribute named 'member' which has multiple
+          # values which are each a distinguished name (i.e. a DN). For simplicity, assume the
+          # values of the 'member' attribute are 'dn1', 'dn2', and 'dn3'.
+          # Further assume the following configuration.
+          #    converters:
+          #       - name: hf.Registrar.Roles
+          #         value: map(attr("member"),"groups")
+          #    maps:
+          #       groups:
+          #          - name: dn1
+          #            value: peer
+          #          - name: dn2
+          #            value: client
+          # The value of the user's 'hf.Registrar.Roles' attribute is then computed to be
+          # "peer,client,dn3".  This is because the value of 'attr("member")' is
+          # "dn1,dn2,dn3", and the call to 'map' with a 2nd argument of
+          # "group" replaces "dn1" with "peer" and "dn2" with "client".
+          maps:
+             groups:
+                - name:
+                  value:
     
     #############################################################################
-    #  Affiliation section
+    # Affiliations section. Fabric CA server can be bootstrapped with the
+    # affiliations specified in this section. Affiliations are specified as maps.
+    # For example:
+    #   businessunit1:
+    #     department1:
+    #       - team1
+    #   businessunit2:
+    #     - department2
+    #     - department3
+    #
+    # Affiliations are hierarchical in nature. In the above example,
+    # department1 (used as businessunit1.department1) is the child of businessunit1.
+    # team1 (used as businessunit1.department1.team1) is the child of department1.
+    # department2 (used as businessunit2.department2) and department3 (businessunit2.department3)
+    # are children of businessunit2.
+    # Note: Affiliations are case sensitive except for the non-leaf affiliations
+    # (like businessunit1, department1, businessunit2) that are specified in the configuration file,
+    # which are always stored in lower case.
     #############################################################################
     affiliations:
        org1:
