@@ -1,0 +1,30 @@
+v1.1.0-rc1 March 1, 2018
+-----------------------------
+
+Release Notes
+-------------
+
+Added capability to dynamically modify affiliations.
+
+Bug fixes, documentation and test coverage improvements, UX improvements
+based on user feedback and changes to address a variety of static scan
+findings (unused code, static security scanning, spelling, linting and more).
+
+Updated to Go version 1.9.2
+Updated baseimage version to 0.4.6
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+none
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/master/CHANGELOG.md#v110-rc1

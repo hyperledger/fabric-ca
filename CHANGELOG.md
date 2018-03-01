@@ -1,3 +1,30 @@
+## v1.1.0-rc1
+Thu Mar  1 13:05:50 EST 2018
+
+* [15156fd](https://github.com/hyperledger/fabric-ca/commit/15156fd) [ FAB-8417 ] Update cluster doc for migration
+* [68889bf](https://github.com/hyperledger/fabric-ca/commit/68889bf) [FAB-8494](https://jira.hyperledger.org/browse/FAB-8494) doc case sensitiveness of affiliations
+* [5665f2a](https://github.com/hyperledger/fabric-ca/commit/5665f2a) [FAB-8565](https://jira.hyperledger.org/browse/FAB-8565) Fix duplicate description in usersguide
+* [3ce971f](https://github.com/hyperledger/fabric-ca/commit/3ce971f) [FAB-8547](https://jira.hyperledger.org/browse/FAB-8547) Fix ca.keyfile args typo in documents
+* [680960e](https://github.com/hyperledger/fabric-ca/commit/680960e) FAB-8485 update go version to 1.9.2
+* [2308eab](https://github.com/hyperledger/fabric-ca/commit/2308eab) [FAB-8451](https://jira.hyperledger.org/browse/FAB-8451) Fix certificate close to expire
+* [6f05f0e](https://github.com/hyperledger/fabric-ca/commit/6f05f0e) [FAB-6673](https://jira.hyperledger.org/browse/FAB-6673) Added release and dist targets
+* [d5e6ea7](https://github.com/hyperledger/fabric-ca/commit/d5e6ea7) [FAB-6673](https://jira.hyperledger.org/browse/FAB-6673) Updated certificate-transparency-go pkg
+* [3a99450](https://github.com/hyperledger/fabric-ca/commit/3a99450) [FAB-8448](https://jira.hyperledger.org/browse/FAB-8448) Update fabric-ca's pkcs11 package
+* [be71804](https://github.com/hyperledger/fabric-ca/commit/be71804) FAB-8365 update baseimage version to 0.4.6
+* [bd695ae](https://github.com/hyperledger/fabric-ca/commit/bd695ae) [FAB-8029](https://jira.hyperledger.org/browse/FAB-8029) Fix some log messages
+* [1c5f433](https://github.com/hyperledger/fabric-ca/commit/1c5f433) [FAB-7993](https://jira.hyperledger.org/browse/FAB-7993) Document attribute behavior
+* [bc4c06f](https://github.com/hyperledger/fabric-ca/commit/bc4c06f) [FAB-7967](https://jira.hyperledger.org/browse/FAB-7967) Add id column to affiliations table
+* [0fb839d](https://github.com/hyperledger/fabric-ca/commit/0fb839d) [FAB-7894](https://jira.hyperledger.org/browse/FAB-7894) Use recursive references
+* [f27a31d](https://github.com/hyperledger/fabric-ca/commit/f27a31d) [FAB-7921](https://jira.hyperledger.org/browse/FAB-7921) Don't use defaults for modify identity
+* [9a45730](https://github.com/hyperledger/fabric-ca/commit/9a45730) [FAB-7990](https://jira.hyperledger.org/browse/FAB-7990) Fix debug flag
+* [3ee02e0](https://github.com/hyperledger/fabric-ca/commit/3ee02e0) [FAB-7970](https://jira.hyperledger.org/browse/FAB-7970) Fix max enrollment default value
+* [4dba361](https://github.com/hyperledger/fabric-ca/commit/4dba361) [ FAB-8116 ] Fix bad merge causing CI failure
+* [b9d3e01](https://github.com/hyperledger/fabric-ca/commit/b9d3e01) [ FAB-5726 ] Test dyn add/mod/del identites
+* [f66397d](https://github.com/hyperledger/fabric-ca/commit/f66397d) [ FAB-6511 ] Dynamic modify of affiliations
+* [911d901](https://github.com/hyperledger/fabric-ca/commit/911d901) [FAB-7893](https://jira.hyperledger.org/browse/FAB-7893) Prevent unforced delete of sub-affiliations
+* [b1ed44e](https://github.com/hyperledger/fabric-ca/commit/b1ed44e) [ FAB-3416 ] Enhance fvt image LDAP attributes
+* [71974f5](https://github.com/hyperledger/fabric-ca/commit/71974f5) FAB-7786 prepare fabric-ca for next release
+
 ## v1.1.0-alpha
 Fri Jan 26 14:48:54 EST 2018
 
