@@ -10,6 +10,7 @@ Fabric-CA Client's CLI
     
     Available Commands:
       affiliation Manage affiliations
+      certificate Manage certificates
       enroll      Enroll an identity
       gencrl      Generate a CRL
       gencsr      Generate a CSR

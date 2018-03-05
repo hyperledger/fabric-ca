@@ -403,6 +403,16 @@ func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.Af
 	return result, nil
 }
 
+// GetCertificates returns all certificates that the caller is authorized to see
+func (i *Identity) GetCertificates(req *api.GetCertificatesRequest, cb func(*json.Decoder) error) error {
+	log.Debugf("Entering identity.GetCertificates, sending request: %+v", req)
+
+	// TODO: Send request to server
+
+	log.Debugf("Successfully retrieved certificates")
+	return errors.New("Not Implemented")
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {

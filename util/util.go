@@ -810,6 +810,17 @@ func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
 	}
 }
 
+// ErrorContains will check to see if an error occurred, if so it will check that it contains
+// the appropriate error message
+func ErrorContains(t *testing.T, err error, contains, msg string, args ...interface{}) {
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args)
+	}
+	if assert.Error(t, err, msg) {
+		assert.Contains(t, err.Error(), contains)
+	}
+}
+
 // GetSliceFromList will return a slice from a list
 func GetSliceFromList(split string, delim string) []string {
 	return strings.Split(strings.Replace(split, " ", "", -1), delim)

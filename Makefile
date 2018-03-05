@@ -174,8 +174,15 @@ build/%.tar.bz2:
 	@echo "Building $@"
 	@tar -jc -C images/$*/payload $(notdir $^) > $@
 
+all-tests: checks fabric-ca-server fabric-ca-client
+	@scripts/run_unit_tests
+	@scripts/run_integration_tests
+
 unit-tests: checks fabric-ca-server fabric-ca-client
-	@scripts/run_tests
+	@scripts/run_unit_tests
+
+int-tests: checks fabric-ca-server fabric-ca-client
+	@scripts/run_integration_tests
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
 bench: checks fabric-ca-server fabric-ca-client
@@ -216,7 +223,7 @@ load-test: docker-clean docker-fvt
 fvt-tests:
 	@scripts/run_fvt_tests
 
-ci-tests: docker-clean docker-fvt unit-tests docs
+ci-tests: docker-clean docker-fvt all-tests docs
 	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
 
 %-docker-clean:

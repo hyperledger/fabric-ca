@@ -6,14 +6,14 @@
 #
 FCA=$GOPATH/src/github.com/hyperledger/fabric-ca
 
-echo "Running all tests ..."
+echo "Running unit tests ..."
 {
 export PATH=$PATH:$GOPATH/bin
 
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
 
-PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/fabric-ca-client$'`
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/fabric-ca-client$|/integration'`
 
 gocov test -timeout 15m $PKGS | gocov-xml > coverage.xml
 
