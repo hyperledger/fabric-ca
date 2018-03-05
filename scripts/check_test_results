@@ -12,7 +12,7 @@ fi
 TEST_RESULTS=$1
 
 SC=0
-FAILURES=`awk '$1 != "ok" && $1 != "?"' $TEST_RESULTS`
+FAILURES=`awk '$1 != "ok" && $1 != "?" && $1$2 != "#testmain" && $1$2$3$4 != "ld:warning:PIEdisabled."' $TEST_RESULTS`
 if [ "$FAILURES" != "" ]; then
    echo "*** BEGIN FAILURES ***"
    echo "$FAILURES"
