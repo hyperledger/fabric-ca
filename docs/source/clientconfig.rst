@@ -50,7 +50,7 @@ Fabric-CA Client's Configuration File
     # Membership Service Provider (MSP) directory
     # This is useful when the client is used to enroll a peer or orderer, so
     # that the enrollment artifacts are stored in the format expected by MSP.
-    mspdir:
+    mspdir: msp
     
     #############################################################################
     #    TLS section for secure socket connection
@@ -70,29 +70,38 @@ Fabric-CA Client's Configuration File
         keyfile:
     
     #############################################################################
-    #  Certificate Signing Request section for generating the CSR for
-    #  an enrollment certificate (ECert)
+    #  Certificate Signing Request section for generating the CSR for an
+    #  enrollment certificate (ECert)
     #
     #  cn - Used by CAs to determine which domain the certificate is to be generated for
+    #
+    #  serialnumber - The serialnumber field, if specified, becomes part of the issued
+    #     certificate's DN (Distinguished Name).  For example, one use case for this is
+    #     a company with its own CA (Certificate Authority) which issues certificates
+    #     to its employees and wants to include the employee's serial number in the DN
+    #     of its issued certificates.
+    #     WARNING: The serialnumber field should not be confused with the certificate's
+    #     serial number which is set by the CA but is not a component of the
+    #     certificate's DN.
+    #
     #  names -  A list of name objects. Each name object should contain at least one
-    #  "C", "L", "O", "OU", or "ST" value (or any combination of these). These values are:
-    #      "C": country
-    #      "L": locality or municipality (such as city or town name)
-    #      "O": organisation
-    #      "OU": organisational unit, such as the department responsible for owning the key;
-    #      it can also be used for a "Doing Business As" (DBS) name
-    #      "ST": the state or province
-    #  hosts - A list of space-separated host names which the certificate should be valid for
+    #    "C", "L", "O", or "ST" value (or any combination of these) where these
+    #    are abbreviations for the following:
+    #        "C": country
+    #        "L": locality or municipality (such as city or town name)
+    #        "O": organization
+    #        "OU": organizational unit, such as the department responsible for owning the key;
+    #         it can also be used for a "Doing Business As" (DBS) name
+    #        "ST": the state or province
     #
-    #  NOTE: The serialnumber field below, if specified, becomes part of the issued
-    #  certificate's DN (Distinguished Name).  For example, one use case for this is
-    #  a company with its own CA (Certificate Authority) which issues certificates
-    #  to its employees and wants to include the employee's serial number in the DN
-    #  of its issued certificates.
+    #    Note that the "OU" or organizational units of an ECert are always set according
+    #    to the values of the identities type and affiliation. OUs are calculated for an enroll
+    #    as OU=<type>, OU=<affiliationRoot>, ..., OU=<affiliationLeaf>. For example, an identity
+    #    of type "client" with an affiliation of "org1.dept2.team3" would have the following
+    #    organizational units: OU=client, OU=org1, OU=dept2, OU=team3
     #
-    #  WARNING: This serialnumber field should not be confused with the certificate's
-    #  serial number which is set by the CA but is not a component of the
-    #  certificate's DN.
+    #  hosts - A list of host names for which the certificate should be valid
+    #
     #############################################################################
     csr:
       cn: <<<ENROLLMENT_ID>>>
@@ -105,10 +114,6 @@ Fabric-CA Client's Configuration File
           OU: Fabric
       hosts:
         - <<<MYHOST>>>
-      ca:
-        pathlen:
-        pathlenzero:
-        expiry:
     
     #############################################################################
     #  Registration section used to register a new identity with fabric-ca server
@@ -117,17 +122,18 @@ Fabric-CA Client's Configuration File
     #  type - Type of identity being registered (e.g. 'peer, app, user')
     #  affiliation - The identity's affiliation
     #  maxenrollments - The maximum number of times the secret can be reused to enroll.
-    #                   Specially, -1 means unlimited; 0 means disabled
+    #                   Specially, -1 means unlimited; 0 means to use CA's max enrollment
+    #                   value.
     #  attributes - List of name/value pairs of attribute for identity
     #############################################################################
     id:
       name:
       type:
       affiliation:
-      maxenrollments: -1
+      maxenrollments: 0
       attributes:
-        - name:
-          value:
+       # - name:
+       #   value:
     
     #############################################################################
     #  Enrollment section used to enroll an identity with fabric-ca server
