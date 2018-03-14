@@ -141,29 +141,33 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 
 	// Store the root certificates in the "cacerts" msp folder
 	certBytes := bytes.Join(rootBlks, []byte(""))
-	if config.Enrollment.Profile == "tls" {
-		err := storeCert("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = storeCert("root CA certificate", rootCACertsDir, fname, certBytes)
-		if err != nil {
-			return err
+	if len(certBytes) > 0 {
+		if config.Enrollment.Profile == "tls" {
+			err := storeCert("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = storeCert("root CA certificate", rootCACertsDir, fname, certBytes)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	// Store the intermediate certificates in the "intermediatecerts" msp folder
 	certBytes = bytes.Join(intBlks, []byte(""))
-	if config.Enrollment.Profile == "tls" {
-		err = storeCert("TLS intermediate certificates", tlsIntCACertsDir, tlsfname, certBytes)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = storeCert("intermediate CA certificates", intCACertsDir, fname, certBytes)
-		if err != nil {
-			return err
+	if len(certBytes) > 0 {
+		if config.Enrollment.Profile == "tls" {
+			err = storeCert("TLS intermediate certificates", tlsIntCACertsDir, tlsfname, certBytes)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = storeCert("intermediate CA certificates", intCACertsDir, fname, certBytes)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
