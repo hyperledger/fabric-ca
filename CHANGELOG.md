@@ -1,3 +1,10 @@
+## v1.1.0
+Thu Mar 15 13:44:43 EDT 2018
+
+* [79c4194](https://github.com/hyperledger/fabric-ca/commit/79c4194) [FAB-8750](https://jira.hyperledger.org/browse/FAB-8750) Fabric-ca docs need updating
+* [62bff8a](https://github.com/hyperledger/fabric-ca/commit/62bff8a) [FAB-8661](https://jira.hyperledger.org/browse/FAB-8661) Updated vendored package bccsp
+* [d28de76](https://github.com/hyperledger/fabric-ca/commit/d28de76) FAB-8287 Prepare fabric-ca for next release
+
 ## v1.1.0-rc1
 Thu Mar  1 13:05:50 EST 2018
 

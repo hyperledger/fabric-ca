@@ -1,0 +1,38 @@
+v1.1.0 March 15, 2018
+---------------------
+
+Release Notes
+-------------
+
+Added support for CRLs and attribute based access control.
+
+Added support for dynamic configurtion of the fabric-ca-server without requiring restart.
+
+Added capability to dynamically modify affiliations.
+
+Bug fixes, documentation and test coverage improvements, UX improvements
+based on user feedback and changes to address a variety of static scan
+findings (unused code, static security scanning, spelling, linting and more).
+
+Updated to Go version 1.9.2
+Updated baseimage version to 0.4.6
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+https://jira.hyperledger.org/browse/FAB-5794
+https://jira.hyperledger.org/browse/FAB-6871
+https://jira.hyperledger.org/browse/FAB-7348
+https://jira.hyperledger.org/browse/FAB-7465
+https://jira.hyperledger.org/browse/FAB-7646
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/master/CHANGELOG.md#v110
