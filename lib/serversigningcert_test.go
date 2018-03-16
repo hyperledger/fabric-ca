@@ -21,6 +21,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetSigningCert(t *testing.T) {
