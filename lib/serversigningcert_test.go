@@ -66,16 +66,16 @@ func TestGetSigningCert(t *testing.T) {
 	util.FatalError(t, err, "Failed to register user 'testuser2'")
 
 	resp, err := client.Enroll(&api.EnrollmentRequest{
-		Name:   "testuser2",
-		Secret: "testuser2pw",
+		Name:   "admin",
+		Secret: "adminpw",
 	})
-	util.FatalError(t, err, "Failed to enroll user 'testuser2'")
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
 
 	_, err = admin.SigningCert("testuser")
 	assert.NoError(t, err, "Failed to get user signingCert")
 
 	_, err = admin.SigningCert("testuser2")
-	assert.NoError(t, err, "Failed to get user signingCert")
+	assert.Error(t, err, "Should have failed with previous enrollment")
 
 	os.RemoveAll(rootDir)
 	defer os.RemoveAll(rootDir)
