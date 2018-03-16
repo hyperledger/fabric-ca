@@ -49,7 +49,7 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 		return nil, err
 	}
 
-	id = nil
+	log.Debugf("Authentication successful: %s", id)
 
 	// Get targeted CA
 	ca, err := ctx.GetCA()
@@ -67,7 +67,7 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 			return nil, newHTTPErr(404, ErrSigningCertIDNotFound, "Identity %s was not found: %s", req.Name, err)
 		}
 
-		user = nul
+		log.Debugf("User found: %+v", use)
 
 		var recs []CertRecord
 		recs, err = certDBAccessor.GetCertificatesByID(req.Name)
