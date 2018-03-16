@@ -72,10 +72,14 @@ func TestGetSigningCert(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to enroll user 'admin'")
 
-	_, err = admin.SigningCert("testuser")
+	_, err = admin.SigningCert(&api.SigningCertRequest{
+		Name: "testuser",
+	})
 	assert.NoError(t, err, "Failed to get user signingCert")
 
-	_, err = admin.SigningCert("testuser2")
+	_, err = admin.SigningCert(&api.SigningCertRequest{
+		Name: "testuser2",
+	})
 	assert.Error(t, err, "Should have failed with previous enrollment")
 
 	os.RemoveAll(rootDir)
