@@ -32,7 +32,7 @@ type signingCertArgs struct {
 
 func (c *ClientCmd) newSigningCertCommand() *cobra.Command {
 	signingCertCmd := &cobra.Command{
-		Use:   "signingcert",
+		Use:   "signingcert --signingcert.name <name> ",
 		Short: "Get Signing Cert for an identity",
 		Long:  "Get Signing Cert for an identity with Fabric CA server",
 		// PreRunE block for this command will check to make sure enrollment
@@ -77,8 +77,8 @@ func (c *ClientCmd) runSigningCert() error {
 		return err
 	}
 
-	c.clientCfg.ID.Name = c.clientCfg.ID.Name
-	resp, err := id.SigningCert(&c.clientCfg.ID)
+	c.clientCfg.SigningCert.Name = c.clientCfg.SigningCert.Name
+	resp, err := id.SigningCert(&c.clientCfg.SigningCert)
 	if err != nil {
 		return err
 	}

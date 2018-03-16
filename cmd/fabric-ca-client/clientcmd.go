@@ -38,13 +38,14 @@ const (
 )
 
 const (
-	client    = "client"
-	enroll    = "enroll"
-	reenroll  = "reenroll"
-	register  = "register"
-	revoke    = "revoke"
-	getcacert = "getcacert"
-	gencsr    = "gencsr"
+	client      = "client"
+	enroll      = "enroll"
+	reenroll    = "reenroll"
+	register    = "register"
+	revoke      = "revoke"
+	getcacert   = "getcacert"
+	gencsr      = "gencsr"
+	signingcert = "signingcert"
 )
 
 type crlArgs struct {
