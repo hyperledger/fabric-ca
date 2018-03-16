@@ -31,16 +31,17 @@ import (
 
 // ClientConfig is the fabric-ca client's config
 type ClientConfig struct {
-	URL        string `def:"http://localhost:7054" opt:"u" help:"URL of fabric-ca-server"`
-	MSPDir     string `def:"msp" opt:"M" help:"Membership Service Provider directory"`
-	TLS        tls.ClientTLSConfig
-	Enrollment api.EnrollmentRequest
-	CSR        api.CSRInfo
-	ID         api.RegistrationRequest
-	Revoke     api.RevocationRequest
-	CAInfo     api.GetCAInfoRequest
-	CAName     string               `help:"Name of CA"`
-	CSP        *factory.FactoryOpts `mapstructure:"bccsp"`
+	URL         string `def:"http://localhost:7054" opt:"u" help:"URL of fabric-ca-server"`
+	MSPDir      string `def:"msp" opt:"M" help:"Membership Service Provider directory"`
+	TLS         tls.ClientTLSConfig
+	Enrollment  api.EnrollmentRequest
+	CSR         api.CSRInfo
+	ID          api.RegistrationRequest
+	Revoke      api.RevocationRequest
+	CAInfo      api.GetCAInfoRequest
+	CAName      string               `help:"Name of CA"`
+	CSP         *factory.FactoryOpts `mapstructure:"bccsp"`
+	SigningCert api.SigningCertRequest
 }
 
 // Enroll a client given the server's URL and the client's home directory.

@@ -403,6 +403,30 @@ func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.Af
 	return result, nil
 }
 
+// SigningCert retrieves a signing cert from an identity
+// @param req The Signing Cert request
+func (i *Identity) SigningCert(req *api.SigningCertRequest) (rr *api.SigningCert, err error) {
+	log.Debugf("SigningCert %+v", req)
+	if req.Name == "" {
+		return nil, errors.New("SigningCert was called without a Name set")
+	}
+
+	reqBody, err := util.Marshal(req, "SigningCertRequest")
+	if err != nil {
+		return nil, err
+	}
+
+	// Send a post to the "register" endpoint with req as body
+	resp := &api.SigningCert{}
+	err = i.Post("signingcert", reqBody, resp, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("The signingcert request completed successfully")
+	return resp, nil
+}
+
 // Store writes my identity info to disk
 func (i *Identity) Store() error {
 	if i.client == nil {

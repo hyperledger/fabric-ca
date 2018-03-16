@@ -153,7 +153,8 @@ func (c *ClientCmd) init() {
 		c.newGenCsrCommand(),
 		c.newGenCRLCommand(),
 		c.newIdentityCommand(),
-		c.newAffiliationCommand())
+		c.newAffiliationCommand(),
+		c.newSigningCertCommand())
 	c.rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Prints Fabric CA Client version",

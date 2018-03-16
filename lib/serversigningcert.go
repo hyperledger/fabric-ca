@@ -44,7 +44,7 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 		return nil, err
 	}
 	// Authentication
-	id, err := ctx.BasicAuthentication()
+	id, err := ctx.TokenAuthentication()
 	if err != nil {
 		return nil, err
 	}
