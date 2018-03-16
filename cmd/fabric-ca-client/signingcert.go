@@ -24,6 +24,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 type signingCertArgs struct {
@@ -82,8 +83,11 @@ func (c *ClientCmd) runSigningCert() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("Cert: %s\n", resp.Cert)
+	file := "signcert.pem"
+	cert := := []byte(resp.Cert)
+	util.WriteFile(file, cert, 0644)
+	
+	fmt.Printf(" Wrote Signing Cert to %s:\n %s\n", file, resp.Cert)
 
 	return nil
 }
