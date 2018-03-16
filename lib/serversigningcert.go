@@ -30,14 +30,6 @@ type signingCertResponseNet struct {
 	Cert api.SigningCert
 }
 
-// CertificateStatus represents status of an enrollment certificate
-type CertificateStatus string
-
-const (
-	// Good is the status of a active certificate
-	Good = "good"
-)
-
 func newSigningCertEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
 		Methods:   []string{"POST"},
@@ -88,8 +80,8 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 				req.Name)
 		} else {
 			for _, certRec := range recs {
-				if certReq.Status == Good {
-					result.Cert = certReq.PEM
+				if certRec.Status == Good {
+					result.Cert = certRec.PEM
 				}
 			}
 		}
