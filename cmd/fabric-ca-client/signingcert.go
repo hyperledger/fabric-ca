@@ -77,8 +77,8 @@ func (c *ClientCmd) runSigningCert() error {
 		return err
 	}
 
-	c.clientCfg.SigningCert.Name = c.clientCfg.SigningCert.Name
-	resp, err := id.SigningCert(&c.clientCfg.SigningCert)
+	c.clientCfg.ID.Name = c.clientCfg.ID.Name
+	resp, err := id.SigningCert(&c.clientCfg.ID)
 	if err != nil {
 		return err
 	}
