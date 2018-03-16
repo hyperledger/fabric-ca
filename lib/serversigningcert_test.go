@@ -52,7 +52,7 @@ func TestGetSigningCert(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to register user 'testuser'")
 
-	resp, err := client.Enroll(&api.EnrollmentRequest{
+	resp, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "testuser",
 		Secret: "testuserpw",
 	})
@@ -66,7 +66,7 @@ func TestGetSigningCert(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to register user 'testuser2'")
 
-	resp, err := client.Enroll(&api.EnrollmentRequest{
+	resp, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
 	})
