@@ -23,7 +23,7 @@ import (
 )
 
 type signingCertResponseNet struct {
-	Cert api.SigningCert
+	api.SigningCert
 }
 
 func newSigningCertEndpoint(s *Server) *serverEndpoint {
