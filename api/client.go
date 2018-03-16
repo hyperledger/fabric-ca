@@ -366,7 +366,7 @@ type SigningCertRequest struct {
 	Name string `json:"id" help:"Identity whose signing certificate should be returned"`
 }
 
-// RevokedCert represents a signing certificate
+// SigningCert represents a signing certificate
 type SigningCert struct {
 	Cert string `json:"cert"`
 }
