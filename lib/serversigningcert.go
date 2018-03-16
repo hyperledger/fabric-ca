@@ -17,13 +17,9 @@ limitations under the License.
 package lib
 
 import (
-	"encoding/hex"
-	"strings"
-
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/util"
 )
 
 type signingCertResponseNet struct {
@@ -81,7 +77,8 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 		} else {
 			for _, certRec := range recs {
 				if certRec.Status == Good {
-					result.Cert = certRec.PEM
+					result.Cert = certRec.CertificateRecord.PEM
+
 				}
 			}
 		}
