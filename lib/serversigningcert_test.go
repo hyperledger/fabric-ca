@@ -41,6 +41,7 @@ func TestGetSigningCert(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to enroll user 'admin'")
 
+	admin := resp.Identity
 	// Register several users
 	_, err = admin.Register(&api.RegistrationRequest{
 		Name:        "testuser",
@@ -70,11 +71,13 @@ func TestGetSigningCert(t *testing.T) {
 	})
 	util.FatalError(t, err, "Failed to enroll user 'testuser2'")
 
-	// admin has all root permissions and should be able to get any user
-	//	_, err = admin.GetIdentity("testuser", "")
-	//	assert.NoError(t, err, "Failed to get user")
+	_, err = admin.SigningCert("testuser")
+	assert.NoError(t, err, "Failed to get user signingCert")
 
-	//	_, err = admin.GetIdentity("testuser2", "")
-	//	assert.NoError(t, err, "Failed to get user")
+	_, err = admin.SigningCert("testuser2")
+	assert.NoError(t, err, "Failed to get user signingCert")
+
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
 
 }
