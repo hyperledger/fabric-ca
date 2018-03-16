@@ -79,12 +79,11 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 		if len(recs) == 0 {
 			return nil, newHTTPErr(404, ErrNoSigningCertsFound, "Failed to find certificates for '%s': %s",
 				req.Name)
-		} else {
-			for _, certRec := range recs {
-				if certRec.Status == Good {
-					result.Cert = certRec.CertificateRecord.PEM
+		}
+		for _, certRec := range recs {
+			if certRec.Status == Good {
+				result.Cert = certRec.CertificateRecord.PEM
 
-				}
 			}
 		}
 	} else {
