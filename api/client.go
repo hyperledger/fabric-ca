@@ -368,5 +368,5 @@ type SigningCertRequest struct {
 
 // RevokedCert represents a signing certificate
 type SigningCert struct {
-	Cert []byte `json:"cert"`
+	Cert string `json:"cert"`
 }
