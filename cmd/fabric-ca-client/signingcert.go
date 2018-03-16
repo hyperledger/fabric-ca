@@ -78,7 +78,6 @@ func (c *ClientCmd) runSigningCert() error {
 		return err
 	}
 
-	c.clientCfg.SigningCert.Name = c.clientCfg.SigningCert.Name
 	resp, err := id.SigningCert(&c.clientCfg.SigningCert)
 	if err != nil {
 		return err
@@ -87,7 +86,7 @@ func (c *ClientCmd) runSigningCert() error {
 	cert := []byte(resp.Cert)
 	util.WriteFile(file, cert, 0644)
 
-	fmt.Printf(" Wrote Signing Cert to %s:\n %s\n", file, resp.Cert)
+	fmt.Printf("Wrote Signing Cert to %s:\n", file)
 
 	return nil
 }
