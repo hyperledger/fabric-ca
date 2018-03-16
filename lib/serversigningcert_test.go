@@ -16,22 +16,11 @@ limitations under the License.
 package lib
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"testing"
-
-	"github.com/hyperledger/fabric-ca/lib/attr"
-	"github.com/hyperledger/fabric-ca/lib/spi"
-
-	"golang.org/x/crypto/ocsp"
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetSigningCert(t *testing.T) {
