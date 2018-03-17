@@ -20,6 +20,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
+	
+	"time"
 )
 
 type signingCertResponseNet struct {
@@ -39,6 +41,7 @@ func newSigningCertEndpoint(s *Server) *serverEndpoint {
 func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 	// Parse signingCert request body
 	var req api.SigningCertRequestNet
+	var latestExpiry time.Now()
 	err := ctx.ReadBody(&req)
 	if err != nil {
 		return nil, err
@@ -80,11 +83,18 @@ func signingCertHandler(ctx *serverRequestContext) (interface{}, error) {
 			return nil, newHTTPErr(404, ErrNoSigningCertsFound, "Failed to find certificates for '%s': %s",
 				req.Name)
 		}
+		//Get the latest expiry
+		result.Cert = ""
 		for _, certRec := range recs {
-			if certRec.Status == Good {
+			if certRec.Status == Good && certRec.CertificateRecord.Expiry.After(currentExpiry) {
 				result.Cert = certRec.CertificateRecord.PEM
-
+				currentExpiry = certRec.CertificateRecord.Expiry
 			}
+		}
+		
+		if result.Cert == "" {
+			return nil, newHTTPErr(404, ErrNoSigningCertsFound, "Failed to find certificates for '%s': %s",
+				req.Name)
 		}
 	} else {
 		return nil, newHTTPErr(400, ErrMissingSigningCertArgs, "Name is required for a signingCert request")

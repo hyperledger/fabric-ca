@@ -80,7 +80,7 @@ func TestGetSigningCert(t *testing.T) {
 	_, err = admin.SigningCert(&api.SigningCertRequest{
 		Name: "testuser2",
 	})
-	assert.Error(t, err, "Should have failed with previous enrollment")
+	assert.Error(t, err, "Should have failed without previous enrollment")
 
 	os.RemoveAll(rootDir)
 	defer os.RemoveAll(rootDir)
