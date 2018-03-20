@@ -19,6 +19,7 @@
 #   - license - check all go files for license headers
 #   - fabric-ca-server - builds the fabric-ca-server executable
 #   - fabric-ca-client - builds the fabric-ca-client executable
+#   - docker-fabric-ca - build the fabric-ca docker image
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - ensures all docker images are available[/cleaned]
@@ -61,6 +62,8 @@ rename: .FORCE
 	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
+
+docker-fabric-ca: build/image/fabric-ca/$(DUMMY)
 
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
 
