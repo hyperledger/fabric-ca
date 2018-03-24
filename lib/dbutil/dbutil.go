@@ -124,7 +124,7 @@ func createSQLiteIdentityTable(tx *sqlx.Tx) error {
 
 func createSQLiteAffiliationTable(tx *sqlx.Tx) error {
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(255) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	return nil
@@ -224,7 +224,7 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(255) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	log.Debug("Creating certificates table if it does not exist")
@@ -310,7 +310,7 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it doesn't exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(1024) NOT NULL, prekey VARCHAR(1024), level INTEGER DEFAULT 0, PRIMARY KEY (id))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255) NOT NULL, prekey VARCHAR(1024), level INTEGER DEFAULT 0, PRIMARY KEY (id))"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	log.Debug("Creating index on 'name' in the affiliations table")
@@ -624,7 +624,7 @@ func updateMySQLSchema(db *sqlx.DB) error {
 			return err
 		}
 	}
-	_, err = db.Exec("ALTER TABLE affiliations MODIFY name VARCHAR(1024), MODIFY prekey VARCHAR(1024)")
+	_, err = db.Exec("ALTER TABLE affiliations MODIFY name VARCHAR(255), MODIFY prekey VARCHAR(1024)")
 	if err != nil {
 		return err
 	}
@@ -672,7 +672,7 @@ func updatePostgresSchema(db *sqlx.DB) error {
 			return err
 		}
 	}
-	_, err = db.Exec("ALTER TABLE affiliations ALTER COLUMN name TYPE VARCHAR(1024), ALTER COLUMN prekey TYPE VARCHAR(1024)")
+	_, err = db.Exec("ALTER TABLE affiliations ALTER COLUMN name TYPE VARCHAR(255), ALTER COLUMN prekey TYPE VARCHAR(1024)")
 	if err != nil {
 		return err
 	}
