@@ -38,8 +38,8 @@
 #   - clean-all - cleans the build area and release packages
 
 PROJECT_NAME   = fabric-ca
-BASE_VERSION = 1.1.0
-PREV_VERSION = 1.1.0-rc1
+BASE_VERSION = 1.2.0
+PREV_VERSION = 1.1.0
 IS_RELEASE = false
 
 ARCH=$(shell uname -m)
@@ -194,7 +194,7 @@ bench-mem: checks fabric-ca-server fabric-ca-client
 # e.g. make benchcmp prev_rel=v1.0.0
 benchcmp: guard-prev_rel bench
 	@scripts/compare_benchmarks $(prev_rel)
- 
+
 guard-%:
 	@if [ "${${*}}" = "" ]; then \
 		echo "Environment variable $* not set"; \
