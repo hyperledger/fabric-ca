@@ -38,13 +38,14 @@ const (
 )
 
 const (
-	client    = "client"
-	enroll    = "enroll"
-	reenroll  = "reenroll"
-	register  = "register"
-	revoke    = "revoke"
-	getcacert = "getcacert"
-	gencsr    = "gencsr"
+	client      = "client"
+	enroll      = "enroll"
+	reenroll    = "reenroll"
+	register    = "register"
+	revoke      = "revoke"
+	getcacert   = "getcacert"
+	gencsr      = "gencsr"
+	signingcert = "signingcert"
 )
 
 type crlArgs struct {
@@ -153,7 +154,8 @@ func (c *ClientCmd) init() {
 		c.newGenCsrCommand(),
 		c.newGenCRLCommand(),
 		c.newIdentityCommand(),
-		c.newAffiliationCommand())
+		c.newAffiliationCommand(),
+		c.newSigningCertCommand())
 	c.rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Prints Fabric CA Client version",

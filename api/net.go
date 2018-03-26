@@ -104,3 +104,10 @@ type KeySig struct {
 	// Alg is the signature algorithm
 	Alg string `json:"alg"`
 }
+
+// SigningCertRequestNet is a request for an Identity's signing certificate
+// to the fabric-ca server.
+// the Name field must be set to an existing enrollment ID.
+type SigningCertRequestNet struct {
+	SigningCertRequest
+}

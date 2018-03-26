@@ -472,6 +472,7 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("identities/{id}", newIdentitiesEndpoint(s))
 	s.registerHandler("affiliations", newAffiliationsStreamingEndpoint(s))
 	s.registerHandler("affiliations/{affiliation}", newAffiliationsEndpoint(s))
+	s.registerHandler("signingcert", newSigningCertEndpoint(s))
 }
 
 // Register a handler

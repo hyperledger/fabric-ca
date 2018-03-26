@@ -359,3 +359,14 @@ func NewBasicKeyRequest() *BasicKeyRequest {
 	bkr := csr.NewBasicKeyRequest()
 	return &BasicKeyRequest{Algo: bkr.A, Size: bkr.S}
 }
+
+// SigningCertRequest is used to get the signing certificate of an Identity
+type SigningCertRequest struct {
+	// Name of the identity whose certificate we are looking for.
+	Name string `json:"id" help:"Identity whose signing certificate should be returned"`
+}
+
+// SigningCert represents a signing certificate
+type SigningCert struct {
+	Cert string `json:"cert"`
+}

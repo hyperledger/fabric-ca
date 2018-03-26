@@ -163,6 +163,12 @@ const (
 	ErrDBDeleteUser = 65
 	// Certificate that is being revoked has already been revoked
 	ErrCertAlreadyRevoked = 66
+	// Identity for the signing certs was not found
+	ErrSigningCertIDNotFound = 67
+	// No certifcates found for the identity
+	ErrNoSigningCertsFound = 68
+	// No search args in query
+	ErrMissingSigningCertArgs = 69
 )
 
 // Construct a new HTTP error.
