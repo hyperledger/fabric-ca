@@ -17,3 +17,5 @@ fabric-ca
 /release/linux-ppc64le
 /release/windows-amd64
 vendor/github.com/cloudflare/cfssl/vendor/github.com/cloudflare/cfssl_trust/ca-bundle/http:*.crt
+# tox
+.tox/
