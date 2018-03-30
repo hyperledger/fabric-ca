@@ -47,7 +47,7 @@ func (c *ClientCmd) newGetCACertCommand() *cobra.Command {
 				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
 
-			err := c.configInit()
+			err := c.ConfigInit()
 			if err != nil {
 				return err
 			}

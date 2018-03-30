@@ -55,7 +55,7 @@ func (c *ClientCmd) newListIdentityCommand() *cobra.Command {
 		Long:  "List identities visible to caller",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			log.Level = log.LevelWarning
-			err := c.configInit()
+			err := c.ConfigInit()
 			if err != nil {
 				return err
 			}
@@ -130,7 +130,7 @@ func (c *ClientCmd) newRemoveIdentityCommand() *cobra.Command {
 func (c *ClientCmd) runListIdentity(cmd *cobra.Command, args []string) error {
 	log.Debug("Entered runListIdentity")
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (c *ClientCmd) runAddIdentity(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("Can't use 'json' flag in conjunction with other flags")
 	}
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (c *ClientCmd) runModifyIdentity(cmd *cobra.Command, args []string) error {
 
 	req := &api.ModifyIdentityRequest{}
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (c *ClientCmd) runModifyIdentity(cmd *cobra.Command, args []string) error {
 func (c *ClientCmd) runRemoveIdentity(cmd *cobra.Command, args []string) error {
 	log.Debugf("Entered runRemoveIdentity: %+v", c.dynamicIdentity)
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (c *ClientCmd) identityPreRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = c.configInit()
+	err = c.ConfigInit()
 	if err != nil {
 		return err
 	}

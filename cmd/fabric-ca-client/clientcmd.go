@@ -47,6 +47,14 @@ const (
 	gencsr    = "gencsr"
 )
 
+// Command interface initializes client command and loads an identity
+type Command interface {
+	ConfigInit() error
+	LoadMyIdentity() (*lib.Identity, error)
+	GetClientCfg() *lib.ClientConfig
+	GetViper() *viper.Viper
+}
+
 type crlArgs struct {
 	// Genenerate CRL with all the certificates that were revoked after this timestamp
 	RevokedAfter string `help:"Generate CRL with certificates that were revoked after this UTC timestamp (in RFC3339 format)"`
@@ -247,8 +255,8 @@ func (c *ClientCmd) requiresUser() bool {
 	return c.name != gencsr
 }
 
-// Loads the client's identity
-func (c *ClientCmd) loadMyIdentity() (*lib.Identity, error) {
+// LoadMyIdentity loads the client's identity
+func (c *ClientCmd) LoadMyIdentity() (*lib.Identity, error) {
 	client := &lib.Client{
 		HomeDir: filepath.Dir(c.cfgFileName),
 		Config:  c.clientCfg,
@@ -260,4 +268,14 @@ func (c *ClientCmd) loadMyIdentity() (*lib.Identity, error) {
 	}
 
 	return id, nil
+}
+
+// GetClientCfg returns client configuration
+func (c *ClientCmd) GetClientCfg() *lib.ClientConfig {
+	return c.clientCfg
+}
+
+// GetViper returns the viper instance
+func (c *ClientCmd) GetViper() *viper.Viper {
+	return c.myViper
 }

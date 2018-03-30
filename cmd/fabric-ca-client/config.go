@@ -206,7 +206,8 @@ bccsp:
 `
 )
 
-func (c *ClientCmd) configInit() error {
+// ConfigInit initializes the configuration for the fabric-ca-client command
+func (c *ClientCmd) ConfigInit() error {
 	var err error
 
 	if c.debug {
