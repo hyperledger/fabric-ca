@@ -19,6 +19,8 @@ package command
 import (
 	"testing"
 
+	"time"
+
 	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
@@ -77,4 +79,77 @@ func TestFailLoadIdentity(t *testing.T) {
 	cmd := newCertificateCommand(mockBadClientCmd)
 	err := cmd.runListCertificate(&cobra.Command{}, []string{})
 	util.ErrorContains(t, err, "Failed to load identity", "Should have failed")
+}
+
+func TestBadRunListCertificate(t *testing.T) {
+	cmd := new(mocks.Command)
+	cmd.On("LoadMyIdentity").Return(&lib.Identity{}, nil)
+	certCmd := newCertificateCommand(cmd)
+	certCmd.timeArgs = timeArgs{
+		Expiration: "30d:15d",
+	}
+	err := certCmd.runListCertificate(&cobra.Command{}, []string{})
+	util.ErrorContains(t, err, "Invalid expiration format, expecting", "Should have failed")
+}
+
+func TestBadExpirationTime(t *testing.T) {
+	cmd := new(mocks.Command)
+	cmd.On("LoadMyIdentity").Return(&lib.Identity{}, nil)
+	certCmd := newCertificateCommand(cmd)
+	certCmd.timeArgs = timeArgs{
+		Expiration: "30d:15d",
+	}
+	err := certCmd.getCertListReq()
+	util.ErrorContains(t, err, "Invalid expiration format, expecting", "Should have failed")
+
+	certCmd.timeArgs = timeArgs{
+		Expiration: "01/30/2015::15d",
+	}
+	err = certCmd.getCertListReq()
+	util.ErrorContains(t, err, "Invalid expiration format, use '-' instead of '/'", "Should have failed")
+}
+
+func TestGoodExpirationTime(t *testing.T) {
+	cmd := new(mocks.Command)
+	cmd.On("LoadMyIdentity").Return(&lib.Identity{}, nil)
+	certCmd := newCertificateCommand(cmd)
+	certCmd.timeArgs = timeArgs{
+		Expiration: "30d::15d",
+	}
+	err := certCmd.getCertListReq()
+	assert.NoError(t, err, "Failed to parse properly formated expiration time range")
+}
+
+func TestBadRevocationTime(t *testing.T) {
+	cmd := new(mocks.Command)
+	cmd.On("LoadMyIdentity").Return(&lib.Identity{}, nil)
+	certCmd := newCertificateCommand(cmd)
+	certCmd.timeArgs = timeArgs{
+		Revocation: "30d:15d",
+	}
+	err := certCmd.getCertListReq()
+	util.ErrorContains(t, err, "Invalid revocation format, expecting", "Should have failed")
+
+	certCmd.timeArgs = timeArgs{
+		Revocation: "1/30/2015::15d",
+	}
+	err = certCmd.getCertListReq()
+	util.ErrorContains(t, err, "Invalid revocation format, use '-' instead of '/'", "Should have failed")
+}
+
+func TestGoodRevocationTime(t *testing.T) {
+	cmd := new(mocks.Command)
+	cmd.On("LoadMyIdentity").Return(&lib.Identity{}, nil)
+	certCmd := newCertificateCommand(cmd)
+	certCmd.timeArgs = timeArgs{
+		Revocation: "30d::15d",
+	}
+	err := certCmd.getCertListReq()
+	assert.NoError(t, err, "Failed to parse properly formated revocation time range")
+}
+
+func TestTimeRangeWithNow(t *testing.T) {
+	timeNow := time.Now().UTC().Format(time.RFC3339)
+	timeStr := getTime("now")
+	assert.Equal(t, timeNow, timeStr)
 }

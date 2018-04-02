@@ -23,6 +23,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/stretchr/testify/assert"
 )
 
 func getIdentity() *Identity {
@@ -67,4 +68,13 @@ func testGetECert(id *Identity, t *testing.T) {
 	if ecert == nil {
 		t.Error("No ECert was returned")
 	}
+}
+
+func TestGetCertificates(t *testing.T) {
+	id := getIdentity()
+	id.client = &Client{
+		Config: &ClientConfig{},
+	}
+	err := id.GetCertificates(&api.GetCertificatesRequest{}, nil)
+	assert.Error(t, err, "Should fail, no server to contact")
 }

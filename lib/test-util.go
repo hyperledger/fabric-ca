@@ -222,3 +222,11 @@ func StopAndCleanupServer(t *testing.T, srv *Server) {
 		}
 	}
 }
+
+// GetTestClient returns a Fabric CA client
+func GetTestClient(port int, home string) *Client {
+	return &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+		HomeDir: home,
+	}
+}

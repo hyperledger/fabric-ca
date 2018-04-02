@@ -226,7 +226,9 @@ func (i *Identity) GetIdentity(id, caname string) (*api.GetIDResponse, error) {
 // GetAllIdentities returns all identities that the caller is authorized to see
 func (i *Identity) GetAllIdentities(caname string, cb func(*json.Decoder) error) error {
 	log.Debugf("Entering identity.GetAllIdentities")
-	err := i.GetStreamResponse("identities", caname, "result.identities", cb)
+	queryParam := make(map[string]string)
+	queryParam["ca"] = caname
+	err := i.GetStreamResponse("identities", queryParam, "result.identities", cb)
 	if err != nil {
 		return err
 	}
@@ -407,10 +409,24 @@ func (i *Identity) RemoveAffiliation(req *api.RemoveAffiliationRequest) (*api.Af
 func (i *Identity) GetCertificates(req *api.GetCertificatesRequest, cb func(*json.Decoder) error) error {
 	log.Debugf("Entering identity.GetCertificates, sending request: %+v", req)
 
-	// TODO: Send request to server
+	queryParam := make(map[string]string)
+	queryParam["id"] = req.ID
+	queryParam["aki"] = req.AKI
+	queryParam["serial"] = req.Serial
+	queryParam["revoked_start"] = req.Revoked.StartTime
+	queryParam["revoked_end"] = req.Revoked.EndTime
+	queryParam["expired_start"] = req.Expired.StartTime
+	queryParam["expired_end"] = req.Expired.EndTime
+	queryParam["notrevoked"] = strconv.FormatBool(req.NotRevoked)
+	queryParam["notexpired"] = strconv.FormatBool(req.NotExpired)
+	queryParam["ca"] = req.CAName
+	err := i.GetStreamResponse("certificates", queryParam, "result.certs", cb)
+	if err != nil {
+		return err
+	}
 
-	log.Debugf("Successfully retrieved certificates")
-	return errors.New("Not Implemented")
+	log.Debugf("Successfully completed getting certificates request")
+	return nil
 }
 
 // Store writes my identity info to disk
@@ -438,13 +454,17 @@ func (i *Identity) Get(endpoint, caname string, result interface{}) error {
 }
 
 // GetStreamResponse sends a request to an endpoint and streams the response
-func (i *Identity) GetStreamResponse(endpoint, caname, stream string, cb func(*json.Decoder) error) error {
+func (i *Identity) GetStreamResponse(endpoint string, queryParam map[string]string, stream string, cb func(*json.Decoder) error) error {
 	req, err := i.client.newGet(endpoint)
 	if err != nil {
 		return err
 	}
-	if caname != "" {
-		addQueryParm(req, "ca", caname)
+	if queryParam != nil {
+		for key, value := range queryParam {
+			if value != "" {
+				addQueryParm(req, key, value)
+			}
+		}
 	}
 	err = i.addTokenAuthHdr(req, nil)
 	if err != nil {

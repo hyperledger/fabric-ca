@@ -187,7 +187,7 @@ func (d *Accessor) DeleteUser(id string) (spi.User, error) {
 	}
 
 	userRec := result.(*UserRecord)
-	user := d.newDBUser(userRec)
+	user := newDBUser(userRec, d.db)
 
 	return user, nil
 }
@@ -291,7 +291,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 		return nil, getError(err, "User")
 	}
 
-	return d.newDBUser(&userRec), nil
+	return newDBUser(&userRec, d.db), nil
 }
 
 // InsertAffiliation inserts affiliation into database
@@ -582,7 +582,7 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
 	for rows.Next() {
 		var user UserRecord
 		rows.StructScan(&user)
-		dbUser := d.newDBUser(&user)
+		dbUser := newDBUser(&user, d.db)
 		allUsers = append(allUsers, dbUser)
 	}
 
@@ -752,7 +752,7 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 
 				// If user's affiliation is being updated, need to also update 'hf.Affiliation' attribute of user
 				for _, userRec := range idsWithOldAff {
-					user := d.newDBUser(&userRec)
+					user := newDBUser(&userRec, d.db)
 					currentAttrs, _ := user.GetAttributes(nil)                            // Get all current user attributes
 					userAff := GetUserAffiliation(user)                                   // Get the current affiliation
 					newAff := strings.Replace(userAff, oldAffiliation, newAffiliation, 1) // Replace old affiliation with new affiliation
@@ -865,7 +865,7 @@ func (d *Accessor) getResult(ids []UserRecord, affs []AffiliationRecord) *spi.Db
 	// Collect all the identities that were modified
 	identities := []spi.User{}
 	for _, id := range ids {
-		identities = append(identities, d.newDBUser(&id))
+		identities = append(identities, newDBUser(&id, d.db))
 	}
 
 	// Collect the name of all affiliations that were modified
@@ -882,7 +882,7 @@ func (d *Accessor) getResult(ids []UserRecord, affs []AffiliationRecord) *spi.Db
 }
 
 // Creates a DBUser object from the DB user record
-func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
+func newDBUser(userRec *UserRecord, db *sqlx.DB) *DBUser {
 	var user = new(DBUser)
 	user.Name = userRec.Name
 	user.pass = userRec.Pass
@@ -905,7 +905,7 @@ func (d *Accessor) newDBUser(userRec *UserRecord) *DBUser {
 		}
 	}
 
-	user.db = d.db
+	user.db = db
 	return user
 }
 
