@@ -351,6 +351,18 @@
 			"revisionTime": "2016-10-19T17:07:01Z"
 		},
 		{
+			"checksumSHA1": "nulySUSurX3c7DAUThJCKNI/Dds=",
+			"path": "github.com/hyperledger/fabric-amcl/amcl",
+			"revision": "600b0c45a024131b326a41096da0559a9a7461fd",
+			"revisionTime": "2018-03-16T15:29:36Z"
+		},
+		{
+			"checksumSHA1": "8jFGbc+tZmzRV5v1a4FdKN//mdM=",
+			"path": "github.com/hyperledger/fabric-amcl/amcl/FP256BN",
+			"revision": "600b0c45a024131b326a41096da0559a9a7461fd",
+			"revisionTime": "2018-03-16T15:29:36Z"
+		},
+		{
 			"checksumSHA1": "eDEN4KoX6GxEx9ucaZ+B8r3fAdU=",
 			"path": "github.com/hyperledger/fabric/bccsp",
 			"revision": "7a5a16eff921cafba35f74797fc92ca3333a0af5",
@@ -374,6 +386,12 @@
 			"path": "github.com/hyperledger/fabric/common/flogging",
 			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
 			"revisionTime": "2017-05-12T16:44:56Z"
+		},
+		{
+			"checksumSHA1": "dl54oSjaz9RtbrkiBS71/iT4T/c=",
+			"path": "github.com/hyperledger/fabric/idemix",
+			"revision": "968d12b56407083920cd074a973b35927c0cbde2",
+			"revisionTime": "2018-04-09T17:21:38Z"
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",
