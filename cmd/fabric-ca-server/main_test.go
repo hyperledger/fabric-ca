@@ -393,12 +393,16 @@ func TestClean(t *testing.T) {
 	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
+	os.Remove("IssuerSecretKey")
+	os.Remove("IssuerPublicKey")
 	os.Remove("fabric-ca-server.db")
 	os.RemoveAll("keystore")
 	os.RemoveAll("msp")
 	os.RemoveAll("../../testdata/msp")
 	os.Remove("../../testdata/fabric-ca-server.db")
 	os.Remove("../../testdata/ca-cert.pem")
+	os.Remove("../../testdata/IssuerSecretKey")
+	os.Remove("../../testdata/IssuerPublicKey")
 	os.RemoveAll(ldapTestDir)
 	os.RemoveAll("testregattr")
 }
@@ -406,7 +410,8 @@ func TestClean(t *testing.T) {
 func cleanUpMultiCAFiles() {
 	caFolder := "../../testdata/ca/rootca"
 	nestedFolders := []string{"ca1", "ca2"}
-	removeFiles := []string{"msp", "ca-cert.pem", "ca-key.pem", "fabric-ca-server.db", "fabric-ca2-server.db"}
+	removeFiles := []string{"msp", "ca-cert.pem", "ca-key.pem", "fabric-ca-server.db",
+		"fabric-ca2-server.db", "IssuerSecretKey", "IssuerPublicKey"}
 
 	for _, nestedFolder := range nestedFolders {
 		path := filepath.Join(caFolder, nestedFolder)

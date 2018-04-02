@@ -27,60 +27,62 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *ClientCmd) newEnrollCommand() *cobra.Command {
-	enrollCmd := &cobra.Command{
-		Use:   "enroll -u http://user:userpw@serverAddr:serverPort",
-		Short: "Enroll an identity",
-		Long:  "Enroll identity with Fabric CA server",
-		// PreRunE block for this command will check to make sure username
-		// and secret provided for the enroll command before creating and/or
-		// reading configuration file
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				return errors.Errorf(extraArgsError, args, cmd.UsageString())
-			}
+type enrollCmd struct {
+	Command
+}
 
-			err := c.ConfigInit()
-			if err != nil {
-				return err
-			}
-
-			log.Debugf("Client configuration settings: %+v", c.clientCfg)
-
-			return nil
-		},
-
-		RunE: func(cmd *cobra.Command, args []string) error {
-			err := c.runEnroll(cmd)
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	}
+func newEnrollCmd(c Command) *enrollCmd {
+	enrollCmd := &enrollCmd{c}
 	return enrollCmd
 }
 
-// The client enroll main logic
-func (c *ClientCmd) runEnroll(cmd *cobra.Command) error {
+func (c *enrollCmd) getCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "enroll -u http://user:userpw@serverAddr:serverPort",
+		Short:   "Enroll an identity",
+		Long:    "Enroll identity with Fabric CA server",
+		PreRunE: c.preRunEnroll,
+		RunE:    c.runEnroll,
+	}
+	return cmd
+}
+
+func (c *enrollCmd) preRunEnroll(cmd *cobra.Command, args []string) error {
+	if len(args) > 0 {
+		return errors.Errorf(extraArgsError, args, cmd.UsageString())
+	}
+
+	err := c.ConfigInit()
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Client configuration settings: %+v", c.GetClientCfg())
+
+	return nil
+}
+
+func (c *enrollCmd) runEnroll(cmd *cobra.Command, args []string) error {
 	log.Debug("Entered runEnroll")
-	resp, err := c.clientCfg.Enroll(c.clientCfg.URL, filepath.Dir(c.cfgFileName))
+	cfgFileName := c.GetCfgFileName()
+	cfg := c.GetClientCfg()
+	resp, err := cfg.Enroll(cfg.URL, filepath.Dir(cfgFileName))
 	if err != nil {
 		return err
 	}
 
 	ID := resp.Identity
 
-	cfgFile, err := ioutil.ReadFile(c.cfgFileName)
+	cfgFile, err := ioutil.ReadFile(cfgFileName)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to read file at '%s'", c.cfgFileName)
+		return errors.Wrapf(err, "Failed to read file at '%s'", cfgFileName)
 	}
 
-	cfg := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
+	cfgStr := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
 
-	err = ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0644)
+	err = ioutil.WriteFile(cfgFileName, []byte(cfgStr), 0644)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to write file at '%s'", c.cfgFileName)
+		return errors.Wrapf(err, "Failed to write file at '%s'", cfgFileName)
 	}
 
 	err = ID.Store()
@@ -88,10 +90,10 @@ func (c *ClientCmd) runEnroll(cmd *cobra.Command) error {
 		return errors.WithMessage(err, "Failed to store enrollment information")
 	}
 
-	err = storeCAChain(c.clientCfg, &resp.ServerInfo)
+	// Store issuer public key
+	err = storeCAChain(cfg, &resp.ServerInfo)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

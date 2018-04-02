@@ -1003,11 +1003,9 @@ func testGetCACert(t *testing.T) {
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 	os.Remove(defYaml) // Clean up any left over config file
 	os.RemoveAll("msp")
-
 	err := RunMain([]string{cmdName, "getcacert", "-d", "-u", serverURL})
-	if err != nil {
-		t.Errorf("getcacert failed: %s", err)
-	}
+	assert.NoError(t, err, "getcacert should not have failed")
+	assert.True(t, util.FileExists(path.Dir(defYaml)+"/msp/IssuerPublicKey"), "IssuerPublicKey file should exist after getcacert call")
 
 	err = RunMain([]string{cmdName, "getcacert", "-d", "-u", "http://localhost:9999"})
 	if err == nil {
@@ -2148,6 +2146,8 @@ func TestDebugSetting(t *testing.T) {
 func TestCleanUp(t *testing.T) {
 	os.Remove(filepath.Join(tdDir, "ca-cert.pem"))
 	os.Remove(filepath.Join(tdDir, "ca-key.pem"))
+	os.Remove(filepath.Join(tdDir, "IssuerPublicKey"))
+	os.Remove(filepath.Join(tdDir, "IssuerSecretKey"))
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
 	os.RemoveAll(mspDir)
@@ -2159,7 +2159,7 @@ func cleanMultiCADir() {
 	caFolder := filepath.Join(tdDir, "ca/rootca")
 	nestedFolders := []string{"ca1", "ca2"}
 	removeFiles := []string{"msp", "ca-cert.pem",
-		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
+		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem", "IssuerPublicKey", "IssuerSecretKey"}
 
 	for _, nestedFolder := range nestedFolders {
 		path := filepath.Join(caFolder, nestedFolder)

@@ -601,6 +601,7 @@ func TestCADBinit(t *testing.T) {
 		t.Fatal("failed to get cwd")
 	}
 	confDir, err := cdTmpTestDir("TestCADBinit")
+	t.Logf("Conf dir: %s", confDir)
 	defer func() {
 		err = os.Chdir(orgwd)
 		if err != nil {
@@ -612,6 +613,7 @@ func TestCADBinit(t *testing.T) {
 
 	cfg = CAConfig{}
 	cfg.DB = CAConfigDB{Datasource: "root:mysql@" + util.RandomString(237)}
+	t.Logf("serverCfgFile(confDir): %s", serverCfgFile(confDir))
 	ca, err := newCA(serverCfgFile(confDir), &cfg, &srv, false)
 	if ca.db != nil {
 		t.Error("Create DB should have failed")

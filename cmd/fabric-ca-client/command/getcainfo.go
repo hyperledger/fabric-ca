@@ -36,48 +36,58 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func (c *ClientCmd) newGetCACertCommand() *cobra.Command {
-	getCACertCmd := &cobra.Command{
-		Use:   "getcacert -u http://serverAddr:serverPort -M <MSP-directory>",
-		Short: "Get CA certificate chain",
-		// PreRunE block for this command will load client configuration
-		// before running the command
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				return errors.Errorf(extraArgsError, args, cmd.UsageString())
-			}
+const (
+	// GetCAInfoCmdUsage is the usage text for getCACert command
+	GetCAInfoCmdUsage = "getcainfo -u http://serverAddr:serverPort -M <MSP-directory>"
+	// GetCAInfoCmdShortDesc is the short description for getCACert command
+	GetCAInfoCmdShortDesc = "Get CA certificate chain and Idemix public key"
+)
 
-			err := c.ConfigInit()
-			if err != nil {
-				return err
-			}
-
-			log.Debugf("Client configuration settings: %+v", c.clientCfg)
-
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			err := c.runGetCACert()
-			if err != nil {
-				return err
-			}
-			return nil
-		},
-	}
-	return getCACertCmd
+type getCAInfoCmd struct {
+	Command
 }
 
-// The client "getcacert" main logic
-func (c *ClientCmd) runGetCACert() error {
+func newGetCAInfoCmd(c Command) *getCAInfoCmd {
+	getcacertcmd := &getCAInfoCmd{c}
+	return getcacertcmd
+}
+
+func (c *getCAInfoCmd) getCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     GetCAInfoCmdUsage,
+		Short:   GetCAInfoCmdShortDesc,
+		Aliases: []string{"getcacert"},
+		PreRunE: c.preRunGetCACert,
+		RunE:    c.runGetCACert,
+	}
+	return cmd
+}
+
+func (c *getCAInfoCmd) preRunGetCACert(cmd *cobra.Command, args []string) error {
+	if len(args) > 0 {
+		return errors.Errorf(extraArgsError, args, cmd.UsageString())
+	}
+
+	err := c.ConfigInit()
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Client configuration settings: %+v", c.GetClientCfg())
+
+	return nil
+}
+
+func (c *getCAInfoCmd) runGetCACert(cmd *cobra.Command, args []string) error {
 	log.Debug("Entered runGetCACert")
 
 	client := &lib.Client{
-		HomeDir: filepath.Dir(c.cfgFileName),
-		Config:  c.clientCfg,
+		HomeDir: filepath.Dir(c.GetCfgFileName()),
+		Config:  c.GetClientCfg(),
 	}
 
 	req := &api.GetCAInfoRequest{
-		CAName: c.clientCfg.CAName,
+		CAName: c.GetClientCfg().CAName,
 	}
 
 	si, err := client.GetCAInfo(req)
@@ -85,13 +95,17 @@ func (c *ClientCmd) runGetCACert() error {
 		return err
 	}
 
-	return storeCAChain(client.Config, si)
+	err = storeCAChain(client.Config, si)
+	if err != nil {
+		return err
+	}
+	return storeIssuerPublicKey(client.Config, si)
 }
 
 // Store the CAChain in the CACerts folder of MSP (Membership Service Provider)
 // The root cert in the chain goes into MSP 'cacerts' directory.
 // The others (if any) go into the MSP 'intermediatecerts' directory.
-func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error {
+func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 	mspDir := config.MSPDir
 	// Get a unique name to use for filenames
 	serverURL, err := url.Parse(config.URL)
@@ -168,6 +182,16 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetServerInfoResponse) error
 			if err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+func storeIssuerPublicKey(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
+	if len(si.IssuerPublicKey) > 0 {
+		err := storeCert("Issuer public key", config.MSPDir, "IssuerPublicKey", si.IssuerPublicKey)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
