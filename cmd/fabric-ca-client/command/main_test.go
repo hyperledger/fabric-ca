@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package command
 
 import (
 	"bufio"
@@ -51,9 +51,8 @@ import (
 )
 
 const (
-	testYaml             = "../../testdata/test.yaml"
 	testdataDir          = "homeDir"
-	mspDir               = "../../testdata/msp"
+	mspDir               = "../../../testdata/msp"
 	myhost               = "hostname"
 	certfile             = "ec.pem"
 	keyfile              = "ec-key.pem"
@@ -63,7 +62,7 @@ const (
 	tlsClientCertFile    = "tls_client-cert.pem"
 	tlsClientCertExpired = "expiredcert.pem"
 	tlsClientKeyFile     = "tls_client-key.pem"
-	tdDir                = "../../testdata"
+	tdDir                = "../../../testdata"
 	db                   = "fabric-ca-server.db"
 	serverPort           = 7090
 	rootCertEnvVar       = "FABRIC_CA_CLIENT_TLS_CERTFILES"
@@ -132,6 +131,7 @@ var (
 	tlsServerURL  = fmt.Sprintf("https://localhost:%d", serverPort)
 	tlsEnrollURL  = fmt.Sprintf("https://admin:adminpw@localhost:%d", serverPort)
 	tlsEnrollURL1 = fmt.Sprintf("https://admin2:adminpw2@localhost:%d", serverPort)
+	testYaml      = path.Join(tdDir, "test.yaml")
 )
 
 type TestData struct {
@@ -1457,13 +1457,13 @@ func testRegisterConfigFile(t *testing.T) {
 	t.Log("Testing Register command using config file")
 
 	err := RunMain([]string{cmdName, "enroll", "-d", "-c",
-		"../../testdata/fabric-ca-client-config.yaml", "-u", enrollURL1})
+		"../../../testdata/fabric-ca-client-config.yaml", "-u", enrollURL1})
 	if err != nil {
 		t.Errorf("client enroll -u failed: %s", err)
 	}
 
 	err = RunMain([]string{cmdName, "register", "-d", "-c",
-		"../../testdata/fabric-ca-client-config.yaml"})
+		"../../../testdata/fabric-ca-client-config.yaml"})
 	if err != nil {
 		t.Errorf("client register failed using config file: %s", err)
 	}
@@ -1473,7 +1473,7 @@ func testRegisterConfigFile(t *testing.T) {
 func testRegisterEnvVar(t *testing.T) {
 	t.Log("Testing Register command using env variables")
 
-	os.Setenv("FABRIC_CA_CLIENT_HOME", "../../testdata/")
+	os.Setenv("FABRIC_CA_CLIENT_HOME", tdDir)
 	os.Setenv("FABRIC_CA_CLIENT_ID_NAME", "testRegister2")
 	os.Setenv("FABRIC_CA_CLIENT_ID_AFFILIATION", "hyperledger.org2")
 	os.Setenv("FABRIC_CA_CLIENT_ID_TYPE", "client")
@@ -1493,7 +1493,7 @@ func testRegisterEnvVar(t *testing.T) {
 // testRegisterCommandLine tests fabric-ca-client register using command line input
 func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 	t.Log("Testing Register using command line options")
-	os.Setenv("FABRIC_CA_CLIENT_HOME", "../../testdata/")
+	os.Setenv("FABRIC_CA_CLIENT_HOME", tdDir)
 	defer os.Unsetenv("FABRIC_CA_CLIENT_HOME")
 
 	fooName := "foo"
@@ -1579,7 +1579,7 @@ func testRegisterCommandLine(t *testing.T, srv *lib.Server) {
 // TestRevoke tests fabric-ca-client revoke
 func testRevoke(t *testing.T) {
 	t.Log("Testing Revoke command")
-	clientHome := "../../testdata/"
+	clientHome := tdDir
 	os.Setenv("FABRIC_CA_CLIENT_HOME", clientHome)
 	defer os.Unsetenv("FABRIC_CA_CLIENT_HOME")
 
@@ -1881,7 +1881,7 @@ func TestClientCommandsUsingConfigFile(t *testing.T) {
 	}
 
 	err = RunMain([]string{cmdName, "enroll", "-c",
-		"../../testdata/fabric-ca-client-config.yaml", "-u",
+		filepath.Join(tdDir, "fabric-ca-client-config.yaml"), "-u",
 		tlsEnrollURL, "-d"})
 	if err != nil {
 		t.Errorf("client enroll -c -u failed: %s", err)
@@ -1980,7 +1980,7 @@ func TestMultiCA(t *testing.T) {
 	cleanMultiCADir()
 
 	srv = lib.TestGetServer(serverPort, testdataDir, "", -1, t)
-	srv.HomeDir = "../../testdata"
+	srv.HomeDir = tdDir
 	srv.Config.CAfiles = []string{"ca/rootca/ca1/fabric-ca-server-config.yaml",
 		"ca/rootca/ca2/fabric-ca-server-config.yaml"}
 	srv.CA.Config.CSR.Hosts = []string{"hostname"}
@@ -2076,8 +2076,9 @@ func TestHomeDirectory(t *testing.T) {
 	configFilePath := util.GetDefaultConfigFile(clientCMD)
 	defaultClientConfigDir, defaultClientConfigFile := filepath.Split(configFilePath)
 
-	os.RemoveAll("../../testdata/testhome")
-	defer os.RemoveAll("../../testdata/testhome")
+	dir := filepath.Join(tdDir, "testhome")
+	os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
 	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-c", ""})
 	if !util.FileExists(configFilePath) {
@@ -2098,19 +2099,19 @@ func TestHomeDirectory(t *testing.T) {
 		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config) in the default home directory")
 	}
 
-	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", "../../testdata/testhome/testclientcmd"})
-	if !util.FileExists(filepath.Join("../../testdata/testhome/testclientcmd", defaultClientConfigFile)) {
-		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config.yaml) in the '../../testdata/testhome/testclientcmd' directory")
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-H", filepath.Join(tdDir, "testhome/testclientcmd")})
+	if !util.FileExists(filepath.Join(tdDir, "testhome/testclientcmd", defaultClientConfigFile)) {
+		t.Errorf("Failed to correctly created the default config (fabric-ca-client-config.yaml) in the '../../../testdata/testhome/testclientcmd' directory")
 	}
 
-	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-c", "../../testdata/testhome/testclientcmd2/testconfig2.yaml"})
-	if !util.FileExists("../../testdata/testhome/testclientcmd2/testconfig2.yaml") {
-		t.Errorf("Failed to correctly created the config (testconfig2.yaml) in the '../../testdata/testhome/testclientcmd2' directory")
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-c", filepath.Join(tdDir, "testhome/testclientcmd2/testconfig2.yaml")})
+	if !util.FileExists(filepath.Join(tdDir, "testhome/testclientcmd2/testconfig2.yaml")) {
+		t.Errorf("Failed to correctly created the config (testconfig2.yaml) in the '../../../testdata/testhome/testclientcmd2' directory")
 	}
 
-	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-H", "../../testdata/testclientcmd3", "-c", "../../testdata/testhome/testclientcmd3/testconfig3.yaml"})
-	if !util.FileExists("../../testdata/testhome/testclientcmd3/testconfig3.yaml") {
-		t.Errorf("Failed to correctly created the config (testconfig3.yaml) in the '../../testdata/testhome/testclientcmd3' directory")
+	RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-d", "-H", filepath.Join(tdDir, "testclientcmd3"), "-c", filepath.Join(tdDir, "testhome/testclientcmd3/testconfig3.yaml")})
+	if !util.FileExists(filepath.Join(tdDir, "testhome/testclientcmd3/testconfig3.yaml")) {
+		t.Errorf("Failed to correctly created the config (testconfig3.yaml) in the '../../../testdata/testhome/testclientcmd3' directory")
 	}
 
 }
@@ -2145,8 +2146,8 @@ func TestDebugSetting(t *testing.T) {
 }
 
 func TestCleanUp(t *testing.T) {
-	os.Remove("../../testdata/ca-cert.pem")
-	os.Remove("../../testdata/ca-key.pem")
+	os.Remove(filepath.Join(tdDir, "ca-cert.pem"))
+	os.Remove(filepath.Join(tdDir, "ca-key.pem"))
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
 	os.RemoveAll(mspDir)
@@ -2155,7 +2156,7 @@ func TestCleanUp(t *testing.T) {
 }
 
 func cleanMultiCADir() {
-	caFolder := "../../testdata/ca/rootca"
+	caFolder := filepath.Join(tdDir, "ca/rootca")
 	nestedFolders := []string{"ca1", "ca2"}
 	removeFiles := []string{"msp", "ca-cert.pem",
 		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem"}
@@ -2178,7 +2179,7 @@ func TestRegisterWithoutEnroll(t *testing.T) {
 
 func testGetCACertEnvVar(t *testing.T) error {
 	t.Log("testGetCACertEnvVar - Entered")
-	os.Setenv(rootCertEnvVar, "../../testdata/root.pem")
+	os.Setenv(rootCertEnvVar, filepath.Join(tdDir, "root.pem"))
 	defer os.Unsetenv(rootCertEnvVar)
 
 	defer os.RemoveAll("msp")
@@ -2193,7 +2194,7 @@ func testGetCACertEnvVar(t *testing.T) error {
 
 func testGetCACertConfigFile(t *testing.T) error {
 	t.Log("testGetCACertConfigFile - Entered")
-	configFile := "../../testdata/fabric-ca-client-config.yaml"
+	configFile := filepath.Join(tdDir, "fabric-ca-client-config.yaml")
 
 	err := RunMain([]string{cmdName, "getcacert", "-d", "-c", configFile, "-u", tlsServerURL, "--tls.certfiles", rootCert})
 	if err != nil {

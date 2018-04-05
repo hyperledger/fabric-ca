@@ -14,26 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package command
 
 import (
-	"fmt"
+	"io/ioutil"
 	"path/filepath"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-func (c *ClientCmd) newReenrollCommand() *cobra.Command {
-	reenrollCmd := &cobra.Command{
-		Use:   "reenroll",
-		Short: "Reenroll an identity",
-		Long:  "Reenroll an identity with Fabric CA server",
-		// PreRunE block for this command will check to make sure enrollment
-		// information exists before running the command
+func (c *ClientCmd) newEnrollCommand() *cobra.Command {
+	enrollCmd := &cobra.Command{
+		Use:   "enroll -u http://user:userpw@serverAddr:serverPort",
+		Short: "Enroll an identity",
+		Long:  "Enroll identity with Fabric CA server",
+		// PreRunE block for this command will check to make sure username
+		// and secret provided for the enroll command before creating and/or
+		// reading configuration file
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				return errors.Errorf(extraArgsError, args, cmd.UsageString())
@@ -48,47 +49,43 @@ func (c *ClientCmd) newReenrollCommand() *cobra.Command {
 
 			return nil
 		},
+
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := c.runReenroll()
+			err := c.runEnroll(cmd)
 			if err != nil {
 				return err
 			}
-
 			return nil
 		},
 	}
-	return reenrollCmd
+	return enrollCmd
 }
 
-// The client reenroll main logic
-func (c *ClientCmd) runReenroll() error {
-	log.Debug("Entered runReenroll")
-
-	client := lib.Client{
-		HomeDir: filepath.Dir(c.cfgFileName),
-		Config:  c.clientCfg,
-	}
-
-	id, err := client.LoadMyIdentity()
+// The client enroll main logic
+func (c *ClientCmd) runEnroll(cmd *cobra.Command) error {
+	log.Debug("Entered runEnroll")
+	resp, err := c.clientCfg.Enroll(c.clientCfg.URL, filepath.Dir(c.cfgFileName))
 	if err != nil {
 		return err
 	}
 
-	req := &api.ReenrollmentRequest{
-		Label:   c.clientCfg.Enrollment.Label,
-		Profile: c.clientCfg.Enrollment.Profile,
-		CSR:     &c.clientCfg.CSR,
-		CAName:  c.clientCfg.CAName,
+	ID := resp.Identity
+
+	cfgFile, err := ioutil.ReadFile(c.cfgFileName)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to read file at '%s'", c.cfgFileName)
 	}
 
-	resp, err := id.Reenroll(req)
+	cfg := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
+
+	err = ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0644)
 	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Failed to reenroll '%s'", id.GetName()))
+		return errors.Wrapf(err, "Failed to write file at '%s'", c.cfgFileName)
 	}
 
-	err = resp.Identity.Store()
+	err = ID.Store()
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "Failed to store enrollment information")
 	}
 
 	err = storeCAChain(c.clientCfg, &resp.ServerInfo)

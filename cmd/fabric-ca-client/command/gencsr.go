@@ -14,25 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package command
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-func (c *ClientCmd) newRegisterCommand() *cobra.Command {
-	registerCmd := &cobra.Command{
-		Use:   "register",
-		Short: "Register an identity",
-		Long:  "Register an identity with Fabric CA server",
-		// PreRunE block for this command will check to make sure enrollment
-		// information exists before running the command
+func (c *ClientCmd) newGenCsrCommand() *cobra.Command {
+	// initCmd represents the init command
+	gencsrCmd := &cobra.Command{
+		Use:   "gencsr",
+		Short: "Generate a CSR",
+		Long:  "Generate a Certificate Signing Request for an identity",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				return errors.Errorf(extraArgsError, args, cmd.UsageString())
@@ -48,38 +45,29 @@ func (c *ClientCmd) newRegisterCommand() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			err := c.runRegister()
+			err := c.runGenCSR(cmd)
 			if err != nil {
 				return err
 			}
-
 			return nil
 		},
 	}
-	return registerCmd
+	gencsrCmd.Flags().StringVar(&c.csrCommonName, "csr.cn", "", "The common name for the certificate signing request")
+	return gencsrCmd
 }
 
-// The client register main logic
-func (c *ClientCmd) runRegister() error {
-	log.Debug("Entered runRegister")
+// The gencsr main logic
+func (c *ClientCmd) runGenCSR(cmd *cobra.Command) error {
+	log.Debug("Entered runGenCSR")
 
-	client := lib.Client{
-		HomeDir: filepath.Dir(c.cfgFileName),
-		Config:  c.clientCfg,
+	if c.csrCommonName != "" {
+		c.clientCfg.CSR.CN = c.csrCommonName
 	}
 
-	id, err := client.LoadMyIdentity()
+	err := c.clientCfg.GenCSR(filepath.Dir(c.cfgFileName))
 	if err != nil {
 		return err
 	}
-
-	c.clientCfg.ID.CAName = c.clientCfg.CAName
-	resp, err := id.Register(&c.clientCfg.ID)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Password: %s\n", resp.Secret)
 
 	return nil
 }

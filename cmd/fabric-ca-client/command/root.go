@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. 2018 All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package command
 
-import (
-	"os"
+import "os"
 
-	"github.com/hyperledger/fabric-ca/cmd/fabric-ca-client/command"
-)
+// RunMain is the fabric-ca client main
+func RunMain(args []string) error {
+	// Save the os.Args
+	saveOsArgs := os.Args
+	os.Args = args
 
-// The fabric-ca client main
-func main() {
-	if err := command.RunMain(os.Args); err != nil {
-		os.Exit(1)
+	// Execute the command
+	cmdName := ""
+	if len(args) > 1 {
+		cmdName = args[1]
 	}
+	ccmd := NewCommand(cmdName)
+	err := ccmd.Execute()
+
+	// Restore original os.Args
+	os.Args = saveOsArgs
+
+	return err
 }
