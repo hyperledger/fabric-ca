@@ -44,7 +44,7 @@ func (c *ClientCmd) newGenCRLCommand() *cobra.Command {
 			if len(args) > 0 {
 				return errors.Errorf(extraArgsError, args, cmd.UsageString())
 			}
-			err := c.configInit()
+			err := c.ConfigInit()
 			if err != nil {
 				return err
 			}

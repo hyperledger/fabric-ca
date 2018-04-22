@@ -51,7 +51,7 @@ func (c *ClientCmd) newListAffiliationCommand() *cobra.Command {
 		Long:  "List affiliations visible to caller",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			log.Level = log.LevelWarning
-			err := c.configInit()
+			err := c.ConfigInit()
 			if err != nil {
 				return err
 			}
@@ -116,7 +116,7 @@ func (c *ClientCmd) newRemoveAffiliationCommand() *cobra.Command {
 func (c *ClientCmd) runListAffiliation(cmd *cobra.Command, args []string) error {
 	log.Debugf("Entered runListAffiliation: %+v", c.dynamicAffiliation)
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (c *ClientCmd) runListAffiliation(cmd *cobra.Command, args []string) error 
 func (c *ClientCmd) runAddAffiliation(cmd *cobra.Command, args []string) error {
 	log.Debugf("Entered runAddAffiliation: %+v", c.dynamicAffiliation)
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (c *ClientCmd) runAddAffiliation(cmd *cobra.Command, args []string) error {
 func (c *ClientCmd) runModifyAffiliation(cmd *cobra.Command, args []string) error {
 	log.Debugf("Entered runModifyAffiliation: %+v", c.dynamicAffiliation)
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (c *ClientCmd) runModifyAffiliation(cmd *cobra.Command, args []string) erro
 func (c *ClientCmd) runRemoveAffiliation(cmd *cobra.Command, args []string) error {
 	log.Debugf("Entered runRemoveAffiliation: %+v", c.dynamicAffiliation)
 
-	id, err := c.loadMyIdentity()
+	id, err := c.LoadMyIdentity()
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (c *ClientCmd) affiliationPreRunE(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
-	err = c.configInit()
+	err = c.ConfigInit()
 	if err != nil {
 		return err
 	}
