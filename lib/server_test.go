@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib_test
@@ -223,13 +213,12 @@ func TestSRVRootServer(t *testing.T) {
 	}
 	user1 = eresp.Identity
 	// Make sure the OUs are correct based on the identity type and affiliation
-	cert, err := user1.GetECert().GetX509Cert()
-	if err != nil {
-		assert.NoErrorf(t, err, "Failed to get user1's enrollment certificate")
-	} else {
-		ouPath := strings.Join(cert.Subject.OrganizationalUnit, ".")
-		assert.Equal(t, "user.hyperledger.fabric.security", ouPath, "Invalid OU path in certificate")
-	}
+	cert := user1.GetECert().GetX509Cert()
+	assert.NotNil(t, cert, "Failed to get user1's enrollment certificate")
+
+	ouPath := strings.Join(cert.Subject.OrganizationalUnit, ".")
+	assert.Equal(t, "user.hyperledger.fabric.security", ouPath, "Invalid OU path in certificate")
+
 	// The admin ID should have 1 cert in the DB now
 	dba := server.CA.CertDBAccessor()
 	recs, err = dba.GetCertificatesByID("admin")

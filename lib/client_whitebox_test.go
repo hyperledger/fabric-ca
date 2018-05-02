@@ -8,7 +8,6 @@ package lib
 import (
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
+	cax509 "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -302,12 +302,9 @@ func testImpersonation(id *Identity, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create self-signed fake cert: %s", err)
 	}
-	fakeCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: fakeCertBytes})
-	fakeID := newIdentity(id.GetClient(), "admin", privateKey, fakeCert)
-	_, err = fakeID.RevokeSelf()
-	t.Logf("fakeID.RevokeSelf: %v", err)
+	_, err = cax509.NewSigner(privateKey, fakeCertBytes)
 	if err == nil {
-		t.Fatalf("Fake ID should have failed revocation")
+		t.Fatalf("Should have failed to create signer with fake certificate")
 	}
 }
 
