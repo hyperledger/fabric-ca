@@ -40,6 +40,7 @@ Fabric-CA Server's CLI
       -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
           --intermediate.enrollment.label string      Label to use in HSM operations
           --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
+          --intermediate.enrollment.type string       The type of enrollment request: 'x509' or 'idemix' (default "x509")
           --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-server
       -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
           --intermediate.tls.certfiles stringSlice    A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)

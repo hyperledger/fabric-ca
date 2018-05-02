@@ -52,13 +52,15 @@ Table of Contents
    1. `Enrolling the bootstrap identity`_
    2. `Registering a new identity`_
    3. `Enrolling a peer identity`_
-   4. `Reenrolling an identity`_
-   5. `Revoking a certificate or identity`_
-   6. `Generating a CRL (Certificate Revocation List)`_
-   7. `Attribute-Based Access Control`_
-   8. `Dynamic Server Configuration Update`_
-   9. `Enabling TLS`_
-   10. `Contact specific CA instance`_
+   4. `Getting a CA certificate chain from another Fabric CA server`_
+   5. `Getting Identity Mixer credential for a user`_
+   6. `Reenrolling an identity`_
+   7. `Revoking a certificate or identity`_
+   8. `Generating a CRL (Certificate Revocation List)`_
+   9. `Attribute-Based Access Control`_
+   10. `Dynamic Server Configuration Update`_
+   11. `Enabling TLS`_
+   12. `Contact specific CA instance`_
 
 6. `HSM`_
 
@@ -1445,6 +1447,32 @@ By default, the Fabric CA server returns the CA chain in child-first order. This
 certificate in the chain is followed by its issuer's CA certificate. If you need the Fabric CA server
 to return the CA chain in the opposite order, then set the environment variable ``CA_CHAIN_PARENT_FIRST``
 to ``true`` and restart the Fabric CA server. The Fabric CA client will handle either order appropriately.
+
+Getting Identity Mixer credential for a user
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Identity Mixer (Idemix) is a cryptographic protocol suite for privacy-preserving authentication and transfer of certified attributes.
+Idemix allows users to authenticate with verifiers without the involvement of the issuer (CA) and selectively disclose only those attributes
+that are required by the verifier and can do so without being linkable across their transactions.
+
+Fabric CA server can issue Idemix credentials in addition to X509 certificates. An Idemix credential can be requested by sending the request to
+the ``/api/v1/idemix/credential`` API endpoint. For more information on this and other Fabric CA server API endpoints, please refer to
+`swagger-fabric-ca.json <https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json>`_.
+
+The Idemix credential issuance is a two step process. First, send a request with an empty body to the ``/api/v1/idemix/credential``
+API endpoint to get a nonce and CA's Idemix public key. Second, create a credential request using the nonce and CA's Idemix public key and
+send another request with the credential request in the body to  the ``/api/v1/idemix/credential`` API endpoint to get an Idemix credential,
+and attribute names and values. Currently, only three attributes are supported:
+
+- **OU** - organization unit of the user
+- **IsAdmin** - if the user is an admin or not
+- **EnrollmentID** - enrollment ID of the user
+
+The ``/api/v1/idemix/credential`` API endpoint accepts both OAuth basic and token authorization headers. The basic authorization header should
+contain User's registration ID and password. If the user already has X509 enrollment certificate, it can also be used to create a token authorization header.
+
+Note that Hyperledger Fabric will support clients/users to sign transactions with their Idemix credentials, but will only support X509 credentials
+for peer and orderer identities. As before, applications can use a Fabric SDK to send requests to the Fabric CA server. SDKs hide the complexity
+associated with creating authorization header and request payload, and with processing the response.
 
 Reenrolling an Identity
 ~~~~~~~~~~~~~~~~~~~~~~~

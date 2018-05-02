@@ -31,6 +31,7 @@ Fabric-CA Client's CLI
           --enrollment.attrs stringSlice   A list of comma-separated attribute requests of the form <name>[:opt] (e.g. foo,bar:opt)
           --enrollment.label string        Label to use in HSM operations
           --enrollment.profile string      Name of the signing profile to use in issuing the certificate
+          --enrollment.type string         The type of enrollment request: 'x509' or 'idemix' (default "x509")
       -H, --home string                    Client's home directory (default "$HOME/.fabric-ca-client")
           --id.affiliation string          The identity's affiliation
           --id.attrs stringSlice           A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
