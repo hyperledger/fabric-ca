@@ -117,7 +117,7 @@
         },
         "caname": {
           "type": "string",
-          "description": "The name of the root CA associated with this server."        
+          "description": "The name of the root CA associated with this server."
         }
       }
     }
@@ -2414,6 +2414,162 @@
         }
       }
     },
+    "/api/v1/certificates": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get certificate(s).  \nThe caller will be able to view certificates that it owns. In addition, if the caller has **hf.Registrar.Roles** or **hf.Revoker** attribute, it will be able to view certificates for identities that have affiliations equal to or below the caller's affiliation.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "The enrollment ID that uniquely identifies an identity",
+            "type": "string"
+          },
+          {
+            "name": "aki",
+            "in": "query",
+            "description": "The AKI for a certificate",
+            "type": "string"
+          },
+          {
+            "name": "serial",
+            "in": "query",
+            "description": "The serial number for a certificate",
+            "type": "string"
+          },
+          {
+            "name": "revoked_start",
+            "in": "query",
+            "description": "Get revoked certificates starting at the specified time, either as timestamp (RFC3339 format) or duration (-30d)",
+            "type": "string"
+          },
+          {
+            "name": "revoked_end",
+            "in": "query",
+            "description": "Get revoked certificates before the specified time, either as timestamp (RFC3339 format) or duration (-15d)",
+            "type": "string"
+          },
+          {
+            "name": "expired_start",
+            "in": "query",
+            "description": "Get expired certificates starting at the specified time, either as timestamp (RFC3339 format) or duration (-30d)",
+            "type": "string"
+          },
+          {
+            "name": "expired_end",
+            "in": "query",
+            "description": "Get expired certificates before the specified time, either as timestamp (RFC3339 format) or duration (-15d)",
+            "type": "string"
+          },
+          {
+            "name": "notexpired",
+            "in": "query",
+            "description": "Don't return expired certificates",
+            "type": "boolean"
+          },
+          {
+            "name": "notrevoked",
+            "in": "query",
+            "description": "Don't return revoked certificates",
+            "type": "boolean"
+          },
+          {
+            "name": "ca",
+            "in": "query",
+            "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The certificates that were retrieved.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                    "certs": {
+                      "type": "array",
+                      "description": "An array of base64 encoded PEM-encoded certificates",
+                      "items": {
+                          "type": "string",
+                          "description": "base64 encoded PEM-encoded CRL"
+                      }
+                    },
+                    "caname": {
+                      "type": "string",
+                      "description": "Name of the CA containing this identity."
+                    }
+                  }
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of information messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
     "/tcert": {
       "post": {
         "tags": [
@@ -2606,3 +2762,4 @@
     }
   }
 }
+
