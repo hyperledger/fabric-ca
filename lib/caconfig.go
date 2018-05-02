@@ -23,10 +23,10 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
+	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/idemix"
 )
 
 const (
@@ -90,10 +90,9 @@ csr:
 // "skip" - to skip the field.
 type CAConfig struct {
 	Version      string `skip:"true"`
-	Cfg          cfgOptions
+	Cfg          CfgOptions
 	CA           CAInfo
 	Signing      *config.Signing
-	IssuerKey    *idemix.IssuerKey
 	CSR          api.CSRInfo
 	Registry     CAConfigRegistry
 	Affiliations map[string]interface{}
@@ -107,10 +106,11 @@ type CAConfig struct {
 	CRL          CRLConfig
 }
 
-// cfgOptions is a CA configuration that allows for setting different options
-type cfgOptions struct {
+// CfgOptions is a CA configuration that allows for setting different options
+type CfgOptions struct {
 	Identities   identitiesOptions
 	Affiliations affiliationsOptions
+	Idemix       idemix.CfgOptions
 }
 
 // identitiesOptions are options that are related to identities

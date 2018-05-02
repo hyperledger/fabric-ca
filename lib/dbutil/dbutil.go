@@ -17,6 +17,7 @@ limitations under the License.
 package dbutil
 
 import (
+	"database/sql"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -35,15 +36,49 @@ var (
 	dbURLRegex = regexp.MustCompile("(Datasource:\\s*)?(\\S+):(\\S+)@|(Datasource:.*\\s)?(user=\\S+).*\\s(password=\\S+)|(Datasource:.*\\s)?(password=\\S+).*\\s(user=\\S+)")
 )
 
+// FabricCADB is the interface with functions implemented by sqlx.DB
+// object that are used by Fabric CA server
+type FabricCADB interface {
+	Select(dest interface{}, query string, args ...interface{}) error
+	NamedExec(query string, arg interface{}) (sql.Result, error)
+	Rebind(query string) string
+	MustBegin() *sqlx.Tx
+	// BeginTx has same behavior as MustBegin except it returns FabricCATx
+	// instead of *sqlx.Tx
+	BeginTx() FabricCATx
+}
+
+// FabricCATx is the interface with functions implemented by sqlx.Tx
+// object that are used by Fabric CA server
+type FabricCATx interface {
+	Select(dest interface{}, query string, args ...interface{}) error
+	Rebind(query string) string
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Commit() error
+	Rollback() error
+}
+
+// DB is an adapter for sqlx.DB and implements FabricCADB interface
+type DB struct {
+	*sqlx.DB
+}
+
 // Levels contains the levels of identities, affiliations, and certificates
 type Levels struct {
 	Identity    int
 	Affiliation int
 	Certificate int
+	Credential  int
+	RCInfo      int
+}
+
+// BeginTx implements BeginTx method of FabricCADB interface
+func (db *DB) BeginTx() FabricCATx {
+	return db.MustBegin()
 }
 
 // NewUserRegistrySQLLite3 returns a pointer to a sqlite database
-func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, error) {
+func NewUserRegistrySQLLite3(datasource string) (*DB, error) {
 	log.Debugf("Using sqlite database, connect to database in home (%s) directory", datasource)
 
 	err := createSQLiteDBTables(datasource)
@@ -69,15 +104,16 @@ func NewUserRegistrySQLLite3(datasource string) (*sqlx.DB, error) {
 	db.SetMaxOpenConns(1)
 	log.Debug("Successfully opened sqlite3 DB")
 
-	return db, nil
+	return &DB{db}, nil
 }
 
 func createSQLiteDBTables(datasource string) error {
 	log.Debugf("Creating SQLite database (%s) if it does not exist...", datasource)
-	db, err := sqlx.Open("sqlite3", datasource)
+	sqldb, err := sqlx.Open("sqlite3", datasource)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open SQLite database")
 	}
+	db := &DB{sqldb}
 	defer db.Close()
 
 	err = doTransaction(db, createAllSQLiteTables)
@@ -89,7 +125,7 @@ func createSQLiteDBTables(datasource string) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err = db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0')"))
+	_, err = db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return errors.Wrap(err, "Failed to initialize properties table")
@@ -108,6 +144,14 @@ func createAllSQLiteTables(tx *sqlx.Tx, args ...interface{}) error {
 		return err
 	}
 	err = createSQLiteCertificateTable(tx)
+	if err != nil {
+		return err
+	}
+	err = createSQLiteCredentialsTable(tx)
+	if err != nil {
+		return err
+	}
+	err = createSQLiteRevocationComponentTable(tx)
 	if err != nil {
 		return err
 	}
@@ -138,8 +182,24 @@ func createSQLiteCertificateTable(tx *sqlx.Tx) error {
 	return nil
 }
 
+func createSQLiteCredentialsTable(tx *sqlx.Tx) error {
+	log.Debug("Creating credentials table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle blob NOT NULL, cred blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
+		return errors.Wrap(err, "Error creating credentials table")
+	}
+	return nil
+}
+
+func createSQLiteRevocationComponentTable(tx *sqlx.Tx) error {
+	log.Debug("Creating revocation_component_info table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_component_info table")
+	}
+	return nil
+}
+
 // NewUserRegistryPostgres opens a connection to a postgres database
-func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*sqlx.DB, error) {
+func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSConfig) (*DB, error) {
 	log.Debugf("Using postgres database, connecting to database...")
 
 	dbName := getDBName(datasource)
@@ -200,7 +260,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 		return nil, errors.Wrap(err, "Failed to create Postgres tables")
 	}
 
-	return db, nil
+	return &DB{db}, nil
 }
 
 func createPostgresDatabase(dbName string, db *sqlx.DB) error {
@@ -231,11 +291,19 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
+	log.Debug("Creating credentials table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle bytea NOT NULL, cred bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
+		return errors.Wrap(err, "Error creating certificates table")
+	}
+	log.Debug("Creating revocation_component_info table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_component_info table")
+	}
 	log.Debug("Creating properties table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0')"))
+	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "duplicate key") {
 			return err
@@ -245,7 +313,7 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 }
 
 // NewUserRegistryMySQL opens a connection to a postgres database
-func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP) (*sqlx.DB, error) {
+func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP) (*DB, error) {
 	log.Debugf("Using MySQL database, connecting to database...")
 
 	dbName := getDBName(datasource)
@@ -290,7 +358,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		return nil, errors.Wrap(err, "Failed to create MySQL tables")
 	}
 
-	return db, nil
+	return &DB{db}, nil
 }
 
 func createMySQLDatabase(dbName string, db *sqlx.DB) error {
@@ -323,11 +391,19 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
+	log.Debug("Creating credentials table if it doesn't exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle varbinary(128) NOT NULL, cred varbinary(4096) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+		return errors.Wrap(err, "Error creating certificates table")
+	}
+	log.Debug("Creating revocation_component_info table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_component_info table")
+	}
 	log.Debug("Creating properties table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0')"))
+	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "1062") { // MySQL error code for duplicate entry
 			return err
@@ -399,7 +475,7 @@ func MaskDBCred(str string) string {
 }
 
 // UpdateSchema updates the database tables to use the latest schema
-func UpdateSchema(db *sqlx.DB, levels *Levels) error {
+func UpdateSchema(db *DB, levels *Levels) error {
 	log.Debug("Checking database schema...")
 
 	switch db.DriverName() {
@@ -415,7 +491,7 @@ func UpdateSchema(db *sqlx.DB, levels *Levels) error {
 }
 
 // UpdateDBLevel updates the levels for the tables in the database
-func UpdateDBLevel(db *sqlx.DB, levels *Levels) error {
+func UpdateDBLevel(db *DB, levels *Levels) error {
 	log.Debugf("Updating database level to %+v", levels)
 
 	_, err := db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'identity.level')"), levels.Identity)
@@ -430,13 +506,20 @@ func UpdateDBLevel(db *sqlx.DB, levels *Levels) error {
 	if err != nil {
 		return err
 	}
-
+	_, err = db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'credential.level')"), levels.Credential)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'rcinfo.level')"), levels.RCInfo)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func currentDBLevels(db *sqlx.DB) (*Levels, error) {
+func currentDBLevels(db *DB) (*Levels, error) {
 	var err error
-	var identityLevel, affiliationLevel, certificateLevel int
+	var identityLevel, affiliationLevel, certificateLevel, credentialLevel, rcinfoLevel int
 
 	err = db.Get(&identityLevel, "Select value FROM properties WHERE (property = 'identity.level')")
 	if err != nil {
@@ -450,15 +533,24 @@ func currentDBLevels(db *sqlx.DB) (*Levels, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	err = db.Get(&credentialLevel, "Select value FROM properties WHERE (property = 'credential.level')")
+	if err != nil {
+		return nil, err
+	}
+	err = db.Get(&rcinfoLevel, "Select value FROM properties WHERE (property = 'rcinfo.level')")
+	if err != nil {
+		return nil, err
+	}
 	return &Levels{
 		Identity:    identityLevel,
 		Affiliation: affiliationLevel,
 		Certificate: certificateLevel,
+		Credential:  credentialLevel,
+		RCInfo:      rcinfoLevel,
 	}, nil
 }
 
-func updateSQLiteSchema(db *sqlx.DB, serverLevels *Levels) error {
+func updateSQLiteSchema(db *DB, serverLevels *Levels) error {
 	log.Debug("Update SQLite schema, if using outdated schema")
 
 	var err error
@@ -582,7 +674,7 @@ func updateCertificatesTable(tx *sqlx.Tx, args ...interface{}) error {
 	return nil
 }
 
-func updateMySQLSchema(db *sqlx.DB) error {
+func updateMySQLSchema(db *DB) error {
 	log.Debug("Update MySQL schema if using outdated schema")
 	var err error
 
@@ -642,7 +734,7 @@ func updateMySQLSchema(db *sqlx.DB) error {
 	return nil
 }
 
-func updatePostgresSchema(db *sqlx.DB) error {
+func updatePostgresSchema(db *DB) error {
 	log.Debug("Update Postgres schema if using outdated schema")
 	var err error
 
@@ -684,13 +776,13 @@ func updatePostgresSchema(db *sqlx.DB) error {
 	return nil
 }
 
-func doTransaction(db *sqlx.DB, doit func(tx *sqlx.Tx, args ...interface{}) error, args ...interface{}) error {
+func doTransaction(db *DB, doit func(tx *sqlx.Tx, args ...interface{}) error, args ...interface{}) error {
 	tx := db.MustBegin()
 	err := doit(tx, args...)
 	if err != nil {
 		err2 := tx.Rollback()
 		if err2 != nil {
-			log.Errorf("Error encounted while rolling back transaction: %s", err2)
+			log.Errorf("Error encountered while rolling back transaction: %s", err2)
 			return err
 		}
 		return err

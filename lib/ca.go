@@ -22,8 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hyperledger/fabric/idemix"
-
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
@@ -31,17 +29,18 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hyperledger/fabric-amcl/amcl"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	idemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/common/attrmgr"
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
@@ -78,17 +77,22 @@ type CA struct {
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
-	db *sqlx.DB
+	db *dbutil.DB
 	// The crypto service provider (BCCSP)
 	csp bccsp.BCCSP
 	// The certificate DB accessor
 	certDBAccessor *CertDBAccessor
+	// The Idemix credential DB accessor
+	credDBAccessor idemix.CredDBAccessor
 	// The user registry
 	registry spi.UserRegistry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
 	// idemix issuer credential for the CA
-	issuerCred IssuerCredential
+	issuerCred idemix.IssuerCredential
+	// A random number used in generation of Idemix nonces and credentials
+	idemixRand *amcl.RAND
+	rc         idemix.RevocationComponent
 	// The options to use in verifying a signature in token-based authentication
 	verifyOptions *x509.VerifyOptions
 	// The attribute manager
@@ -278,15 +282,24 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 func (ca *CA) initIdemixKeyMaterial(renew bool) error {
 	log.Debug("Initialize Idemix key material")
 
+	rng, err := idemix.NewLib().GetRand()
+	if err != nil {
+		return errors.Wrapf(err, "Error generating random number")
+	}
+	ca.idemixRand = rng
+
 	idemixPubKey := ca.Config.CA.IdemixPublicKeyfile
 	idemixSecretKey := ca.Config.CA.IdemixSecretKeyfile
-	issuerCred := newIssuerCredential(idemixPubKey, idemixSecretKey)
+	issuerCred := idemix.NewCAIdemixCredential(idemixPubKey, idemixSecretKey, idemix.NewLib())
 
 	if !renew {
 		pubKeyFileExists := util.FileExists(idemixPubKey)
 		privKeyFileExists := util.FileExists(idemixSecretKey)
 		// If they both exist, the CA was already initialized, load the keys from the disk
 		if pubKeyFileExists && privKeyFileExists {
+			log.Info("The Idemix issuer public and secret key files already exist")
+			log.Infof("   secret key file location: %s", idemixSecretKey)
+			log.Infof("   public key file location: %s", idemixPubKey)
 			err := issuerCred.Load()
 			if err != nil {
 				return err
@@ -295,11 +308,11 @@ func (ca *CA) initIdemixKeyMaterial(renew bool) error {
 			return nil
 		}
 	}
-	ik, err := ca.getNewIssuerKey()
+	ik, err := issuerCred.NewIssuerKey()
 	if err != nil {
 		return err
 	}
-	log.Infof("The idemix public and secret keys were generated for CA %s", ca.Config.CA.Name)
+	log.Infof("The Idemix public and secret keys were generated for CA %s", ca.Config.CA.Name)
 	issuerCred.SetIssuerKey(ik)
 	err = issuerCred.Store()
 	if err != nil {
@@ -307,27 +320,6 @@ func (ca *CA) initIdemixKeyMaterial(renew bool) error {
 	}
 	ca.issuerCred = issuerCred
 	return nil
-}
-
-func (ca *CA) getNewIssuerKey() (*idemix.IssuerKey, error) {
-	rng, err := idemix.GetRand()
-	if err != nil {
-		log.Errorf("Error getting rng: \"%s\"", err)
-		return nil, errors.Wrapf(err, "Error generating issuer key")
-	}
-	// Currently, Idemix library supports these four attributes. The supported attribute names
-	// must also be known when creating issuer key. In the future, Idemix library will support
-	// arbitary attribute names, so removing the need to hardcode attribute names in the issuer
-	// key.
-	// OU - organization unit
-	// id - enrollment ID of the user
-	// isAdmin - if the user is admin
-	// revocationHandle - revocation handle of a credential
-	ik, err := idemix.NewIssuerKey([]string{"OU", "id", "isAdmin", "revocationHandle"}, rng)
-	if err != nil {
-		return nil, err
-	}
-	return ik, nil
 }
 
 // Get the CA certificate for this CA
@@ -547,6 +539,9 @@ func (ca *CA) initConfig() (err error) {
 		log.Level = log.LevelDebug
 	}
 	ca.normalizeStringSlices()
+	if ca.Config.Cfg.Idemix.RevocationHandlePoolSize == 0 {
+		ca.Config.Cfg.Idemix.RevocationHandlePoolSize = idemix.DefaultRevocationHandlePoolSize
+	}
 	return nil
 }
 
@@ -687,6 +682,12 @@ func (ca *CA) initDB() error {
 
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db, ca.levels.Certificate)
+
+	ca.credDBAccessor = idemix.NewCredentialAccessor(ca.db, ca.levels.Credential)
+	ca.rc, err = idemix.NewRevocationComponent(ca, &ca.Config.Cfg.Idemix, ca.levels.RCInfo)
+	if err != nil {
+		return err
+	}
 
 	// If DB initialization fails and we need to reinitialize DB, need to make sure to set the DB accessor for the signer
 	if ca.enrollSigner != nil {
@@ -919,9 +920,36 @@ func (ca *CA) addAffiliation(path, parentPath string) error {
 	return ca.registry.InsertAffiliation(path, parentPath, ca.levels.Affiliation)
 }
 
-// GetIssuerCredential returns IssuerCredential of this CA
-func (ca *CA) GetIssuerCredential() IssuerCredential {
+// GetName returns name of this CA
+func (ca *CA) GetName() string {
+	return ca.Config.CA.Name
+}
+
+// IdemixRand returns random number used by this CA in generation of nonces
+// and Idemix credentials
+func (ca *CA) IdemixRand() *amcl.RAND {
+	return ca.idemixRand
+}
+
+// IssuerCredential returns IssuerCredential of this CA
+func (ca *CA) IssuerCredential() idemix.IssuerCredential {
 	return ca.issuerCred
+}
+
+// RevocationComponent returns revocation component of this CA
+func (ca *CA) RevocationComponent() idemix.RevocationComponent {
+	return ca.rc
+}
+
+// DB returns the FabricCADB object (which represents database handle
+// to the CA database) associated with this CA
+func (ca *CA) DB() dbutil.FabricCADB {
+	return ca.db
+}
+
+// CredDBAccessor returns the Idemix credential DB accessor for CA
+func (ca *CA) CredDBAccessor() idemix.CredDBAccessor {
+	return ca.credDBAccessor
 }
 
 // CertDBAccessor returns the certificate DB accessor for CA
@@ -935,7 +963,7 @@ func (ca *CA) DBAccessor() spi.UserRegistry {
 }
 
 // GetDB returns pointer to database
-func (ca *CA) GetDB() *sqlx.DB {
+func (ca *CA) GetDB() *dbutil.DB {
 	return ca.db
 }
 
@@ -1048,8 +1076,8 @@ func (ca *CA) getUserAffiliation(username string) (string, error) {
 	return aff, nil
 }
 
-// Fill the CA info structure appropriately
-func (ca *CA) fillCAInfo(info *serverInfoResponseNet) error {
+// fillCAInfo fills the CA info structure appropriately
+func (ca *CA) fillCAInfo(info *ServerInfoResponseNet) error {
 	caChain, err := ca.getCAChain()
 	if err != nil {
 		return err

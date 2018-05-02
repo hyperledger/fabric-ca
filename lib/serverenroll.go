@@ -61,7 +61,7 @@ type enrollmentResponseNet struct {
 	// Base64 encoded PEM-encoded ECert
 	Cert string
 	// The server information
-	ServerInfo serverInfoResponseNet
+	ServerInfo ServerInfoResponseNet
 }
 
 func newEnrollEndpoint(s *Server) *serverEndpoint {

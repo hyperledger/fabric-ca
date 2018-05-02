@@ -44,7 +44,7 @@ DELETE FROM affiliations;
 
 type TestAccessor struct {
 	Accessor *Accessor
-	DB       *sqlx.DB
+	DB       *dbutil.DB
 }
 
 func (ta *TestAccessor) Truncate() {
@@ -81,7 +81,7 @@ func TestSQLite(t *testing.T) {
 }
 
 // Truncate truncates the DB
-func Truncate(db *sqlx.DB) {
+func Truncate(db *dbutil.DB) {
 	var sql []string
 	sql = []string{sqliteTruncateTables}
 
@@ -120,10 +120,10 @@ func TestDBCreation(t *testing.T) {
 	testWithExistingDb(t)
 }
 
-func createSQLiteDB(path string, t *testing.T) (*sqlx.DB, *TestAccessor) {
-	db, err := sqlx.Open("sqlite3", path)
+func createSQLiteDB(path string, t *testing.T) (*dbutil.DB, *TestAccessor) {
+	sqlxdb, err := sqlx.Open("sqlite3", path)
 	assert.NoError(t, err, "Failed to open SQLite database")
-
+	db := &dbutil.DB{DB: sqlxdb}
 	accessor := NewDBAccessor(db)
 
 	ta := &TestAccessor{

@@ -158,7 +158,7 @@ func (c *Client) GetCAInfo(req *api.GetCAInfoRequest) (*GetCAInfoResponse, error
 	if err != nil {
 		return nil, err
 	}
-	netSI := &serverInfoResponseNet{}
+	netSI := &ServerInfoResponseNet{}
 	err = c.SendReq(cainforeq, netSI)
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (c *Client) GetCAInfo(req *api.GetCAInfoRequest) (*GetCAInfoResponse, error
 }
 
 // Convert from network to local server information
-func (c *Client) net2LocalServerInfo(net *serverInfoResponseNet, local *GetCAInfoResponse) error {
+func (c *Client) net2LocalServerInfo(net *ServerInfoResponseNet, local *GetCAInfoResponse) error {
 	caChain, err := util.B64Decode(net.CAChain)
 	if err != nil {
 		return err

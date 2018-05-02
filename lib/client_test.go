@@ -1313,7 +1313,8 @@ func TestRevokedIdentity(t *testing.T) {
 
 	// 'admin' revokes user 'TestUser'
 	revReq := &api.RevocationRequest{
-		Name: "TestUser",
+		Name:   "TestUser",
+		GenCRL: true,
 	}
 
 	_, err = admin_id.Revoke(revReq)

@@ -22,16 +22,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/certdb"
 	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/server"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/kisielk/sqlstruct"
-
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -68,14 +68,14 @@ type CertRecord struct {
 type CertDBAccessor struct {
 	level    int
 	accessor certdb.Accessor
-	db       *sqlx.DB
+	db       *dbutil.DB
 }
 
 // NewCertDBAccessor returns a new Accessor.
-func NewCertDBAccessor(db *sqlx.DB, level int) *CertDBAccessor {
+func NewCertDBAccessor(db *dbutil.DB, level int) *CertDBAccessor {
 	cffslAcc := new(CertDBAccessor)
 	cffslAcc.db = db
-	cffslAcc.accessor = certsql.NewAccessor(db)
+	cffslAcc.accessor = certsql.NewAccessor(db.DB)
 	cffslAcc.level = level
 	return cffslAcc
 }
@@ -88,7 +88,7 @@ func (d *CertDBAccessor) checkDB() error {
 }
 
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
-func (d *CertDBAccessor) SetDB(db *sqlx.DB) {
+func (d *CertDBAccessor) SetDB(db *dbutil.DB) {
 	d.db = db
 }
 
