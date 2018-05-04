@@ -68,7 +68,9 @@ type revocationComponent struct {
 
 // CfgOptions encapsulates Idemix related the configuration options
 type CfgOptions struct {
-	RevocationHandlePoolSize int `def:"100" help:"Specifies revocation handle pool size"`
+	RevocationHandlePoolSize int    `def:"100" help:"Specifies revocation handle pool size"`
+	NonceExpiration          string `def:"15s" help:"Duration after which a nonce expires"`
+	NonceSweepInterval       string `def:"15m" help:"Interval at which expired nonces are deleted"`
 }
 
 // NewRevocationComponent constructor for revocation component
@@ -142,7 +144,7 @@ func (rc *revocationComponent) addRCInfoToDB(rcInfo *RevocationComponentInfo) er
 
 // getNextRevocationHandle returns next revocation handle
 func (rc *revocationComponent) getNextRevocationHandle() (int, error) {
-	result, err := rc.doTransaction(rc.db, rc.getNextRevocationHandleTx, nil)
+	result, err := doTransaction(rc.db, rc.getNextRevocationHandleTx, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -188,7 +190,7 @@ func (rc *revocationComponent) getNextRevocationHandleTx(tx dbutil.FabricCATx, a
 	return nextHandle, nil
 }
 
-func (rc *revocationComponent) doTransaction(db dbutil.FabricCADB, doit func(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
+func doTransaction(db dbutil.FabricCADB, doit func(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
 	if db == nil {
 		return nil, errors.New("Failed to correctly setup database connection")
 	}

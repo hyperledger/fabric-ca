@@ -70,6 +70,7 @@ type Levels struct {
 	Certificate int
 	Credential  int
 	RCInfo      int
+	Nonce       int
 }
 
 // BeginTx implements BeginTx method of FabricCADB interface
@@ -125,7 +126,7 @@ func createSQLiteDBTables(datasource string) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err = db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
+	_, err = db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return errors.Wrap(err, "Failed to initialize properties table")
@@ -152,6 +153,10 @@ func createAllSQLiteTables(tx *sqlx.Tx, args ...interface{}) error {
 		return err
 	}
 	err = createSQLiteRevocationComponentTable(tx)
+	if err != nil {
+		return err
+	}
+	err = createSQLiteNoncesTable(tx)
 	if err != nil {
 		return err
 	}
@@ -194,6 +199,14 @@ func createSQLiteRevocationComponentTable(tx *sqlx.Tx) error {
 	log.Debug("Creating revocation_component_info table if it does not exist")
 	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_component_info table")
+	}
+	return nil
+}
+
+func createSQLiteNoncesTable(tx *sqlx.Tx) error {
+	log.Debug("Creating nonces table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(1024) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(val))"); err != nil {
+		return errors.Wrap(err, "Error creating nonces table")
 	}
 	return nil
 }
@@ -299,11 +312,15 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_component_info table")
 	}
+	log.Debug("Creating nonces table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
+		return errors.Wrap(err, "Error creating nonces table")
+	}
 	log.Debug("Creating properties table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
+	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "duplicate key") {
 			return err
@@ -399,11 +416,15 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_component_info table")
 	}
+	log.Debug("Creating nonces table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
+		return errors.Wrap(err, "Error creating nonces table")
+	}
 	log.Debug("Creating properties table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0')"))
+	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "1062") { // MySQL error code for duplicate entry
 			return err
@@ -514,12 +535,16 @@ func UpdateDBLevel(db *DB, levels *Levels) error {
 	if err != nil {
 		return err
 	}
+	_, err = db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'nonce.level')"), levels.Nonce)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func currentDBLevels(db *DB) (*Levels, error) {
 	var err error
-	var identityLevel, affiliationLevel, certificateLevel, credentialLevel, rcinfoLevel int
+	var identityLevel, affiliationLevel, certificateLevel, credentialLevel, rcinfoLevel, nonceLevel int
 
 	err = db.Get(&identityLevel, "Select value FROM properties WHERE (property = 'identity.level')")
 	if err != nil {
@@ -541,12 +566,17 @@ func currentDBLevels(db *DB) (*Levels, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = db.Get(&nonceLevel, "Select value FROM properties WHERE (property = 'nonce.level')")
+	if err != nil {
+		return nil, err
+	}
 	return &Levels{
 		Identity:    identityLevel,
 		Affiliation: affiliationLevel,
 		Certificate: certificateLevel,
 		Credential:  credentialLevel,
 		RCInfo:      rcinfoLevel,
+		Nonce:       nonceLevel,
 	}, nil
 }
 

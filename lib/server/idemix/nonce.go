@@ -1,0 +1,208 @@
+/*
+Copyright IBM Corp. 2018 All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+                 http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package idemix
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/cloudflare/cfssl/log"
+	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/idemix"
+	"github.com/pkg/errors"
+)
+
+const (
+	// InsertNonce is the SQL for inserting a nonce
+	InsertNonce = "INSERT into nonces(val, expiry, level) VALUES (:val, :expiry, :level)"
+	// SelectNonce is query string for getting a particular nonce
+	SelectNonce = "SELECT * FROM nonces WHERE (val = ?)"
+	// RemoveNonce is the query string for removing a specified nonce
+	RemoveNonce = "DELETE FROM nonces WHERE (val = ?)"
+	// RemoveExpiredNonces is the SQL string removing expired nonces
+	RemoveExpiredNonces = "DELETE FROM nonces WHERE (expiry < ?);"
+	// DefaultNonceExpiration is the default value for nonce expiration
+	DefaultNonceExpiration = "15s"
+	// DefaultNonceSweepInterval is the default value for nonce sweep interval
+	DefaultNonceSweepInterval = "15m"
+)
+
+// Nonce represents a nonce
+type Nonce struct {
+	Val    string    `db:"val"`
+	Expiry time.Time `db:"expiry"`
+	Level  int       `db:"level"`
+}
+
+// NonceManager represents nonce manager that is responsible for
+// getting a new nonce
+type NonceManager interface {
+	// GetNonce creates a nonce, stores it in the database and returns it
+	GetNonce() (*fp256bn.BIG, error)
+	// CheckNonce checks if the specified nonce exists in the database and has not expired
+	CheckNonce(nonce *fp256bn.BIG) error
+	// SweepExpiredNonces removes expired nonces from the database
+	SweepExpiredNonces() error
+}
+
+// Clock provides time related functions
+type Clock interface {
+	Now() time.Time
+}
+
+// nonceManager implements NonceManager interface
+type nonceManager struct {
+	nonceExpiration    time.Duration
+	nonceSweepInterval time.Duration
+	ca                 CA
+	idmxLib            Lib
+	clock              Clock
+	level              int
+}
+
+// NewNonceManager returns an instance of an object that implements NonceManager interface
+func NewNonceManager(ca CA, opts *CfgOptions, idemixLib Lib, clock Clock, level int) (NonceManager, error) {
+	var err error
+	mgr := &nonceManager{
+		ca:      ca,
+		idmxLib: idemixLib,
+		clock:   clock,
+		level:   level,
+	}
+	mgr.nonceExpiration, err = time.ParseDuration(opts.NonceExpiration)
+	if err != nil {
+		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for CA '%s'", ca.GetName()))
+	}
+	mgr.nonceSweepInterval, err = time.ParseDuration(opts.NonceSweepInterval)
+	if err != nil {
+		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for CA '%s'", ca.GetName()))
+	}
+	mgr.startNonceSweeper()
+	return mgr, nil
+}
+
+// GetNonce returns a new nonce
+func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
+	nonce := nm.idmxLib.RandModOrder(nm.ca.IdemixRand())
+	nonceBytes := idemix.BigToBytes(nonce)
+	err := nm.insertNonceInDB(&Nonce{
+		Val:    util.B64Encode(nonceBytes),
+		Expiry: nm.clock.Now().UTC().Add(nm.nonceExpiration),
+		Level:  nm.level,
+	})
+	if err != nil {
+		log.Errorf("Failed to store nonce: %s", err.Error())
+		return nil, errors.WithMessage(err, "Failed to store nonce")
+	}
+	return nonce, nil
+}
+
+// CheckNonce checks if the specified nonce is valid (is in DB and has not expired)
+// and the nonce is removed from DB
+func (nm *nonceManager) CheckNonce(nonce *fp256bn.BIG) error {
+	nonceBytes := idemix.BigToBytes(nonce)
+	queryParam := util.B64Encode(nonceBytes)
+	nonceRec, err := doTransaction(nm.ca.DB(), nm.getNonceFromDB, queryParam)
+	if err != nil {
+		return err
+	}
+	nonceFromDB := nonceRec.(Nonce)
+	log.Debugf("Retrieved nonce from DB: %+v, %s", nonceRec, queryParam)
+
+	if nonceFromDB.Val != queryParam || nonceFromDB.Expiry.Before(time.Now().UTC()) {
+		return errors.New("Nonce is either unknown or has expired")
+	}
+	return nil
+}
+
+// SweepExpiredNonces sweeps expired nonces
+func (nm *nonceManager) SweepExpiredNonces() error {
+	return nm.sweep(nm.clock.Now().UTC())
+}
+
+func (nm *nonceManager) startNonceSweeper() {
+	ticker := time.NewTicker(nm.nonceSweepInterval)
+	go func() {
+		for t := range ticker.C {
+			log.Debugf("Cleaning up expired nonces for CA '%s'", nm.ca.GetName())
+			nm.sweep(t.UTC())
+		}
+	}()
+}
+
+// sweep deletes all nonces that have expired (whose expiry is less than current timestamp)
+func (nm *nonceManager) sweep(curTime time.Time) error {
+	err := nm.removeExpiredNoncesFromDB(curTime)
+	if err != nil {
+		log.Errorf("Failed to deleted expired nonces from DB for CA %s: %s", nm.ca.GetName(), err.Error())
+		return err
+	}
+	return nil
+}
+
+// Gets the specified nonce from DB and removes it from the DB
+func (nm *nonceManager) getNonceFromDB(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+	nonces := []Nonce{}
+	err := tx.Select(&nonces, tx.Rebind(SelectNonce), args...)
+	if err != nil {
+		log.Errorf("Failed to get nonce from DB: %s", err.Error())
+		return nil, errors.New("Failed to retrieve nonce from the datastore")
+	}
+	if len(nonces) == 0 {
+		return nil, errors.New("Nonce not found in the datastore")
+	}
+	result, err := tx.Exec(RemoveNonce, args...)
+	if err != nil {
+		log.Errorf("Failed to remove nonce %s from DB: %s", args[0], err.Error())
+		return nonces[0], nil
+	}
+	numRowsAffected, err := result.RowsAffected()
+	if numRowsAffected != 1 {
+		log.Errorf("Tried to remove one nonce from DB but %d were removed", numRowsAffected)
+	}
+	return nonces[0], nil
+}
+
+func (nm *nonceManager) removeExpiredNoncesFromDB(curTime time.Time) error {
+	_, err := nm.ca.DB().NamedExec(RemoveExpiredNonces, curTime)
+	if err != nil {
+		log.Errorf("Failed to remove expired nonces from DB for CA '%s': %s", nm.ca.GetName(), err.Error())
+		return errors.New("Failed to remove expired nonces from DB")
+	}
+	return nil
+}
+
+func (nm *nonceManager) insertNonceInDB(nonce *Nonce) error {
+	res, err := nm.ca.DB().NamedExec(InsertNonce, nonce)
+	if err != nil {
+		log.Errorf("Failed to add nonce to DB: %s", err.Error())
+		return errors.New("Failed to add nonce to the datastore")
+	}
+
+	numRowsAffected, err := res.RowsAffected()
+	if numRowsAffected == 0 {
+		return errors.New("Failed to add nonce to the datastore; no rows affected")
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("Expected to affect 1 entry in revocation component info table but affected %d",
+			numRowsAffected)
+	}
+	return err
+}

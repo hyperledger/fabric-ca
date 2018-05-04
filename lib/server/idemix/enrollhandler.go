@@ -49,6 +49,7 @@ type CA interface {
 	IdemixRand() *amcl.RAND
 	IssuerCredential() IssuerCredential
 	RevocationComponent() RevocationComponent
+	NonceManager() NonceManager
 	CredDBAccessor() CredDBAccessor
 }
 
@@ -93,9 +94,10 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 	}
 
 	if req.CredRequest == nil {
-		nonce := h.GenerateNonce()
-
-		// TODO: store the nonce so it can be validated later
+		nonce, err := h.CA.NonceManager().GetNonce()
+		if err != nil {
+			return nil, errors.New("Failed to generate nonce")
+		}
 
 		resp := &EnrollmentResponse{
 			Nonce: util.B64Encode(idemix.BigToBytes(nonce)),
@@ -116,7 +118,11 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 		return nil, err
 	}
 
-	// TODO: validate issuer nonce
+	nonce := fp256bn.FromBytes(req.GetIssuerNonce())
+	err = h.CA.NonceManager().CheckNonce(nonce)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Invalid nonce")
+	}
 
 	// Check the if credential request is valid
 	err = req.CredRequest.Check(ik.GetIPk())

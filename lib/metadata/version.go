@@ -72,6 +72,10 @@ var versionToLevelsMapping = []versionLevels{
 		version: "1.1.0",
 		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1},
 	},
+	{
+		version: "1.2.0",
+		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RCInfo: 1, Nonce: 1},
+	},
 }
 
 type versionLevels struct {

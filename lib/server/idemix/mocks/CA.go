@@ -105,6 +105,22 @@ func (_m *CA) IssuerCredential() idemix.IssuerCredential {
 	return r0
 }
 
+// NonceManager provides a mock function with given fields:
+func (_m *CA) NonceManager() idemix.NonceManager {
+	ret := _m.Called()
+
+	var r0 idemix.NonceManager
+	if rf, ok := ret.Get(0).(func() idemix.NonceManager); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(idemix.NonceManager)
+		}
+	}
+
+	return r0
+}
+
 // RevocationComponent provides a mock function with given fields:
 func (_m *CA) RevocationComponent() idemix.RevocationComponent {
 	ret := _m.Called()

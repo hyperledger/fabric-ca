@@ -76,9 +76,16 @@ func TestHandleIdemixEnrollForNonce(t *testing.T) {
 	req := api.IdemixEnrollmentRequestNet{}
 	req.CredRequest = nil
 	ctx.On("ReadBody", &req).Return(nil)
+
 	ca := new(mocks.CA)
 	ca.On("IdemixRand").Return(rnd)
+
+	nm := new(mocks.NonceManager)
+	nm.On("GetNonce").Return(amcl.NewBIG(), nil)
+	ca.On("NonceManager").Return(nm)
+
 	ctx.On("GetCA").Return(ca, nil)
+
 	_, err = handler.HandleIdemixEnroll()
 	assert.NoError(t, err, "Idemix enroll should return a valid nonce")
 }
@@ -101,6 +108,11 @@ func TestHandleIdemixEnrollForNonceTokenAuth(t *testing.T) {
 	ctx.On("ReadBody", &req).Return(nil)
 	ca := new(mocks.CA)
 	ca.On("IdemixRand").Return(rnd)
+
+	nm := new(mocks.NonceManager)
+	nm.On("GetNonce").Return(amcl.NewBIG(), nil)
+	ca.On("NonceManager").Return(nm)
+
 	ctx.On("GetCA").Return(ca, nil)
 	_, err = handler.HandleIdemixEnroll()
 	assert.NoError(t, err, "Idemix enroll should return a valid nonce")
@@ -180,7 +192,10 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	ca.On("RevocationComponent").Return(rc)
 
 	handler := EnrollRequestHandler{Ctx: ctx, IsBasicAuth: true, IdmxLib: idemixlib, CA: ca}
-	nonce := handler.GenerateNonce()
+	nm := new(mocks.NonceManager)
+	nonce := idemix.RandModOrder(rnd)
+	nm.On("GetNonce").Return(nonce, nil)
+	nm.On("CheckNonce", nonce).Return(nil)
 
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
@@ -211,6 +226,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 		CALabel: "", ID: "foo", Status: "good", Cred: b64CredBytes}).Return(nil)
 
 	ca.On("CredDBAccessor").Return(credAccessor, nil)
+	ca.On("NonceManager").Return(nm)
 
 	ctx.On("BasicAuthentication").Return("foo", nil)
 	f := getReadBodyFunc(t, credReq)
