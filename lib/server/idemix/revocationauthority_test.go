@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix_test
@@ -27,32 +17,36 @@ import (
 )
 
 func TestGetRCInfoFromDBError(t *testing.T) {
-	ca := new(mocks.CA)
-	ca.On("GetName").Return("")
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("")
 	rcinfos := []RevocationComponentInfo{}
 	db := new(dmocks.FabricCADB)
-	db.On("Select", &rcinfos, "SELECT * FROM revocation_component_info").
+	db.On("Select", &rcinfos, "SELECT * FROM revocation_authority_info").
 		Return(errors.New("Failed to execute select query"))
-	ca.On("DB").Return(db)
-	_, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(opts)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 }
 
 func TestGetRCInfoFromNewDBSelectError(t *testing.T) {
-	ca := new(mocks.CA)
-	ca.On("GetName").Return("")
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("")
 
 	db := new(dmocks.FabricCADB)
 	rcInfos := []RevocationComponentInfo{}
 	f := getSelectFunc(t, true, true)
 	db.On("Select", &rcInfos, SelectRCInfo).Return(f)
-	ca.On("DB").Return(db)
-	_, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(opts)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 }
 
 func TestGetRCInfoFromNewDBInsertFailure(t *testing.T) {
-	ca, db := setupForInsertTests(t)
+	issuer, db := setupForInsertTests(t)
 	rcinfo := RevocationComponentInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -62,16 +56,18 @@ func TestGetRCInfoFromNewDBInsertFailure(t *testing.T) {
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(0), nil)
 	db.On("NamedExec", InsertRCInfo, &rcinfo).Return(result, nil)
-	ca.On("DB").Return(db)
-	_, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(opts)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Contains(t, err.Error(), "Failed to insert the revocation component info record; no rows affected")
+		assert.Contains(t, err.Error(), "Failed to insert the revocation authority info record; no rows affected")
 	}
 }
 
 func TestGetRCInfoFromNewDBInsertFailure1(t *testing.T) {
-	ca, db := setupForInsertTests(t)
+	issuer, db := setupForInsertTests(t)
 	rcinfo := RevocationComponentInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -81,16 +77,18 @@ func TestGetRCInfoFromNewDBInsertFailure1(t *testing.T) {
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(2), nil)
 	db.On("NamedExec", InsertRCInfo, &rcinfo).Return(result, nil)
-	ca.On("DB").Return(db)
-	_, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(opts)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 	if err != nil {
-		assert.Contains(t, err.Error(), "Expected to affect 1 entry in revocation component info table but affected")
+		assert.Contains(t, err.Error(), "Expected to affect 1 entry in revocation authority info table but affected")
 	}
 }
 
 func TestGetRCInfoFromNewDBInsertError(t *testing.T) {
-	ca, db := setupForInsertTests(t)
+	issuer, db := setupForInsertTests(t)
 	rcinfo := RevocationComponentInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -98,9 +96,11 @@ func TestGetRCInfoFromNewDBInsertError(t *testing.T) {
 		Level:                1,
 	}
 	db.On("NamedExec", InsertRCInfo, &rcinfo).Return(nil,
-		errors.New("Inserting revocation component info into DB failed"))
-	ca.On("DB").Return(db)
-	_, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+		errors.New("Inserting revocation authority info into DB failed"))
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(opts)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 }
 
@@ -121,7 +121,7 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	_, err := rc.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to get revocation component info from database")
+	assert.Contains(t, err.Error(), "Failed to get revocation authority info from database")
 }
 
 func TestGetNewRevocationHandleNoData(t *testing.T) {
@@ -141,7 +141,7 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	_, err := rc.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "No revocation component info found in database")
+	assert.Contains(t, err.Error(), "No revocation authority info found in database")
 }
 
 func TestGetNewRevocationHandleExecError(t *testing.T) {
@@ -161,7 +161,7 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	_, err := rc.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to update revocation component info")
+	assert.Contains(t, err.Error(), "Failed to update revocation authority info")
 }
 
 func TestGetNewRevocationHandleRollbackError(t *testing.T) {
@@ -244,20 +244,20 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	assert.Equal(t, 100, int(*rh))
 }
 
-func setupForInsertTests(t *testing.T) (*mocks.CA, *dmocks.FabricCADB) {
-	ca := new(mocks.CA)
-	ca.On("GetName").Return("")
+func setupForInsertTests(t *testing.T) (*mocks.MyIssuer, *dmocks.FabricCADB) {
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("")
 
 	db := new(dmocks.FabricCADB)
 	rcInfos := []RevocationComponentInfo{}
 	f := getSelectFunc(t, false, false)
 	db.On("Select", &rcInfos, SelectRCInfo).Return(f)
-	return ca, db
+	return issuer, db
 }
 
-func getRevocationComponent(t *testing.T, db *dmocks.FabricCADB) RevocationComponent {
-	ca := new(mocks.CA)
-	ca.On("GetName").Return("")
+func getRevocationComponent(t *testing.T, db *dmocks.FabricCADB) RevocationAuthority {
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("")
 
 	f := getSelectFunc(t, true, false)
 
@@ -272,10 +272,12 @@ func getRevocationComponent(t *testing.T, db *dmocks.FabricCADB) RevocationCompo
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)
 	db.On("NamedExec", InsertRCInfo, &rcinfo).Return(result, nil)
-	ca.On("DB").Return(db)
-	rc, err := NewRevocationComponent(ca, &CfgOptions{RevocationHandlePoolSize: 100}, 1)
+	issuer.On("DB").Return(db)
+	cfg := &Config{RHPoolSize: 100}
+	issuer.On("Config").Return(cfg)
+	rc, err := NewRevocationAuthority(issuer, 1)
 	if err != nil {
-		t.Fatalf("Failed to get revocation component instance: %s", err.Error())
+		t.Fatalf("Failed to get revocation authority instance: %s", err.Error())
 	}
 	return rc
 }

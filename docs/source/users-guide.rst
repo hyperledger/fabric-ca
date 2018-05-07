@@ -1467,7 +1467,7 @@ and attribute names and values. Currently, only three attributes are supported:
 - **IsAdmin** - if the user is an admin or not
 - **EnrollmentID** - enrollment ID of the user
 
-The ``/api/v1/idemix/credential`` API endpoint accepts both OAuth basic and token authorization headers. The basic authorization header should
+The ``/api/v1/idemix/credential`` API endpoint accepts both basic and token authorization headers. The basic authorization header should
 contain User's registration ID and password. If the user already has X509 enrollment certificate, it can also be used to create a token authorization header.
 
 Note that Hyperledger Fabric will support clients/users to sign transactions with their Idemix credentials, but will only support X509 credentials

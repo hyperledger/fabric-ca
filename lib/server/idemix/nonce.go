@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix
@@ -70,28 +60,29 @@ type Clock interface {
 type nonceManager struct {
 	nonceExpiration    time.Duration
 	nonceSweepInterval time.Duration
-	ca                 CA
-	idmxLib            Lib
 	clock              Clock
+	issuer             MyIssuer
 	level              int
 }
 
 // NewNonceManager returns an instance of an object that implements NonceManager interface
-func NewNonceManager(ca CA, opts *CfgOptions, idemixLib Lib, clock Clock, level int) (NonceManager, error) {
+func NewNonceManager(issuer MyIssuer, clock Clock, level int) (NonceManager, error) {
 	var err error
 	mgr := &nonceManager{
-		ca:      ca,
-		idmxLib: idemixLib,
-		clock:   clock,
-		level:   level,
+		issuer: issuer,
+		clock:  clock,
+		level:  level,
 	}
+	opts := issuer.Config()
 	mgr.nonceExpiration, err = time.ParseDuration(opts.NonceExpiration)
 	if err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for CA '%s'", ca.GetName()))
+		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for Issuer '%s'",
+			issuer.Name()))
 	}
 	mgr.nonceSweepInterval, err = time.ParseDuration(opts.NonceSweepInterval)
 	if err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for CA '%s'", ca.GetName()))
+		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for Issuer '%s'",
+			issuer.Name()))
 	}
 	mgr.startNonceSweeper()
 	return mgr, nil
@@ -99,7 +90,8 @@ func NewNonceManager(ca CA, opts *CfgOptions, idemixLib Lib, clock Clock, level 
 
 // GetNonce returns a new nonce
 func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
-	nonce := nm.idmxLib.RandModOrder(nm.ca.IdemixRand())
+	idmixLib := nm.issuer.IdemixLib()
+	nonce := idmixLib.RandModOrder(nm.issuer.IdemixRand())
 	nonceBytes := idemix.BigToBytes(nonce)
 	err := nm.insertNonceInDB(&Nonce{
 		Val:    util.B64Encode(nonceBytes),
@@ -118,7 +110,7 @@ func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
 func (nm *nonceManager) CheckNonce(nonce *fp256bn.BIG) error {
 	nonceBytes := idemix.BigToBytes(nonce)
 	queryParam := util.B64Encode(nonceBytes)
-	nonceRec, err := doTransaction(nm.ca.DB(), nm.getNonceFromDB, queryParam)
+	nonceRec, err := doTransaction(nm.issuer.DB(), nm.getNonceFromDB, queryParam)
 	if err != nil {
 		return err
 	}
@@ -140,7 +132,7 @@ func (nm *nonceManager) startNonceSweeper() {
 	ticker := time.NewTicker(nm.nonceSweepInterval)
 	go func() {
 		for t := range ticker.C {
-			log.Debugf("Cleaning up expired nonces for CA '%s'", nm.ca.GetName())
+			log.Debugf("Cleaning up expired nonces for CA '%s'", nm.issuer.Name())
 			nm.sweep(t.UTC())
 		}
 	}()
@@ -150,7 +142,7 @@ func (nm *nonceManager) startNonceSweeper() {
 func (nm *nonceManager) sweep(curTime time.Time) error {
 	err := nm.removeExpiredNoncesFromDB(curTime)
 	if err != nil {
-		log.Errorf("Failed to deleted expired nonces from DB for CA %s: %s", nm.ca.GetName(), err.Error())
+		log.Errorf("Failed to deleted expired nonces from DB for CA %s: %s", nm.issuer.Name(), err.Error())
 		return err
 	}
 	return nil
@@ -180,16 +172,16 @@ func (nm *nonceManager) getNonceFromDB(tx dbutil.FabricCATx, args ...interface{}
 }
 
 func (nm *nonceManager) removeExpiredNoncesFromDB(curTime time.Time) error {
-	_, err := nm.ca.DB().NamedExec(RemoveExpiredNonces, curTime)
+	_, err := nm.issuer.DB().NamedExec(RemoveExpiredNonces, curTime)
 	if err != nil {
-		log.Errorf("Failed to remove expired nonces from DB for CA '%s': %s", nm.ca.GetName(), err.Error())
+		log.Errorf("Failed to remove expired nonces from DB for CA '%s': %s", nm.issuer.Name(), err.Error())
 		return errors.New("Failed to remove expired nonces from DB")
 	}
 	return nil
 }
 
 func (nm *nonceManager) insertNonceInDB(nonce *Nonce) error {
-	res, err := nm.ca.DB().NamedExec(InsertNonce, nonce)
+	res, err := nm.issuer.DB().NamedExec(InsertNonce, nonce)
 	if err != nil {
 		log.Errorf("Failed to add nonce to DB: %s", err.Error())
 		return errors.New("Failed to add nonce to the datastore")

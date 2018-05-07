@@ -318,6 +318,33 @@
                     "cert": {
                       "type": "string",
                       "description": "The enrollment certificate in base 64 encoded format."
+                    },
+                    "cainfo": {
+                      "type": "object",
+                      "properties": {
+                        "caname": {
+                          "type": "string",
+                          "description": "The name of the CA that issued the credential"
+                        },
+                        "cachain": {
+                          "type": "string",
+                          "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                        },
+                        "issuerpublickey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of the CA's Idemix public key"
+                        },
+                        "version": {
+                          "type": "string",
+                          "description": "Version of the server"
+                        }
+                      },
+                      "required": [
+                        "caname",
+                        "cachain",
+                        "issuerpublickey",
+                        "version"
+                      ]
                     }
                   }
                 },
@@ -461,7 +488,7 @@
                         "EnrollmentID"
                       ]
                     },
-                    "serverinfo": {
+                    "cainfo": {
                       "type": "object",
                       "properties": {
                         "caname": {

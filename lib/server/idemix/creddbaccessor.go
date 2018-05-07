@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix
@@ -71,6 +61,8 @@ type CredRecord struct {
 
 // CredDBAccessor is the accessor for credentials database table
 type CredDBAccessor interface {
+	// Sets reference to datastore object
+	SetDB(db dbutil.FabricCADB)
 	// InsertCredential inserts specified Idemix credential record into database
 	InsertCredential(cr CredRecord) error
 	// GetCredential returns Idemix credential associated with the specified revocation
@@ -88,7 +80,7 @@ type CredentialAccessor struct {
 }
 
 // NewCredentialAccessor returns a new CredentialAccessor.
-func NewCredentialAccessor(db dbutil.FabricCADB, level int) *CredentialAccessor {
+func NewCredentialAccessor(db dbutil.FabricCADB, level int) CredDBAccessor {
 	ac := new(CredentialAccessor)
 	ac.db = db
 	ac.level = level

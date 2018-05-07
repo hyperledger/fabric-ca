@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
@@ -22,16 +12,16 @@ import (
 	"encoding/pem"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
 	cferr "github.com/cloudflare/cfssl/errors"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -55,14 +45,6 @@ var (
 	organizationOID       = asn1.ObjectIdentifier{2, 5, 4, 10}
 	organizationalUnitOID = asn1.ObjectIdentifier{2, 5, 4, 11}
 )
-
-// The enrollment response from the server
-type enrollmentResponseNet struct {
-	// Base64 encoded PEM-encoded ECert
-	Cert string
-	// The server information
-	ServerInfo ServerInfoResponseNet
-}
 
 func newEnrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
@@ -166,7 +148,7 @@ func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error)
 		return nil, errors.WithMessage(err, "Certificate signing failure")
 	}
 	// Add server info to the response
-	resp := &enrollmentResponseNet{
+	resp := &common.EnrollmentResponseNet{
 		Cert: util.B64Encode(cert),
 	}
 	err = ca.fillCAInfo(&resp.ServerInfo)

@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix
@@ -26,14 +16,14 @@ import (
 )
 
 const (
-	// InsertRCInfo is the SQL for inserting revocation component info
-	InsertRCInfo = "INSERT into revocation_component_info(epoch, next_handle, lasthandle_in_pool, level) VALUES (:epoch, :next_handle, :lasthandle_in_pool, :level)"
-	// SelectRCInfo is the query string for getting revocation component info
-	SelectRCInfo = "SELECT * FROM revocation_component_info"
+	// InsertRCInfo is the SQL for inserting revocation authority info
+	InsertRCInfo = "INSERT into revocation_authority_info(epoch, next_handle, lasthandle_in_pool, level) VALUES (:epoch, :next_handle, :lasthandle_in_pool, :level)"
+	// SelectRCInfo is the query string for getting revocation authority info
+	SelectRCInfo = "SELECT * FROM revocation_authority_info"
 	// UpdateNextAndLastHandle is the SQL for updating next and last revocation handle
-	UpdateNextAndLastHandle = "UPDATE revocation_component_info SET next_handle = ? AND lasthandle_in_pool = ? WHERE (epoch = ?)"
+	UpdateNextAndLastHandle = "UPDATE revocation_authority_info SET next_handle = ? AND lasthandle_in_pool = ? WHERE (epoch = ?)"
 	// UpdateNextHandle s the SQL for updating next revocation handle
-	UpdateNextHandle = "UPDATE revocation_component_info SET next_handle = ? WHERE (epoch = ?)"
+	UpdateNextHandle = "UPDATE revocation_authority_info SET next_handle = ? WHERE (epoch = ?)"
 	// DefaultRevocationHandlePoolSize is the default revocation handle pool size
 	DefaultRevocationHandlePoolSize = 100
 )
@@ -43,13 +33,13 @@ const (
 // proof
 type RevocationHandle int
 
-// RevocationComponent is responsible for generating revocation handles and
+// RevocationAuthority is responsible for generating revocation handles and
 // credential revocation info (CRI)
-type RevocationComponent interface {
+type RevocationAuthority interface {
 	GetNewRevocationHandle() (*RevocationHandle, error)
 }
 
-// RevocationComponentInfo is the revocation component information record that is
+// RevocationComponentInfo is the revocation authority information record that is
 // stored in the database
 type RevocationComponentInfo struct {
 	Epoch                int `db:"epoch"`
@@ -58,36 +48,28 @@ type RevocationComponentInfo struct {
 	Level                int `db:"level"`
 }
 
-// revocationComponent implements RevocationComponent interface
-type revocationComponent struct {
-	ca   CA
-	db   dbutil.FabricCADB
-	info *RevocationComponentInfo
-	opts *CfgOptions
+// revocationAuthority implements RevocationComponent interface
+type revocationAuthority struct {
+	issuer MyIssuer
+	db     dbutil.FabricCADB
+	info   *RevocationComponentInfo
 }
 
-// CfgOptions encapsulates Idemix related the configuration options
-type CfgOptions struct {
-	RevocationHandlePoolSize int    `def:"100" help:"Specifies revocation handle pool size"`
-	NonceExpiration          string `def:"15s" help:"Duration after which a nonce expires"`
-	NonceSweepInterval       string `def:"15m" help:"Interval at which expired nonces are deleted"`
-}
-
-// NewRevocationComponent constructor for revocation component
-func NewRevocationComponent(ca CA, opts *CfgOptions, level int) (RevocationComponent, error) {
-	rc := &revocationComponent{
-		ca, ca.DB(), nil, opts,
+// NewRevocationAuthority constructor for revocation authority
+func NewRevocationAuthority(issuer MyIssuer, level int) (RevocationAuthority, error) {
+	rc := &revocationAuthority{
+		issuer, issuer.DB(), nil,
 	}
 	var err error
 	rc.info, err = rc.getRCInfoFromDB()
 	if err == nil {
-		// If epoch is 0, it means this is the first time revocation component is being
-		// initialized. Initilize revocation component info and store it in the database
+		// If epoch is 0, it means this is the first time revocation authority is being
+		// initialized. Initilize revocation authority info and store it in the database
 		if rc.info.Epoch == 0 {
 			rcInfo := RevocationComponentInfo{
 				Epoch:                1,
 				NextRevocationHandle: 1,
-				LastHandleInPool:     opts.RevocationHandlePoolSize,
+				LastHandleInPool:     issuer.Config().RHPoolSize,
 				Level:                level,
 			}
 			err = rc.addRCInfoToDB(&rcInfo)
@@ -95,13 +77,13 @@ func NewRevocationComponent(ca CA, opts *CfgOptions, level int) (RevocationCompo
 	}
 	if err != nil {
 		return nil, errors.WithMessage(err,
-			fmt.Sprintf("Failed to initialize revocation component for CA %s", ca.GetName()))
+			fmt.Sprintf("Failed to initialize revocation authority for Issuer '%s'", issuer.Name()))
 	}
 	return rc, nil
 }
 
 // GetNewRevocationHandle returns a new revocation handle
-func (rc *revocationComponent) GetNewRevocationHandle() (*RevocationHandle, error) {
+func (rc *revocationAuthority) GetNewRevocationHandle() (*RevocationHandle, error) {
 	h, err := rc.getNextRevocationHandle()
 	if err != nil {
 		return nil, err
@@ -110,7 +92,7 @@ func (rc *revocationComponent) GetNewRevocationHandle() (*RevocationHandle, erro
 	return &rh, err
 }
 
-func (rc *revocationComponent) getRCInfoFromDB() (*RevocationComponentInfo, error) {
+func (rc *revocationAuthority) getRCInfoFromDB() (*RevocationComponentInfo, error) {
 	rcinfos := []RevocationComponentInfo{}
 	err := rc.db.Select(&rcinfos, SelectRCInfo)
 	if err != nil {
@@ -124,26 +106,26 @@ func (rc *revocationComponent) getRCInfoFromDB() (*RevocationComponentInfo, erro
 	return &rcinfos[0], nil
 }
 
-func (rc *revocationComponent) addRCInfoToDB(rcInfo *RevocationComponentInfo) error {
+func (rc *revocationAuthority) addRCInfoToDB(rcInfo *RevocationComponentInfo) error {
 	res, err := rc.db.NamedExec(InsertRCInfo, rcInfo)
 	if err != nil {
-		return errors.New("Failed to insert revocation component info into database")
+		return errors.New("Failed to insert revocation authority info into database")
 	}
 
 	numRowsAffected, err := res.RowsAffected()
 	if numRowsAffected == 0 {
-		return errors.New("Failed to insert the revocation component info record; no rows affected")
+		return errors.New("Failed to insert the revocation authority info record; no rows affected")
 	}
 
 	if numRowsAffected != 1 {
-		return errors.Errorf("Expected to affect 1 entry in revocation component info table but affected %d",
+		return errors.Errorf("Expected to affect 1 entry in revocation authority info table but affected %d",
 			numRowsAffected)
 	}
 	return err
 }
 
 // getNextRevocationHandle returns next revocation handle
-func (rc *revocationComponent) getNextRevocationHandle() (int, error) {
+func (rc *revocationAuthority) getNextRevocationHandle() (int, error) {
 	result, err := doTransaction(rc.db, rc.getNextRevocationHandleTx, nil)
 	if err != nil {
 		return 0, err
@@ -153,18 +135,18 @@ func (rc *revocationComponent) getNextRevocationHandle() (int, error) {
 	return nextHandle, nil
 }
 
-func (rc *revocationComponent) getNextRevocationHandleTx(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+func (rc *revocationAuthority) getNextRevocationHandleTx(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
 	var err error
 
-	// Get the latest revocation component info from the database
+	// Get the latest revocation authority info from the database
 	rcInfos := []RevocationComponentInfo{}
 	query := SelectRCInfo
 	err = tx.Select(&rcInfos, tx.Rebind(query))
 	if err != nil {
-		return nil, errors.New("Failed to get revocation component info from database")
+		return nil, errors.New("Failed to get revocation authority info from database")
 	}
 	if len(rcInfos) == 0 {
-		return nil, errors.New("No revocation component info found in database")
+		return nil, errors.New("No revocation authority info found in database")
 	}
 	rcInfo := rcInfos[0]
 
@@ -184,7 +166,7 @@ func (rc *revocationComponent) getNextRevocationHandleTx(tx dbutil.FabricCATx, a
 	}
 	_, err = tx.Exec(tx.Rebind(inQuery), args...)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to update revocation component info")
+		return nil, errors.Wrapf(err, "Failed to update revocation authority info")
 	}
 
 	return nextHandle, nil

@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package dbutil
@@ -39,6 +29,7 @@ var (
 // FabricCADB is the interface with functions implemented by sqlx.DB
 // object that are used by Fabric CA server
 type FabricCADB interface {
+	IsInitialized() bool
 	Select(dest interface{}, query string, args ...interface{}) error
 	NamedExec(query string, arg interface{}) (sql.Result, error)
 	Rebind(query string) string
@@ -61,6 +52,8 @@ type FabricCATx interface {
 // DB is an adapter for sqlx.DB and implements FabricCADB interface
 type DB struct {
 	*sqlx.DB
+	// Indicates if database was successfully initialized
+	IsDBInitialized bool
 }
 
 // Levels contains the levels of identities, affiliations, and certificates
@@ -69,13 +62,18 @@ type Levels struct {
 	Affiliation int
 	Certificate int
 	Credential  int
-	RCInfo      int
+	RAInfo      int
 	Nonce       int
 }
 
 // BeginTx implements BeginTx method of FabricCADB interface
 func (db *DB) BeginTx() FabricCATx {
 	return db.MustBegin()
+}
+
+// IsInitialized returns true if db is intialized, else false
+func (db *DB) IsInitialized() bool {
+	return db.IsDBInitialized
 }
 
 // NewUserRegistrySQLLite3 returns a pointer to a sqlite database
@@ -105,7 +103,7 @@ func NewUserRegistrySQLLite3(datasource string) (*DB, error) {
 	db.SetMaxOpenConns(1)
 	log.Debug("Successfully opened sqlite3 DB")
 
-	return &DB{db}, nil
+	return &DB{db, false}, nil
 }
 
 func createSQLiteDBTables(datasource string) error {
@@ -114,7 +112,7 @@ func createSQLiteDBTables(datasource string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open SQLite database")
 	}
-	db := &DB{sqldb}
+	db := &DB{sqldb, false}
 	defer db.Close()
 
 	err = doTransaction(db, createAllSQLiteTables)
@@ -196,9 +194,9 @@ func createSQLiteCredentialsTable(tx *sqlx.Tx) error {
 }
 
 func createSQLiteRevocationComponentTable(tx *sqlx.Tx) error {
-	log.Debug("Creating revocation_component_info table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
-		return errors.Wrap(err, "Error creating revocation_component_info table")
+	log.Debug("Creating revocation_authority_info table if it does not exist")
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	return nil
 }
@@ -273,7 +271,7 @@ func NewUserRegistryPostgres(datasource string, clientTLSConfig *tls.ClientTLSCo
 		return nil, errors.Wrap(err, "Failed to create Postgres tables")
 	}
 
-	return &DB{db}, nil
+	return &DB{db, false}, nil
 }
 
 func createPostgresDatabase(dbName string, db *sqlx.DB) error {
@@ -308,9 +306,9 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle bytea NOT NULL, cred bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
-	log.Debug("Creating revocation_component_info table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
-		return errors.Wrap(err, "Error creating revocation_component_info table")
+	log.Debug("Creating revocation_authority_info table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	log.Debug("Creating nonces table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
@@ -375,7 +373,7 @@ func NewUserRegistryMySQL(datasource string, clientTLSConfig *tls.ClientTLSConfi
 		return nil, errors.Wrap(err, "Failed to create MySQL tables")
 	}
 
-	return &DB{db}, nil
+	return &DB{db, false}, nil
 }
 
 func createMySQLDatabase(dbName string, db *sqlx.DB) error {
@@ -412,9 +410,9 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle varbinary(128) NOT NULL, cred varbinary(4096) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
-	log.Debug("Creating revocation_component_info table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_component_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
-		return errors.Wrap(err, "Error creating revocation_component_info table")
+	log.Debug("Creating revocation_authority_info table if it does not exist")
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
+		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	log.Debug("Creating nonces table if it does not exist")
 	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
@@ -531,7 +529,7 @@ func UpdateDBLevel(db *DB, levels *Levels) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'rcinfo.level')"), levels.RCInfo)
+	_, err = db.Exec(db.Rebind("UPDATE properties SET value = ? WHERE (property = 'rcinfo.level')"), levels.RAInfo)
 	if err != nil {
 		return err
 	}
@@ -575,7 +573,7 @@ func currentDBLevels(db *DB) (*Levels, error) {
 		Affiliation: affiliationLevel,
 		Certificate: certificateLevel,
 		Credential:  credentialLevel,
-		RCInfo:      rcinfoLevel,
+		RAInfo:      rcinfoLevel,
 		Nonce:       nonceLevel,
 	}, nil
 }

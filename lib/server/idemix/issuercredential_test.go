@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix_test
@@ -41,7 +31,7 @@ func TestLoadEmptyIdemixPublicKey(t *testing.T) {
 	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
 	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
-	ic := NewCAIdemixCredential(pubkeyfile.Name(), testSecretKeyFile, idemixLib)
+	ic := NewIssuerCredential(pubkeyfile.Name(), testSecretKeyFile, idemixLib)
 	err = ic.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer public key")
 	if err != nil {
@@ -59,7 +49,7 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 		t.Fatalf("Failed to write to the file %s", pubkeyfile.Name())
 	}
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(pubkeyfile.Name(), privkeyfile.Name(), idemixLib)
+	ik := NewIssuerCredential(pubkeyfile.Name(), privkeyfile.Name(), idemixLib)
 	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer public key")
 	if err != nil {
@@ -72,7 +62,7 @@ func TestLoadNonExistentIdemixSecretKey(t *testing.T) {
 	privkeyfile, err := ioutil.TempFile(testdir, "IdemixSecretKey")
 	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, privkeyfile.Name(), idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile.Name(), idemixLib)
 	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer secret key")
 	if err != nil {
@@ -84,7 +74,7 @@ func TestLoadEmptyIdemixSecretKey(t *testing.T) {
 	testdir, err := ioutil.TempDir(".", "issuerkeyloadTest")
 	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, filepath.Join(testdir, "IdemixSecretKey"), idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, filepath.Join(testdir, "IdemixSecretKey"), idemixLib)
 	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer secret key")
 	if err != nil {
@@ -94,7 +84,7 @@ func TestLoadEmptyIdemixSecretKey(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	err := ik.Load()
 	assert.NoError(t, err, "Failed to load CA's issuer idemix credential")
 
@@ -104,7 +94,7 @@ func TestLoad(t *testing.T) {
 
 func TestStoreNilIssuerKey(t *testing.T) {
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	err := ik.Store()
 	assert.Error(t, err, "Should fail if store is called without setting the issuer key or loading the issuer key from disk")
 	if err != nil {
@@ -114,7 +104,7 @@ func TestStoreNilIssuerKey(t *testing.T) {
 
 func TestStoreNilIdemixPublicKey(t *testing.T) {
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	ik.SetIssuerKey(&idemix.IssuerKey{})
 	err := ik.Store()
 	assert.Error(t, err, "Should fail if store is called with empty issuer public key byte array")
@@ -139,7 +129,7 @@ func TestStoreInvalidPublicKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to unmarshal idemix public key bytes from %s", validPubKeyFile)
 	}
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(pubkeyfile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(pubkeyfile, testSecretKeyFile, idemixLib)
 	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer public key is being stored to non-existent directory")
@@ -167,7 +157,7 @@ func TestStoreInvalidSecretKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to unmarshal idemix public key bytes from %s", testPublicKeyFile)
 	}
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, privkeyfile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile, idemixLib)
 	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer secret key is being stored to non-existent directory")
@@ -178,7 +168,7 @@ func TestStoreInvalidSecretKeyFilePath(t *testing.T) {
 
 func TestGetIssuerKey(t *testing.T) {
 	idemixLib := new(mocks.Lib)
-	ik := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	_, err := ik.GetIssuerKey()
 	assert.Error(t, err, "GetIssuerKey should return an error if it is called without setting the issuer key or loading the issuer key from disk")
 	if err != nil {
@@ -195,7 +185,7 @@ func TestGetIssuerKey(t *testing.T) {
 func TestNewIssuerKeyGetRandError(t *testing.T) {
 	idemixLib := new(mocks.Lib)
 	idemixLib.On("GetRand").Return(nil, errors.New("Failed to generate random number"))
-	ic := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	_, err := ic.NewIssuerKey()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Error creating new issuer key")
@@ -209,7 +199,7 @@ func TestNewIssuerKeyError(t *testing.T) {
 	}
 	idemixLib.On("GetRand").Return(rnd, nil)
 	idemixLib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(nil, errors.New("Failed to create new issuer key"))
-	ic := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	_, err = ic.NewIssuerKey()
 	assert.Error(t, err)
 }
@@ -228,7 +218,7 @@ func TestNewIssuerKey(t *testing.T) {
 	}
 	idemixLib.On("GetRand").Return(rnd, nil)
 	idemixLib.On("NewIssuerKey", attrNames, rnd).Return(ik, nil)
-	ic := NewCAIdemixCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
 	_, err = ic.NewIssuerKey()
 	assert.NoError(t, err)
 }

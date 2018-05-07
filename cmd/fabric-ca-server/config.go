@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package main
@@ -129,12 +119,6 @@ ca:
   certfile:
   # Chain file
   chainfile:
-  # Name of the CA's Idemix public key (default: IssuerPublicKey). It will be stored
-  # in the home directory of the CA
-  idemixpublickeyfile:
-  # Name of the CA's Idemix secret key (default: IssuerSecretKey). It will be stored
-  # in the <CA Home>/msp/keystore directory of the CA
-  idemixsecretkeyfile:
 
 #############################################################################
 #  The gencrl REST endpoint is used to generate a CRL that contains revoked
@@ -362,6 +346,30 @@ csr:
    ca:
       expiry: 131400h
       pathlength: <<<PATHLENGTH>>>
+
+###########################################################################
+# Each CA can issue both X509 enrollment certificate as well as Idemix
+# Credential. This section specifies configuration for the issuer component
+# that is responsible for issuing Idemix credentials.
+###########################################################################
+idemix:
+  # Specifies pool size for revocation handles. A revocation handle is an unique identifier of an
+  # Idemix credential. The issuer will create a pool revocation handles of this specified size. When
+  # a credential is requested, issuer will get handle from the pool and assign it to the credential.
+  # Issuer will repopulate the pool with new handles when the last handle in the pool is used.
+  # A revocation handle and credential revocation information (CRI) are used to create non revocation proof
+  # by the prover to prove to the verifier that her credential is not revoked.
+  rhpoolsize: 100
+
+  # The Idemix credential issuance is a two step process. First step is to  get a nonce from the issuer
+  # and second step is send credential request that is constructed using the nonce to the isuser to
+  # request a credential. This configuration property specifies expiration for the nonces. By default is
+  # nonces expire after 15 seconds. The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration).
+  nonceexpiration: 15s
+
+  # Specifies interval at which expired nonces are removed from datastore. Default value is 15 minutes.
+  #  The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration)
+  noncesweepinterval: 15m
 
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section is used to select which

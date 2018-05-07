@@ -13,7 +13,9 @@ export PATH=$PATH:$GOPATH/bin
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
 
-PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/fabric-ca-client$|/integration'`
+# Skipping /lib/common package as there is only file that contains request/response structs used by both client and server. It needs to be removed
+# when code is added to this paackage
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/integration|/fabric-ca-client$|/lib/common$'`
 
 gocov test -timeout 15m $PKGS | gocov-xml > coverage.xml
 

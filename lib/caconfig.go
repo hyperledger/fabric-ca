@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
@@ -104,13 +94,13 @@ type CAConfig struct {
 	Client       *ClientConfig
 	Intermediate IntermediateCA
 	CRL          CRLConfig
+	Idemix       idemix.Config
 }
 
 // CfgOptions is a CA configuration that allows for setting different options
 type CfgOptions struct {
 	Identities   identitiesOptions
 	Affiliations affiliationsOptions
-	Idemix       idemix.CfgOptions
 }
 
 // identitiesOptions are options that are related to identities
@@ -125,12 +115,10 @@ type affiliationsOptions struct {
 
 // CAInfo is the CA information on a fabric-ca-server
 type CAInfo struct {
-	Name                string `opt:"n" help:"Certificate Authority name"`
-	Keyfile             string `help:"PEM-encoded CA key file"`
-	Certfile            string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
-	Chainfile           string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
-	IdemixPublicKeyfile string `def:"IssuerPublicKey" help:"Name of the file that contains marshalled bytes of CA's Idemix public key"`
-	IdemixSecretKeyfile string `def:"IssuerSecretKey" help:"Name of the file that contains CA's Idemix secret key"`
+	Name      string `opt:"n" help:"Certificate Authority name"`
+	Keyfile   string `help:"PEM-encoded CA key file"`
+	Certfile  string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
+	Chainfile string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
 }
 
 // CAConfigDB is the database part of the server's config

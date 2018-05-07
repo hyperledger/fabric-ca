@@ -28,9 +28,8 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
-	proto "github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric-amcl/amcl"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
@@ -49,12 +48,6 @@ const (
 	// CAChainParentFirstEnvVar is the name of the environment variable that needs to be set
 	// for server to return CA chain in parent-first order
 	CAChainParentFirstEnvVar = "CA_CHAIN_PARENT_FIRST"
-	// DefaultIssuerPublicKeyFile is the default name of the file that contains issuer public key
-	DefaultIssuerPublicKeyFile = "IssuerPublicKey"
-	// DefaultIssuerSecretKeyFile is the default name of the file that contains issuer secret key
-	DefaultIssuerSecretKeyFile = "IssuerSecretKey"
-	// KeystoreDir is the keystore directory where all keys are stored. It is relative to the server home directory.
-	KeystoreDir = "msp/keystore"
 )
 
 var (
@@ -82,18 +75,12 @@ type CA struct {
 	csp bccsp.BCCSP
 	// The certificate DB accessor
 	certDBAccessor *CertDBAccessor
-	// The Idemix credential DB accessor
-	credDBAccessor idemix.CredDBAccessor
 	// The user registry
 	registry spi.UserRegistry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
-	// idemix issuer credential for the CA
-	issuerCred idemix.IssuerCredential
-	// A random number used in generation of Idemix nonces and credentials
-	idemixRand *amcl.RAND
-	rc         idemix.RevocationComponent
-	nm         idemix.NonceManager
+	// Idemix issuer
+	issuer idemix.Issuer
 	// The options to use in verifying a signature in token-based authentication
 	verifyOptions *x509.VerifyOptions
 	// The attribute manager
@@ -104,8 +91,6 @@ type CA struct {
 	keyTree *tcert.KeyTree
 	// The server hosting this CA
 	server *Server
-	// Indicates if database was successfully initialized
-	dbInitialized bool
 	// DB levels
 	levels *dbutil.Levels
 	// CA mutex
@@ -142,35 +127,37 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 	if err != nil {
 		return err
 	}
-
+	ca.issuer = idemix.NewIssuer(ca.Config.CA.Name, ca.HomeDir,
+		&ca.Config.Idemix, idemix.NewLib())
+	err = ca.issuer.Init(renew, ca.db, ca.levels)
+	if err != nil {
+		return errors.WithMessage(err, fmt.Sprintf("Failed to initialize Idemix issuer for CA '%s'", err.Error()))
+	}
 	return nil
 }
 
 // Init initializes an instance of a CA
 func (ca *CA) init(renew bool) (err error) {
 	log.Debugf("Init CA with home %s and config %+v", ca.HomeDir, *ca.Config)
-	// Initialize the config, setting defaults, etc
-	ca.dbInitialized = false
 
+	// Initialize the config, setting defaults, etc
 	err = ca.initConfig()
 	if err != nil {
 		return err
 	}
+
 	// Initialize the crypto layer (BCCSP) for this CA
 	ca.csp, err = util.InitBCCSP(&ca.Config.CSP, "", ca.HomeDir)
 	if err != nil {
 		return err
 	}
+
 	// Initialize key materials
 	err = ca.initKeyMaterial(renew)
 	if err != nil {
 		return err
 	}
-	// Initialize idemix key materials
-	err = ca.initIdemixKeyMaterial(renew)
-	if err != nil {
-		return err
-	}
+
 	// Initialize the database
 	err = ca.initDB()
 	if err != nil {
@@ -280,49 +267,6 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 	return nil
 }
 
-func (ca *CA) initIdemixKeyMaterial(renew bool) error {
-	log.Debug("Initialize Idemix key material")
-
-	rng, err := idemix.NewLib().GetRand()
-	if err != nil {
-		return errors.Wrapf(err, "Error generating random number")
-	}
-	ca.idemixRand = rng
-
-	idemixPubKey := ca.Config.CA.IdemixPublicKeyfile
-	idemixSecretKey := ca.Config.CA.IdemixSecretKeyfile
-	issuerCred := idemix.NewCAIdemixCredential(idemixPubKey, idemixSecretKey, idemix.NewLib())
-
-	if !renew {
-		pubKeyFileExists := util.FileExists(idemixPubKey)
-		privKeyFileExists := util.FileExists(idemixSecretKey)
-		// If they both exist, the CA was already initialized, load the keys from the disk
-		if pubKeyFileExists && privKeyFileExists {
-			log.Info("The Idemix issuer public and secret key files already exist")
-			log.Infof("   secret key file location: %s", idemixSecretKey)
-			log.Infof("   public key file location: %s", idemixPubKey)
-			err := issuerCred.Load()
-			if err != nil {
-				return err
-			}
-			ca.issuerCred = issuerCred
-			return nil
-		}
-	}
-	ik, err := issuerCred.NewIssuerKey()
-	if err != nil {
-		return err
-	}
-	log.Infof("The Idemix public and secret keys were generated for CA %s", ca.Config.CA.Name)
-	issuerCred.SetIssuerKey(ik)
-	err = issuerCred.Store()
-	if err != nil {
-		return err
-	}
-	ca.issuerCred = issuerCred
-	return nil
-}
-
 // Get the CA certificate for this CA
 func (ca *CA) getCACert() (cert []byte, err error) {
 	if ca.Config.Intermediate.ParentServer.URL != "" {
@@ -368,7 +312,7 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		cert = ecert.Cert()
 		// Store the chain file as the concatenation of the parent's chain plus the cert.
 		chainPath := ca.Config.CA.Chainfile
-		chain, err := ca.concatChain(resp.ServerInfo.CAChain, cert)
+		chain, err := ca.concatChain(resp.CAInfo.CAChain, cert)
 		if err != nil {
 			return nil, err
 		}
@@ -494,16 +438,6 @@ func (ca *CA) initConfig() (err error) {
 	if cfg.CA.Chainfile == "" {
 		cfg.CA.Chainfile = "ca-chain.pem"
 	}
-	if cfg.CA.IdemixPublicKeyfile == "" {
-		cfg.CA.IdemixPublicKeyfile = DefaultIssuerPublicKeyFile
-	} else {
-		cfg.CA.IdemixPublicKeyfile = filepath.Base(cfg.CA.IdemixPublicKeyfile)
-	}
-	if cfg.CA.IdemixSecretKeyfile == "" {
-		cfg.CA.IdemixSecretKeyfile = filepath.Join(KeystoreDir, DefaultIssuerSecretKeyFile)
-	} else {
-		cfg.CA.IdemixSecretKeyfile = filepath.Join(KeystoreDir, filepath.Base(cfg.CA.IdemixSecretKeyfile))
-	}
 	if cfg.CSR.CA == nil {
 		cfg.CSR.CA = &cfcsr.CAConfig{}
 	}
@@ -540,15 +474,7 @@ func (ca *CA) initConfig() (err error) {
 		log.Level = log.LevelDebug
 	}
 	ca.normalizeStringSlices()
-	if ca.Config.Cfg.Idemix.RevocationHandlePoolSize == 0 {
-		ca.Config.Cfg.Idemix.RevocationHandlePoolSize = idemix.DefaultRevocationHandlePoolSize
-	}
-	if ca.Config.Cfg.Idemix.NonceExpiration == "" {
-		ca.Config.Cfg.Idemix.NonceExpiration = idemix.DefaultNonceExpiration
-	}
-	if ca.Config.Cfg.Idemix.NonceSweepInterval == "" {
-		ca.Config.Cfg.Idemix.NonceSweepInterval = idemix.DefaultNonceSweepInterval
-	}
+
 	return nil
 }
 
@@ -625,7 +551,7 @@ func (ca *CA) initDB() error {
 	log.Debug("Initializing DB")
 
 	// If DB is initialized, don't need to proceed further
-	if ca.dbInitialized {
+	if ca.db != nil && ca.db.IsInitialized() {
 		return nil
 	}
 
@@ -633,7 +559,7 @@ func (ca *CA) initDB() error {
 	defer ca.mutex.Unlock()
 
 	// After obtaining a lock, check again to see if DB got initialized by another process
-	if ca.dbInitialized {
+	if ca.db != nil && ca.db.IsInitialized() {
 		return nil
 	}
 
@@ -690,16 +616,6 @@ func (ca *CA) initDB() error {
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db, ca.levels.Certificate)
 
-	ca.credDBAccessor = idemix.NewCredentialAccessor(ca.db, ca.levels.Credential)
-	ca.rc, err = idemix.NewRevocationComponent(ca, &ca.Config.Cfg.Idemix, ca.levels.RCInfo)
-	if err != nil {
-		return err
-	}
-	ca.nm, err = idemix.NewNonceManager(ca, &ca.Config.Cfg.Idemix, idemix.NewLib(), &wallClock{}, ca.levels.Nonce)
-	if err != nil {
-		return err
-	}
-
 	// If DB initialization fails and we need to reinitialize DB, need to make sure to set the DB accessor for the signer
 	if ca.enrollSigner != nil {
 		ca.enrollSigner.SetDBAccessor(ca.certDBAccessor)
@@ -744,7 +660,7 @@ func (ca *CA) initDB() error {
 		return errors.Errorf("Failed to initialize %s database at %s ", db.Type, ds)
 	}
 
-	ca.dbInitialized = true
+	ca.db.IsDBInitialized = true
 	log.Infof("Initialized %s database at %s", db.Type, ds)
 
 	return nil
@@ -931,43 +847,6 @@ func (ca *CA) addAffiliation(path, parentPath string) error {
 	return ca.registry.InsertAffiliation(path, parentPath, ca.levels.Affiliation)
 }
 
-// GetName returns name of this CA
-func (ca *CA) GetName() string {
-	return ca.Config.CA.Name
-}
-
-// IdemixRand returns random number used by this CA in generation of nonces
-// and Idemix credentials
-func (ca *CA) IdemixRand() *amcl.RAND {
-	return ca.idemixRand
-}
-
-// IssuerCredential returns IssuerCredential of this CA
-func (ca *CA) IssuerCredential() idemix.IssuerCredential {
-	return ca.issuerCred
-}
-
-// RevocationComponent returns revocation component of this CA
-func (ca *CA) RevocationComponent() idemix.RevocationComponent {
-	return ca.rc
-}
-
-// NonceManager returns nonce manager of this CA
-func (ca *CA) NonceManager() idemix.NonceManager {
-	return ca.nm
-}
-
-// DB returns the FabricCADB object (which represents database handle
-// to the CA database) associated with this CA
-func (ca *CA) DB() dbutil.FabricCADB {
-	return ca.db
-}
-
-// CredDBAccessor returns the Idemix credential DB accessor for CA
-func (ca *CA) CredDBAccessor() idemix.CredDBAccessor {
-	return ca.credDBAccessor
-}
-
 // CertDBAccessor returns the certificate DB accessor for CA
 func (ca *CA) CertDBAccessor() *CertDBAccessor {
 	return ca.certDBAccessor
@@ -1002,8 +881,6 @@ func (ca *CA) makeFileNamesAbsolute() error {
 		&ca.Config.CA.Certfile,
 		&ca.Config.CA.Keyfile,
 		&ca.Config.CA.Chainfile,
-		&ca.Config.CA.IdemixPublicKeyfile,
-		&ca.Config.CA.IdemixSecretKeyfile,
 	}
 	err := util.MakeFileNamesAbsolute(fields, ca.HomeDir)
 	if err != nil {
@@ -1093,7 +970,7 @@ func (ca *CA) getUserAffiliation(username string) (string, error) {
 }
 
 // fillCAInfo fills the CA info structure appropriately
-func (ca *CA) fillCAInfo(info *ServerInfoResponseNet) error {
+func (ca *CA) fillCAInfo(info *common.CAInfoResponseNet) error {
 	caChain, err := ca.getCAChain()
 	if err != nil {
 		return err
@@ -1101,11 +978,7 @@ func (ca *CA) fillCAInfo(info *ServerInfoResponseNet) error {
 	info.CAName = ca.Config.CA.Name
 	info.CAChain = util.B64Encode(caChain)
 
-	ik, err := ca.issuerCred.GetIssuerKey()
-	if err != nil {
-		return err
-	}
-	ipkBytes, err := proto.Marshal(ik.GetIPk())
+	ipkBytes, err := ca.issuer.IssuerPublicKey()
 	if err != nil {
 		return err
 	}

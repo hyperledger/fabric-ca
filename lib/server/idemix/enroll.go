@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package idemix
@@ -23,35 +13,13 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
-	amcl "github.com/hyperledger/fabric-amcl/amcl"
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
-
-// ServerRequestCtx is the server request context that Idemix enroll expects
-type ServerRequestCtx interface {
-	BasicAuthentication() (string, error)
-	TokenAuthentication() (string, error)
-	GetCA() (CA, error)
-	GetCaller() (spi.User, error)
-	ReadBody(body interface{}) error
-}
-
-// CA is the CA that Idemix enroll expects
-type CA interface {
-	GetName() string
-	DB() dbutil.FabricCADB
-	IdemixRand() *amcl.RAND
-	IssuerCredential() IssuerCredential
-	RevocationComponent() RevocationComponent
-	NonceManager() NonceManager
-	CredDBAccessor() CredDBAccessor
-}
 
 // EnrollmentResponse is the idemix enrollment response from the server
 type EnrollmentResponse struct {
@@ -67,15 +35,14 @@ type EnrollmentResponse struct {
 
 // EnrollRequestHandler is the handler for Idemix enroll request
 type EnrollRequestHandler struct {
-	IsBasicAuth  bool
 	Ctx          ServerRequestCtx
 	EnrollmentID string
-	CA           CA
+	Issuer       MyIssuer
 	IdmxLib      Lib
 }
 
-// HandleIdemixEnroll handles processing for Idemix enroll
-func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error) {
+// HandleRequest handles processing for Idemix enroll
+func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	err := h.Authenticate()
 	if err != nil {
 		return nil, err
@@ -87,14 +54,8 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 		return nil, err
 	}
 
-	// Get the targeted CA
-	h.CA, err = h.Ctx.GetCA()
-	if err != nil {
-		return nil, err
-	}
-
 	if req.CredRequest == nil {
-		nonce, err := h.CA.NonceManager().GetNonce()
+		nonce, err := h.Issuer.NonceManager().GetNonce()
 		if err != nil {
 			return nil, errors.New("Failed to generate nonce")
 		}
@@ -105,11 +66,11 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 		return resp, nil
 	}
 
-	ik, err := h.CA.IssuerCredential().GetIssuerKey()
+	ik, err := h.Issuer.IssuerCredential().GetIssuerKey()
 	if err != nil {
-		log.Errorf("Failed to get Idemix issuer key for the CA %s: %s", h.CA.GetName(), err.Error())
+		log.Errorf("Failed to get Idemix issuer key for the CA %s: %s", h.Issuer.Name(), err.Error())
 		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to get Idemix issuer key for the CA: %s",
-			h.CA.GetName()))
+			h.Issuer.Name()))
 	}
 
 	caller, err := h.Ctx.GetCaller()
@@ -119,7 +80,7 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 	}
 
 	nonce := fp256bn.FromBytes(req.GetIssuerNonce())
-	err = h.CA.NonceManager().CheckNonce(nonce)
+	err = h.Issuer.NonceManager().CheckNonce(nonce)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Invalid nonce")
 	}
@@ -132,7 +93,7 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 	}
 
 	// Get revocation handle for the credential
-	rh, err := h.CA.RevocationComponent().GetNewRevocationHandle()
+	rh, err := h.Issuer.RevocationAuthority().GetNewRevocationHandle()
 	if err != nil {
 		return nil, err
 	}
@@ -143,10 +104,10 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 		return nil, err
 	}
 
-	cred, err := h.IdmxLib.NewCredential(ik, req.CredRequest, attrs, h.CA.IdemixRand())
+	cred, err := h.IdmxLib.NewCredential(ik, req.CredRequest, attrs, h.Issuer.IdemixRand())
 	if err != nil {
-		log.Errorf("CA '%s' failed to create new Idemix credential for identity '%s': %s",
-			h.CA.GetName(), h.EnrollmentID, err.Error())
+		log.Errorf("Issuer '%s' failed to create new Idemix credential for identity '%s': %s",
+			h.Issuer.Name(), h.EnrollmentID, err.Error())
 		return nil, errors.New("Failed to create new Idemix credential")
 	}
 	credBytes, err := proto.Marshal(cred)
@@ -156,8 +117,8 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 	b64CredBytes := util.B64Encode(credBytes)
 
 	// Store the credential in the database
-	err = h.CA.CredDBAccessor().InsertCredential(CredRecord{
-		CALabel:          h.CA.GetName(),
+	err = h.Issuer.CredDBAccessor().InsertCredential(CredRecord{
+		CALabel:          h.Issuer.Name(),
 		ID:               caller.GetName(),
 		Status:           "good",
 		Cred:             b64CredBytes,
@@ -175,7 +136,7 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 		Attrs:      attrMap,
 	}
 
-	if h.IsBasicAuth {
+	if h.Ctx.IsBasicAuth() {
 		err = caller.LoginComplete()
 		if err != nil {
 			return nil, err
@@ -189,7 +150,7 @@ func (h *EnrollRequestHandler) HandleIdemixEnroll() (*EnrollmentResponse, error)
 // Authenticate authenticates the Idemix enroll request
 func (h *EnrollRequestHandler) Authenticate() error {
 	var err error
-	if h.IsBasicAuth {
+	if h.Ctx.IsBasicAuth() {
 		h.EnrollmentID, err = h.Ctx.BasicAuthentication()
 		if err != nil {
 			return err
@@ -205,7 +166,7 @@ func (h *EnrollRequestHandler) Authenticate() error {
 
 // GenerateNonce generates a nonce for an Idemix enroll request
 func (h *EnrollRequestHandler) GenerateNonce() *fp256bn.BIG {
-	return h.IdmxLib.RandModOrder(h.CA.IdemixRand())
+	return h.IdmxLib.RandModOrder(h.Issuer.IdemixRand())
 }
 
 // GetAttributeValues returns attribute values of the caller of Idemix enroll request
