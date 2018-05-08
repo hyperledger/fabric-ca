@@ -291,6 +291,12 @@
 			"revisionTime": "2017-11-05T17:23:20Z"
 		},
 		{
+			"checksumSHA1": "LChm0/YOab/n0lxcDu/KBhO6Xyw=",
+			"path": "github.com/grantae/certinfo",
+			"revision": "59d56a35515b3ab2326749924739cfe58facc991",
+			"revisionTime": "2017-04-12T19:41:11Z"
+		},
+		{
 			"checksumSHA1": "8OPDk+bKyRGJoKcS4QNw9F7dpE8=",
 			"path": "github.com/hashicorp/hcl",
 			"revision": "99ce73d4fe576449f7a689d4fc2b2ad09a86bdaa",
