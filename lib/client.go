@@ -523,11 +523,13 @@ func (c *Client) StreamResponse(req *http.Request, stream string, cb func(*json.
 	defer resp.Body.Close()
 
 	dec := json.NewDecoder(resp.Body)
-	err = streamer.StreamJSONArray(dec, stream, cb)
+	results, err := streamer.StreamJSONArray(dec, stream, cb)
 	if err != nil {
 		return err
 	}
-
+	if !results {
+		fmt.Println("No results returned")
+	}
 	return nil
 }
 

@@ -39,7 +39,7 @@ func newCAInfoEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle is the handler for the GET or POST /info request
-func cainfoHandler(ctx *serverRequestContext) (interface{}, error) {
+func cainfoHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	ca, err := ctx.GetCA()
 	if err != nil {
 		return nil, err

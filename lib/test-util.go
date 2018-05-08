@@ -212,21 +212,24 @@ func GenerateECDSATestCert() error {
 	return nil
 }
 
-// StopAndCleanupServer stops the server and removes the server's home directory
-func StopAndCleanupServer(t *testing.T, srv *Server) {
-	if srv != nil {
-		defer os.RemoveAll(srv.HomeDir)
-		err := srv.Stop()
-		if err != nil {
-			t.Errorf("Server stop failed: %s", err)
-		}
-	}
-}
+// Currently not being used anywhere, commenting it out for right now
+// it was just bringing test coverage.
 
-// GetTestClient returns a Fabric CA client
-func GetTestClient(port int, home string) *Client {
-	return &Client{
-		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
-		HomeDir: home,
-	}
-}
+// StopAndCleanupServer stops the server and removes the server's home directory
+// func StopAndCleanupServer(t *testing.T, srv *Server) {
+// 	if srv != nil {
+// 		defer os.RemoveAll(srv.HomeDir)
+// 		err := srv.Stop()
+// 		if err != nil {
+// 			t.Errorf("Server stop failed: %s", err)
+// 		}
+// 	}
+// }
+
+// // GetTestClient returns a Fabric CA client
+// func GetTestClient(port int, home string) *Client {
+// 	return &Client{
+// 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+// 		HomeDir: home,
+// 	}
+// }

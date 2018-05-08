@@ -40,7 +40,7 @@ func newRevokeEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle an revoke request
-func revokeHandler(ctx *serverRequestContext) (interface{}, error) {
+func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Parse revoke request body
 	var req api.RevocationRequestNet
 	err := ctx.ReadBody(&req)

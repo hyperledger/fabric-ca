@@ -22,6 +22,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -107,7 +108,7 @@ func (c *certificateCommand) runListCertificate(cmd *cobra.Command, args []strin
 	req := &c.list
 	req.CAName = c.command.GetClientCfg().CAName
 
-	return id.GetCertificates(req, nil)
+	return id.GetCertificates(req, lib.CertificateDecoder)
 }
 
 func (c *certificateCommand) getCertListReq() error {

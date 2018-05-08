@@ -31,7 +31,7 @@ type serverEndpoint struct {
 	// The HTTP status code for a successful response
 	successRC int
 	// Handler is the handler function for this endpoint
-	Handler func(ctx *serverRequestContext) (interface{}, error)
+	Handler func(ctx *serverRequestContextImpl) (interface{}, error)
 	// Server which hosts this endpoint
 	Server *Server
 }

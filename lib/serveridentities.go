@@ -49,7 +49,7 @@ func newIdentitiesStreamingEndpoint(s *Server) *serverEndpoint {
 	}
 }
 
-func identitiesStreamingHandler(ctx *serverRequestContext) (interface{}, error) {
+func identitiesStreamingHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Authenticate
 	callerID, err := ctx.TokenAuthentication()
 	log.Debugf("Received identity update request from %s", callerID)
@@ -72,7 +72,7 @@ func identitiesStreamingHandler(ctx *serverRequestContext) (interface{}, error) 
 	return resp, nil
 }
 
-func identitiesHandler(ctx *serverRequestContext) (interface{}, error) {
+func identitiesHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	var err error
 	// Authenticate
 	callerID, err := ctx.TokenAuthentication()
@@ -98,7 +98,7 @@ func identitiesHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // processStreamingRequest will process the configuration request
-func processStreamingRequest(ctx *serverRequestContext, caname string, caller spi.User) (interface{}, error) {
+func processStreamingRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
 	log.Debug("Processing identity configuration update request")
 
 	method := ctx.req.Method
@@ -113,7 +113,7 @@ func processStreamingRequest(ctx *serverRequestContext, caname string, caller sp
 }
 
 // processRequest will process the configuration request
-func processRequest(ctx *serverRequestContext, caname string, caller spi.User) (interface{}, error) {
+func processRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
 	log.Debug("Processing identity configuration update request")
 
 	method := ctx.req.Method
@@ -129,7 +129,7 @@ func processRequest(ctx *serverRequestContext, caname string, caller spi.User) (
 	}
 }
 
-func processGetAllIDsRequest(ctx *serverRequestContext, caller spi.User, caname string) error {
+func processGetAllIDsRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) error {
 	log.Debug("Processing GET all IDs request")
 
 	err := getIDs(ctx, caller, caname)
@@ -139,7 +139,7 @@ func processGetAllIDsRequest(ctx *serverRequestContext, caller spi.User, caname 
 	return nil
 }
 
-func processGetIDRequest(ctx *serverRequestContext, caller spi.User, caname string) (interface{}, error) {
+func processGetIDRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (interface{}, error) {
 	log.Debug("Processing GET ID request")
 
 	id, err := ctx.GetVar("id")
@@ -155,7 +155,7 @@ func processGetIDRequest(ctx *serverRequestContext, caller spi.User, caname stri
 	return resp, nil
 }
 
-func getIDs(ctx *serverRequestContext, caller spi.User, caname string) error {
+func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error {
 	log.Debug("Requesting all identities that the caller is authorized view")
 	var err error
 
@@ -238,7 +238,7 @@ func getIDs(ctx *serverRequestContext, caller spi.User, caname string) error {
 	return nil
 }
 
-func getID(ctx *serverRequestContext, caller spi.User, id, caname string) (*api.GetIDResponse, error) {
+func getID(ctx *serverRequestContextImpl, caller spi.User, id, caname string) (*api.GetIDResponse, error) {
 	log.Debugf("Requesting identity '%s'", id)
 
 	registry := ctx.ca.registry
@@ -269,7 +269,7 @@ func getID(ctx *serverRequestContext, caller spi.User, id, caname string) (*api.
 	return resp, nil
 }
 
-func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
+func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing DELETE request")
 
 	if !ctx.ca.Config.Cfg.Identities.AllowRemove {
@@ -321,7 +321,7 @@ func processDeleteRequest(ctx *serverRequestContext, caname string) (*api.Identi
 	return resp, nil
 }
 
-func processPostRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
+func processPostRequest(ctx *serverRequestContextImpl, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing POST request")
 
 	ctx.endpoint.successRC = 201
@@ -370,7 +370,7 @@ func processPostRequest(ctx *serverRequestContext, caname string) (*api.Identity
 	return resp, nil
 }
 
-func processPutRequest(ctx *serverRequestContext, caname string) (*api.IdentityResponse, error) {
+func processPutRequest(ctx *serverRequestContextImpl, caname string) (*api.IdentityResponse, error) {
 	log.Debug("Processing PUT request")
 
 	modifyID, err := ctx.GetVar("id")
