@@ -1,5 +1,6 @@
+=======================
 Fabric-CA Client's CLI
-======================
+=======================
 
 ::
 
@@ -50,3 +51,172 @@ Fabric-CA Client's CLI
       -u, --url string                     URL of fabric-ca-server (default "http://localhost:7054")
     
     Use "fabric-ca-client [command] --help" for more information about a command.
+
+Identity Command
+==================
+
+::
+
+    Manage identities
+    
+    Usage:
+      fabric-ca-client identity [command]
+    
+    Available Commands:
+      add         Add identity
+      list        List identities
+      modify      Modify identity
+      remove      Remove identity
+    
+    -----------------------------
+    
+    Add an identity
+    
+    Usage:
+      fabric-ca-client identity add <id> [flags]
+    
+    Examples:
+    fabric-ca-client identity add user1 --type peer
+    
+    Flags:
+          --affiliation string   The identity's affiliation
+          --attrs stringSlice    A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+          --json string          JSON string for adding a new identity
+          --maxenrollments int   The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
+          --secret string        The enrollment secret for the identity being added
+          --type string          Type of identity being registered (e.g. 'peer, app, user') (default "user")
+    
+    -----------------------------
+    
+    List identities visible to caller
+    
+    Usage:
+      fabric-ca-client identity list [flags]
+    
+    Flags:
+          --id string   Get identity information from the fabric-ca server
+    
+    -----------------------------
+    
+    Modify an existing identity
+    
+    Usage:
+      fabric-ca-client identity modify <id> [flags]
+    
+    Examples:
+    fabric-ca-client identity modify user1 --type peer
+    
+    Flags:
+          --affiliation string   The identity's affiliation
+          --attrs stringSlice    A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+          --json string          JSON string for modifying an existing identity
+          --maxenrollments int   The maximum number of times the secret can be reused to enroll
+          --secret string        The enrollment secret for the identity
+          --type string          Type of identity being registered (e.g. 'peer, app, user')
+    
+    -----------------------------
+    
+    Remove an identity
+    
+    Usage:
+      fabric-ca-client identity remove <id> [flags]
+    
+    Examples:
+    fabric-ca-client identity remove user1
+    
+    Flags:
+          --force   Forces removing your own identity
+    
+
+Affiliation Command
+=====================
+
+::
+
+    Manage affiliations
+    
+    Usage:
+      fabric-ca-client affiliation [command]
+    
+    Available Commands:
+      add         Add affiliation
+      list        List affiliations
+      modify      Modify affiliation
+      remove      Remove affiliation
+    
+    -----------------------------
+    
+    Add affiliation
+    
+    Usage:
+      fabric-ca-client affiliation add <affiliation> [flags]
+    
+    Flags:
+          --force   Creates parent affiliations if they do not exist
+    
+    -----------------------------
+    
+    List affiliations visible to caller
+    
+    Usage:
+      fabric-ca-client affiliation list [flags]
+    
+    Flags:
+          --affiliation string   Get affiliation information from the fabric-ca server
+    
+    -----------------------------
+    
+    Modify existing affiliation
+    
+    Usage:
+      fabric-ca-client affiliation modify <affiliation> [flags]
+    
+    Flags:
+          --force         Forces identities using old affiliation to use new affiliation
+          --name string   Rename the affiliation
+    
+    -----------------------------
+    
+    Remove affiliation
+    
+    Usage:
+      fabric-ca-client affiliation remove <affiliation> [flags]
+    
+    Flags:
+          --force   Forces removal of any child affiliations and any identities associated with removed affiliations
+    
+
+Certificate Command
+=====================
+
+::
+
+    Manage certificates
+    
+    Usage:
+      fabric-ca-client certificate [command]
+    
+    Available Commands:
+      list        List certificates
+    
+    -----------------------------
+    
+    List all certificates which are visible to the caller and match the flags
+    
+    Usage:
+      fabric-ca-client certificate list [flags]
+    
+    Examples:
+    fabric-ca-client certificate list --id admin --expiration 2018-01-01::2018-01-30
+    fabric-ca-client certificate list --id admin --expiration 2018-01-01T01:30:00z::2018-01-30T11:30:00z
+    fabric-ca-client certificate list --id admin --expiration -30d::-15d
+    
+    Flags:
+          --aki string          Get certificates for this AKI
+          --expiration string   Get certificates which expire between the UTC timestamp (RFC3339 format) or duration specified (e.g. <begin_time>::<end_time>)
+          --id string           Get certificates for this enrollment ID
+          --notexpired          Don't return expired certificates
+          --notrevoked          Don't return revoked certificates
+          --revocation string   Get certificates that were revoked between the UTC timestamp (RFC3339 format) or duration specified (e.g. <begin_time>::<end_time>)
+          --serial string       Get certificates for this serial number
+    
