@@ -28,12 +28,12 @@ type EnrollmentResponseNet struct {
 
 // IdemixEnrollmentResponseNet is the response to the /idemix/credential request
 type IdemixEnrollmentResponseNet struct {
-	// Base64 encoding of idemix Credential
+	// Base64 encoding of proto bytes of idemix.Credential
 	Credential string
 	// Attribute name-value pairs
 	Attrs map[string]string
-	// Base64 encoding of Credential Revocation list
-	//CRL string
+	// Base64 encoding of proto bytes of idemix.CredentialRevocationInformation
+	CRI string
 	// Base64 encoding of the issuer nonce
 	Nonce string
 	// The CA information

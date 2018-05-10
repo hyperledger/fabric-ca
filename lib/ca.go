@@ -127,6 +127,7 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 	if err != nil {
 		return err
 	}
+	log.Debug("Initializing Idemix issuer...")
 	ca.issuer = idemix.NewIssuer(ca.Config.CA.Name, ca.HomeDir,
 		&ca.Config.Idemix, idemix.NewLib())
 	err = ca.issuer.Init(renew, ca.db, ca.levels)

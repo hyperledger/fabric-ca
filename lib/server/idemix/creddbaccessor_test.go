@@ -75,7 +75,7 @@ func TestInsertCredentialExecError(t *testing.T) {
 	accessor := NewCredentialAccessor(db, 1)
 	err := accessor.InsertCredential(credRecord)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to insert credential into databas")
+	assert.Contains(t, err.Error(), "Failed to insert credential into datastore")
 }
 
 func TestGetCredentialsByIDNilDB(t *testing.T) {
@@ -141,6 +141,36 @@ func TestGetCredential(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGetRevokedCredentialsNilDB(t *testing.T) {
+	var db *dmocks.FabricCADB
+	accessor := NewCredentialAccessor(db, 1)
+	_, err := accessor.GetRevokedCredentials()
+	assert.Error(t, err)
+	assert.Equal(t, "Database is not set", err.Error())
+}
+
+func TestGetRevokedCredentialsSelectError(t *testing.T) {
+	db := new(dmocks.FabricCADB)
+	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
+	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
+	cr := []CredRecord{}
+	db.On("Select", &cr, q).Return(errors.New("Failed to get revoked credentials"))
+	accessor := NewCredentialAccessor(db, 1)
+	_, err := accessor.GetRevokedCredentials()
+	assert.Error(t, err)
+}
+
+func TestGetRevokedCredentials(t *testing.T) {
+	db := new(dmocks.FabricCADB)
+	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
+	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
+	cr := []CredRecord{}
+	db.On("Select", &cr, q).Return(nil)
+	accessor := NewCredentialAccessor(db, 1)
+	_, err := accessor.GetRevokedCredentials()
+	assert.NoError(t, err)
+}
+
 func getCredSelectFunc(t *testing.T, isError bool) func(interface{}, string, ...interface{}) error {
 	return func(dest interface{}, query string, args ...interface{}) error {
 		crs := dest.(*[]CredRecord)
@@ -161,7 +191,7 @@ func getCredRecord() CredRecord {
 		Level:            1,
 		Reason:           0,
 		Status:           "good",
-		RevocationHandle: 1,
+		RevocationHandle: "1",
 		Cred:             "blah",
 	}
 }

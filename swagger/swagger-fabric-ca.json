@@ -460,7 +460,7 @@
                   "properties": {
                     "credential": {
                       "type": "string",
-                      "description": "The credential in base64 encoding of the bytes of the Credential proto buffer"
+                      "description": "The credential in base64 encoding of the bytes of the idemix.Credential proto buffer"
                     },
                     "nonce": {
                       "type": "string",
@@ -487,6 +487,10 @@
                         "IsAdmin",
                         "EnrollmentID"
                       ]
+                    },
+                    "cri": {
+                      "type": "string",
+                      "description": "The cri base64 encoding of the bytes of the idemix.CredentialRevocationInformation proto buffer"
                     },
                     "cainfo": {
                       "type": "object",

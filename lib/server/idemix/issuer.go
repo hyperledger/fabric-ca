@@ -101,10 +101,12 @@ func (i *issuer) Init(renew bool, db dbutil.FabricCADB, levels *dbutil.Levels) e
 		return err
 	}
 	i.credDBAccessor = NewCredentialAccessor(i.db, levels.Credential)
+	log.Debugf("Intializing revocation authority for issuer %s", i.Name())
 	i.rc, err = NewRevocationAuthority(i, levels.RAInfo)
 	if err != nil {
 		return err
 	}
+	log.Debugf("Intializing nonce manager for issuer %s", i.Name())
 	i.nm, err = NewNonceManager(i, &wallClock{}, levels.Nonce)
 	if err != nil {
 		return err

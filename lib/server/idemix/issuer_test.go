@@ -7,6 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -167,49 +170,73 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	}
 
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationComponent(t, db)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(nil)
 	tx.On("Rollback").Return(nil)
-	tx.On("Rebind", SelectRCInfo).Return(SelectRCInfo)
+	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
 	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
-	rcInfos := []RevocationComponentInfo{}
+	rcInfos := []RevocationAuthorityInfo{}
 	f1 := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRCInfo).Return(f1)
+	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
 	db.On("IsInitialized").Return(true)
-	rh, err := ra.GetNewRevocationHandle()
-	assert.NoError(t, err)
-	assert.Equal(t, 1, int(*rh))
 
 	lib := new(mocks.Lib)
-	rand, err := idemix.GetRand()
+	rnd, err := idemix.GetRand()
 	if err != nil {
 		t.Fatalf("Failed to get random number: %s", err.Error())
 	}
-	ik, err := idemix.NewIssuerKey(GetAttributeNames(), rand)
+	ik, err := idemix.NewIssuerKey(GetAttributeNames(), rnd)
 	if err != nil {
 		t.Fatalf("Failed to generate issuer key: %s", err.Error())
 	}
 	if getranderror {
 		lib.On("GetRand").Return(nil, errors.New("Failed to generate random number"))
 	} else {
-		lib.On("GetRand").Return(rand, nil)
+		lib.On("GetRand").Return(rnd, nil)
 	}
 
 	if newIssuerKeyerror {
-		lib.On("NewIssuerKey", GetAttributeNames(), rand).Return(nil, errors.New("Failed to generate new issuer key"))
+		lib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(nil, errors.New("Failed to generate new issuer key"))
 	} else {
-		lib.On("NewIssuerKey", GetAttributeNames(), rand).Return(ik, nil)
+		lib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(ik, nil)
 	}
 
+	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate key: %s", err.Error())
+	}
+	pkStr, pubStr, err := EncodeKeys(key, &key.PublicKey)
+	if err != nil {
+		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
+	}
+	lib.On("GenerateLongTermRevocationKey").Return(key, nil)
+
 	cfg := &Config{
+		RHPoolSize:         100,
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
 	issuer := NewIssuer("ca1", testDir, cfg, lib)
+
+	f := getSelectFunc(t, nil, true, false, false)
+
+	rcInfosForSelect := []RevocationAuthorityInfo{}
+	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(f)
+	rcinfo := RevocationAuthorityInfo{
+		Epoch:                1,
+		NextRevocationHandle: 1,
+		LastHandleInPool:     100,
+		Level:                1,
+		PrivateKey:           pkStr,
+		PublicKey:            pubStr,
+	}
+	result := new(dmocks.Result)
+	result.On("RowsAffected").Return(int64(1), nil)
+	db.On("NamedExec", InsertRAInfo, &rcinfo).Return(result, nil)
+
 	return db, issuer
 }

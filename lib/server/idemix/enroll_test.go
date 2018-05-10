@@ -6,10 +6,13 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"testing"
 
 	proto "github.com/golang/protobuf/proto"
-	amcl "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
@@ -67,7 +70,7 @@ func TestHandleIdemixEnrollForNonce(t *testing.T) {
 	issuer.On("IdemixRand").Return(rnd)
 
 	nm := new(mocks.NonceManager)
-	nm.On("GetNonce").Return(amcl.NewBIG(), nil)
+	nm.On("GetNonce").Return(fp256bn.NewBIG(), nil)
 	issuer.On("NonceManager").Return(nm)
 	handler := EnrollRequestHandler{Ctx: ctx, Issuer: issuer, IdmxLib: idemixlib}
 	_, err = handler.HandleRequest()
@@ -95,7 +98,7 @@ func TestHandleIdemixEnrollForNonceTokenAuth(t *testing.T) {
 	issuer.On("IdemixRand").Return(rnd)
 
 	nm := new(mocks.NonceManager)
-	nm.On("GetNonce").Return(amcl.NewBIG(), nil)
+	nm.On("GetNonce").Return(fp256bn.NewBIG(), nil)
 	issuer.On("NonceManager").Return(nm)
 
 	ctx.On("GetIssuer").Return(issuer, nil)
@@ -203,9 +206,9 @@ func TestHandleIdemixEnrollCheckNonceError(t *testing.T) {
 		t.Fatalf("Failed to load issuer credential")
 	}
 
-	rh := RevocationHandle(1)
+	rh := fp256bn.NewBIGint(1)
 	ra := new(mocks.RevocationAuthority)
-	ra.On("GetNewRevocationHandle").Return(&rh, nil)
+	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
@@ -259,9 +262,9 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := RevocationHandle(1)
+	rh := fp256bn.NewBIGint(1)
 	ra := new(mocks.RevocationAuthority)
-	ra.On("GetNewRevocationHandle").Return(&rh, nil)
+	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
@@ -287,7 +290,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, &rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -324,9 +327,9 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := RevocationHandle(1)
+	rh := fp256bn.NewBIGint(1)
 	ra := new(mocks.RevocationAuthority)
-	ra.On("GetNewRevocationHandle").Return(&rh, nil)
+	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
@@ -351,7 +354,7 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, &rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -366,8 +369,10 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 		t.Fatalf("Failed to base64 encode credential")
 	}
 	credAccessor := new(mocks.CredDBAccessor)
-	credAccessor.On("InsertCredential", CredRecord{RevocationHandle: 1,
-		CALabel: "", ID: "foo", Status: "good", Cred: b64CredBytes}).Return(errors.New("Failed to add credential to DB"))
+	credAccessor.On("InsertCredential",
+		CredRecord{RevocationHandle: util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(1))),
+			CALabel: "", ID: "foo", Status: "good",
+			Cred: b64CredBytes}).Return(errors.New("Failed to add credential to DB"))
 
 	issuer.On("CredDBAccessor").Return(credAccessor, nil)
 	issuer.On("NonceManager").Return(nm)
@@ -402,9 +407,9 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := RevocationHandle(1)
+	rh := fp256bn.NewBIGint(1)
 	ra := new(mocks.RevocationAuthority)
-	ra.On("GetNewRevocationHandle").Return(&rh, nil)
+	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
@@ -429,7 +434,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, &rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -444,11 +449,18 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 		t.Fatalf("Failed to base64 encode credential")
 	}
 	credAccessor := new(mocks.CredDBAccessor)
-	credAccessor.On("InsertCredential", CredRecord{RevocationHandle: 1,
-		CALabel: "", ID: "foo", Status: "good", Cred: b64CredBytes}).Return(nil)
+	credAccessor.On("InsertCredential", CredRecord{
+		RevocationHandle: util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(1))),
+		CALabel:          "", ID: "foo", Status: "good", Cred: b64CredBytes}).Return(nil)
 
 	issuer.On("CredDBAccessor").Return(credAccessor, nil)
 	issuer.On("NonceManager").Return(nm)
+
+	cri, err := createCRI(t)
+	if err != nil {
+		t.Fatalf("Failed to create CRI: %s", err.Error())
+	}
+	ra.On("CreateCRI").Return(cri, nil)
 
 	ctx.On("BasicAuthentication").Return("foo", nil)
 	f := getReadBodyFunc(t, credReq)
@@ -474,13 +486,25 @@ func TestGetAttributeValues(t *testing.T) {
 	caller.On("GetAttribute", "type").Return(&api.Attribute{Name: "type", Value: "client"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	rh := RevocationHandle(1)
+	rh := fp256bn.NewBIGint(1)
 
 	attrNames := GetAttributeNames()
 	attrNames = append(attrNames, "type")
 	ipk := idemix.IssuerPublicKey{AttributeNames: attrNames}
-	_, _, err := handler.GetAttributeValues(caller, &ipk, &rh)
+	_, _, err := handler.GetAttributeValues(caller, &ipk, rh)
 	assert.NoError(t, err)
+}
+
+func createCRI(t *testing.T) (*idemix.CredentialRevocationInformation, error) {
+	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	rnd, err := idemix.GetRand()
+	if err != nil {
+		return nil, err
+	}
+	return idemix.CreateCRI(key, []*fp256bn.BIG{}, 1, idemix.ALG_NO_REVOCATION, rnd)
 }
 
 func getB64EncodedCred(cred *idemix.Credential) (string, error) {
@@ -503,7 +527,7 @@ func getReadBodyFunc(t *testing.T, credReq *idemix.CredRequest) func(body interf
 	}
 }
 
-func newIdemixCredentialRequest(t *testing.T, nonce *amcl.BIG) (*idemix.CredRequest, *amcl.BIG, error) {
+func newIdemixCredentialRequest(t *testing.T, nonce *fp256bn.BIG) (*idemix.CredRequest, *fp256bn.BIG, error) {
 	idmxlib := new(mocks.Lib)
 	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idmxlib)
 	err := issuerCred.Load()
