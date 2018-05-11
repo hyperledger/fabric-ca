@@ -774,3 +774,13 @@ func TestValidateAndReturnAbsConf(t *testing.T) {
 		t.Error("Failed to get correct path for configuration file")
 	}
 }
+
+func TestListContains(t *testing.T) {
+	list := "peer, client,orderer, *"
+	found := ListContains(list, "*")
+	assert.Equal(t, found, true)
+
+	list = "peer, client,orderer"
+	found = ListContains(list, "*")
+	assert.Equal(t, found, false)
+}

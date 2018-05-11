@@ -197,7 +197,7 @@ func TestSRVRootServer(t *testing.T) {
 		Secret: "adminpw",
 	})
 	if err != nil {
-		t.Fatalf("Failed to enroll admin/adminpw: %s", err)
+		t.Fatalf("Failed to enroll admin2/admin2pw: %s", err)
 	}
 	admin = eresp.Identity
 	// test registration permissions wrt roles and affiliation

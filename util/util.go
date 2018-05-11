@@ -825,3 +825,15 @@ func ErrorContains(t *testing.T, err error, contains, msg string, args ...interf
 func GetSliceFromList(split string, delim string) []string {
 	return strings.Split(strings.Replace(split, " ", "", -1), delim)
 }
+
+// ListContains looks through a comma separated list to see if a string exists
+func ListContains(list, find string) bool {
+	items := strings.Split(list, ",")
+	for _, item := range items {
+		item = strings.TrimPrefix(item, " ")
+		if item == find {
+			return true
+		}
+	}
+	return false
+}

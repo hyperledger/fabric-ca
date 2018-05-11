@@ -839,6 +839,114 @@ func TestDynamicWithMultCA(t *testing.T) {
 
 }
 
+func TestBootstrapUserAddingRoles(t *testing.T) {
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+	os.RemoveAll("../testdata/msp")
+	defer os.RemoveAll("../testdata/msp")
+
+	var err error
+
+	srv := TestGetRootServer(t)
+	err = srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	client := getTestClient(7075)
+	resp, err := client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+
+	admin := resp.Identity
+
+	// Bootstrap user with '*' for hf.Registrar.Roles should be able to register any type
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser",
+		Type: "newType",
+	})
+	assert.NoError(t, err, "Bootstrap user with '*' for hf.Registrar.Roles should be able to register any type")
+
+	// Bootstrap user with '*' for hf.Registrar.Roles should be able to register any value for hf.Registrar.Roles
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser2",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer,client,user,orderer,newType",
+			},
+		},
+	})
+	assert.NoError(t, err, "Bootstrap user with '*' for hf.Registrar.Roles should be able to register any value for hf.Registrar.Roles")
+
+	// Bootstrap user should be able to register any value for hf.Registrar.Roles, but not be able to specify '*' for
+	// hf.Registrar.DelegateRoles if hf.Registrar.Roles is not a '*'
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser2",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer,client,user,orderer,newType",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.DelegateRoles",
+				Value: "*",
+			},
+		},
+	})
+	assert.Error(t, err, "Bootstrap user should be able to register any value for hf.Registrar.Roles, but not be able to specify '*' for hf.Registrar.DelegateRoles if hf.Registrar.Roles is not a '*'")
+
+	// Bootstrap should fail to register hf.Registrar.DelegateRoles without giving hf.Registrar.Roles attribute to the identity being registered
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser3",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.DelegateRoles",
+				Value: "peer,client,user,orderer,newType",
+			},
+		},
+	})
+	assert.Error(t, err, "Should fail to register hf.Registrar.DelegateRoles without having hf.Registrar.Roles")
+
+	// Bootstrap should be able to register '*' for hf.Registrar.Roles and provide any value for hf.Registrar.DelegateRoles
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser3",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "*",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.DelegateRoles",
+				Value: "peer,client,user,orderer,newType",
+			},
+		},
+	})
+	assert.NoError(t, err, "Bootstrap should be able to register star for hf.Registrar.Roles and provide any value for hf.Registrar.DelegateRoles")
+
+	// Bootstrap user should be able to register '*' for hf.Registrar.Roles and hf.Registrar.DelegateRoles
+	_, err = admin.AddIdentity(&api.AddIdentityRequest{
+		ID:   "testuser4",
+		Type: "client",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "*",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.DelegateRoles",
+				Value: "*",
+			},
+		},
+	})
+	assert.NoError(t, err, "Bootstrap user should be able to register '*' for hf.Registrar.Roles and hf.Registrar.DelegateRoles")
+}
+
 func cleanMultiCADir(t *testing.T) {
 	var err error
 	caFolder := "../testdata/ca"
