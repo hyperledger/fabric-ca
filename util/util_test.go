@@ -60,34 +60,44 @@ func TestECCreateToken(t *testing.T) {
 	}
 	body := []byte("request byte array")
 
-	ECtoken, err := CreateToken(bccsp, cert, privKey, body)
+	ECtoken, err := CreateToken(bccsp, cert, privKey, "GET", "/enroll", body)
 	if err != nil {
 		t.Fatalf("CreatToken failed: %s", err)
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, body)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body)
 	if err != nil {
 		t.Fatalf("VerifyToken failed: %s", err)
 	}
 
-	_, err = VerifyToken(nil, ECtoken, body)
+	_, err = VerifyToken(nil, ECtoken, "GET", "/enroll", body)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as no instance of csp is passed")
 	}
 
-	_, err = VerifyToken(bccsp, "", body)
+	_, err = VerifyToken(bccsp, "", "GET", "/enroll", body)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as no EC Token is passed")
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, nil)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", nil)
 	if err == nil {
-		t.Fatal("VerifyToken should have failed as no EC Token is passed")
+		t.Fatal("VerifyToken should have failed as no body is passed")
+	}
+
+	_, err = VerifyToken(bccsp, ECtoken, "POST", "/enroll", nil)
+	if err == nil {
+		t.Fatal("VerifyToken should have failed as method was tampered")
+	}
+
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/affiliations", nil)
+	if err == nil {
+		t.Fatal("VerifyToken should have failed as path was tampered")
 	}
 
 	verifiedByte := []byte("TEST")
 	body = append(body, verifiedByte[0])
-	_, err = VerifyToken(bccsp, ECtoken, body)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as body was tampered")
 	}
@@ -96,7 +106,7 @@ func TestECCreateToken(t *testing.T) {
 	if skierror != nil {
 		t.Fatalf("SKI File Read failed with error : %s", skierror)
 	}
-	ECtoken, err = CreateToken(bccsp, ski, privKey, body)
+	ECtoken, err = CreateToken(bccsp, ski, privKey, "GET", "/enroll", body)
 	if (err == nil) || (ECtoken != "") {
 		t.Fatal("CreatToken should have failed as certificate passed is not correct")
 	}
@@ -180,7 +190,7 @@ func TestCreateTokenDiffKey(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
 	privKey, _ := ImportBCCSPKeyFromPEM(getPath("rsa-key.pem"), bccsp, true)
 	body := []byte("request byte array")
-	_, err := CreateToken(bccsp, cert, privKey, body)
+	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", body)
 	if err == nil {
 		t.Fatalf("TestCreateTokenDiffKey passed but should have failed")
 	}
@@ -207,7 +217,7 @@ func TestEmptyToken(t *testing.T) {
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
-	_, err := VerifyToken(csp, "", body)
+	_, err := VerifyToken(csp, "", "POST", "/enroll", body)
 	if err == nil {
 		t.Fatalf("TestEmptyToken passed but should have failed")
 	}
@@ -218,7 +228,7 @@ func TestEmptyCert(t *testing.T) {
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
-	_, err := CreateToken(csp, cert, nil, body)
+	_, err := CreateToken(csp, cert, nil, "POST", "/enroll", body)
 	if err == nil {
 		t.Fatalf("TestEmptyCert passed but should have failed")
 	}
@@ -228,7 +238,7 @@ func TestEmptyKey(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
 	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
 	body := []byte("request byte array")
-	_, err := CreateToken(bccsp, []byte(""), privKey, body)
+	_, err := CreateToken(bccsp, []byte(""), privKey, "POST", "/enroll", body)
 	if err == nil {
 		t.Fatalf("TestEmptyKey passed but should have failed")
 	}
@@ -238,7 +248,7 @@ func TestEmptyBody(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
 	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
 	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
-	_, err := CreateToken(bccsp, cert, privKey, []byte(""))
+	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", []byte(""))
 	if err != nil {
 		t.Fatalf("CreateToken failed: %s", err)
 	}
