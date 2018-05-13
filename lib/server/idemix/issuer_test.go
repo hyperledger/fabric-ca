@@ -192,16 +192,16 @@ func TestVerifyTokenError(t *testing.T) {
 	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
-	_, err = issuer.VerifyToken("idemix.1.foo.blah", []byte{})
+	_, err = issuer.VerifyToken("idemix.1.foo.blah", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail as issuer is not initialized")
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 
-	_, err = issuer.VerifyToken("idemix.1.foo", []byte{})
+	_, err = issuer.VerifyToken("idemix.1.foo", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the auth header does not have four parts separated by '.'")
 
-	_, err = issuer.VerifyToken("idemix.2.foo.bar", []byte{})
+	_, err = issuer.VerifyToken("idemix.2.foo.bar", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the auth header does not have correct version")
 
 	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
@@ -209,7 +209,7 @@ func TestVerifyTokenError(t *testing.T) {
 	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	db.On("Select", &credRecords, sqlstr, "foo").Return(errors.New("db error getting creds for user"))
 
-	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if there is error looking up enrollment id in the database")
 }
 
@@ -245,7 +245,7 @@ func TestVerifyTokenNoCreds(t *testing.T) {
 	f := getCredsSelectFunc(t, &credRecords, false)
 	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
 
-	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the enrollment id does not have creds")
 }
 
@@ -281,7 +281,7 @@ func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
 	f := getCredsSelectFunc(t, &credRecords, true)
 	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
 
-	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the signature is not in base64 format")
 	assert.NotEqual(t, err.Error(), "errer")
 }
@@ -319,14 +319,14 @@ func TestVerifyTokenBadSignature(t *testing.T) {
 	db.On("Select", &credRecords, sqlstr, "admin").Return(f)
 
 	sig := util.B64Encode([]byte("hello"))
-	_, err = issuer.VerifyToken("idemix.1.admin."+sig, []byte{})
+	_, err = issuer.VerifyToken("idemix.1.admin."+sig, "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the signature is not valid")
 
 	digest, err := util.GetDefaultBCCSP().Hash([]byte(sig), &bccsp.SHAOpts{})
 	if err != nil {
 		t.Fatalf("Failed to get hash of the message: %s", err.Error())
 	}
-	_, err = issuer.VerifyToken("idemix.1.admin.CkQKIAoanxNH9nO5ivQy94e+DH+SiwkkBhYeNbtyQhM1HD7FEiBbBcMVcCW9HoJe5KWMtyvO6a4UtB4xo2x/SV7xvxcVvBJECiBugYjF0AZ8lWvaeKCXtEbPvawQye7RK0m5SpQzEwcu/RIgioEuVacQR5DroKwgAZi3ALClpCLJFjlRwVv7w2zJcQQaRAogeAU3ZnfcA60kGIm6gHKGTRrI3O9sbkpdHt/UIF+Tz5sSIHGfTP5B7Ocb43q3sewpuqIjDyvFEzIeBpummJD4MPB5IiAewOhliKfwXta7pSCIMlfKqmuJbhAwhJl7vJdhfEW05iogGY6MfvsdO+HvQdSmlIexEBgl51KsFCO6MrAZbms/hLAyIHbqzC8f7sliJ6Hzn65JZKUyHXiAnOM3iydZ7gntoYXxOiClzG32BL3M4MyQGHz6SP8Aozxh3u0dATr0uxOOI6p94EIgO90ealPZ51ZXP+JsAWwLePpyX+lgegF0Gp002uFyv0tKIFRSBfhnRqm7Dk1VbG1hSsl7AJU8nzzYZJZKHRFrhdvGUiCWUu3nvjr5TEFtF5eOMp5XTPXmUNTq8k3SLckY1o35mlIgOeJtkxDc7NtKAiF+cz+cIsv1MIQ3qGXj0nwoMjnHvMJSIALGJWjFKVhK9B9P8BOkO03iMwzNJJdSeA8MIRGyk5WCWiCGix0AHQA29jHVOCaCrBZUVlqBRLa5Kzpftk0jp3LKXmJECiDheCgd36mEjsr1D4Sm+cbtE3XKAdRI2dLq5bFQZqN4/RIgNbxez4+fxVsRuGu8ooFkfem2C5/+1z3QDzyu8fu3fyVqID34eII73Km/SviYxAoHZ91HXIHXhGwid4DFO+xuGI7ycogBCiD+DDNQtMlsIChWD1d8KJE6zhxTmhK/hDzSJha2icCe+xIgTqZgV3OKwFTbWuHGN9gTuSTdeOKH0DWJ0mntNKN+aisaIHAgRufFQqOzdncNdRJOPlHvyyR1jWFYSOkJtIG+3Cf/IiAFVOO804jCkELupkkpfrKfi0y+gIIamLPgEoERSq0Em3pgkd4c0QZIUDeyRVBgwDj7aTk8J+xzdGZSCgIt8RpuKoxmfuDV2SlFfw/fVZqfPH02+jYeyqxbf7FD8vo5dstEpLHy86Yno6zr1bXLDLe34r2XIIH6KrYFI3gYAsQhzzd/gAEBigEA", digest)
+	_, err = issuer.VerifyToken("idemix.1.admin.CkQKIAoanxNH9nO5ivQy94e+DH+SiwkkBhYeNbtyQhM1HD7FEiBbBcMVcCW9HoJe5KWMtyvO6a4UtB4xo2x/SV7xvxcVvBJECiBugYjF0AZ8lWvaeKCXtEbPvawQye7RK0m5SpQzEwcu/RIgioEuVacQR5DroKwgAZi3ALClpCLJFjlRwVv7w2zJcQQaRAogeAU3ZnfcA60kGIm6gHKGTRrI3O9sbkpdHt/UIF+Tz5sSIHGfTP5B7Ocb43q3sewpuqIjDyvFEzIeBpummJD4MPB5IiAewOhliKfwXta7pSCIMlfKqmuJbhAwhJl7vJdhfEW05iogGY6MfvsdO+HvQdSmlIexEBgl51KsFCO6MrAZbms/hLAyIHbqzC8f7sliJ6Hzn65JZKUyHXiAnOM3iydZ7gntoYXxOiClzG32BL3M4MyQGHz6SP8Aozxh3u0dATr0uxOOI6p94EIgO90ealPZ51ZXP+JsAWwLePpyX+lgegF0Gp002uFyv0tKIFRSBfhnRqm7Dk1VbG1hSsl7AJU8nzzYZJZKHRFrhdvGUiCWUu3nvjr5TEFtF5eOMp5XTPXmUNTq8k3SLckY1o35mlIgOeJtkxDc7NtKAiF+cz+cIsv1MIQ3qGXj0nwoMjnHvMJSIALGJWjFKVhK9B9P8BOkO03iMwzNJJdSeA8MIRGyk5WCWiCGix0AHQA29jHVOCaCrBZUVlqBRLa5Kzpftk0jp3LKXmJECiDheCgd36mEjsr1D4Sm+cbtE3XKAdRI2dLq5bFQZqN4/RIgNbxez4+fxVsRuGu8ooFkfem2C5/+1z3QDzyu8fu3fyVqID34eII73Km/SviYxAoHZ91HXIHXhGwid4DFO+xuGI7ycogBCiD+DDNQtMlsIChWD1d8KJE6zhxTmhK/hDzSJha2icCe+xIgTqZgV3OKwFTbWuHGN9gTuSTdeOKH0DWJ0mntNKN+aisaIHAgRufFQqOzdncNdRJOPlHvyyR1jWFYSOkJtIG+3Cf/IiAFVOO804jCkELupkkpfrKfi0y+gIIamLPgEoERSq0Em3pgkd4c0QZIUDeyRVBgwDj7aTk8J+xzdGZSCgIt8RpuKoxmfuDV2SlFfw/fVZqfPH02+jYeyqxbf7FD8vo5dstEpLHy86Yno6zr1bXLDLe34r2XIIH6KrYFI3gYAsQhzzd/gAEBigEA", "", "", digest)
 	assert.Error(t, err, "VerifyToken should fail signature is valid but verification fails")
 }
 

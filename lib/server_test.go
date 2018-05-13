@@ -871,7 +871,7 @@ func addTokenAuthHeader(req *http.Request, t *testing.T) {
 		t.Fatalf("Failed importing key %s", err)
 	}
 	emptyByte := make([]byte, 0)
-	token, err := util.CreateToken(CSP, cert, key, emptyByte)
+	token, err := util.CreateToken(CSP, cert, key, req.Method, req.URL.RequestURI(), emptyByte)
 	if err != nil {
 		t.Fatalf("Failed to add token authorization header: %s", err)
 	}
