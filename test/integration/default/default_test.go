@@ -1,33 +1,32 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package defserver
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/cmd/fabric-ca-client/command"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/cloudflare/cfssl/config"
@@ -46,9 +45,12 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	var err error
+
 	metadata.Version = "1.1.0"
 
-	defaultServer, err := getDefaultServer()
+	os.RemoveAll(defaultServerHomeDir)
+	defaultServer, err = getDefaultServer()
 	if err != nil {
 		log.Errorf("Failed to get instance of server: %s", err)
 		os.Exit(1)
@@ -244,6 +246,26 @@ func positiveTimeTestCases(t *testing.T, admin *lib.Identity) {
 	assert.NoError(t, err, "Failed to parse date/time")
 }
 
+func TestRevokeWithColons(t *testing.T) {
+	var err error
+
+	err = testInsertCertificate(&certdb.CertificateRecord{
+		Serial: "11aa22bb",
+		AKI:    "33cc44dd",
+	}, "testingRevoke", defaultServer)
+	util.FatalError(t, err, "Failed to insert certificate with serial/AKI")
+
+	// Enroll a user that will be used for subsequent revoke commands
+	err = command.RunMain([]string{cmdName, "enroll", "-u", defaultServerEnrollURL, "-d"})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	err = command.RunMain([]string{cmdName, "register", "-u", defaultServerEnrollURL, "--id.name", "testingRevoke", "-d"})
+	util.FatalError(t, err, "Failed to enroll user")
+
+	err = command.RunMain([]string{cmdName, "revoke", "-s", "11:AA:22:bb", "-a", "33:Cc:44:DD", "-d"})
+	assert.NoError(t, err, "Failed to revoke certificate, when serial number and AKI contained colons")
+}
+
 func getDefaultServer() (*lib.Server, error) {
 	affiliations := map[string]interface{}{
 		"hyperledger": map[string]interface{}{
@@ -305,4 +327,60 @@ func getDefaultServer() (*lib.Server, error) {
 		return nil, err
 	}
 	return srv, nil
+}
+
+func testInsertCertificate(req *certdb.CertificateRecord, id string, srv *lib.Server) error {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return errors.Errorf("Failed to generate private key: %s", err)
+	}
+
+	serial := new(big.Int)
+	serial.SetString(req.Serial, 10) //base 10
+	template := x509.Certificate{
+		Subject: pkix.Name{
+			CommonName: id,
+		},
+		SerialNumber:   serial,
+		AuthorityKeyId: []byte(req.AKI),
+		KeyUsage:       x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
+	if err != nil {
+		log.Fatalf("Failed to create certificate: %s", err)
+	}
+
+	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	var record = new(lib.CertRecord)
+	record.ID = id
+	record.Serial = req.Serial
+	record.AKI = req.AKI
+	record.CALabel = req.CALabel
+	record.Status = req.Status
+	record.Reason = req.Reason
+	record.Expiry = req.Expiry.UTC()
+	record.RevokedAt = req.RevokedAt.UTC()
+	record.PEM = string(cert)
+
+	db := srv.CA.GetDB()
+	res, err := db.NamedExec(`INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level)
+	VALUES (:id, :serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem, :level);`, record)
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to insert record into database")
+	}
+
+	numRowsAffected, err := res.RowsAffected()
+
+	if numRowsAffected == 0 {
+		return errors.New("Failed to insert the certificate record; no rows affected")
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("Expected to affect 1 entry in certificate database but affected %d",
+			numRowsAffected)
+	}
+
+	return err
 }
