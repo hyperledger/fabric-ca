@@ -40,6 +40,8 @@ const (
 type RevocationAuthority interface {
 	GetNewRevocationHandle() (*fp256bn.BIG, error)
 	CreateCRI() (*idemix.CredentialRevocationInformation, error)
+	Epoch() (int, error)
+	PublicKey() *ecdsa.PublicKey
 }
 
 // RevocationAuthorityInfo is the revocation authority information record that is
@@ -148,8 +150,20 @@ func (ra *revocationAuthority) GetNewRevocationHandle() (*fp256bn.BIG, error) {
 	return rh, err
 }
 
+func (ra *revocationAuthority) Epoch() (int, error) {
+	info, err := ra.getRAInfoFromDB()
+	if err != nil {
+		return 0, errors.WithMessage(err, "Revocation authority failed to get latest epoch")
+	}
+	return info.Epoch, nil
+}
+
+func (ra *revocationAuthority) PublicKey() *ecdsa.PublicKey {
+	return &ra.key.PublicKey
+}
+
 func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo, revokedCreds []CredRecord) []*fp256bn.BIG {
-	log.Debugf("RA '%s' Getting revoked revocation handles for epoch %d", ra.issuer.Name(), info.Epoch)
+	log.Debugf("RA '%s' is getting revoked revocation handles for epoch %d", ra.issuer.Name(), info.Epoch)
 	isRevokedHandle := func(rh *fp256bn.BIG) bool {
 		for i := 0; i <= len(revokedCreds)-1; i++ {
 			rrhBytes, err := util.B64Decode(revokedCreds[i].RevocationHandle)

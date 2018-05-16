@@ -26,6 +26,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/server"
+	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
@@ -142,6 +143,13 @@ func (ctx *serverRequestContextImpl) TokenAuthentication() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if idemix.IsToken(authHdr) {
+		return ctx.ca.issuer.VerifyToken(authHdr, body)
+	}
+	return ctx.verifyX509Token(ca, authHdr, body)
+}
+
+func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr string, body []byte) (string, error) {
 	// Verify the token; the signature is over the header and body
 	cert, err2 := util.VerifyToken(ca.csp, authHdr, body)
 	if err2 != nil {
@@ -154,6 +162,7 @@ func (ctx *serverRequestContextImpl) TokenAuthentication() (string, error) {
 	}
 	id := util.GetEnrollmentIDFromX509Certificate(cert)
 	log.Debugf("Checking for revocation/expiration of certificate owned by '%s'", id)
+
 	// VerifyCertificate ensures that the certificate passed in hasn't
 	// expired and checks the CRL for the server.
 	expired, checked := revoke.VerifyCertificate(cert)

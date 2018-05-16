@@ -7,17 +7,23 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl"
+	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -27,6 +33,7 @@ type Issuer interface {
 	IssuerPublicKey() ([]byte, error)
 	IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, error)
 	GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error)
+	VerifyToken(authHdr string, body []byte) (string, error)
 }
 
 // MyIssuer provides functions for accessing issuer components
@@ -57,6 +64,7 @@ type issuer struct {
 	cfg       *Config
 	idemixLib Lib
 	db        dbutil.FabricCADB
+	csp       bccsp.BCCSP
 	// The Idemix credential DB accessor
 	credDBAccessor CredDBAccessor
 	// idemix issuer credential for the CA
@@ -70,8 +78,8 @@ type issuer struct {
 }
 
 // NewIssuer returns an object that implements Issuer interface
-func NewIssuer(name, homeDir string, config *Config, idemixLib Lib) Issuer {
-	issuer := issuer{name: name, homeDir: homeDir, cfg: config, idemixLib: idemixLib}
+func NewIssuer(name, homeDir string, config *Config, csp bccsp.BCCSP, idemixLib Lib) Issuer {
+	issuer := issuer{name: name, homeDir: homeDir, cfg: config, csp: csp, idemixLib: idemixLib}
 	return &issuer
 }
 
@@ -155,6 +163,66 @@ func (i *issuer) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
 	}
 
 	return handler.HandleRequest()
+}
+
+func (i *issuer) VerifyToken(authHdr string, body []byte) (string, error) {
+	if !i.isInitialized {
+		return "", errors.New("Issuer is not initialized")
+	}
+	// Disclosure array indicates which attributes are disclosed. 1 means disclosed. Currently four attributes are
+	// supported: OU, isAdmin, enrollmentID and revocationHandle. Third element of disclosure array is set to 1
+	// to indicate that the server expects enrollmentID to be disclosed in the signature sent in the authorization token.
+	// EnrollmentID is disclosed to check if the signature was infact created using credential of a user whose
+	// enrollment ID is the one specified in the token. So, enrollment ID in the token is used to check if the user
+	// is valid and has a credential (by checking the DB) and it is used to verify zero knowledge proof.
+	disclosure := []byte{0, 0, 1, 0}
+	parts := getTokenParts(authHdr)
+	if parts == nil {
+		return "", errors.New("Invalid Idemix token format; token format must be: 'idemix.<enrollment ID>.<base64 encoding of Idemix signature bytes>'")
+	}
+	if parts[1] != common.IdemixTokenVersion1 {
+		return "", errors.New("Invalid version found in the Idemix token. Version must be 1")
+	}
+	enrollmentID := parts[2]
+	creds, err := i.credDBAccessor.GetCredentialsByID(enrollmentID)
+	if err != nil {
+		return "", errors.Errorf("Failed to check if enrollment ID '%s' is valid", enrollmentID)
+	}
+	if len(creds) == 0 {
+		return "", errors.Errorf("Enrollment ID '%s' does not have any Idemix credentials", enrollmentID)
+	}
+	idBytes := []byte(enrollmentID)
+	attrs := []*fp256bn.BIG{nil, nil, idemix.HashModOrder(idBytes), nil}
+	msg := util.B64Encode(body)
+	digest, digestError := i.csp.Hash([]byte(msg), &bccsp.SHAOpts{})
+	if digestError != nil {
+		return "", errors.WithMessage(digestError, fmt.Sprintf("Failed to create authentication token '%s'", msg))
+	}
+
+	issuerKey, err := i.issuerCred.GetIssuerKey()
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to get issuer key")
+	}
+	ra := i.RevocationAuthority()
+	epoch, err := ra.Epoch()
+	if err != nil {
+		return "", err
+	}
+
+	sigBytes, err := util.B64Decode(parts[3])
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to base64 decode signature specified in the token")
+	}
+	sig := &idemix.Signature{}
+	err = proto.Unmarshal(sigBytes, sig)
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to unmarshal signature bytes specified in the token")
+	}
+	err = sig.Ver(disclosure, issuerKey.IPk, digest, attrs, 3, ra.PublicKey(), epoch)
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to verify the token")
+	}
+	return enrollmentID, nil
 }
 
 // Name returns the name of the issuer
@@ -245,6 +313,23 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 	}
 	i.issuerCred = issuerCred
 	return nil
+}
+
+func getTokenParts(token string) []string {
+	parts := strings.Split(token, ".")
+	if len(parts) == 4 && parts[0] == "idemix" {
+		return parts
+	}
+	return nil
+}
+
+// IsToken returns true if the specified token has the format expected of an authorization token
+// that is created using an Idemix credential
+func IsToken(token string) bool {
+	if getTokenParts(token) != nil {
+		return true
+	}
+	return false
 }
 
 type wallClock struct{}

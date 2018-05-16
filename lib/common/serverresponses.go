@@ -6,6 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 package common
 
+const (
+	// IdemixTokenVersion1 represents version 1 of the authorization token created using Idemix credential
+	IdemixTokenVersion1 = "1"
+)
+
 // CAInfoResponseNet is the response to the GET /info request
 type CAInfoResponseNet struct {
 	// CAName is a unique name associated with fabric-ca-server's CA

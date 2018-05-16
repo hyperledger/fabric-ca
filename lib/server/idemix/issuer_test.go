@@ -10,17 +10,21 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/kisielk/sqlstruct"
 
 	"github.com/hyperledger/fabric-ca/lib"
 	dmocks "github.com/hyperledger/fabric-ca/lib/dbutil/mocks"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
+	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +36,7 @@ func TestNewIssuer(t *testing.T) {
 		NonceExpiration:    "15",
 		NonceSweepInterval: "15",
 	}
-	issuer := NewIssuer("ca1", ".", cfg, lib)
+	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), lib)
 	assert.NotNil(t, issuer)
 }
 
@@ -75,13 +79,13 @@ func TestInitDBNotInitialized(t *testing.T) {
 		NonceSweepInterval: "15m",
 	}
 	var db *dmocks.FabricCADB
-	issuer := NewIssuer("ca1", ".", cfg, NewLib())
+	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib())
 	err := issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 
 	db = new(dmocks.FabricCADB)
 	db.On("IsInitialized").Return(false)
-	issuer = NewIssuer("ca1", ".", cfg, NewLib())
+	issuer = NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib())
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 }
@@ -167,6 +171,176 @@ func TestInitRenewTrue(t *testing.T) {
 	assert.Error(t, err, "Init should fail if it fails to store issuer credential")
 }
 
+func TestVerifyTokenError(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "verifytokentesterror")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = lib.CopyFile(testPublicKeyFile, filepath.Join(testdir, "IssuerPublicKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+	err = lib.CopyFile(testSecretKeyFile, filepath.Join(testdir, "msp/keystore/IssuerSecretKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+
+	db, issuer := getIssuer(t, testdir, false, false)
+	assert.NotNil(t, issuer)
+
+	_, err = issuer.VerifyToken("idemix.1.foo.blah", []byte{})
+	assert.Error(t, err, "VerifyToken should fail as issuer is not initialized")
+
+	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	assert.NoError(t, err)
+
+	_, err = issuer.VerifyToken("idemix.1.foo", []byte{})
+	assert.Error(t, err, "VerifyToken should fail if the auth header does not have four parts separated by '.'")
+
+	_, err = issuer.VerifyToken("idemix.2.foo.bar", []byte{})
+	assert.Error(t, err, "VerifyToken should fail if the auth header does not have correct version")
+
+	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
+	credRecords := []CredRecord{}
+	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
+	db.On("Select", &credRecords, sqlstr, "foo").Return(errors.New("db error getting creds for user"))
+
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	assert.Error(t, err, "VerifyToken should fail if there is error looking up enrollment id in the database")
+}
+
+func TestVerifyTokenNoCreds(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "verifytokentestnocreds")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = lib.CopyFile(testPublicKeyFile, filepath.Join(testdir, "IssuerPublicKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+	err = lib.CopyFile(testSecretKeyFile, filepath.Join(testdir, "msp/keystore/IssuerSecretKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+
+	db, issuer := getIssuer(t, testdir, false, false)
+	assert.NotNil(t, issuer)
+
+	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	assert.NoError(t, err)
+
+	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
+	credRecords := []CredRecord{}
+	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
+	f := getCredsSelectFunc(t, &credRecords, false)
+	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
+
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	assert.Error(t, err, "VerifyToken should fail if the enrollment id does not have creds")
+}
+
+func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "verifytokentestbadsigencoding")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = lib.CopyFile(testPublicKeyFile, filepath.Join(testdir, "IssuerPublicKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+	err = lib.CopyFile(testSecretKeyFile, filepath.Join(testdir, "msp/keystore/IssuerSecretKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+
+	db, issuer := getIssuer(t, testdir, false, false)
+	assert.NotNil(t, issuer)
+
+	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	assert.NoError(t, err)
+
+	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
+	credRecords := []CredRecord{}
+	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
+	f := getCredsSelectFunc(t, &credRecords, true)
+	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
+
+	_, err = issuer.VerifyToken("idemix.1.foo.sig", []byte{})
+	assert.Error(t, err, "VerifyToken should fail if the signature is not in base64 format")
+	assert.NotEqual(t, err.Error(), "errer")
+}
+
+func TestVerifyTokenBadSignature(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "verifytokentestbadsig")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = lib.CopyFile(testPublicKeyFile, filepath.Join(testdir, "IssuerPublicKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+	err = lib.CopyFile(testSecretKeyFile, filepath.Join(testdir, "msp/keystore/IssuerSecretKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+
+	db, issuer := getIssuer(t, testdir, false, false)
+	assert.NotNil(t, issuer)
+
+	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	assert.NoError(t, err)
+
+	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
+	credRecords := []CredRecord{}
+	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
+	f := getCredsSelectFunc(t, &credRecords, true)
+	db.On("Select", &credRecords, sqlstr, "admin").Return(f)
+
+	sig := util.B64Encode([]byte("hello"))
+	_, err = issuer.VerifyToken("idemix.1.admin."+sig, []byte{})
+	assert.Error(t, err, "VerifyToken should fail if the signature is not valid")
+
+	digest, err := util.GetDefaultBCCSP().Hash([]byte(sig), &bccsp.SHAOpts{})
+	if err != nil {
+		t.Fatalf("Failed to get hash of the message: %s", err.Error())
+	}
+	_, err = issuer.VerifyToken("idemix.1.admin.CkQKIAoanxNH9nO5ivQy94e+DH+SiwkkBhYeNbtyQhM1HD7FEiBbBcMVcCW9HoJe5KWMtyvO6a4UtB4xo2x/SV7xvxcVvBJECiBugYjF0AZ8lWvaeKCXtEbPvawQye7RK0m5SpQzEwcu/RIgioEuVacQR5DroKwgAZi3ALClpCLJFjlRwVv7w2zJcQQaRAogeAU3ZnfcA60kGIm6gHKGTRrI3O9sbkpdHt/UIF+Tz5sSIHGfTP5B7Ocb43q3sewpuqIjDyvFEzIeBpummJD4MPB5IiAewOhliKfwXta7pSCIMlfKqmuJbhAwhJl7vJdhfEW05iogGY6MfvsdO+HvQdSmlIexEBgl51KsFCO6MrAZbms/hLAyIHbqzC8f7sliJ6Hzn65JZKUyHXiAnOM3iydZ7gntoYXxOiClzG32BL3M4MyQGHz6SP8Aozxh3u0dATr0uxOOI6p94EIgO90ealPZ51ZXP+JsAWwLePpyX+lgegF0Gp002uFyv0tKIFRSBfhnRqm7Dk1VbG1hSsl7AJU8nzzYZJZKHRFrhdvGUiCWUu3nvjr5TEFtF5eOMp5XTPXmUNTq8k3SLckY1o35mlIgOeJtkxDc7NtKAiF+cz+cIsv1MIQ3qGXj0nwoMjnHvMJSIALGJWjFKVhK9B9P8BOkO03iMwzNJJdSeA8MIRGyk5WCWiCGix0AHQA29jHVOCaCrBZUVlqBRLa5Kzpftk0jp3LKXmJECiDheCgd36mEjsr1D4Sm+cbtE3XKAdRI2dLq5bFQZqN4/RIgNbxez4+fxVsRuGu8ooFkfem2C5/+1z3QDzyu8fu3fyVqID34eII73Km/SviYxAoHZ91HXIHXhGwid4DFO+xuGI7ycogBCiD+DDNQtMlsIChWD1d8KJE6zhxTmhK/hDzSJha2icCe+xIgTqZgV3OKwFTbWuHGN9gTuSTdeOKH0DWJ0mntNKN+aisaIHAgRufFQqOzdncNdRJOPlHvyyR1jWFYSOkJtIG+3Cf/IiAFVOO804jCkELupkkpfrKfi0y+gIIamLPgEoERSq0Em3pgkd4c0QZIUDeyRVBgwDj7aTk8J+xzdGZSCgIt8RpuKoxmfuDV2SlFfw/fVZqfPH02+jYeyqxbf7FD8vo5dstEpLHy86Yno6zr1bXLDLe34r2XIIH6KrYFI3gYAsQhzzd/gAEBigEA", digest)
+	assert.Error(t, err, "VerifyToken should fail signature is valid but verification fails")
+}
+
+func TestIsToken(t *testing.T) {
+	token := "idemixx.1.foo.blah"
+	assert.False(t, IsToken(token))
+	token = "foo.sig"
+	assert.False(t, IsToken(token))
+	token = "idemix.1.foo.sig"
+	assert.True(t, IsToken(token))
+}
+
 func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror bool) (*dmocks.FabricCADB, Issuer) {
 	err := os.MkdirAll(filepath.Join(testDir, "msp/keystore"), 0777)
 	if err != nil {
@@ -224,7 +398,7 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
-	issuer := NewIssuer("ca1", testDir, cfg, lib)
+	issuer := NewIssuer("ca1", testDir, cfg, util.GetDefaultBCCSP(), lib)
 
 	f := getSelectFunc(t, nil, true, false, false)
 
@@ -243,4 +417,21 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	db.On("NamedExec", InsertRAInfo, &rcinfo).Return(result, nil)
 
 	return db, issuer
+}
+
+func getCredsSelectFunc(t *testing.T, creds *[]CredRecord, isAppend bool) func(interface{}, string, ...interface{}) error {
+	return func(dest interface{}, query string, args ...interface{}) error {
+		credRecs := dest.(*[]CredRecord)
+		cred := CredRecord{
+			ID:     "foo",
+			Status: "active",
+			Cred:   "",
+		}
+
+		if isAppend {
+			//*creds = append(*creds, cred)
+			*credRecs = append(*credRecs, cred)
+		}
+		return nil
+	}
 }

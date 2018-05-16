@@ -336,6 +336,20 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	assert.Equal(t, util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(100))), util.B64Encode(idemix.BigToBytes(rh)), "Expected next revocation handle to be 100")
 }
 
+func TestGetEpoch(t *testing.T) {
+	db := new(dmocks.FabricCADB)
+	ra := getRevocationAuthority(t, db, 0, false, false)
+
+	rcInfos := []RevocationAuthorityInfo{}
+	f := getSelectFunc(t, nil, true, false, false)
+	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
+	epoch, err := ra.Epoch()
+	assert.NoError(t, err)
+	assert.Equal(t, 1, epoch)
+	key := ra.PublicKey()
+	assert.NotNil(t, key, "Public key should not be nil")
+}
+
 func TestCreateCRI(t *testing.T) {
 	db := new(dmocks.FabricCADB)
 	ra := getRevocationAuthority(t, db, 0, true, false)

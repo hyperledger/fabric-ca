@@ -8,6 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 package mocks
 
 import FP256BN "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+import ecdsa "crypto/ecdsa"
 import idemix "github.com/hyperledger/fabric/idemix"
 import mock "github.com/stretchr/testify/mock"
 
@@ -27,6 +28,27 @@ func (_m *RevocationAuthority) CreateCRI() (*idemix.CredentialRevocationInformat
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*idemix.CredentialRevocationInformation)
 		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Epoch provides a mock function with given fields:
+func (_m *RevocationAuthority) Epoch() (int, error) {
+	ret := _m.Called()
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func() int); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
@@ -60,4 +82,20 @@ func (_m *RevocationAuthority) GetNewRevocationHandle() (*FP256BN.BIG, error) {
 	}
 
 	return r0, r1
+}
+
+// PublicKey provides a mock function with given fields:
+func (_m *RevocationAuthority) PublicKey() *ecdsa.PublicKey {
+	ret := _m.Called()
+
+	var r0 *ecdsa.PublicKey
+	if rf, ok := ret.Get(0).(func() *ecdsa.PublicKey); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ecdsa.PublicKey)
+		}
+	}
+
+	return r0
 }
