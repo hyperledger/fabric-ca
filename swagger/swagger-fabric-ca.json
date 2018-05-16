@@ -575,6 +575,121 @@
         }
       }
     },
+    "/api/v1/idemix/cri": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Gats an Idemix Credential Revocation Information (CRI)",
+        "parameters": [
+          {
+            "name": "ca",
+            "in": "query",
+            "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An authorization token based on Idemix credential or X509 certificate",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "caname": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Name of the CA to send the request to within the Fabric CA server."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully returned CRI",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful."
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                    "cri": {
+                      "type": "string",
+                      "description": "base64 encoding of the proto bytes of idemix.CredentialRevocationInformation"
+                    }
+                  },
+                  "required": [
+                    "cri"
+                  ]
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "An array of error messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "An array of information messages (code and message)",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reenroll": {
       "post": {
         "tags": [

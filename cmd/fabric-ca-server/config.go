@@ -359,7 +359,7 @@ idemix:
   # Issuer will repopulate the pool with new handles when the last handle in the pool is used.
   # A revocation handle and credential revocation information (CRI) are used to create non revocation proof
   # by the prover to prove to the verifier that her credential is not revoked.
-  rhpoolsize: 100
+  rhpoolsize: 1000
 
   # The Idemix credential issuance is a two step process. First step is to  get a nonce from the issuer
   # and second step is send credential request that is constructed using the nonce to the isuser to

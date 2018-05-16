@@ -32,7 +32,7 @@ const (
 	// UpdateNextHandle s the SQL for updating next revocation handle
 	UpdateNextHandle = "UPDATE revocation_authority_info SET next_handle = ? WHERE (epoch = ?)"
 	// DefaultRevocationHandlePoolSize is the default revocation handle pool size
-	DefaultRevocationHandlePoolSize = 100
+	DefaultRevocationHandlePoolSize = 1000
 )
 
 // RevocationAuthority is responsible for generating revocation handles and
