@@ -25,7 +25,7 @@ URI="${PROTO}user:pass@localhost:$PROXY_PORT"
 genAffYaml() {
    local Planet=(0 1)
    local Landmass=(0)
-   local Country=(0 1) 
+   local Country=(0 1)
    local Province=(0 1 2)
    local Locale=(0)
    local City=(0 1)

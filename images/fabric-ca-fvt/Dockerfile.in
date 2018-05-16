@@ -16,6 +16,7 @@ ENV HOSTADDR "127.0.0.1"
 ENV LDAPPORT "389"
 ENV LDAPUSER "admin"
 ENV LDAPPASWD "adminpw"
+ENV GOBUILD "/tmp/go-buildb200422"
 
 # Avoid ERROR:
 #   invoke-rc.d: policy-rc.d denied execution of start.
@@ -67,7 +68,20 @@ RUN /etc/init.d/slapd start && \
 
 # Install fabric-ca dependencies
 RUN go get github.com/go-sql-driver/mysql
-RUN go get github.com/lib/pq
+
+RUN git clone https://github.com/lib/pq /opt/gopath/src/github.com/lib/pq
+RUN cd /opt/gopath/src/github.com/lib/pq \
+    git submodule update --init --recursive \
+    git show-ref \
+    git checkout git checkout b200422 \
+    git submodule update --init --recursive
+RUN mkdir -p $GOBUILD/github.com/lib/pq/oid/_obj/ \
+    mkdir -p $GOBUILD/github.com/lib/pq/
+RUN cd /opt/gopath/src/github.com/lib/pq/oid \
+    /opt/go/pkg/tool/linux_amd64/compile -o $GOBUILD/github.com/lib/pq/oid.a -trimpath $GOBUILD -p github.com/lib/pq/oid -complete -buildid b2004221932bd6b13167ef654c81cffac36f7537 -D _/opt/gopath/src/github.com/lib/pq/oid -I $GOBUILD -pack ./doc.go ./types.go
+RUN mkdir -p /opt/gopath/pkg/linux_amd64/github.com/lib/ \
+    mv $GOBUILD/github.com/lib/pq/oid.a /opt/gopath/pkg/linux_amd64/github.com/lib/pq/oid.a
+
 
 # Use python2, not 3
 RUN ln -s /usr/bin/python2.7 /usr/local/bin/python && chmod 777 /usr/local/bin/python
