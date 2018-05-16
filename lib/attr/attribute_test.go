@@ -1,17 +1,7 @@
 /*
 Copyright IBM Corp. 2017 All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package attr
@@ -525,4 +515,80 @@ func positiveTests(t *testing.T) {
 	user = nil
 	err = CanRegisterRequestedAttributes(requestedAttrs, user, registrar)
 	assert.NoError(t, err, "Should not fail, user being registered with 'hf.Revoker', must possess attribute to have as value for 'hf.Registrar.Attribute'")
+}
+
+func TestConvertAttrs(t *testing.T) {
+	positiveAttrs := map[string]string{
+		"AttrList":              "peer,orderer,client,user",
+		"AttrListWithECertAttr": "peer,orderer,client,user:ecert",
+		"AttrTrue":              "true",
+		"AttrTrueWithECertAttr": "true:ecert",
+		"AttrFalse":             "false",
+		"AttrStar":              "*",
+		"AttrStarWithECertAttr": "*:ecert",
+	}
+	negativeAttrs1 := map[string]string{
+		"AttrTrueWithInvalidAttr": "true:invalid",
+	}
+	negativeAttrs2 := map[string]string{
+		"AttrTrueWithDuplicateAttrs": "true:ecert:ecert",
+	}
+
+	attrs, err := ConvertAttrs(positiveAttrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, attr := range attrs {
+		switch attr.Name {
+		case "AttrList":
+			if attr.Value != "peer,orderer,client,user" || attr.ECert != false {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrListWithECertAttr":
+			if attr.Value != "peer,orderer,client,user" || attr.ECert != true {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrTrue":
+			if attr.Value != "true" || attr.ECert != false {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrTrueWithECertAttr":
+			if attr.Value != "true" || attr.ECert != true {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrFalse":
+			if attr.Value != "false" || attr.ECert != false {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrStar":
+			if attr.Value != "*" || attr.ECert != false {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		case "AttrStarWithECertAttr":
+			if attr.Value != "*" || attr.ECert != true {
+				t.Fatalf("Attr conversion of '%s' failed (value='%s', ecert='%v')",
+					attr.Name, attr.Value, attr.ECert)
+			}
+		default:
+			t.Fatal("Unknown test case")
+
+		}
+	}
+
+	_, err = ConvertAttrs(negativeAttrs1)
+	if err == nil {
+		t.Fatal("Negative test case 1 should have failed")
+	}
+
+	_, err = ConvertAttrs(negativeAttrs2)
+	if err == nil {
+		t.Fatal("Negative test case 2 should have failed")
+	}
 }
