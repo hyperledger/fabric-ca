@@ -61,8 +61,12 @@ func TestInit(t *testing.T) {
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("IsBasicAuth").Return(true)
 	ctx.On("BasicAuthentication").Return("", errors.New("Authentication error"))
+	ctx.On("TokenAuthentication").Return("", errors.New("Authentication error"))
 	_, err = issuer.IssueCredential(ctx)
 	assert.Error(t, err, "IssuerCredential should fail")
+	_, err = issuer.GetCRI(ctx)
+	assert.Error(t, err, "GetCRI should fail")
+
 }
 
 func TestInitDBNotInitialized(t *testing.T) {

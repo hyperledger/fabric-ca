@@ -53,6 +53,10 @@ func TestIssuer(t *testing.T) {
 	assert.Error(t, err, "IssueCredential should return an error because issuer is not initialized")
 	assert.Equal(t, "Issuer is not initialized", err.Error())
 
+	_, err = issuer.GetCRI(nil)
+	assert.Error(t, err, "GetCRI should return an error because issuer is not initialized")
+	assert.Equal(t, "Issuer is not initialized", err.Error())
+
 	issuer.isInitialized = true
 	err = issuer.Init(false, nil, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err, "Init should return not return an error if it is already initialized")
