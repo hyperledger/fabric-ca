@@ -30,9 +30,9 @@ type Credential interface {
 	Store() error
 	// Loads the credential value from disk and sets the value of this credential
 	Load() error
-	// CreateOAuthToken returns oauth autentication token for that request with
+	// CreateToken returns authorization token for the specified request with
 	// specified body
-	CreateOAuthToken(req *http.Request, reqBody []byte) (string, error)
+	CreateToken(req *http.Request, reqBody []byte) (string, error)
 	// Submits revoke request to the Fabric CA server to revoke this credential
 	RevokeSelf() (*api.RevocationResponse, error)
 }

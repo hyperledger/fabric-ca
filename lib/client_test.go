@@ -239,6 +239,64 @@ func TestIdemixEnroll(t *testing.T) {
 	assert.Error(t, err, "Idemix enroll should fail as the certificate is of unregistered user")
 }
 
+func TestGetCRIUsingX509Token(t *testing.T) {
+	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509srv")
+	if err != nil {
+		t.Fatal("Failed to create server home directory")
+	}
+	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509client")
+	if err != nil {
+		t.Fatal("Failed to create server home directory")
+	}
+
+	server := TestGetServer(ctport1, srvHome, "", 5, t)
+	if server == nil {
+		t.Fatal("Failed to create test server")
+	}
+	err = server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+	stopserver := true
+	defer func() {
+		if stopserver {
+			err = server.Stop()
+			if err != nil {
+				t.Errorf("Failed to stop server: %s", err)
+			}
+		}
+		os.RemoveAll(srvHome)
+		os.RemoveAll(clientHome)
+	}()
+
+	client := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+		HomeDir: clientHome,
+	}
+
+	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
+	if err != nil {
+		t.Fatalf("Failed to get CA info: %s", err)
+	}
+	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+	if err != nil {
+		t.Fatalf("Failed to store CA's idemix public key: %s", err)
+	}
+
+	req := &api.EnrollmentRequest{
+		Type:   "x509",
+		Name:   "admin",
+		Secret: "adminpw",
+	}
+
+	enrollRes, err := client.Enroll(req)
+	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
+
+	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
+	assert.NoError(t, err)
+	assert.NotNil(t, criRes)
+}
+
 func TestClient(t *testing.T) {
 	server := TestGetServer(ctport1, path.Join(serversDir, "c1"), "", 1, t)
 	if server == nil {

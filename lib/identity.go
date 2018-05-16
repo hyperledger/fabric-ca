@@ -228,6 +228,22 @@ func (i *Identity) GenCRL(req *api.GenCRLRequest) (*api.GenCRLResponse, error) {
 	return &api.GenCRLResponse{CRL: crl}, nil
 }
 
+// GetCRI gets Idemix credential revocation information (CRI)
+func (i *Identity) GetCRI(req *api.GetCRIRequest) (*api.GetCRIResponse, error) {
+	log.Debugf("Entering identity.GetCRI %+v", req)
+	reqBody, err := util.Marshal(req, "GetCRIRequest")
+	if err != nil {
+		return nil, err
+	}
+	var result api.GetCRIResponse
+	err = i.Post("idemix/cri", reqBody, &result, nil)
+	if err != nil {
+		return nil, err
+	}
+	log.Debugf("Successfully generated CRI: %+v", req)
+	return &result, nil
+}
+
 // GetIdentity returns information about the requested identity
 func (i *Identity) GetIdentity(id, caname string) (*api.GetIDResponse, error) {
 	log.Debugf("Entering identity.GetIdentity %s", id)
@@ -559,12 +575,11 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	var token string
 	var err error
 	for _, cred := range i.creds {
-		if cred.Type() == x509.CredType {
-			token, err = cred.CreateOAuthToken(req, body)
-			if err != nil {
-				return errors.WithMessage(err, "Failed to add token authorization header")
-			}
+		token, err = cred.CreateToken(req, body)
+		if err != nil {
+			return errors.WithMessage(err, "Failed to add token authorization header")
 		}
+		break
 	}
 	req.Header.Set("authorization", token)
 	return nil

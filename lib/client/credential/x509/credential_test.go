@@ -70,16 +70,16 @@ func TestX509Credential(t *testing.T) {
 	_, err = x509Cred.Val()
 	assert.Error(t, err, "Val should return error as credential has not been loaded from disk or set")
 	if err != nil {
-		assert.Equal(t, err.Error(), "Credential value is not set")
+		assert.Equal(t, err.Error(), "X509 Credential value is not set")
 	}
 	_, err = x509Cred.EnrollmentID()
-	assert.Error(t, err, "EnrollmentID should retrun an error as credential has not been loaded from disk or set")
+	assert.Error(t, err, "EnrollmentID should return an error as credential has not been loaded from disk or set")
 	if err != nil {
-		assert.Equal(t, err.Error(), "Credential value is not set")
+		assert.Equal(t, err.Error(), "X509 Credential value is not set")
 	}
 
 	err = x509Cred.Store()
-	assert.Error(t, err, "Store should must retrun an error as credential has not been loaded from disk or set")
+	assert.Error(t, err, "Store should return an error as credential has not been loaded from disk or set")
 
 	err = x509Cred.SetVal("hello")
 	assert.Error(t, err, "SetVal should fail as it expects an object of type *Signer")
@@ -87,6 +87,19 @@ func TestX509Credential(t *testing.T) {
 	_, err = x509Cred.RevokeSelf()
 	assert.Error(t, err, "RevokeSelf should return an error as credential has not been loaded from disk or set")
 
+	// Set valid value
+	certBytes, err := util.ReadFile(filepath.Join(testDataDir, "ec256-1-cert.pem"))
+	if err != nil {
+		t.Fatalf("Failed to read file: %s", err.Error())
+	}
+	signer, err := NewSigner(nil, certBytes)
+	if err != nil {
+		t.Fatalf("Failed to create signer: %s", err.Error())
+	}
+	err = x509Cred.SetVal(signer)
+	assert.NoError(t, err, "SetVal should not fail")
+
+	// Load the credential from client msp, which should fail as enrollment cert/key pair is not present
 	err = x509Cred.Load()
 	assert.Error(t, err, "Load should have failed to load non-existent certificate file")
 
@@ -99,7 +112,7 @@ func TestX509Credential(t *testing.T) {
 	}
 	x509Cred = NewCredential(certFile, keyFile, client)
 	err = x509Cred.Load()
-	assert.Error(t, err, "Load should have failed to load key file")
+	assert.Error(t, err, "Load should have failed to load non-existent key file")
 	assert.Contains(t, err.Error(), "Could not find the private key in the BCCSP keystore nor in the keyfile")
 
 	err = lib.CopyFile(filepath.Join(testDataDir, "ec256-1-key.pem"), filepath.Join(client.HomeDir, "ec256-1-key.pem"))
@@ -107,35 +120,27 @@ func TestX509Credential(t *testing.T) {
 		t.Fatalf("Failed to copy ec256-1-key.pem to %s: %s", clientHome, err.Error())
 	}
 	err = x509Cred.Load()
-	assert.NoError(t, err, "Load should not fail to load as both cert and key files exist and are valid")
+	assert.NoError(t, err, "Load should not fail as both cert and key files exist and are valid")
 
-	err = os.Remove(keyFile)
-	if err != nil {
-		t.Fatalf("Failed to remove file %s: %s", keyFile, err.Error())
+	// Should error if it fails to write cert to the specified file
+	if err = os.Chmod(certFile, 0000); err != nil {
+		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}
-	keystore := filepath.Join(clientHome, "msp/keystore/ec256-1-key.pem")
-	err = lib.CopyFile(filepath.Join(testDataDir, "ec256-1-key.pem"), keystore)
-	if err != nil {
-		t.Fatalf("Failed to copy ec256-1-key.pem to %s: %s", keystore, err.Error())
+	err = x509Cred.Store()
+	assert.Error(t, err, "Store should fail as %s is not writable", certFile)
+	if err = os.Chmod(certFile, 0644); err != nil {
+		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}
+
+	// Success cases
 	err = x509Cred.Load()
-	assert.NoError(t, err, "Should not fail to load x509 credential as cert exists and key is in bccsp keystore")
+	assert.NoError(t, err, "Load should not fail as cert exists and key is in bccsp keystore")
 
 	_, err = x509Cred.Val()
 	assert.NoError(t, err, "Val should not return error as x509 credential has been loaded")
 
 	_, err = x509Cred.EnrollmentID()
 	assert.NoError(t, err, "EnrollmentID should not return error as credential has been loaded")
-
-	if err = os.Chmod(certFile, 0000); err != nil {
-		t.Fatalf("Failed to chmod certificate file %s: %v", certFile, err)
-	}
-	err = x509Cred.Store()
-	assert.Error(t, err, "Store should fail as %s is not writable", certFile)
-
-	if err = os.Chmod(certFile, 0644); err != nil {
-		t.Fatalf("Failed to chmod certificate file %s: %v", certFile, err)
-	}
 
 	err = x509Cred.Store()
 	assert.NoError(t, err, "Store should not fail as x509 credential is set and cert file path is valid")
@@ -145,8 +150,8 @@ func TestX509Credential(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create HTTP request: %s", err.Error())
 	}
-	_, err = x509Cred.CreateOAuthToken(req, body)
-	assert.NoError(t, err, "CreateOAuthToken should not return error")
+	_, err = x509Cred.CreateToken(req, body)
+	assert.NoError(t, err, "CreateToken should not return error")
 }
 
 func TestRevokeSelf(t *testing.T) {
@@ -217,7 +222,7 @@ func TestRevokeSelf(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create HTTP request: %s", err.Error())
 	}
-	_, err = x509Cred.CreateOAuthToken(httpReq, body)
+	_, err = x509Cred.CreateToken(httpReq, body)
 	assert.NoError(t, err)
 }
 
