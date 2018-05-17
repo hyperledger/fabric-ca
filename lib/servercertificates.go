@@ -17,13 +17,13 @@ limitations under the License.
 package lib
 
 import (
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
+	"fmt"
+	"net/http"
+	"os"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/server"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
 
@@ -40,7 +40,7 @@ func newCertificateEndpoint(s *Server) *serverEndpoint {
 	}
 }
 
-func certificatesHandler(ctx *serverRequestContext) (interface{}, error) {
+func certificatesHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	var err error
 	// Process Request
 	err = processCertificateRequest(ctx)
@@ -51,7 +51,7 @@ func certificatesHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // processCertificateRequest will process the certificate request
-func processCertificateRequest(ctx ServerRequestCtx) error {
+func processCertificateRequest(ctx ServerRequestContext) error {
 	log.Debug("Processing certificate request")
 	var err error
 
@@ -61,6 +61,8 @@ func processCertificateRequest(ctx ServerRequestCtx) error {
 		return err
 	}
 
+	// Perform authority checks to make sure that caller has the correct
+	// set of attributes to manage certificates
 	err = authChecks(ctx)
 	if err != nil {
 		return err
@@ -77,7 +79,9 @@ func processCertificateRequest(ctx ServerRequestCtx) error {
 	}
 }
 
-func authChecks(ctx ServerRequestCtx) error {
+// authChecks verifies that the caller has either attribute "hf.Registrar.Roles"
+// or "hf.Revoker" with a value of true
+func authChecks(ctx ServerRequestContext) error {
 	log.Debug("Performing attribute authorization checks for certificates endpoint")
 
 	caller, err := ctx.GetCaller()
@@ -96,146 +100,82 @@ func authChecks(ctx ServerRequestCtx) error {
 	return nil
 }
 
-func processGetCertificateRequest(ctx ServerRequestCtx) error {
+func processGetCertificateRequest(ctx ServerRequestContext) error {
 	log.Debug("Processing GET certificate request")
 	var err error
 
-	times, err := getTimes(ctx)
+	req, err := server.NewCertificateRequest(ctx)
 	if err != nil {
 		return newHTTPErr(400, ErrGettingCert, "Invalid Request: %s", err)
 	}
 
-	req, err := getReq(ctx)
+	// Execute DB query and stream response
+	err = getCertificates(ctx, req)
 	if err != nil {
-		return newHTTPErr(400, ErrGettingCert, "Invalid Request: %s", err)
-	}
-
-	err = validateReq(req, times)
-	if err != nil {
-		return newHTTPErr(400, ErrGettingCert, "Invalid Request: %s", err)
+		return err
 	}
 
 	return nil
 }
 
-func getReq(ctx ServerRequestCtx) (*api.GetCertificatesRequest, error) {
-	var err error
-	req := new(api.GetCertificatesRequest)
+// getCertificates executes the DB query and streams the results to client
+func getCertificates(ctx ServerRequestContext, req *server.CertificateRequestImpl) error {
+	w := ctx.GetResp()
+	flusher, _ := w.(http.Flusher)
 
-	req.ID = ctx.GetQueryParm("id")
-	req.Serial = ctx.GetQueryParm("serial")
-	req.AKI = ctx.GetQueryParm("aki")
-	req.NotRevoked, err = ctx.GetBoolQueryParm("notrevoked")
+	caller, err := ctx.GetCaller()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	req.NotExpired, err = ctx.GetBoolQueryParm("notexpired")
+
+	// Execute DB query
+	rows, err := ctx.GetCertificates(req, GetUserAffiliation(caller))
 	if err != nil {
-		return nil, err
+		return err
 	}
+	defer rows.Close()
 
-	return req, nil
-}
-
-func validateReq(req *api.GetCertificatesRequest, times *timeFilters) error {
-	if req.NotExpired && (times.expiredStart != nil || times.expiredEnd != nil) {
-		return errors.New("Can't specify expiration time filter and the 'notexpired' filter")
-	}
-
-	if req.NotRevoked && (times.revokedStart != nil || times.revokedEnd != nil) {
-		return errors.New("Can't specify revocation time filter and the 'notrevoked' filter")
-	}
-
-	return nil
-}
-
-type timeFilters struct {
-	revokedStart *time.Time
-	revokedEnd   *time.Time
-	expiredStart *time.Time
-	expiredEnd   *time.Time
-}
-
-func getTimes(ctx ServerRequestCtx) (*timeFilters, error) {
-	times := &timeFilters{}
-	var err error
-
-	times.revokedStart, err = getTime(ctx.GetQueryParm("revoked_start"))
+	// Get the number of certificates to return back to client in a chunk based on the environment variable
+	// If environment variable not set, default to 100 certificates
+	numCerts, err := ctx.ChunksToDeliver(os.Getenv("FABRIC_CA_SERVER_MAX_CERTS_PER_CHUNK"))
 	if err != nil {
-		return nil, errors.Wrap(err, "Invalid 'revoked_begin' value")
+		return err
 	}
+	log.Debugf("Number of certs to be delivered in each chunk: %d", numCerts)
 
-	times.revokedEnd, err = getTime(ctx.GetQueryParm("revoked_end"))
-	if err != nil {
-		return nil, errors.Wrap(err, "Invalid 'revoked_end' value")
-	}
+	w.Write([]byte(`{"certs":[`))
 
-	times.expiredStart, err = getTime(ctx.GetQueryParm("expired_start"))
-	if err != nil {
-		return nil, errors.Wrap(err, "Invalid 'expired_begin' value")
-	}
-
-	times.expiredEnd, err = getTime(ctx.GetQueryParm("expired_end"))
-	if err != nil {
-		return nil, errors.Wrap(err, "Invalid 'expired_end' value")
-	}
-
-	return times, nil
-}
-
-func getTime(timeStr string) (*time.Time, error) {
-	log.Debugf("Convert time string (%s) to time type", timeStr)
-	var err error
-
-	if timeStr == "" {
-		return nil, nil
-	}
-
-	if strings.HasPrefix(timeStr, "+") || strings.HasPrefix(timeStr, "-") {
-		timeStr = strings.ToLower(timeStr)
-
-		if strings.HasSuffix(timeStr, "y") {
-			return nil, errors.Errorf("Invalid time format, year (y) is not supported, please check: %s", timeStr)
-		}
-
-		currentTime := time.Now().UTC()
-
-		if strings.HasSuffix(timeStr, "d") {
-			timeStr, err = convertDayToHours(timeStr)
-		}
-
-		dur, err := time.ParseDuration(timeStr)
+	rowNumber := 0
+	for rows.Next() {
+		rowNumber++
+		var cert certPEM
+		err := rows.StructScan(&cert)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed to parse duration")
+			return newHTTPErr(500, ErrGettingCert, "Failed to get read row: %s", err)
 		}
-		newTime := currentTime.Add(dur)
 
-		return &newTime, nil
+		if rowNumber > 1 {
+			w.Write([]byte(","))
+		}
+
+		resp, err := util.Marshal(cert, "certificate")
+		if err != nil {
+			return newHTTPErr(500, ErrGettingCert, "Failed to marshal certificate: %s", err)
+		}
+		w.Write(resp)
+
+		// If hit the number of identities requested then flush
+		if rowNumber%numCerts == 0 {
+			flusher.Flush() // Trigger "chunked" encoding and send a chunk...
+		}
 	}
 
-	if !strings.Contains(timeStr, "T") {
-		timeStr = timeStr + "T00:00:00Z"
-	}
+	log.Debug("Number of certificates found: ", rowNumber)
 
-	parsedTime, err := time.Parse(time.RFC3339, timeStr)
-	if err != nil {
-		return nil, err
-	}
+	// Close the JSON object
+	caname := ctx.GetQueryParm("ca")
+	w.Write([]byte(fmt.Sprintf("], \"caname\":\"%s\"}", caname)))
+	flusher.Flush()
 
-	return &parsedTime, nil
-}
-
-func convertDayToHours(timeStr string) (string, error) {
-	log.Debug("Duration specified in days, converting to hours")
-
-	re := regexp.MustCompile("\\d+")
-	durationValDays, err := strconv.Atoi(re.FindString(timeStr))
-	if err != nil {
-		return "", errors.Errorf("Invalid time format, integer values required for duration, please check: %s", timeStr)
-	}
-	durationValHours := 24 * durationValDays
-	timeStr = string(timeStr[0]) + strconv.Itoa(durationValHours) + "h"
-
-	log.Debug("Duration value in hours: ", timeStr)
-	return timeStr, nil
+	return nil
 }

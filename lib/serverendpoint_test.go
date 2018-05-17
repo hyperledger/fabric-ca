@@ -70,6 +70,6 @@ func testEndpoint(t *testing.T, method, url string, scode, rcode int) {
 	}
 }
 
-func testEndpointHandler(ctx *serverRequestContext) (interface{}, error) {
+func testEndpointHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	return "result", handlerError
 }

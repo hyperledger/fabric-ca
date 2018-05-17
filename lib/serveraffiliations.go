@@ -46,7 +46,7 @@ func newAffiliationsStreamingEndpoint(s *Server) *serverEndpoint {
 	}
 }
 
-func affiliationsHandler(ctx *serverRequestContext) (interface{}, error) {
+func affiliationsHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	var err error
 	// Authenticate
 	callerID, err := ctx.TokenAuthentication()
@@ -75,7 +75,7 @@ func affiliationsHandler(ctx *serverRequestContext) (interface{}, error) {
 	return resp, nil
 }
 
-func affiliationsStreamingHandler(ctx *serverRequestContext) (interface{}, error) {
+func affiliationsStreamingHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	var err error
 
 	// Authenticate
@@ -106,7 +106,7 @@ func affiliationsStreamingHandler(ctx *serverRequestContext) (interface{}, error
 }
 
 // processStreamingAffiliationRequest will process the configuration request
-func processStreamingAffiliationRequest(ctx *serverRequestContext, caname string, caller spi.User) (interface{}, error) {
+func processStreamingAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
 	log.Debug("Processing affiliation configuration update request")
 
 	method := ctx.req.Method
@@ -121,7 +121,7 @@ func processStreamingAffiliationRequest(ctx *serverRequestContext, caname string
 }
 
 // processRequest will process the configuration request
-func processAffiliationRequest(ctx *serverRequestContext, caname string, caller spi.User) (interface{}, error) {
+func processAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
 	log.Debug("Processing affiliation configuration update request")
 
 	method := ctx.req.Method
@@ -137,7 +137,7 @@ func processAffiliationRequest(ctx *serverRequestContext, caname string, caller 
 	}
 }
 
-func processGetAllAffiliationsRequest(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func processGetAllAffiliationsRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET all affiliations request")
 
 	resp, err := getAffiliations(ctx, caller, caname)
@@ -148,7 +148,7 @@ func processGetAllAffiliationsRequest(ctx *serverRequestContext, caller spi.User
 	return resp, nil
 }
 
-func processGetAffiliationRequest(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func processGetAffiliationRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET affiliation request")
 
 	affiliation, err := ctx.GetVar("affiliation")
@@ -164,7 +164,7 @@ func processGetAffiliationRequest(ctx *serverRequestContext, caller spi.User, ca
 	return resp, nil
 }
 
-func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Requesting all affiliations that the caller is authorized view")
 	var err error
 
@@ -197,7 +197,7 @@ func getAffiliations(ctx *serverRequestContext, caller spi.User, caname string) 
 	return resp, nil
 }
 
-func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
+func getAffiliation(ctx *serverRequestContextImpl, caller spi.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
 	log.Debugf("Requesting affiliation '%s'", requestedAffiliation)
 
 	registry := ctx.ca.registry
@@ -219,7 +219,7 @@ func getAffiliation(ctx *serverRequestContext, caller spi.User, requestedAffilia
 	return resp, nil
 }
 
-func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
+func processAffiliationDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing DELETE request")
 
 	if !ctx.ca.Config.Cfg.Affiliations.AllowRemove {
@@ -269,7 +269,7 @@ func processAffiliationDeleteRequest(ctx *serverRequestContext, caname string) (
 	return resp, nil
 }
 
-func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
+func processAffiliationPostRequest(ctx *serverRequestContextImpl, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing POST request")
 
 	ctx.endpoint.successRC = 201
@@ -346,7 +346,7 @@ func processAffiliationPostRequest(ctx *serverRequestContext, caname string) (*a
 	return resp, nil
 }
 
-func processAffiliationPutRequest(ctx *serverRequestContext, caname string) (*api.AffiliationResponse, error) {
+func processAffiliationPutRequest(ctx *serverRequestContextImpl, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing PUT request")
 
 	modifyAffiliation, err := ctx.GetVar("affiliation")

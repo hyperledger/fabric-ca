@@ -40,7 +40,7 @@ func newRegisterEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle a register request
-func registerHandler(ctx *serverRequestContext) (interface{}, error) {
+func registerHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Read request body
 	var req api.RegistrationRequestNet
 	err := ctx.ReadBody(&req)
@@ -71,7 +71,7 @@ func registerHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // RegisterUser will register a user and return the secret
-func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx *serverRequestContext) (string, error) {
+func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx *serverRequestContextImpl) (string, error) {
 	var err error
 	var registrarUser spi.User
 
@@ -114,10 +114,9 @@ func normalizeRegistrationRequest(req *api.RegistrationRequest, registrar spi.Us
 	}
 }
 
-func validateAffiliation(req *api.RegistrationRequest, ctx *serverRequestContext) error {
+func validateAffiliation(req *api.RegistrationRequest, ctx *serverRequestContextImpl) error {
 	affiliation := req.Affiliation
 	log.Debugf("Validating affiliation: %s", affiliation)
-
 	err := ctx.ContainsAffiliation(affiliation)
 	if err != nil {
 		return err
@@ -181,7 +180,7 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 	return req.Secret, nil
 }
 
-func canRegister(registrar spi.User, req *api.RegistrationRequest, ctx *serverRequestContext) error {
+func canRegister(registrar spi.User, req *api.RegistrationRequest, ctx *serverRequestContextImpl) error {
 	log.Debugf("canRegister - Check to see if user '%s' can register", registrar.GetName())
 
 	err := ctx.CanActOnType(req.Type)

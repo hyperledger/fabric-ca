@@ -17,22 +17,26 @@ package lib
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/cloudflare/cfssl/log"
+	"fmt"
+	"net/http/httptest"
+	"os"
+	"strings"
+
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/mocks"
+	"github.com/hyperledger/fabric-ca/lib/server"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCertificatesHandler(t *testing.T) {
-	log.Level = log.LevelDebug
-	ctx := new(serverRequestContext)
+	ctx := new(serverRequestContextImpl)
 	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
 	ctx.req = req
 	_, err = certificatesHandler(ctx)
@@ -40,12 +44,12 @@ func TestCertificatesHandler(t *testing.T) {
 }
 
 func TestAuthChecks(t *testing.T) {
-	ctxMock := new(mocks.ServerRequestCtx)
+	ctxMock := new(mocks.ServerRequestContext)
 	ctxMock.On("GetCaller").Return(nil, errors.New("Failed to get caller"))
 	err := authChecks(ctxMock)
 	util.ErrorContains(t, err, "Failed to get caller", "Expected to catch error from GetCaller() func")
 
-	ctx := new(serverRequestContext)
+	ctx := new(serverRequestContextImpl)
 	user := &UserRecord{
 		Name: "NotRegistrar",
 	}
@@ -86,7 +90,7 @@ func TestAuthChecks(t *testing.T) {
 	err = authChecks(ctx)
 	assert.NoError(t, err, "Should not fail, caller has 'hf.Revoker' with a value of 'true' attribute")
 
-	ctx = new(serverRequestContext)
+	ctx = new(serverRequestContextImpl)
 	attributes = []api.Attribute{
 		api.Attribute{
 			Name:  "hf.Revoker",
@@ -104,195 +108,13 @@ func TestAuthChecks(t *testing.T) {
 	assert.Error(t, err, "Should fail, caller has 'hf.Revoker' but with a value of 'false' attribute")
 }
 
-func TestGetReq(t *testing.T) {
-	ctx := new(serverRequestContext)
-	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-
-	url := req.URL.Query()
-	url.Add("id", "testid")
-	url.Add("aki", "123456")
-	url.Add("serial", "1234")
-	url.Add("notrevoked", "false")
-	url.Add("notexpired", "True")
-	url.Add("notactive", "tRue")
-	url.Add("ca", "ca1")
-	req.URL.RawQuery = url.Encode()
-
-	ctx.req = req
-	certReq, err := getReq(ctx)
-	assert.NoError(t, err, "Failed to get certificate request")
-	assert.NotNil(t, certReq, "Failed to get certificate request")
-	assert.Equal(t, "testid", certReq.ID)
-	assert.Equal(t, "123456", certReq.AKI)
-	assert.Equal(t, "1234", certReq.Serial)
-	assert.Equal(t, false, certReq.NotRevoked)
-	assert.Equal(t, true, certReq.NotExpired)
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("notrevoked", "notfalse")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	certReq, err = getReq(ctx)
-	assert.Error(t, err, "Should fail, not valid boolean value")
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("notexpired", "notfalse")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	certReq, err = getReq(ctx)
-	assert.Error(t, err, "Should fail, not valid boolean value")
-}
-
-func TestGetTimes(t *testing.T) {
-	ctx := new(serverRequestContext)
-	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-
-	url := req.URL.Query()
-	url.Add("revoked_start", "2001-01-01")
-	url.Add("revoked_end", "2012-12-12")
-	url.Add("expired_start", "2002-02-01")
-	url.Add("expired_end", "2011-11-11")
-	req.URL.RawQuery = url.Encode()
-
-	ctx.req = req
-	times, err := getTimes(ctx)
-	assert.NoError(t, err, "Failed to get times from certificate request")
-	assert.Equal(t, "2001-01-01 00:00:00 +0000 UTC", times.revokedStart.String())
-	assert.Equal(t, "2012-12-12 00:00:00 +0000 UTC", times.revokedEnd.String())
-	assert.Equal(t, "2002-02-01 00:00:00 +0000 UTC", times.expiredStart.String())
-	assert.Equal(t, "2011-11-11 00:00:00 +0000 UTC", times.expiredEnd.String())
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("revoked_start", "2001-01")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	times, err = getTimes(ctx)
-	assert.Error(t, err, "Invalid time format, should have failed")
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("revoked_end", "2012-12-123")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	times, err = getTimes(ctx)
-	assert.Error(t, err, "Invalid time format, should have failed")
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("expired_start", "20023-02-01")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	times, err = getTimes(ctx)
-	assert.Error(t, err, "Invalid time format, should have failed")
-
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
-	util.FatalError(t, err, "Failed to get GET HTTP request")
-	url = req.URL.Query()
-	url.Add("expired_end", "2011-111-11")
-	req.URL.RawQuery = url.Encode()
-	ctx.req = req
-	times, err = getTimes(ctx)
-	assert.Error(t, err, "Invalid time format, should have failed")
-}
-
-func TestValidateReq(t *testing.T) {
-	req := &api.GetCertificatesRequest{
-		NotExpired: true,
-	}
-	times := &timeFilters{
-		expiredStart: &time.Time{},
-	}
-	err := validateReq(req, times)
-	t.Log("Error: ", err)
-	assert.Error(t, err, "Should have failed, both 'notexpire' and expiredStart are set")
-
-	req = &api.GetCertificatesRequest{
-		NotExpired: true,
-	}
-	times = &timeFilters{
-		expiredEnd: &time.Time{},
-	}
-	err = validateReq(req, times)
-	t.Log("Error: ", err)
-	assert.Error(t, err, "Should have failed, both 'notexpire' and expiredEnd are set")
-
-	req = &api.GetCertificatesRequest{
-		NotRevoked: true,
-	}
-	times = &timeFilters{
-		revokedStart: &time.Time{},
-	}
-	err = validateReq(req, times)
-	t.Log("Error: ", err)
-	assert.Error(t, err, "Should have failed, both 'notexpire' and revokedStart are set")
-
-	req = &api.GetCertificatesRequest{
-		NotRevoked: true,
-	}
-	times = &timeFilters{
-		revokedEnd: &time.Time{},
-	}
-	err = validateReq(req, times)
-	t.Log("Error: ", err)
-	assert.Error(t, err, "Should have failed, both 'notexpire' and revokedEnd are set")
-
-	req = &api.GetCertificatesRequest{}
-	err = validateReq(req, times)
-	assert.NoError(t, err, "Should not have returned an error, failed to valided request")
-}
-
-func TestGetTime(t *testing.T) {
-	_, err := getTime("")
-	assert.NoError(t, err, "Failed parse time input")
-
-	_, err = getTime("2018-01-01")
-	assert.NoError(t, err, "Failed parse time input")
-
-	_, err = getTime("+30D")
-	assert.NoError(t, err, "Failed parse time input")
-
-	_, err = getTime("+30s")
-	assert.NoError(t, err, "Failed parse time input")
-
-	_, err = getTime("2018-01-01T")
-	assert.Error(t, err, "Should fail, incomplete time string")
-
-	_, err = getTime("+30y")
-	assert.Error(t, err, "Should fail, 'y' year duration not supported")
-
-	_, err = getTime("30h")
-	assert.Error(t, err, "Should fail, +/- required for duration")
-
-	_, err = getTime("++30h")
-	assert.Error(t, err, "Should fail, two plus '+' signs")
-}
-
-func TestConvertDayToHours(t *testing.T) {
-	timeHours, err := convertDayToHours("+20d")
-	assert.NoError(t, err, "Failed to convert days to hours")
-	assert.Equal(t, "+480h", timeHours)
-
-	timeHours, err = convertDayToHours("d")
-	assert.Error(t, err, "Should fail, not a valid number")
-}
-
 func TestProcessCertificateRequest(t *testing.T) {
-	ctx := new(mocks.ServerRequestCtx)
+	ctx := new(mocks.ServerRequestContext)
 	ctx.On("TokenAuthentication").Return("", errors.New("Token Auth Failed"))
 	err := processCertificateRequest(ctx)
 	util.ErrorContains(t, err, "Token Auth Failed", "Should have failed token auth")
 
-	ctx = new(mocks.ServerRequestCtx)
+	ctx = new(mocks.ServerRequestContext)
 	ctx.On("TokenAuthentication").Return("", nil)
 	ctx.On("HasRole", "hf.Revoker").Return(errors.New("Does not have attribute"))
 	attr, err := util.Marshal([]api.Attribute{}, "attributes")
@@ -307,7 +129,7 @@ func TestProcessCertificateRequest(t *testing.T) {
 	t.Log("Error: ", err)
 	util.ErrorContains(t, err, fmt.Sprintf("%d", ErrAuthFailure), "Should have failed to due improper permissions")
 
-	ctx = new(mocks.ServerRequestCtx)
+	ctx = new(mocks.ServerRequestContext)
 	ctx.On("TokenAuthentication").Return("", nil)
 	ctx.On("HasRole", "hf.Revoker").Return(nil)
 	ctx.On("GetCaller").Return(newDBUser(user, nil), nil)
@@ -321,7 +143,7 @@ func TestProcessCertificateRequest(t *testing.T) {
 }
 
 func TestProcessGetCertificateRequest(t *testing.T) {
-	ctx := new(serverRequestContext)
+	ctx := new(serverRequestContextImpl)
 	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
 	util.FatalError(t, err, "Failed to get GET HTTP request")
 
@@ -352,9 +174,85 @@ func TestProcessGetCertificateRequest(t *testing.T) {
 
 	err = processGetCertificateRequest(ctx)
 	assert.Error(t, err, "Invalid combination of filters, should have failed")
+}
 
-	req, err = http.NewRequest("GET", "", bytes.NewReader([]byte{}))
+type mockHTTPWriter struct {
+	http.ResponseWriter
+	t *testing.T
+}
+
+// Header returns the header map that will be sent by WriteHeader.
+func (m *mockHTTPWriter) Header() http.Header {
+	return m.ResponseWriter.Header()
+}
+
+// WriteHeader sends an HTTP response header with status code.
+func (m *mockHTTPWriter) WriteHeader(scode int) {
+	m.WriteHeader(1)
+}
+
+// Write writes the data to the connection as part of an HTTP reply.
+func (m *mockHTTPWriter) Write(buf []byte) (int, error) {
+	w := m.ResponseWriter
+	if !strings.Contains(string(buf), "certs") && !strings.Contains(string(buf), "BEGIN CERTIFICATE") && !strings.Contains(string(buf), "caname") {
+		m.t.Error("Invalid response being sent back from certificates endpoint")
+	}
+	return w.Write(buf)
+}
+
+// Write writes the data to the connection as part of an HTTP reply.
+func (m *mockHTTPWriter) Flush() {}
+
+func TestServerGetCertificates(t *testing.T) {
+	os.RemoveAll("getCertTest")
+	defer os.RemoveAll("getCertTest")
+	var err error
+
+	level := &dbutil.Levels{
+		Affiliation: 1,
+		Identity:    1,
+		Certificate: 1,
+	}
+	srv := &Server{
+		levels: level,
+	}
+	ca, err := newCA("getCertTest/config.yaml", &CAConfig{}, srv, false)
+	util.FatalError(t, err, "Failed to get CA")
+
+	ctx := new(serverRequestContextImpl)
+	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
+	util.FatalError(t, err, "Failed to get GET HTTP request")
+
+	user := &UserRecord{
+		Name: "NotRevoker",
+	}
+	ctx.caller = newDBUser(user, nil)
+
 	ctx.req = req
-	err = processGetCertificateRequest(ctx)
+	ctx.ca = ca
+	w := httptest.NewRecorder()
+	ctx.resp = &mockHTTPWriter{w, t}
+
+	err = testInsertCertificate(&certdb.CertificateRecord{
+		Serial: "1111",
+		AKI:    "9876",
+	}, "testCertificate", ca)
+	util.FatalError(t, err, "Failed to insert certificate with serial/AKI")
+
+	err = getCertificates(ctx, &server.CertificateRequestImpl{})
 	assert.NoError(t, err, "Should not have returned error, failed to process GET certificate request")
+
+	mockCtx := new(mocks.ServerRequestContext)
+	mockCtx.On("GetResp").Return(nil)
+	mockCtx.On("GetCaller").Return(nil, errors.New("failed to get caller"))
+	err = getCertificates(mockCtx, nil)
+	util.ErrorContains(t, err, "failed to get caller", "did not get correct error response")
+
+	testUser := newDBUser(&UserRecord{Name: "testuser"}, nil)
+	mockCtx = new(mocks.ServerRequestContext)
+	mockCtx.On("GetResp").Return(nil)
+	mockCtx.On("GetCaller").Return(testUser, nil)
+	mockCtx.On("GetCertificates", (*server.CertificateRequestImpl)(nil), "").Return(nil, errors.New("failed to get certificates"))
+	err = getCertificates(mockCtx, nil)
+	util.ErrorContains(t, err, "failed to get certificates", "did not get correct error response")
 }

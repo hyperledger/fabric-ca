@@ -32,7 +32,7 @@ func newTCertEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle a tcert request
-func tcertHandler(ctx *serverRequestContext) (interface{}, error) {
+func tcertHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Authenticate caller
 	id, err := ctx.TokenAuthentication()
 	if err != nil {

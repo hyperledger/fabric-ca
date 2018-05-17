@@ -83,7 +83,7 @@ func newReenrollEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle an enroll request, guarded by basic authentication
-func enrollHandler(ctx *serverRequestContext) (interface{}, error) {
+func enrollHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	id, err := ctx.BasicAuthentication()
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func enrollHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // Handle a reenroll request, guarded by token authentication
-func reenrollHandler(ctx *serverRequestContext) (interface{}, error) {
+func reenrollHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Authenticate the caller
 	id, err := ctx.TokenAuthentication()
 	if err != nil {
@@ -110,7 +110,7 @@ func reenrollHandler(ctx *serverRequestContext) (interface{}, error) {
 }
 
 // Handle the common processing for enroll and reenroll
-func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
+func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error) {
 	var req api.EnrollmentRequestNet
 	err := ctx.ReadBody(&req)
 	if err != nil {
@@ -185,7 +185,7 @@ func handleEnroll(ctx *serverRequestContext, id string) (interface{}, error) {
 // Check to see that CSR values do not exceed the character limit
 // as specified in RFC 3280, page 103.
 // Set the OU fields of the request.
-func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverRequestContext) error {
+func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverRequestContextImpl) error {
 	// Decode and parse the request into a CSR so we can make checks
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {

@@ -51,7 +51,7 @@ func newGenCRLEndpoint(s *Server) *serverEndpoint {
 }
 
 // Handle an generate CRL request
-func genCRLHandler(ctx *serverRequestContext) (interface{}, error) {
+func genCRLHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	var req api.GenCRLRequest
 	err := ctx.ReadBody(&req)
 	if err != nil {

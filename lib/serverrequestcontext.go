@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
+
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
@@ -33,25 +35,29 @@ import (
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/server"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/pkg/errors"
 )
 
-// ServerRequestCtx defines the functionality of a server request context object
-type ServerRequestCtx interface {
+// ServerRequestContext defines the functionality of a server request context object
+type ServerRequestContext interface {
 	BasicAuthentication() (string, error)
 	TokenAuthentication() (string, error)
 	GetCaller() (spi.User, error)
 	HasRole(role string) error
+	ChunksToDeliver(string) (int, error)
 	GetReq() *http.Request
 	GetQueryParm(name string) string
 	GetBoolQueryParm(name string) (bool, error)
+	GetResp() http.ResponseWriter
+	GetCertificates(server.CertificateRequest, string) (*sqlx.Rows, error)
 }
 
-// serverRequestContext represents an HTTP request/response context in the server
-type serverRequestContext struct {
+// serverRequestContextImpl represents an HTTP request/response context in the server
+type serverRequestContextImpl struct {
 	req            *http.Request
 	resp           http.ResponseWriter
 	endpoint       *serverEndpoint
@@ -72,9 +78,9 @@ const (
 	registrarRole = "hf.Registrar.Roles"
 )
 
-// newServerRequestContext is the constructor for a serverRequestContext
-func newServerRequestContext(r *http.Request, w http.ResponseWriter, se *serverEndpoint) *serverRequestContext {
-	return &serverRequestContext{
+// newServerRequestContext is the constructor for a serverRequestContextImpl
+func newServerRequestContext(r *http.Request, w http.ResponseWriter, se *serverEndpoint) *serverRequestContextImpl {
+	return &serverRequestContextImpl{
 		req:      r,
 		resp:     w,
 		endpoint: se,
@@ -83,7 +89,7 @@ func newServerRequestContext(r *http.Request, w http.ResponseWriter, se *serverE
 
 // BasicAuthentication authenticates the caller's username and password
 // found in the authorization header and returns the username
-func (ctx *serverRequestContext) BasicAuthentication() (string, error) {
+func (ctx *serverRequestContextImpl) BasicAuthentication() (string, error) {
 	r := ctx.req
 	// Get the authorization header
 	authHdr := r.Header.Get("authorization")
@@ -129,7 +135,7 @@ func (ctx *serverRequestContext) BasicAuthentication() (string, error) {
 // TokenAuthentication authenticates the caller by token
 // in the authorization header.
 // Returns the enrollment ID or error.
-func (ctx *serverRequestContext) TokenAuthentication() (string, error) {
+func (ctx *serverRequestContextImpl) TokenAuthentication() (string, error) {
 	r := ctx.req
 	// Get the authorization header
 	authHdr := r.Header.Get("authorization")
@@ -196,12 +202,12 @@ func (ctx *serverRequestContext) TokenAuthentication() (string, error) {
 
 // GetECert returns the enrollment certificate of the caller, assuming
 // token authentication was successful.
-func (ctx *serverRequestContext) GetECert() *x509.Certificate {
+func (ctx *serverRequestContextImpl) GetECert() *x509.Certificate {
 	return ctx.enrollmentCert
 }
 
 // GetCA returns the CA to which this request is targeted and checks to make sure the database has been initialized
-func (ctx *serverRequestContext) GetCA() (*CA, error) {
+func (ctx *serverRequestContextImpl) GetCA() (*CA, error) {
 	_, err := ctx.getCA()
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to get CA instance")
@@ -216,7 +222,7 @@ func (ctx *serverRequestContext) GetCA() (*CA, error) {
 }
 
 // GetCA returns the CA to which this request is targeted
-func (ctx *serverRequestContext) getCA() (*CA, error) {
+func (ctx *serverRequestContextImpl) getCA() (*CA, error) {
 	if ctx.ca == nil {
 		// Get the CA name
 		name, err := ctx.getCAName()
@@ -233,7 +239,7 @@ func (ctx *serverRequestContext) getCA() (*CA, error) {
 }
 
 // GetAttrExtension returns an attribute extension to place into a signing request
-func (ctx *serverRequestContext) GetAttrExtension(attrReqs []*api.AttributeRequest, profile string) (*signer.Extension, error) {
+func (ctx *serverRequestContextImpl) GetAttrExtension(attrReqs []*api.AttributeRequest, profile string) (*signer.Extension, error) {
 	ca, err := ctx.GetCA()
 	if err != nil {
 		return nil, err
@@ -279,7 +285,7 @@ type caNameReqBody struct {
 }
 
 // getCAName returns the targeted CA name for this request
-func (ctx *serverRequestContext) getCAName() (string, error) {
+func (ctx *serverRequestContextImpl) getCAName() (string, error) {
 	// Check the query parameters first
 	ca := ctx.req.URL.Query().Get("ca")
 	if ca != "" {
@@ -299,7 +305,7 @@ func (ctx *serverRequestContext) getCAName() (string, error) {
 }
 
 // ReadBody reads the request body and JSON unmarshals into 'body'
-func (ctx *serverRequestContext) ReadBody(body interface{}) error {
+func (ctx *serverRequestContextImpl) ReadBody(body interface{}) error {
 	empty, err := ctx.TryReadBody(body)
 	if err != nil {
 		return err
@@ -311,7 +317,7 @@ func (ctx *serverRequestContext) ReadBody(body interface{}) error {
 }
 
 // TryReadBody reads the request body into 'body' if not empty
-func (ctx *serverRequestContext) TryReadBody(body interface{}) (bool, error) {
+func (ctx *serverRequestContextImpl) TryReadBody(body interface{}) (bool, error) {
 	buf, err := ctx.ReadBodyBytes()
 	if err != nil {
 		return false, err
@@ -328,7 +334,7 @@ func (ctx *serverRequestContext) TryReadBody(body interface{}) (bool, error) {
 }
 
 // ReadBodyBytes reads the request body and returns bytes
-func (ctx *serverRequestContext) ReadBodyBytes() ([]byte, error) {
+func (ctx *serverRequestContextImpl) ReadBodyBytes() ([]byte, error) {
 	if !ctx.body.read {
 		r := ctx.req
 		buf, err := ioutil.ReadAll(r.Body)
@@ -343,7 +349,7 @@ func (ctx *serverRequestContext) ReadBodyBytes() ([]byte, error) {
 	return ctx.body.buf, nil
 }
 
-func (ctx *serverRequestContext) GetUser(userName string) (spi.User, error) {
+func (ctx *serverRequestContextImpl) GetUser(userName string) (spi.User, error) {
 	ca, err := ctx.getCA()
 	if err != nil {
 		return nil, err
@@ -364,7 +370,7 @@ func (ctx *serverRequestContext) GetUser(userName string) (spi.User, error) {
 }
 
 // CanManageUser determines if the caller has the right type and affiliation to act on on a user
-func (ctx *serverRequestContext) CanManageUser(user spi.User) error {
+func (ctx *serverRequestContextImpl) CanManageUser(user spi.User) error {
 	userAff := strings.Join(user.GetAffiliationPath(), ".")
 	err := ctx.ContainsAffiliation(userAff)
 	if err != nil {
@@ -381,7 +387,7 @@ func (ctx *serverRequestContext) CanManageUser(user spi.User) error {
 }
 
 // CanModifyUser determines if the modifications to the user are allowed
-func (ctx *serverRequestContext) CanModifyUser(req *api.ModifyIdentityRequest, checkAff bool, checkType bool, checkAttrs bool, userToModify spi.User) error {
+func (ctx *serverRequestContextImpl) CanModifyUser(req *api.ModifyIdentityRequest, checkAff bool, checkType bool, checkAttrs bool, userToModify spi.User) error {
 	if checkAff {
 		reqAff := req.Affiliation
 		log.Debugf("Checking if caller is authorized to change affiliation to '%s'", reqAff)
@@ -413,7 +419,7 @@ func (ctx *serverRequestContext) CanModifyUser(req *api.ModifyIdentityRequest, c
 }
 
 // GetCaller gets the user who is making this server request
-func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
+func (ctx *serverRequestContextImpl) GetCaller() (spi.User, error) {
 	if ctx.caller != nil {
 		return ctx.caller, nil
 	}
@@ -436,7 +442,7 @@ func (ctx *serverRequestContext) GetCaller() (spi.User, error) {
 }
 
 // ContainsAffiliation returns an error if the requested affiliation does not contain the caller's affiliation
-func (ctx *serverRequestContext) ContainsAffiliation(affiliation string) error {
+func (ctx *serverRequestContextImpl) ContainsAffiliation(affiliation string) error {
 	validAffiliation, err := ctx.containsAffiliation(affiliation)
 	if err != nil {
 		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to get ID: %s", err)
@@ -448,7 +454,7 @@ func (ctx *serverRequestContext) ContainsAffiliation(affiliation string) error {
 }
 
 // containsAffiliation returns true if the requested affiliation contains the caller's affiliation
-func (ctx *serverRequestContext) containsAffiliation(affiliation string) (bool, error) {
+func (ctx *serverRequestContextImpl) containsAffiliation(affiliation string) (bool, error) {
 	caller, err := ctx.GetCaller()
 	if err != nil {
 		return false, err
@@ -476,7 +482,7 @@ func (ctx *serverRequestContext) containsAffiliation(affiliation string) (bool, 
 }
 
 // IsRegistrar returns an error if the caller is not a registrar
-func (ctx *serverRequestContext) IsRegistrar() error {
+func (ctx *serverRequestContextImpl) IsRegistrar() error {
 	_, isRegistrar, err := ctx.isRegistrar()
 	if err != nil {
 		return err
@@ -489,7 +495,7 @@ func (ctx *serverRequestContext) IsRegistrar() error {
 }
 
 // isRegistrar returns back true if the caller is a registrar along with the types the registrar is allowed to register
-func (ctx *serverRequestContext) isRegistrar() (string, bool, error) {
+func (ctx *serverRequestContextImpl) isRegistrar() (string, bool, error) {
 	caller, err := ctx.GetCaller()
 	if err != nil {
 		return "", false, err
@@ -511,7 +517,7 @@ func (ctx *serverRequestContext) isRegistrar() (string, bool, error) {
 }
 
 // CanActOnType returns true if the caller has the proper authority to take action on specific type
-func (ctx *serverRequestContext) CanActOnType(userType string) error {
+func (ctx *serverRequestContextImpl) CanActOnType(userType string) error {
 	canAct, err := ctx.canActOnType(userType)
 	if err != nil {
 		return newHTTPErr(500, ErrGettingType, "Failed to verify if user can act on type '%s': %s", userType, err)
@@ -522,7 +528,7 @@ func (ctx *serverRequestContext) CanActOnType(userType string) error {
 	return nil
 }
 
-func (ctx *serverRequestContext) canActOnType(requestedType string) (bool, error) {
+func (ctx *serverRequestContextImpl) canActOnType(requestedType string) (bool, error) {
 	caller, err := ctx.GetCaller()
 	if err != nil {
 		return false, err
@@ -560,7 +566,7 @@ func (ctx *serverRequestContext) canActOnType(requestedType string) (bool, error
 }
 
 // HasRole returns an error if the caller does not have the attribute or the value is false for a boolean attribute
-func (ctx *serverRequestContext) HasRole(role string) error {
+func (ctx *serverRequestContextImpl) HasRole(role string) error {
 	hasRole, err := ctx.hasRole(role)
 	if err != nil {
 		return err
@@ -572,7 +578,7 @@ func (ctx *serverRequestContext) HasRole(role string) error {
 }
 
 // HasRole returns true if the caller has the attribute and value of the attribute is true
-func (ctx *serverRequestContext) hasRole(role string) (bool, error) {
+func (ctx *serverRequestContextImpl) hasRole(role string) (bool, error) {
 	if ctx.callerRoles == nil {
 		ctx.callerRoles = make(map[string]bool)
 	}
@@ -601,7 +607,7 @@ func (ctx *serverRequestContext) hasRole(role string) (bool, error) {
 }
 
 // GetVar returns the parameter path variable from the URL
-func (ctx *serverRequestContext) GetVar(name string) (string, error) {
+func (ctx *serverRequestContextImpl) GetVar(name string) (string, error) {
 	vars := gmux.Vars(ctx.req)
 	if vars == nil {
 		return "", newHTTPErr(500, ErrHTTPRequest, "Failed to correctly handle HTTP request")
@@ -611,7 +617,7 @@ func (ctx *serverRequestContext) GetVar(name string) (string, error) {
 }
 
 // GetBoolQueryParm returns query parameter from the URL
-func (ctx *serverRequestContext) GetBoolQueryParm(name string) (bool, error) {
+func (ctx *serverRequestContextImpl) GetBoolQueryParm(name string) (bool, error) {
 	var err error
 
 	value := false
@@ -626,12 +632,49 @@ func (ctx *serverRequestContext) GetBoolQueryParm(name string) (bool, error) {
 	return value, nil
 }
 
-func (ctx *serverRequestContext) GetQueryParm(name string) string {
+// GetQueryParm returns the value of query param based on name
+func (ctx *serverRequestContextImpl) GetQueryParm(name string) string {
 	return ctx.req.URL.Query().Get(name)
 }
 
-func (ctx *serverRequestContext) GetReq() *http.Request {
+// GetReq returns the http.Request
+func (ctx *serverRequestContextImpl) GetReq() *http.Request {
 	return ctx.req
+}
+
+// GetResp returns the http.ResponseWriter
+func (ctx *serverRequestContextImpl) GetResp() http.ResponseWriter {
+	return ctx.resp
+}
+
+// GetCertificates executes the DB query to get back certificates based on the filters passed in
+func (ctx *serverRequestContextImpl) GetCertificates(req server.CertificateRequest, callerAff string) (*sqlx.Rows, error) {
+	return ctx.ca.certDBAccessor.GetCertificates(req, callerAff)
+}
+
+// ChunksToDeliver returns the number of chunks to deliver per flush
+func (ctx *serverRequestContextImpl) ChunksToDeliver(envVar string) (int, error) {
+	var chunkSize int
+	var err error
+
+	if envVar == "" {
+		chunkSize = 100
+	} else {
+		chunkSize, err = strconv.Atoi(envVar)
+		if err != nil {
+			return 0, newHTTPErr(500, ErrParsingIntEnvVar, "Incorrect format specified for environment variable '%s', an integer value is required: %s", envVar, err)
+		}
+	}
+	return chunkSize, nil
+}
+
+// Registry returns the registry for the ca
+func (ctx *serverRequestContextImpl) GetRegistry() spi.UserRegistry {
+	return ctx.ca.registry
+}
+
+func (ctx *serverRequestContextImpl) GetCAConfig() *CAConfig {
+	return ctx.ca.Config
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {
