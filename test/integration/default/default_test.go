@@ -44,6 +44,7 @@ var (
 	defaultServerPort      = 7054
 	defaultServerEnrollURL = fmt.Sprintf("http://admin:adminpw@localhost:%d", defaultServerPort)
 	defaultServerHomeDir   = "defaultServerDir"
+	storeCertsDir          = "/tmp/testCerts"
 )
 
 func TestMain(m *testing.M) {
@@ -73,6 +74,7 @@ func TestMain(m *testing.M) {
 	}
 
 	os.RemoveAll(defaultServerHomeDir)
+	os.RemoveAll(storeCertsDir)
 	os.Exit(rc)
 }
 
@@ -245,6 +247,13 @@ func TestListCertificateCmdPositive(t *testing.T) {
 	result, err = captureCLICertificatesOutput(command.RunMain, []string{cmdName, "certificate", "list", "-d", "--id", "fakeID"})
 	assert.NoError(t, err, "Should not error if the ID does not exist")
 	assert.Contains(t, result, "No results returned")
+
+	result, err = captureCLICertificatesOutput(command.RunMain, []string{cmdName, "certificate", "list", "--id", "expire1", "--store", storeCertsDir})
+	assert.NoError(t, err, "Should not error if the ID does not exist")
+	assert.Equal(t, true, util.FileExists(filepath.Join(storeCertsDir, "expire1-1.pem")))
+	assert.Equal(t, true, util.FileExists(filepath.Join(storeCertsDir, "expire1-2.pem")))
+	assert.Contains(t, result, "Serial Number: 1121")
+	assert.Contains(t, result, "Serial Number: 1124")
 }
 
 func populateCertificatesTable(t *testing.T, srv *lib.Server) {

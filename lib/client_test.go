@@ -1442,6 +1442,61 @@ func TestRevokedIdentity(t *testing.T) {
 	}
 }
 
+func TestGetCertificatesClient(t *testing.T) {
+	serverHome := path.Join(serversDir, "gencrlserver")
+	clientHome := path.Join(tdDir, "gencrlclient")
+
+	err := os.RemoveAll(serverHome)
+	assert.NoError(t, err, "Failed to remove directory: %s", serverHome)
+	err = os.RemoveAll(clientHome)
+	assert.NoError(t, err, "Failed to remove directory: %s", clientHome)
+	defer os.RemoveAll(serverHome)
+	defer os.RemoveAll(clientHome)
+
+	srv, adminID := setupGetCertTest(t, serverHome, clientHome)
+	defer func() {
+		if srv != nil {
+			srv.Stop()
+		}
+	}()
+
+	cd := NewCertificateDecoder(filepath.Join(clientHome, "getCert"))
+	err = adminID.GetCertificates(&api.GetCertificatesRequest{}, cd.CertificateDecoder)
+	assert.NoError(t, err)
+
+	_, err = os.Stat(filepath.Join(clientHome, "getCert", "admin.pem"))
+	if err != nil {
+		t.Error("Failed to store certificate in correct location")
+	}
+}
+
+func setupGetCertTest(t *testing.T, serverHome, clientHome string) (*Server, *Identity) {
+	server := TestGetServer(ctport1, serverHome, "", 1, t)
+	if server == nil {
+		t.Fatalf("Failed to get server")
+	}
+	d, _ := time.ParseDuration("2h")
+	server.CA.Config.Signing.Default.Expiry = d
+
+	err := server.Start()
+	if err != nil {
+		t.Fatalf("Failed to start server: %s", err)
+	}
+
+	c := &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+		HomeDir: clientHome,
+	}
+
+	// Enroll admin
+	eresp, err := c.Enroll(&api.EnrollmentRequest{Name: "admin", Secret: "adminpw"})
+	if err != nil {
+		t.Fatalf("Failed to enroll admin: %s", err)
+	}
+	adminID := eresp.Identity
+	return server, adminID
+}
+
 func testWhenServerIsDown(c *Client, t *testing.T) {
 	enrollReq := &api.EnrollmentRequest{
 		Name:   "admin",

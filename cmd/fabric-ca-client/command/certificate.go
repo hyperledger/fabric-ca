@@ -1,22 +1,13 @@
 /*
-Copyright IBM Corp. 2017, 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package command
 
 import (
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,6 +23,7 @@ type certificateCommand struct {
 	command  Command
 	list     api.GetCertificatesRequest
 	timeArgs timeArgs
+	store    string
 }
 
 type timeArgs struct {
@@ -73,6 +65,7 @@ func newListCertificateCommand(c *certificateCommand) *cobra.Command {
 	}
 	flags := certificateListCmd.Flags()
 	flags.StringVarP(&c.list.ID, "id", "", "", "Get certificates for this enrollment ID")
+	flags.StringVarP(&c.store, "store", "", "", "Store requested certificates in this location")
 	viper := c.command.GetViper()
 	util.RegisterFlags(viper, flags, &c.list, nil)
 	util.RegisterFlags(viper, flags, &c.timeArgs, nil)
@@ -108,7 +101,15 @@ func (c *certificateCommand) runListCertificate(cmd *cobra.Command, args []strin
 	req := &c.list
 	req.CAName = c.command.GetClientCfg().CAName
 
-	return id.GetCertificates(req, lib.CertificateDecoder)
+	if c.store != "" {
+		if !filepath.IsAbs(c.store) {
+			c.store = filepath.Join(c.command.GetHomeDirectory(), c.store)
+		}
+		log.Infof("Certificates stored at: %s", c.store)
+	}
+
+	certDecoder := lib.NewCertificateDecoder(c.store)
+	return id.GetCertificates(req, certDecoder.CertificateDecoder)
 }
 
 func (c *certificateCommand) getCertListReq() error {
