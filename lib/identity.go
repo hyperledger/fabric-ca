@@ -534,7 +534,7 @@ func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("Adding token-based authorization header")
 	cert := i.ecert.cert
 	key := i.ecert.key
-	token, err := util.CreateToken(i.CSP, cert, key, body)
+	token, err := util.CreateToken(i.CSP, cert, key, req.Method, req.URL.RequestURI(), body)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to add token authorization header")
 	}
