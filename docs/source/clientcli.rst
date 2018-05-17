@@ -219,4 +219,5 @@ Certificate Command
           --notrevoked          Don't return revoked certificates
           --revocation string   Get certificates that were revoked between the UTC timestamp (RFC3339 format) or duration specified (e.g. <begin_time>::<end_time>)
           --serial string       Get certificates for this serial number
+          --store string        Store requested certificates in this location
     

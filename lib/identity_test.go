@@ -70,7 +70,7 @@ func testGetECert(id *Identity, t *testing.T) {
 	}
 }
 
-func TestGetCertificates(t *testing.T) {
+func TestGetCertificatesErr(t *testing.T) {
 	id := getIdentity()
 	id.client = &Client{
 		Config: &ClientConfig{},

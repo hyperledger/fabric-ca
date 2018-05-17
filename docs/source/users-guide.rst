@@ -2114,6 +2114,18 @@ List certificates expiring in the next 10 days:
 
  fabric-ca-client certificate list --id admin --expiration ::+10d --notrevoked
 
+The list certificate command can also be used to store certificates on the file
+system. This is a convenient way to populate the admins folder in an MSP, The "-store" flag
+points to the location on the file system to store the certificates.
+
+Configure an identity to be an admin, by storing certificates for an identity
+in the MSP:
+
+.. code:: bash
+
+ export FABRIC_CA_CLIENT_HOME=/tmp/clientHome
+ fabric-ca-client certificate list --id admin --store msp/admincerts
+
 Contact specific CA instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
