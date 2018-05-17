@@ -1015,7 +1015,7 @@ To upgrade a single instance of Fabric CA server:
 5. Verify the fabric-ca-server process is available with the following
    command where <host> is the hostname on which the server was started::
 
-      fabric-ca-client getcacert -u http://<host>:7054
+      fabric-ca-client getcainfo -u http://<host>:7054
 
 Upgrading a cluster:
 ^^^^^^^^^^^^^^^^^^^^
@@ -1075,7 +1075,7 @@ To display summary information from the haproxy "show stat" command, the followi
    database as their older counterparts on host1 and host2. After starting
    the upgraded servers, the database will be automatically migrated. The
    haproxy will forward all new traffic to the upgraded servers, since they
-   are not configured as backup servers. Verify using the ``"fabric-ca-client getcacert"``
+   are not configured as backup servers. Verify using the ``"fabric-ca-client getcainfo"``
    command that your cluster is still functioning appropriately before proceeding.
    Also, ``"haProxyShowStats"`` should now reflect that all servers are active,
    similar to the following::
@@ -1087,7 +1087,7 @@ To display summary information from the haproxy "show stat" command, the followi
         4   fabric-cas  server2    UP     1    0    1
 
 4) Stop the old servers on host1 and host2. Verify using the
-   ``"fabric-ca-client getcacert"`` command that your new cluster is still
+   ``"fabric-ca-client getcainfo"`` command that your new cluster is still
    functioning appropriately before proceeding. Then remove the older
    server backup configuration from the haproxy configuration file,
    so that it looks similar to the following::
@@ -1422,7 +1422,7 @@ Getting a CA certificate chain from another Fabric CA server
 In general, the cacerts directory of the MSP directory must contain the certificate authority chains
 of other certificate authorities, representing all of the roots of trust for the peer.
 
-The ``fabric-ca-client getcacerts`` command is used to retrieve these certificate chains from other
+The ``fabric-ca-client getcainfo`` command is used to retrieve these certificate chains from other
 Fabric CA server instances.
 
 For example, the following will start a second Fabric CA server on localhost
@@ -1439,7 +1439,7 @@ The following command will install CA2's certificate chain into peer1's MSP dire
 .. code:: bash
 
     export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
-    fabric-ca-client getcacert -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
+    fabric-ca-client getcainfo -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
 
 By default, the Fabric CA server returns the CA chain in child-first order. This means that each CA
 certificate in the chain is followed by its issuer's CA certificate. If you need the Fabric CA server

@@ -221,7 +221,7 @@ func (c *ClientCmd) ConfigInit() error {
 
 	log.Debugf("Home directory: %s", c.homeDirectory)
 
-	// Set configuration file name for viper and configure it read env variables
+	// Set configuration file name for viper and configure it to read env variables
 	c.myViper.SetConfigFile(c.cfgFileName)
 	c.myViper.AutomaticEnv() // read in environment variables that match
 

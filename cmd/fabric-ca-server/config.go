@@ -129,6 +129,12 @@ ca:
   certfile:
   # Chain file
   chainfile:
+  # Name of the CA's Idemix public key (default: IssuerPublicKey). It will be stored
+  # in the home directory of the CA
+  idemixpublickeyfile:
+  # Name of the CA's Idemix secret key (default: IssuerSecretKey). It will be stored
+  # in the <CA Home>/msp/keystore directory of the CA
+  idemixsecretkeyfile:
 
 #############################################################################
 #  The gencrl REST endpoint is used to generate a CRL that contains revoked

@@ -145,18 +145,26 @@
               "properties": {
                 "Success": {
                   "type": "boolean",
-                  "description": "Boolean indicating if the request was successful."
+                  "description": "Boolean indicating if the request was successful"
                 },
                 "Result": {
                   "type": "object",
                   "properties": {
                     "caname": {
                       "type": "string",
-                      "description": "The name of the root CA associated with this server."
+                      "description": "The name of the root CA associated with this server"
                     },
                     "cachain": {
                       "type": "string",
-                      "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate."
+                      "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate"
+                    },
+                    "issuerpublickey": {
+                      "type": "string",
+                      "description": "Base 64 encoding of the CA's idemix public key"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "Version of the server"
                     }
                   }
                 },
@@ -1158,7 +1166,10 @@
                       "description": "Name of the CA containing this affiliation."
                     }
                   },
-                  "required": [ "name", "caname" ]
+                  "required": [
+                    "name",
+                    "caname"
+                  ]
                 },
                 "Errors": {
                   "type": "array",
@@ -1360,7 +1371,9 @@
                   "description": "Name of the CA to send the request to within the Fabric CA server."
                 }
               },
-              "required": ["name"]
+              "required": [
+                "name"
+              ]
             }
           }
         ],
