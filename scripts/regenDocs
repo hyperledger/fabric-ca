@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 ######################################################################
 #
@@ -17,39 +22,139 @@ echo "Making docs..."
 # Command Line Flag Generation
 ######################################################################
 
+function generateGlobalCLI {
+    echo "Generating Global CLI..."
+
+    # RST specific syntax to indicate a code a block
+    echo -e "=======================" >> servercli.rst
+    echo -e "Fabric-CA Server's CLI" >> servercli.rst
+    echo -e "=======================\n" >> servercli.rst
+    echo -e "::\n" >> servercli.rst
+
+    echo -e "=======================" > clientcli.rst
+    echo -e "Fabric-CA Client's CLI" >> clientcli.rst
+    echo -e "=======================\n" >> clientcli.rst
+    echo -e "::\n" >> clientcli.rst
+
+    # Direct the CLI help message to a temp file
+    fabric-ca-server > servercli_temp.rst
+    fabric-ca-client > clientcli_temp.rst
+
+    # Sanitize the CLI file to remove any machine specific information and provide a generic CLI
+    sed -i -e 's/home directory (default.*/home directory (default "$HOME\/.fabric-ca-client")/' clientcli_temp.rst
+    sed -i -e 's/enrollment (default.*/enrollment (default "$HOSTNAME")/' clientcli_temp.rst
+    sed -i -e 's/home directory (default.*/home directory (default "\/etc\/hyperledger\/fabric-ca")/' servercli_temp.rst
+
+    # Insert a few spaces in front of all the lines in temp files created above (RST formatting purposes)
+    sed -i -e 's/^/    /' servercli_temp.rst
+    sed -i -e 's/^/    /' clientcli_temp.rst
+
+    # Append temp files to ones created earlier
+    cat servercli_temp.rst >> servercli.rst
+    cat clientcli_temp.rst >> clientcli.rst
+}
+
+function generateIdentityCLI {
+    echo "Generating Identity Command CLI..."
+
+    echo -e "\nIdentity Command" >> clientcli.rst
+    echo -e "==================\n" >> clientcli.rst
+    echo -e "::\n" >> clientcli.rst
+
+    fabric-ca-client identity -h >> identity_cmd.rst
+    sed -i -e '/Global Flags:/,$d' identity_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> identity_cmd.rst
+
+    fabric-ca-client identity add -h > identity_add_cmd.rst
+    sed -i -e '/Global Flags:/,$d' identity_add_cmd.rst
+    cat identity_add_cmd.rst >> identity_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> identity_cmd.rst
+
+    fabric-ca-client identity list -h > identity_list_cmd.rst
+    sed -i -e '/Global Flags:/,$d' identity_list_cmd.rst
+    cat identity_list_cmd.rst >> identity_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> identity_cmd.rst
+
+    fabric-ca-client identity modify -h > identity_modify_cmd.rst
+    sed -i -e '/Global Flags:/,$d' identity_modify_cmd.rst
+    cat identity_modify_cmd.rst >> identity_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> identity_cmd.rst
+
+    fabric-ca-client identity remove -h > identity_remove_cmd.rst
+    sed -i -e '/Global Flags:/,$d' identity_remove_cmd.rst
+    cat identity_remove_cmd.rst >> identity_cmd.rst
+
+    sed -i -e 's/^/    /' identity_cmd.rst
+    cat identity_cmd.rst >> clientcli.rst
+}
+
+function generateAffiliationCLI {
+    echo "Generating Affiliation Command CLI..."
+
+    echo -e "\nAffiliation Command" >> clientcli.rst
+    echo -e "=====================\n" >> clientcli.rst
+    echo -e "::\n" >> clientcli.rst
+
+    fabric-ca-client affiliation -h >> affiliation_cmd.rst
+    sed -i -e '/Global Flags:/,$d' affiliation_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> affiliation_cmd.rst
+
+    fabric-ca-client affiliation add -h > affiliation_add_cmd.rst
+    sed -i -e '/Global Flags:/,$d' affiliation_add_cmd.rst
+    cat affiliation_add_cmd.rst >> affiliation_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> affiliation_cmd.rst
+
+    fabric-ca-client affiliation list -h > affiliation_list_cmd.rst
+    sed -i -e '/Global Flags:/,$d' affiliation_list_cmd.rst
+    cat affiliation_list_cmd.rst >> affiliation_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> affiliation_cmd.rst
+
+    fabric-ca-client affiliation modify -h > affiliation_modify_cmd.rst
+    sed -i -e '/Global Flags:/,$d' affiliation_modify_cmd.rst
+    cat affiliation_modify_cmd.rst >> affiliation_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> affiliation_cmd.rst
+
+    fabric-ca-client affiliation remove -h > affiliation_remove_cmd.rst
+    sed -i -e '/Global Flags:/,$d' affiliation_remove_cmd.rst
+    cat affiliation_remove_cmd.rst >> affiliation_cmd.rst
+
+    sed -i -e 's/^/    /' affiliation_cmd.rst
+    cat affiliation_cmd.rst >> clientcli.rst
+}
+
+function generateCertificateCLI {
+    echo "Generating Certificate Command CLI..."
+
+    echo -e "\nCertificate Command" >> clientcli.rst
+    echo -e "=====================\n" >> clientcli.rst
+    echo -e "::\n" >> clientcli.rst
+
+    fabric-ca-client certificate -h >> certificate_cmd.rst
+    sed -i -e '/Global Flags:/,$d' certificate_cmd.rst
+    printf '%s\n\n' '-----------------------------' >> certificate_cmd.rst
+
+    fabric-ca-client certificate list -h > certificate_list_cmd.rst
+    sed -i -e '/Global Flags:/,$d' certificate_list_cmd.rst
+    cat certificate_list_cmd.rst >> certificate_cmd.rst
+
+    sed -i -e 's/^/    /' certificate_cmd.rst
+    cat certificate_cmd.rst >> clientcli.rst
+}
+
+
 fabric_ca=$GOPATH/src/github.com/hyperledger/fabric-ca
 docsdir=$fabric_ca/docs/source
 export PATH=$PATH:$fabric_ca/bin
 
 temp=$docsdir/temp
+rm -rf $temp
 mkdir -p $temp
 cd $temp
 
-# RST specific syntax to indicate a code a block
-echo -e "Fabric-CA Server's CLI" > servercli.rst
-echo -e "=======================\n" >> servercli.rst
-echo -e "::\n" >> servercli.rst
-
-echo -e "Fabric-CA Client's CLI" > clientcli.rst
-echo -e "======================\n" >> clientcli.rst
-echo -e "::\n" >> clientcli.rst
-
-# Direct the CLI help message to a temp file
-fabric-ca-server > servercli_temp.rst
-fabric-ca-client > clientcli_temp.rst
-
-# Sanitize the CLI file to remove any machine specific information and provide a generic CLI
-sed -i -e 's/home directory (default.*/home directory (default "$HOME\/.fabric-ca-client")/' clientcli_temp.rst
-sed -i -e 's/enrollment (default.*/enrollment (default "$HOSTNAME")/' clientcli_temp.rst
-sed -i -e 's/home directory (default.*/home directory (default "\/etc\/hyperledger\/fabric-ca")/' servercli_temp.rst
-
-# Insert a few spaces in front of all the lines in temp files created above (RST formatting purposes)
-sed -i -e 's/^/    /' servercli_temp.rst
-sed -i -e 's/^/    /' clientcli_temp.rst
-
-# Append temp files to ones created earlier
-cat servercli_temp.rst >> servercli.rst
-cat clientcli_temp.rst >> clientcli.rst
+generateGlobalCLI
+generateIdentityCLI
+generateAffiliationCLI
+generateCertificateCLI
 
 mv servercli.rst $docsdir/servercli.rst
 mv clientcli.rst $docsdir/clientcli.rst
