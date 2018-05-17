@@ -375,6 +375,175 @@
         }
       }
     },
+    "/api/v1/idemix/credential": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get an Identity Mixer credential. Identity Mixer credential issuance is a two step process. First, a request with empty request body is sent to this endpoint. The Fabric CA server will respond back with a nonce. This nonce should be used to create a credential request. Next, a request with the credential request in the request body is sent to this endpoint. The server will respond back with a credential.",
+        "parameters": [
+          {
+            "name": "ca",
+            "in": "query",
+            "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
+            "type": "string"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "**basic** <base64 encoding of userid:password> (OR) **token** <An enrollment token consisting of two base 64 encoded parts separated by a period:  an enrollment certificate; a signature over the certificate and body of request>",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "The request body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "request": {
+                  "type": "string",
+                  "description": "JSON encoding idemix.CredentialRequest struct"
+                },
+                "caname": {
+                  "type": "string",
+                  "description": "Name of the CA to direct this request to within the Fabric CA server"
+                }
+              },
+              "required": [
+                "request"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully returned a nonce or Identity Mixer credential",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "Success": {
+                  "type": "boolean",
+                  "description": "Boolean indicating if the request was successful"
+                },
+                "Result": {
+                  "type": "object",
+                  "properties": {
+                    "credential": {
+                      "type": "string",
+                      "description": "The credential in base64 encoding of the bytes of the Credential proto buffer"
+                    },
+                    "nonce": {
+                      "type": "string",
+                      "description": "The nonce in base 64 encoded format"
+                    },
+                    "attrs": {
+                      "type": "object",
+                      "properties": {
+                        "OU": {
+                          "type": "string",
+                          "description": "The Organizational Unit of the identity that requested the credential"
+                        },
+                        "IsAdmin": {
+                          "type": "string",
+                          "description": "'true' if the identity that requested the credential is an admin"
+                        },
+                        "EnrollmentID": {
+                          "type": "string",
+                          "description": "The enrollment ID of the identity that requested the credential"
+                        }
+                      },
+                      "required": [
+                        "OU",
+                        "IsAdmin",
+                        "EnrollmentID"
+                      ]
+                    },
+                    "serverinfo": {
+                      "type": "object",
+                      "properties": {
+                        "caname": {
+                          "type": "string",
+                          "description": "The name of the CA that issued the credential"
+                        },
+                        "cachain": {
+                          "type": "string",
+                          "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                        },
+                        "issuerpublickey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of the CA's idemix public key"
+                        },
+                        "version": {
+                          "type": "string",
+                          "description": "Version of the server"
+                        }
+                      },
+                      "required": [
+                        "caname",
+                        "cachain",
+                        "issuerpublickey",
+                        "version"
+                      ]
+                    }
+                  }
+                },
+                "Errors": {
+                  "type": "array",
+                  "description": "A array of error messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of error."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "An error message"
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                },
+                "Messages": {
+                  "type": "array",
+                  "description": "A array of informational messages (i.e. code and string messages).",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "integer",
+                        "description": "Integer code denoting the type of message."
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "A more specific message."
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "Success",
+                "Result",
+                "Errors",
+                "Messages"
+              ]
+            }
+          }
+        }
+      }
+    },
     "/api/v1/reenroll": {
       "post": {
         "tags": [
@@ -2519,8 +2688,8 @@
                       "type": "array",
                       "description": "An array of base64 encoded PEM-encoded certificates",
                       "items": {
-                          "type": "string",
-                          "description": "base64 encoded PEM-encoded CRL"
+                        "type": "string",
+                        "description": "base64 encoded PEM-encoded CRL"
                       }
                     },
                     "caname": {
@@ -2775,4 +2944,3 @@
     }
   }
 }
-
