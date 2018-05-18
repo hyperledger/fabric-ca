@@ -189,7 +189,7 @@ for driver in postgres mysql; do
    done
 
    # notadmin cannot revoke
-   revokeUser notadmin user11 ca1 2>&1 | egrep "Caller does not have authority to revoke"
+   revokeUser notadmin user11 ca1 2>&1 | egrep "Authorization failure"
    test "$?" -ne 0 && ErrorMsg "Non-revoker successfully revoked cert or failed for incorrect reason"
 
    # Check the DB contents
@@ -237,7 +237,7 @@ for driver in postgres mysql; do
          echo "=========================> REVOKING self"
          revokeUser admin admin ca$i
          # Verify that the cert is no longer usable
-         revokeUser admin user$i$j ca$i 2>&1 | egrep "Authorization failure"
+         revokeUser admin user$i$j ca$i 2>&1 | egrep "Authentication failure"
          test $? -ne 0 && ErrorMsg "Improper revocation using revoked certificate" RC
       done
    done

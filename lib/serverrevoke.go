@@ -61,7 +61,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Make sure that the caller has the "hf.Revoker" attribute.
 	err = ca.attributeIsTrue(id, "hf.Revoker")
 	if err != nil {
-		return nil, newHTTPErr(401, ErrNotRevoker, "Caller does not have authority to revoke")
+		return nil, newAuthorizationErr(ErrNotRevoker, "Caller does not have authority to revoke")
 	}
 
 	req.AKI = parseInput(req.AKI)

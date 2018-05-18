@@ -70,5 +70,5 @@ func TestIdemixCredRevokedUser(t *testing.T) {
 		Secret: "user2pw",
 	})
 	t.Log("Error: ", err)
-	util.ErrorContains(t, err, "20", "Revoked user with only Idemix credential, should not be able to make requests to the server")
+	util.ErrorContains(t, err, "71", "Revoked user with only Idemix credential, should not be able to make requests to the server")
 }
