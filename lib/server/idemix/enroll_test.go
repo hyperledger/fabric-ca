@@ -159,7 +159,7 @@ func TestHandleIdemixEnrollForCredentialError(t *testing.T) {
 	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
 	nonce := handler.GenerateNonce()
 
-	credReq, _, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {
 		t.Fatalf("Failed to create credential request: %s", err.Error())
 	}
@@ -224,7 +224,7 @@ func TestHandleIdemixEnrollCheckNonceError(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("Name").Return("foo")
 
-	credReq, _, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -283,7 +283,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -347,7 +347,7 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -425,7 +425,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -503,7 +503,7 @@ func getReadBodyFunc(t *testing.T, credReq *idemix.CredRequest) func(body interf
 	}
 }
 
-func newIdemixCredentialRequest(t *testing.T, nonce *amcl.BIG) (*idemix.CredRequest, *amcl.BIG, *amcl.BIG, error) {
+func newIdemixCredentialRequest(t *testing.T, nonce *amcl.BIG) (*idemix.CredRequest, *amcl.BIG, error) {
 	idmxlib := new(mocks.Lib)
 	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idmxlib)
 	err := issuerCred.Load()
@@ -516,9 +516,8 @@ func newIdemixCredentialRequest(t *testing.T, nonce *amcl.BIG) (*idemix.CredRequ
 	}
 	rng, err := idemix.GetRand()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	sk := idemix.RandModOrder(rng)
-	randCred := idemix.RandModOrder(rng)
-	return idemix.NewCredRequest(sk, randCred, nonce, ik.IPk, rng), sk, randCred, nil
+	return idemix.NewCredRequest(sk, nonce, ik.IPk, rng), sk, nil
 }

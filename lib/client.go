@@ -340,7 +340,7 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to decode issuer public key that was returned by CA %s", req.CAName))
 	}
 	// Create credential request
-	credReq, sk, rand, err := c.newIdemixCredentialRequest(nonce, ipkBytes)
+	credReq, sk, err := c.newIdemixCredentialRequest(nonce, ipkBytes)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to create an Idemix credential request")
 	}
@@ -367,7 +367,7 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 		return nil, err
 	}
 	log.Infof("Successfully received Idemix credential from CA %s", req.CAName)
-	return c.newIdemixEnrollmentResponse(identity, &result, sk, rand, req.Name)
+	return c.newIdemixEnrollmentResponse(identity, &result, sk, req.Name)
 }
 
 // addAuthHeaderForIdemixEnroll adds authenticate header to the specified HTTP request
@@ -430,30 +430,18 @@ func (c *Client) newEnrollmentResponse(result *common.EnrollmentResponseNet, id 
 
 // newIdemixEnrollmentResponse creates a client idemix enrollment response from a network response
 func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.IdemixEnrollmentResponseNet,
-	sk, rand *fp256bn.BIG, id string) (*EnrollmentResponse, error) {
+	sk *fp256bn.BIG, id string) (*EnrollmentResponse, error) {
 	log.Debugf("newIdemixEnrollmentResponse %s", id)
 	credBytes, err := util.B64Decode(result.Credential)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Invalid response format from server")
 	}
 
-	icred := &idemix.Credential{}
-	err = proto.Unmarshal(credBytes, icred)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to unmarshal Idemix credential bytes")
-	}
-
-	icred.Complete(rand)
-	ccredBytes, err := proto.Marshal(icred)
-	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to marshal completed Idemix credential")
-	}
-
 	// Create SignerConfig object with credential bytes from the response
 	// and secret key
 	isAdmin, _ := strconv.ParseBool(result.Attrs["Role"])
 	signerConfig := &idemixcred.SignerConfig{
-		Cred:    ccredBytes,
+		Cred:    credBytes,
 		Sk:      idemix.BigToBytes(sk),
 		IsAdmin: isAdmin,
 		OrganizationalUnitIdentifier: result.Attrs["OU"],
@@ -512,19 +500,18 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo) *csr.CertificateRequest
 
 // newIdemixCredentialRequest returns CredentialRequest object, a secret key, and a random number used in
 // the creation of credential request.
-func (c *Client) newIdemixCredentialRequest(nonce *fp256bn.BIG, ipkBytes []byte) (*idemix.CredRequest, *fp256bn.BIG, *fp256bn.BIG, error) {
+func (c *Client) newIdemixCredentialRequest(nonce *fp256bn.BIG, ipkBytes []byte) (*idemix.CredRequest, *fp256bn.BIG, error) {
 	rng, err := idemix.GetRand()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	sk := idemix.RandModOrder(rng)
-	randCred := idemix.RandModOrder(rng)
 
 	issuerPubKey, err := c.getIssuerPubKey(ipkBytes)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	return idemix.NewCredRequest(sk, randCred, nonce, issuerPubKey, rng), sk, randCred, nil
+	return idemix.NewCredRequest(sk, nonce, issuerPubKey, rng), sk, nil
 }
 
 func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
