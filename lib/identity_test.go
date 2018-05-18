@@ -1,40 +1,32 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp/factory"
+	clientcred "github.com/hyperledger/fabric-ca/lib/client/credential"
+	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/stretchr/testify/assert"
 )
 
-func getIdentity() *Identity {
-	key, _ := util.ImportBCCSPKeyFromPEM("../tesdata/ec-key.pem", factory.GetDefault(), true)
-	cert, _ := ioutil.ReadFile("../tesdata/ec.pem")
-	id := newIdentity(nil, "test", key, cert)
+func getIdentity(t *testing.T) *Identity {
+	cred := x509.NewCredential("../testdata/ec.pem", "../testdata/ec-key.pem", nil)
+	err := cred.Load()
+	if err != nil {
+		t.Fatalf("Failed to load credential from non existant file ../tesdata/ec.pem: %s", err.Error())
+	}
+	id := NewIdentity(nil, "test", []clientcred.Credential{cred})
 	return id
 }
 
 func TestIdentity(t *testing.T) {
-	id := getIdentity()
+	id := getIdentity(t)
 	testGetName(id, t)
 	testGetECert(id, t)
 }
@@ -71,7 +63,7 @@ func testGetECert(id *Identity, t *testing.T) {
 }
 
 func TestGetCertificatesErr(t *testing.T) {
-	id := getIdentity()
+	id := getIdentity(t)
 	id.client = &Client{
 		Config: &ClientConfig{},
 	}

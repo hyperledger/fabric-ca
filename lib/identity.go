@@ -16,30 +16,27 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/client/credential"
+	"github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
+	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
 )
-
-func newIdentity(client *Client, name string, key bccsp.Key, cert []byte) *Identity {
-	id := new(Identity)
-	id.name = name
-	id.ecert = newSigner(key, cert, id)
-	id.client = client
-	if client != nil {
-		id.CSP = client.csp
-	} else {
-		id.CSP = util.GetDefaultBCCSP()
-	}
-	return id
-}
 
 // Identity is fabric-ca's implementation of an identity
 type Identity struct {
 	name   string
-	ecert  *Signer
 	client *Client
-	CSP    bccsp.BCCSP
+	creds  []credential.Credential
+}
+
+// NewIdentity is the constructor for identity
+func NewIdentity(client *Client, name string, creds []credential.Credential) *Identity {
+	id := new(Identity)
+	id.name = name
+	id.client = client
+	id.creds = creds
+	return id
 }
 
 // GetName returns the identity name
@@ -52,13 +49,43 @@ func (i *Identity) GetClient() *Client {
 	return i.client
 }
 
+// GetIdemixCredential returns Idemix credential of this identity
+func (i *Identity) GetIdemixCredential() credential.Credential {
+	for _, cred := range i.creds {
+		if cred.Type() == idemix.CredType {
+			return cred
+		}
+	}
+	return nil
+}
+
+// GetX509Credential returns X509 credential of this identity
+func (i *Identity) GetX509Credential() credential.Credential {
+	for _, cred := range i.creds {
+		if cred.Type() == x509.CredType {
+			return cred
+		}
+	}
+	return nil
+}
+
 // GetECert returns the enrollment certificate signer for this identity
-func (i *Identity) GetECert() *Signer {
-	return i.ecert
+// Returns nil if the identity does not have a X509 credential
+func (i *Identity) GetECert() *x509.Signer {
+	for _, cred := range i.creds {
+		if cred.Type() == x509.CredType {
+			v, _ := cred.Val()
+			if v != nil {
+				s, _ := v.(*x509.Signer)
+				return s
+			}
+		}
+	}
+	return nil
 }
 
 // GetTCertBatch returns a batch of TCerts for this identity
-func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*Signer, error) {
+func (i *Identity) GetTCertBatch(req *api.GetTCertBatchRequest) ([]*x509.Signer, error) {
 	reqBody, err := util.Marshal(req, "GetTCertBatchRequest")
 	if err != nil {
 		return nil, err
@@ -425,7 +452,13 @@ func (i *Identity) Store() error {
 	if i.client == nil {
 		return errors.New("An identity with no client may not be stored")
 	}
-	return i.client.StoreMyIdentity(i.ecert.cert)
+	for _, cred := range i.creds {
+		err := cred.Store()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Get sends a get request to an endpoint
@@ -523,11 +556,15 @@ func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}, que
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("Adding token-based authorization header")
-	cert := i.ecert.cert
-	key := i.ecert.key
-	token, err := util.CreateToken(i.CSP, cert, key, req.Method, req.URL.RequestURI(), body)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to add token authorization header")
+	var token string
+	var err error
+	for _, cred := range i.creds {
+		if cred.Type() == x509.CredType {
+			token, err = cred.CreateOAuthToken(req, body)
+			if err != nil {
+				return errors.WithMessage(err, "Failed to add token authorization header")
+			}
+		}
 	}
 	req.Header.Set("authorization", token)
 	return nil
