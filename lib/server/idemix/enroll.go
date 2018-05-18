@@ -27,8 +27,8 @@ type EnrollmentResponse struct {
 	Credential string
 	// Attribute name-value pairs
 	Attrs map[string]string
-	// Base64 encoding of Credential Revocation list
-	//CRL string
+	// Base64 encoding of Credential Revocation information
+	CRI string
 	// Base64 encoding of the issuer nonce
 	Nonce string
 }
@@ -116,24 +116,36 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	}
 	b64CredBytes := util.B64Encode(credBytes)
 
+	rhstr := util.B64Encode(idemix.BigToBytes(rh))
+
 	// Store the credential in the database
 	err = h.Issuer.CredDBAccessor().InsertCredential(CredRecord{
 		CALabel:          h.Issuer.Name(),
 		ID:               caller.GetName(),
 		Status:           "good",
 		Cred:             b64CredBytes,
-		RevocationHandle: int(*rh),
+		RevocationHandle: rhstr,
 	})
 	if err != nil {
 		log.Errorf("Failed to store the Idemix credential for identity '%s' in the database: %s", caller.GetName(), err.Error())
 		return nil, errors.New("Failed to store the Idemix credential")
 	}
 
-	// TODO: Get CRL from revocation authority of the CA
-
+	// Get CRL from revocation authority of the CA
+	cri, err := h.Issuer.RevocationAuthority().CreateCRI()
+	if err != nil {
+		log.Errorf("Failed to generate CRI while processing idemix/credential request: %s", err.Error())
+		return nil, errors.New("Failed to generate CRI")
+	}
+	criBytes, err := proto.Marshal(cri)
+	if err != nil {
+		return nil, errors.New("Failed to marshal CRI to bytes")
+	}
+	b64CriBytes := util.B64Encode(criBytes)
 	resp := &EnrollmentResponse{
 		Credential: b64CredBytes,
 		Attrs:      attrMap,
+		CRI:        b64CriBytes,
 	}
 
 	if h.Ctx.IsBasicAuth() {
@@ -171,7 +183,7 @@ func (h *EnrollRequestHandler) GenerateNonce() *fp256bn.BIG {
 
 // GetAttributeValues returns attribute values of the caller of Idemix enroll request
 func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.IssuerPublicKey,
-	rh *RevocationHandle) (map[string]string, []*fp256bn.BIG, error) {
+	rh *fp256bn.BIG) (map[string]string, []*fp256bn.BIG, error) {
 	rc := []*fp256bn.BIG{}
 	attrMap := make(map[string]string)
 	for _, attrName := range ipk.AttributeNames {
@@ -189,9 +201,8 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.I
 			rc = append(rc, idemix.HashModOrder(ouBytes))
 			attrMap[attrName] = ouVal
 		} else if attrName == AttrRevocationHandle {
-			rhi := int(*rh)
-			rc = append(rc, fp256bn.NewBIGint(rhi))
-			attrMap[attrName] = strconv.Itoa(rhi)
+			rc = append(rc, rh)
+			attrMap[attrName] = util.B64Encode(idemix.BigToBytes(rh))
 		} else if attrName == AttrRole {
 			isAdmin := false
 			attrObj, err := caller.GetAttribute("isAdmin")

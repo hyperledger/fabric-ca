@@ -437,6 +437,11 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.
 		return nil, errors.WithMessage(err, "Invalid response format from server")
 	}
 
+	criBytes, err := util.B64Decode(result.CRI)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Invalid response format from server")
+	}
+
 	// Create SignerConfig object with credential bytes from the response
 	// and secret key
 	isAdmin, _ := strconv.ParseBool(result.Attrs["Role"])
@@ -444,8 +449,9 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.
 		Cred:    credBytes,
 		Sk:      idemix.BigToBytes(sk),
 		IsAdmin: isAdmin,
-		OrganizationalUnitIdentifier: result.Attrs["OU"],
-		EnrollmentID:                 result.Attrs["EnrollmentID"],
+		OrganizationalUnitIdentifier:    result.Attrs["OU"],
+		EnrollmentID:                    result.Attrs["EnrollmentID"],
+		CredentialRevocationInformation: criBytes,
 	}
 
 	// Create IdemixCredential object

@@ -34,6 +34,11 @@ WHERE (id = ?);`
 SELECT %s FROM credentials
 WHERE (revocation_handle = ?);`
 
+	// SelectRevokedCredentialSQL is the SQL for getting revoked credentials
+	SelectRevokedCredentialSQL = `
+SELECT %s FROM credentials
+WHERE (status = 'revoked');`
+
 	// UpdateRevokeCredentialSQL is the SQL for updating status of a credential to revoked
 	UpdateRevokeCredentialSQL = `
 UPDATE credentials
@@ -49,7 +54,7 @@ DELETE FROM credentials
 // CredRecord represents a credential database record
 type CredRecord struct {
 	ID               string    `db:"id"`
-	RevocationHandle int       `db:"revocation_handle"`
+	RevocationHandle string    `db:"revocation_handle"`
 	Cred             string    `db:"cred"`
 	CALabel          string    `db:"ca_label"`
 	Status           string    `db:"status"`
@@ -71,6 +76,8 @@ type CredDBAccessor interface {
 	// GetCredentialsByID returns Idemix credentials associated with the specified
 	// enrollment ID
 	GetCredentialsByID(id string) ([]CredRecord, error)
+	// GetRevokedCredentials returns revoked credentials
+	GetRevokedCredentials() ([]CredRecord, error)
 }
 
 // CredentialAccessor implements IdemixCredDBAccessor interface
@@ -102,7 +109,7 @@ func (ac *CredentialAccessor) InsertCredential(cr CredRecord) error {
 	cr.Level = ac.level
 	res, err := ac.db.NamedExec(InsertCredentialSQL, cr)
 	if err != nil {
-		return errors.Wrap(err, "Failed to insert credential into database")
+		return errors.Wrap(err, "Failed to insert credential into datastore")
 	}
 
 	numRowsAffected, err := res.RowsAffected()
@@ -129,7 +136,7 @@ func (ac *CredentialAccessor) GetCredentialsByID(id string) ([]CredRecord, error
 	crs := []CredRecord{}
 	err = ac.db.Select(&crs, fmt.Sprintf(ac.db.Rebind(SelectCredentialByIDSQL), sqlstruct.Columns(CredRecord{})), id)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get credentials for identity '%s' from database", id)
+		return nil, errors.Wrapf(err, "Failed to get credentials for identity '%s' from datastore", id)
 	}
 
 	return crs, nil
@@ -145,10 +152,24 @@ func (ac *CredentialAccessor) GetCredential(revocationHandle string) (*CredRecor
 	cr := &CredRecord{}
 	err = ac.db.Select(cr, fmt.Sprintf(ac.db.Rebind(SelectCredentialSQL), sqlstruct.Columns(CredRecord{})), revocationHandle)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get credential associated with revocation handle '%s' from database", revocationHandle)
+		return nil, errors.Wrapf(err, "Failed to get credential associated with revocation handle '%s' from datastore", revocationHandle)
 	}
 
 	return cr, nil
+}
+
+// GetRevokedCredentials returns revoked certificates
+func (ac *CredentialAccessor) GetRevokedCredentials() ([]CredRecord, error) {
+	err := ac.checkDB()
+	if err != nil {
+		return nil, err
+	}
+	crs := []CredRecord{}
+	err = ac.db.Select(&crs, fmt.Sprintf(ac.db.Rebind(SelectRevokedCredentialSQL), sqlstruct.Columns(CredRecord{})))
+	if err != nil {
+		return crs, errors.Wrap(err, "Failed to get revoked credentials from datastore")
+	}
+	return crs, nil
 }
 
 func (ac *CredentialAccessor) checkDB() error {

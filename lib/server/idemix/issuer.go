@@ -14,6 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
@@ -25,6 +26,7 @@ type Issuer interface {
 	Init(renew bool, db dbutil.FabricCADB, levels *dbutil.Levels) error
 	IssuerPublicKey() ([]byte, error)
 	IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, error)
+	GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error)
 }
 
 // MyIssuer provides functions for accessing issuer components
@@ -101,10 +103,12 @@ func (i *issuer) Init(renew bool, db dbutil.FabricCADB, levels *dbutil.Levels) e
 		return err
 	}
 	i.credDBAccessor = NewCredentialAccessor(i.db, levels.Credential)
+	log.Debugf("Intializing revocation authority for issuer %s", i.Name())
 	i.rc, err = NewRevocationAuthority(i, levels.RAInfo)
 	if err != nil {
 		return err
 	}
+	log.Debugf("Intializing nonce manager for issuer %s", i.Name())
 	i.nm, err = NewNonceManager(i, &wallClock{}, levels.Nonce)
 	if err != nil {
 		return err
@@ -136,6 +140,18 @@ func (i *issuer) IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, err
 		Ctx:     ctx,
 		Issuer:  i,
 		IdmxLib: i.idemixLib,
+	}
+
+	return handler.HandleRequest()
+}
+
+func (i *issuer) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
+	if !i.isInitialized {
+		return nil, errors.New("Issuer is not initialized")
+	}
+	handler := CRIRequestHandler{
+		Ctx:    ctx,
+		Issuer: i,
 	}
 
 	return handler.HandleRequest()

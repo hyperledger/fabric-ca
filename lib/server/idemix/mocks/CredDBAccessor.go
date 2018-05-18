@@ -62,6 +62,29 @@ func (_m *CredDBAccessor) GetCredentialsByID(id string) ([]idemix.CredRecord, er
 	return r0, r1
 }
 
+// GetRevokedCredentials provides a mock function with given fields:
+func (_m *CredDBAccessor) GetRevokedCredentials() ([]idemix.CredRecord, error) {
+	ret := _m.Called()
+
+	var r0 []idemix.CredRecord
+	if rf, ok := ret.Get(0).(func() []idemix.CredRecord); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]idemix.CredRecord)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // InsertCredential provides a mock function with given fields: cr
 func (_m *CredDBAccessor) InsertCredential(cr idemix.CredRecord) error {
 	ret := _m.Called(cr)

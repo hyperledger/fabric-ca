@@ -18,6 +18,8 @@ type SignerConfig struct {
 	IsAdmin bool `protobuf:"varint,4,opt,name=is_admin,json=isAdmin" json:"is_admin,omitempty"`
 	// EnrollmentID contains the enrollment id of this signer
 	EnrollmentID string `protobuf:"bytes,5,opt,name=enrollment_id,json=enrollmentId" json:"enrollment_id,omitempty"`
+	// CRI contains a serialized Credential Revocation Information
+	CredentialRevocationInformation []byte `protobuf:"bytes,6,opt,name=credential_revocation_information,json=credentialRevocationInformation,proto3" json:"credential_revocation_information,omitempty"`
 }
 
 // GetCred returns credential associated with this signer config
@@ -45,4 +47,9 @@ func (s *SignerConfig) GetIsAdmin() bool {
 // GetEnrollmentID returns enrollment ID of the user associated with this signer config
 func (s *SignerConfig) GetEnrollmentID() string {
 	return s.EnrollmentID
+}
+
+// GetCredentialRevocationInformation returns CRI
+func (s *SignerConfig) GetCredentialRevocationInformation() []byte {
+	return s.CredentialRevocationInformation
 }
