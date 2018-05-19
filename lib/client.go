@@ -153,6 +153,8 @@ func (c *Client) initHTTPClient() error {
 		if err2 != nil {
 			return fmt.Errorf("Failed to get client TLS config: %s", err2)
 		}
+		// set the default ciphers
+		tlsConfig.CipherSuites = tls.DefaultCipherSuites
 		tr.TLSClientConfig = tlsConfig
 	}
 	c.httpClient = &http.Client{Transport: tr}
