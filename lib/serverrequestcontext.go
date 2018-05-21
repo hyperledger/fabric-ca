@@ -143,7 +143,7 @@ func (ctx *serverRequestContextImpl) TokenAuthentication() (string, error) {
 		return "", err
 	}
 	// Verify the token; the signature is over the header and body
-	cert, err2 := util.VerifyToken(ca.csp, authHdr, r.Method, r.URL.RequestURI(), body)
+	cert, err2 := util.VerifyToken(ca.csp, authHdr, body)
 	if err2 != nil {
 		return "", newAuthErr(ErrInvalidToken, "Invalid token in authorization header: %s", err2)
 	}
