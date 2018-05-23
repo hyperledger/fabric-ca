@@ -983,7 +983,12 @@ func (ca *CA) fillCAInfo(info *common.CAInfoResponseNet) error {
 	if err != nil {
 		return err
 	}
+	rpkBytes, err := ca.issuer.RevocationPublicKey()
+	if err != nil {
+		return err
+	}
 	info.IssuerPublicKey = util.B64Encode(ipkBytes)
+	info.IssuerRevocationPublicKey = util.B64Encode(rpkBytes)
 	return nil
 }
 

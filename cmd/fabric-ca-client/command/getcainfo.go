@@ -99,7 +99,11 @@ func (c *getCAInfoCmd) runGetCACert(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return storeIssuerPublicKey(client.Config, si)
+	err = storeIssuerPublicKey(client.Config, si)
+	if err != nil {
+		return err
+	}
+	return storeIssuerRevocationPublicKey(client.Config, si)
 }
 
 // Store the CAChain in the CACerts folder of MSP (Membership Service Provider)
@@ -157,12 +161,12 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 	certBytes := bytes.Join(rootBlks, []byte(""))
 	if len(certBytes) > 0 {
 		if config.Enrollment.Profile == "tls" {
-			err := storeCert("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
+			err := storeToFile("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = storeCert("root CA certificate", rootCACertsDir, fname, certBytes)
+			err = storeToFile("root CA certificate", rootCACertsDir, fname, certBytes)
 			if err != nil {
 				return err
 			}
@@ -173,12 +177,12 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 	certBytes = bytes.Join(intBlks, []byte(""))
 	if len(certBytes) > 0 {
 		if config.Enrollment.Profile == "tls" {
-			err = storeCert("TLS intermediate certificates", tlsIntCACertsDir, tlsfname, certBytes)
+			err = storeToFile("TLS intermediate certificates", tlsIntCACertsDir, tlsfname, certBytes)
 			if err != nil {
 				return err
 			}
 		} else {
-			err = storeCert("intermediate CA certificates", intCACertsDir, fname, certBytes)
+			err = storeToFile("intermediate CA certificates", intCACertsDir, fname, certBytes)
 			if err != nil {
 				return err
 			}
@@ -189,7 +193,7 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 
 func storeIssuerPublicKey(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 	if len(si.IssuerPublicKey) > 0 {
-		err := storeCert("Issuer public key", config.MSPDir, "IssuerPublicKey", si.IssuerPublicKey)
+		err := storeToFile("Issuer public key", config.MSPDir, "IssuerPublicKey", si.IssuerPublicKey)
 		if err != nil {
 			return err
 		}
@@ -197,7 +201,17 @@ func storeIssuerPublicKey(config *lib.ClientConfig, si *lib.GetCAInfoResponse) e
 	return nil
 }
 
-func storeCert(what, dir, fname string, contents []byte) error {
+func storeIssuerRevocationPublicKey(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
+	if len(si.IssuerRevocationPublicKey) > 0 {
+		err := storeToFile("Issuer revocation public key", config.MSPDir, "IssuerRevocationPublicKey", si.IssuerRevocationPublicKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func storeToFile(what, dir, fname string, contents []byte) error {
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create directory for %s at '%s'", what, dir)

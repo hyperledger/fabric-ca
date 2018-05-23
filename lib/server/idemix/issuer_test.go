@@ -70,7 +70,6 @@ func TestInit(t *testing.T) {
 	assert.Error(t, err, "IssuerCredential should fail")
 	_, err = issuer.GetCRI(ctx)
 	assert.Error(t, err, "GetCRI should fail")
-
 }
 
 func TestInitDBNotInitialized(t *testing.T) {
@@ -339,6 +338,36 @@ func TestIsToken(t *testing.T) {
 	assert.False(t, IsToken(token))
 	token = "idemix.1.foo.sig"
 	assert.True(t, IsToken(token))
+}
+
+func TestRevocationPublicKey(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "revocationpubkeytest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = lib.CopyFile(testPublicKeyFile, filepath.Join(testdir, "IssuerPublicKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+	err = lib.CopyFile(testSecretKeyFile, filepath.Join(testdir, "msp/keystore/IssuerSecretKey"))
+	if err != nil {
+		t.Fatalf("Failed to copy file: %s", err.Error())
+	}
+
+	db, issuer := getIssuer(t, testdir, false, false)
+	assert.NotNil(t, issuer)
+
+	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	assert.NoError(t, err, "Init should not return an error")
+
+	_, err = issuer.RevocationPublicKey()
+	assert.NoError(t, err, "RevocationPublicKey should not return an error")
 }
 
 func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror bool) (*dmocks.FabricCADB, Issuer) {

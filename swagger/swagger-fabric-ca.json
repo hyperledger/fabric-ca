@@ -162,6 +162,10 @@
                       "type": "string",
                       "description": "Base 64 encoding of the CA's idemix public key"
                     },
+                    "issuerrevocationpublickey": {
+                      "type": "string",
+                      "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
+                    },
                     "version": {
                       "type": "string",
                       "description": "Version of the server"
@@ -334,6 +338,10 @@
                           "type": "string",
                           "description": "Base 64 encoding of the CA's Idemix public key"
                         },
+                        "issuerrevocationpublickey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
+                        },
                         "version": {
                           "type": "string",
                           "description": "Version of the server"
@@ -505,7 +513,11 @@
                         },
                         "issuerpublickey": {
                           "type": "string",
-                          "description": "Base 64 encoding of the CA's idemix public key"
+                          "description": "Base 64 encoding of the CA's Idemix Issuer public key"
+                        },
+                        "issuerrevocationpublickey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
                         },
                         "version": {
                           "type": "string",

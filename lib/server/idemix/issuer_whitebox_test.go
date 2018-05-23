@@ -49,6 +49,10 @@ func TestIssuer(t *testing.T) {
 	assert.Error(t, err, "IssuerPublicKey should return an error because issuer is not initialized")
 	assert.Equal(t, "Issuer is not initialized", err.Error())
 
+	_, err = issuer.RevocationPublicKey()
+	assert.Error(t, err, "RevocationPublicKey should return an error because issuer is not initialized")
+	assert.Equal(t, "Issuer is not initialized", err.Error())
+
 	_, err = issuer.IssueCredential(nil)
 	assert.Error(t, err, "IssueCredential should return an error because issuer is not initialized")
 	assert.Equal(t, "Issuer is not initialized", err.Error())
