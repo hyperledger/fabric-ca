@@ -416,10 +416,6 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	if err != nil {
 		t.Fatalf("Failed to generate key: %s", err.Error())
 	}
-	pkStr, pubStr, err := EncodeKeys(key, &key.PublicKey)
-	if err != nil {
-		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
-	}
 	lib.On("GenerateLongTermRevocationKey").Return(key, nil)
 
 	cfg := &Config{
@@ -429,7 +425,7 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	}
 	issuer := NewIssuer("ca1", testDir, cfg, util.GetDefaultBCCSP(), lib)
 
-	f := getSelectFunc(t, nil, true, false, false)
+	f := getSelectFunc(t, true, false)
 
 	rcInfosForSelect := []RevocationAuthorityInfo{}
 	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(f)
@@ -438,8 +434,6 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 		NextRevocationHandle: 1,
 		LastHandleInPool:     100,
 		Level:                1,
-		PrivateKey:           pkStr,
-		PublicKey:            pubStr,
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)

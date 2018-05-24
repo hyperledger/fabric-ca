@@ -195,7 +195,7 @@ func createSQLiteCredentialsTable(tx *sqlx.Tx) error {
 
 func createSQLiteRevocationComponentTable(tx *sqlx.Tx) error {
 	log.Debug("Creating revocation_authority_info table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, private_key blob NOT NULL, public_key blob NOT NULL, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	return nil
@@ -307,7 +307,7 @@ func createPostgresTables(dbName string, db *sqlx.DB) error {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 	log.Debug("Creating revocation_authority_info table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, private_key bytea NOT NULL, public_key bytea NOT NULL, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	log.Debug("Creating nonces table if it does not exist")
@@ -411,7 +411,7 @@ func createMySQLTables(dbName string, db *sqlx.DB) error {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 	log.Debug("Creating revocation_authority_info table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, private_key varbinary(4096) NOT NULL, public_key varbinary(4096) NOT NULL, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	log.Debug("Creating nonces table if it does not exist")

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 )
@@ -22,8 +23,6 @@ func TestGetUnRevokedHandles(t *testing.T) {
 		Epoch:                1,
 		LastHandleInPool:     100,
 		NextRevocationHandle: 2,
-		PrivateKey:           "",
-		PublicKey:            "",
 	}
 
 	revokedCred := CredRecord{
@@ -39,4 +38,12 @@ func TestGetUnRevokedHandles(t *testing.T) {
 	revokedCreds = []CredRecord{revokedCred}
 	unrevokedHandles = ra.getUnRevokedHandles(info, revokedCreds)
 	assert.Equal(t, 99, len(unrevokedHandles))
+}
+
+func TestDoTransactionNilDB(t *testing.T) {
+	f := func(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+		return nil, nil
+	}
+	_, err := doTransaction(nil, f)
+	assert.Error(t, err)
 }

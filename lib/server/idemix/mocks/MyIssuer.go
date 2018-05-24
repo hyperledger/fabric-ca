@@ -17,6 +17,22 @@ type MyIssuer struct {
 	mock.Mock
 }
 
+// Config provides a mock function with given fields:
+func (_m *MyIssuer) Config() *idemix.Config {
+	ret := _m.Called()
+
+	var r0 *idemix.Config
+	if rf, ok := ret.Get(0).(func() *idemix.Config); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*idemix.Config)
+		}
+	}
+
+	return r0
+}
+
 // CredDBAccessor provides a mock function with given fields:
 func (_m *MyIssuer) CredDBAccessor() idemix.CredDBAccessor {
 	ret := _m.Called()
@@ -49,17 +65,15 @@ func (_m *MyIssuer) DB() dbutil.FabricCADB {
 	return r0
 }
 
-// Config provides a mock function with given fields:
-func (_m *MyIssuer) Config() *idemix.Config {
+// HomeDir provides a mock function with given fields:
+func (_m *MyIssuer) HomeDir() string {
 	ret := _m.Called()
 
-	var r0 *idemix.Config
-	if rf, ok := ret.Get(0).(func() *idemix.Config); ok {
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*idemix.Config)
-		}
+		r0 = ret.Get(0).(string)
 	}
 
 	return r0
@@ -76,20 +90,6 @@ func (_m *MyIssuer) IdemixLib() idemix.Lib {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(idemix.Lib)
 		}
-	}
-
-	return r0
-}
-
-// Name provides a mock function with given fields:
-func (_m *MyIssuer) Name() string {
-	ret := _m.Called()
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(string)
 	}
 
 	return r0
@@ -122,6 +122,20 @@ func (_m *MyIssuer) IssuerCredential() idemix.IssuerCredential {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(idemix.IssuerCredential)
 		}
+	}
+
+	return r0
+}
+
+// Name provides a mock function with given fields:
+func (_m *MyIssuer) Name() string {
+	ret := _m.Called()
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
 	}
 
 	return r0
