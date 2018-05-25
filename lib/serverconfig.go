@@ -27,7 +27,7 @@ const (
 )
 
 // ServerConfig is the fabric-ca server's config
-// The tags are recognized by the RegisterFlags function in fabric-ca/lib/util.go
+// The tags are recognized by the RegisterFlags function in fabric-ca/util/flag.go
 // and are as follows:
 // "def" - the default value of the field;
 // "opt" - the optional one character short name to use on the command line;
