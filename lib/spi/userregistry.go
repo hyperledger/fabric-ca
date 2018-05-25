@@ -66,6 +66,8 @@ type User interface {
 	LoginComplete() error
 	// Revoke will revoke the user, setting the state of the user to be -1
 	Revoke() error
+	// IsRevoked returns back true if user is revoked
+	IsRevoked() bool
 	// GetLevel returns the level of the user, level is used to verify if the user needs migration
 	GetLevel() int
 	// SetLevel sets the level of the user

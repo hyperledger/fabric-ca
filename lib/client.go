@@ -54,6 +54,8 @@ type Client struct {
 	csp bccsp.BCCSP
 	// HTTP client associated with this Fabric CA client
 	httpClient *http.Client
+	// Public key of Idemix issuer
+	issuerPublicKey *idemix.IssuerPublicKey
 }
 
 // GetCAInfoResponse is the response from the GetCAInfo call
@@ -545,7 +547,8 @@ func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, erro
 	if err != nil {
 		return nil, err
 	}
-	return pubKey, nil
+	c.issuerPublicKey = pubKey
+	return c.issuerPublicKey, nil
 }
 
 // LoadMyIdentity loads the client's identity from disk
@@ -650,7 +653,10 @@ func (c *Client) GetCSP() bccsp.BCCSP {
 
 // GetIssuerPubKey returns issuer public key associated with this client
 func (c *Client) GetIssuerPubKey() (*idemix.IssuerPublicKey, error) {
-	return c.getIssuerPubKey(nil)
+	if c.issuerPublicKey == nil {
+		return c.getIssuerPubKey(nil)
+	}
+	return c.issuerPublicKey, nil
 }
 
 // newGet create a new GET request
@@ -852,6 +858,8 @@ func (c *Client) checkX509Enrollment() error {
 // Idemix credential does not exist and if they exist and credential verification
 // fails. Returns nil if the credential verification suucceeds
 func (c *Client) checkIdemixEnrollment() error {
+	log.Debugf("CheckIdemixEnrollment - ipkFile: %s, idemixCredFrile: %s", c.ipkFile, c.idemixCredFile)
+
 	idemixIssuerPubKeyExists := util.FileExists(c.ipkFile)
 	idemixCredExists := util.FileExists(c.idemixCredFile)
 	if idemixIssuerPubKeyExists && idemixCredExists {

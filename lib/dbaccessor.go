@@ -1120,6 +1120,14 @@ func (u *DBUser) Revoke() error {
 	return nil
 }
 
+// IsRevoked returns back true if user is revoked
+func (u *DBUser) IsRevoked() bool {
+	if u.State == -1 {
+		return true
+	}
+	return false
+}
+
 // ModifyAttributes adds a new attribute, modifies existing attribute, or delete attribute
 func (u *DBUser) ModifyAttributes(newAttrs []api.Attribute) error {
 	log.Debugf("Modify Attributes: %+v", newAttrs)

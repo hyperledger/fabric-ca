@@ -38,6 +38,7 @@ import (
 const (
 	rootPort         = 7075
 	rootDir          = "rootDir"
+	rootClientDir    = "rootClientDir"
 	intermediatePort = 7076
 	intermediateDir  = "intDir"
 	testdataDir      = "../testdata"
@@ -226,10 +227,15 @@ func GenerateECDSATestCert() error {
 // 	}
 // }
 
-// // GetTestClient returns a Fabric CA client
-// func GetTestClient(port int, home string) *Client {
-// 	return &Client{
-// 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
-// 		HomeDir: home,
-// 	}
-// }
+// TestGetRootClient returns a Fabric CA client that is meant for a root Fabric CA server
+func TestGetRootClient() *Client {
+	return TestGetClient(rootPort, rootClientDir)
+}
+
+// TestGetClient returns a Fabric CA client
+func TestGetClient(port int, home string) *Client {
+	return &Client{
+		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
+		HomeDir: home,
+	}
+}
