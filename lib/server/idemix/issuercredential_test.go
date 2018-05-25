@@ -9,6 +9,7 @@ package idemix_test
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -137,8 +138,14 @@ func TestStoreNilIdemixPublicKey(t *testing.T) {
 	}
 }
 
-func TestStoreInvalidPublicKeyFilePath(t *testing.T) {
-	pubkeyfile := "./testdata1/IdemixPublicKey"
+func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
+	testdir, err := ioutil.TempDir(".", "issuerpubkeytest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(testdir)
+
+	pubkeyfile := path.Join(testdir, "testdata1/IdemixPublicKey")
 
 	// Valid issuer public key
 	validPubKeyFile := testPublicKeyFile
@@ -153,16 +160,20 @@ func TestStoreInvalidPublicKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to unmarshal idemix public key bytes from %s", validPubKeyFile)
 	}
 	idemixLib := new(mocks.Lib)
+	err = os.MkdirAll(path.Dir(pubkeyfile), 4444)
+	if err != nil {
+		t.Fatalf("Failed to create read only directory: %s", err.Error())
+	}
 	ik := NewIssuerCredential(pubkeyfile, testSecretKeyFile, idemixLib)
 	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
 	err = ik.Store()
-	assert.Error(t, err, "Should fail if issuer public key is being stored to non-existent directory")
+	assert.Error(t, err, "Should fail if issuer public key is being stored to readonly directory")
 	if err != nil {
 		assert.Equal(t, err.Error(), "Failed to store Issuer public key")
 	}
 }
 
-func TestStoreInvalidSecretKeyFilePath(t *testing.T) {
+func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
 	testdir, err := ioutil.TempDir(".", "issuerkeystoreTest")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %s", err.Error())
@@ -184,10 +195,14 @@ func TestStoreInvalidSecretKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to unmarshal idemix public key bytes from %s", testPublicKeyFile)
 	}
 	idemixLib := new(mocks.Lib)
+	err = os.MkdirAll(path.Dir(privkeyfile), 4444)
+	if err != nil {
+		t.Fatalf("Failed to create read only directory: %s", err.Error())
+	}
 	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile, idemixLib)
 	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
 	err = ik.Store()
-	assert.Error(t, err, "Should fail if issuer secret key is being stored to non-existent directory")
+	assert.Error(t, err, "Should fail if issuer secret key is being stored to read-only directory")
 	if err != nil {
 		assert.Equal(t, "Failed to store Issuer secret key", err.Error())
 	}
