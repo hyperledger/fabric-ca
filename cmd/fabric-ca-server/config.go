@@ -394,7 +394,9 @@ bccsp:
 # Automatically generate <number-of-CAs> non-default CAs.  The names of these
 # additional CAs are "ca1", "ca2", ... "caN", where "N" is <number-of-CAs>
 # This is particularly useful in a development environment to quickly set up
-# multiple CAs.
+# multiple CAs. Note that, this config option is not applicable to intermediate CA server
+# i.e., Fabric CA server that is started with intermediate.parentserver.url config
+# option (-u command line option)
 #
 # 2) --cafiles <CA-config-files>
 # For each CA config file in the list, generate a separate signing CA.  Each CA

@@ -40,6 +40,7 @@ export LDAPHOST="-h localhost"
 export LDAPAUTH="-D "cn=$LDAPUSER,dc=example,dc=com" -w $LDAPPASWD"
 export LDAPBASE="-b "dc=example,dc=com""
 export LDAPUSERBASE="-b ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com"
+export DEFAULT_RUN_CONFIG_FILE_NAME="runFabricCaFvt.yaml"
 
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'

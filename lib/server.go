@@ -254,6 +254,9 @@ func (s *Server) initMultiCAConfig() (err error) {
 	if cfg.CAcount != 0 && len(cfg.CAfiles) > 0 {
 		return errors.New("The --cacount and --cafiles options are mutually exclusive")
 	}
+	if cfg.CAcfg.Intermediate.ParentServer.URL != "" && cfg.CAcount > 0 {
+		return errors.New("The --cacount option is not permissible for an intermediate server; use the --cafiles option instead")
+	}
 	cfg.CAfiles, err = util.NormalizeFileList(cfg.CAfiles, s.HomeDir)
 	if err != nil {
 		return err

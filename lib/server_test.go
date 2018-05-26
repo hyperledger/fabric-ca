@@ -1258,8 +1258,19 @@ func TestSRVMultiCAWithIntermediate(t *testing.T) {
 	}
 
 	intermediatesrv := TestGetServer(intermediatePort, testdataDir, "", -1, t)
-	intermediatesrv.Config.CAfiles = []string{"ca/intermediateca/ca1/fabric-ca-server-config.yaml", "ca/intermediateca/ca2/fabric-ca-server-config.yaml"}
+	intermediatesrv.Config.CAcount = 2
+	intermediatesrv.Config.CAcfg.Intermediate.ParentServer.URL = fmt.Sprintf("http://adminca1:adminca1pw@localhost:%d", rootPort)
 	intermediatesrv.CA.Config.CSR.Hosts = []string{"hostname"}
+
+	err = intermediatesrv.Start()
+	assert.Error(t, err, "Error is expected if cacount is greater than 0 for intermediate CA")
+
+	intermediatesrv.Config.CAfiles = []string{"ca/intermediateca/ca1/fabric-ca-server-config.yaml", "ca/intermediateca/ca2/fabric-ca-server-config.yaml"}
+	err = intermediatesrv.Start()
+	assert.Error(t, err, "Error is expected if both cacount and cafiles are specified")
+
+	intermediatesrv.Config.CAcount = 0
+	intermediatesrv.Config.CAcfg.Intermediate.ParentServer.URL = ""
 
 	// Start it
 	err = intermediatesrv.Start()
