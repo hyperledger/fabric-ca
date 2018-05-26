@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-FROM hyperledger/fabric-baseimage:_BASE_TAG_
+FROM _NS_/fabric-baseimage:_BASE_TAG_
 
 ENV PATH="/usr/local/go/bin/:${PATH}" \
     DEBIAN_FRONTEND="noninteractive" \

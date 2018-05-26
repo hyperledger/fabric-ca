@@ -28,7 +28,7 @@
 #   - dist-clean - cleans release packages for all target platforms
 #   - clean-all - cleans the build area and release packages
 
-PROJECT_NAME   = fabric-ca
+PROJECT_NAME = fabric-ca
 BASE_VERSION = 1.2.0
 PREV_VERSION = 1.1.0
 IS_RELEASE = false
@@ -129,6 +129,8 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 	$(eval DOCKER_NAME = $(DOCKER_NS)/$(TARGET))
 	@echo "Building docker $(TARGET) image"
 	@cat images/$(TARGET)/Dockerfile.in \
+		| sed -e 's/_BASE_NS_/$(BASE_DOCKER_NS)/g' \
+		| sed -e 's/_NS_/$(DOCKER_NS)/g' \
 		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
 		| sed -e 's/_FABRIC_TAG_/$(FABRIC_TAG)/g' \
 		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
@@ -215,7 +217,7 @@ fvt-tests:
 	@scripts/run_fvt_tests
 
 ci-tests: docker-clean docker-fvt all-tests docs
-	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
