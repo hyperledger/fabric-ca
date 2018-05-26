@@ -150,23 +150,23 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "caname": {
+                    "CAName": {
                       "type": "string",
                       "description": "The name of the root CA associated with this server"
                     },
-                    "cachain": {
+                    "CAChain": {
                       "type": "string",
                       "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate"
                     },
-                    "issuerpublickey": {
+                    "IssuerPublicKey": {
                       "type": "string",
-                      "description": "Base 64 encoding of the CA's idemix public key"
+                      "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
                     },
-                    "issuerrevocationpublickey": {
+                    "IssuerRevocationPublicKey": {
                       "type": "string",
-                      "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
+                      "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
                     },
-                    "version": {
+                    "Version": {
                       "type": "string",
                       "description": "Version of the server"
                     }
@@ -326,32 +326,33 @@
                     "cainfo": {
                       "type": "object",
                       "properties": {
-                        "caname": {
+                        "CAName": {
                           "type": "string",
                           "description": "The name of the CA that issued the credential"
                         },
-                        "cachain": {
+                        "CAChain": {
                           "type": "string",
                           "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
                         },
-                        "issuerpublickey": {
+                        "IssuerPublicKey": {
                           "type": "string",
-                          "description": "Base 64 encoding of the CA's Idemix public key"
+                          "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
                         },
-                        "issuerrevocationpublickey": {
+                        "IssuerRevocationPublicKey": {
                           "type": "string",
-                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
                         },
-                        "version": {
+                        "Version": {
                           "type": "string",
                           "description": "Version of the server"
                         }
                       },
                       "required": [
-                        "caname",
-                        "cachain",
-                        "issuerpublickey",
-                        "version"
+                        "CAName",
+                        "CAChain",
+                        "IssuerPublicKey",
+                        "IssuerRevocationPublicKey",
+                        "Version"
                       ]
                     }
                   }
@@ -503,32 +504,33 @@
                     "cainfo": {
                       "type": "object",
                       "properties": {
-                        "caname": {
+                        "CAName": {
                           "type": "string",
                           "description": "The name of the CA that issued the credential"
                         },
-                        "cachain": {
+                        "CAChain": {
                           "type": "string",
                           "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
                         },
-                        "issuerpublickey": {
+                        "IssuerPublicKey": {
                           "type": "string",
-                          "description": "Base 64 encoding of the CA's Idemix Issuer public key"
+                          "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
                         },
-                        "issuerrevocationpublickey": {
+                        "IssuerRevocationPublicKey": {
                           "type": "string",
-                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix Issuer revocation public key"
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
                         },
-                        "version": {
+                        "Version": {
                           "type": "string",
                           "description": "Version of the server"
                         }
                       },
                       "required": [
-                        "caname",
-                        "cachain",
-                        "issuerpublickey",
-                        "version"
+                        "CAName",
+                        "CAChain",
+                        "IssuerPublicKey",
+                        "IssuerRevocationPublicKey",
+                        "Version"
                       ]
                     }
                   }
