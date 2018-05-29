@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +47,7 @@ func TestStateUpdate(t *testing.T) {
 	userInfo, err := registry.GetUser("admin", nil)
 	assert.NoError(t, err, "Failed to get user 'admin' from database")
 	// User state should have gotten updated to 1 after a successful enrollment
-	if userInfo.(*DBUser).State != 1 {
+	if userInfo.(*dbutil.User).State != 1 {
 		t.Error("Incorrect state set for user")
 	}
 
@@ -68,7 +69,7 @@ func TestStateUpdate(t *testing.T) {
 	// State should not have gotten updated because the enrollment failed
 	userInfo, err = registry.GetUser("admin", nil)
 	assert.NoError(t, err, "Failed to get user 'admin' from database")
-	if userInfo.(*DBUser).State != 1 {
+	if userInfo.(*dbutil.User).State != 1 {
 		t.Error("Incorrect state set for user")
 	}
 

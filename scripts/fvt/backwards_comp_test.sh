@@ -221,19 +221,19 @@ for driver in sqlite3 postgres mysql; do
     rm -rf $FABRIC_CA_SERVER_HOME
     mkdir -p $FABRIC_CA_SERVER_HOME
     sqlite3 $FABRIC_CA_SERVER_HOME/fabric_ca 'CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property));'
-    sqlite3 $FABRIC_CA_SERVER_HOME/fabric_ca 'INSERT INTO properties (property, value) Values ("identity", "9");'
+    sqlite3 $FABRIC_CA_SERVER_HOME/fabric_ca 'INSERT INTO properties (property, value) Values ("identity.level", "9");'
     ;;
   postgres)
     psql -d postgres -c "DROP DATABASE fabric_ca"
     psql -d postgres -c "CREATE DATABASE fabric_ca"
     psql -d fabric_ca -c "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
-    psql -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity', '9')"
+    psql -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   mysql)
     mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE fabric_ca"
     mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
     mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
-    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity', '9')"
+    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   *)
     echo "Invalid database type"
@@ -242,32 +242,11 @@ for driver in sqlite3 postgres mysql; do
   esac
 
   $SCRIPTDIR/fabric-ca_setup.sh -I -D -d $driver
-  if ! test $? -eq 0; then
+  if test $? -eq 0; then
     ErrorMsg "Should have failed to initialize server because the database level is higher than the server"
   fi
   $SCRIPTDIR/fabric-ca_setup.sh -K
 
-  resetDB
-
-  # Testing with a configuration file that does not have server version present in the file.
-  # Server will load all the users as level zero. Server with then migrate the users to
-  # the latest version by updating all registrars with the 'hf.Registrar.Attribute'
-  # attribute. Once all the users have been migrated, then the tables levels in the database
-  # will be updated.
-  genConfig
-  loadUsers
-
-  $SCRIPTDIR/fabric-ca_setup.sh -I -D -g $TESTCONFIG
-  if test $? -eq 1; then
-    ErrorMsg "Failed to start server, should have stared successfully with a configuration file with a missing server version"
-  fi
-  $SCRIPTDIR/fabric-ca_setup.sh -K
-  grep "$serverversion" $FABRIC_CA_SERVER_HOME/runFabricCaFvt.yaml
-  if test $? -ne 0; then
-    ErrorMsg "Failed to correctly add version to file"
-  fi
-
-  validateUsers 1
   resetDB
 
   # Starting server with latest level on the configuration file, all registrars currently

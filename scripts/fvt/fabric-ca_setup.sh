@@ -114,9 +114,11 @@ listFabricCa(){
 
 function initFabricCa() {
    test -f $FABRIC_CA_SERVEREXEC || ErrorExit "fabric-ca executable not found in src tree"
-
-   $FABRIC_CA_SERVEREXEC init -c $RUNCONFIG $PARENTURL $args || return 1
-
+   $FABRIC_CA_SERVEREXEC init -c $RUNCONFIG $PARENTURL $args
+   rc1=$?
+   if test $rc1 -eq 1; then
+      return $rc1
+   fi
    echo "FABRIC_CA server initialized"
    if $($FABRIC_CA_DEBUG); then
       openssl x509 -in $DATADIR/$DST_CERT -noout -issuer -subject -serial \
@@ -434,7 +436,14 @@ $($PROXY) && startHaproxy $FABRIC_CA_INSTANCES
 $( $INIT -o $START ) && genRunconfig "$RUNCONFIG" "$DRIVER" "$DATASRC" "$DST_CERT" "$DST_KEY" "$MAXENROLL"
 test -n "$SERVERCONFIG" && cp "$SERVERCONFIG" "$RUNCONFIG"
 
-$($INIT) && initFabricCa
+if $($INIT); then
+   initFabricCa
+   rc2=$?
+   if test $rc2 -eq 1; then
+       exit $rc2
+   fi
+fi
+
 if $($START); then
    inst=0
    while test $((inst)) -lt $FABRIC_CA_INSTANCES; do

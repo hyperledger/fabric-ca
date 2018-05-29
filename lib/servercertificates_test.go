@@ -43,10 +43,10 @@ func TestAuthChecks(t *testing.T) {
 	util.ErrorContains(t, err, "Failed to get caller", "Expected to catch error from GetCaller() func")
 
 	ctx := new(serverRequestContextImpl)
-	user := &UserRecord{
+	user := &dbutil.UserRecord{
 		Name: "NotRegistrar",
 	}
-	ctx.caller = newDBUser(user, nil)
+	ctx.caller = dbutil.NewDBUser(user, nil)
 	err = authChecks(ctx)
 	assert.Error(t, err, "Caller does not possess the appropriate attributes to request manage certificates")
 
@@ -59,11 +59,11 @@ func TestAuthChecks(t *testing.T) {
 
 	attr, err := util.Marshal(attributes, "attributes")
 	util.FatalError(t, err, "Failed to marshal attributes")
-	user = &UserRecord{
+	user = &dbutil.UserRecord{
 		Name:       "Registrar",
 		Attributes: string(attr),
 	}
-	ctx.caller = newDBUser(user, nil)
+	ctx.caller = dbutil.NewDBUser(user, nil)
 	err = authChecks(ctx)
 	assert.NoError(t, err, "Should not fail, caller has 'hf.Registrar.Roles' attribute")
 
@@ -75,11 +75,11 @@ func TestAuthChecks(t *testing.T) {
 	}
 	attr, err = util.Marshal(attributes, "attributes")
 	util.FatalError(t, err, "Failed to marshal attributes")
-	user = &UserRecord{
+	user = &dbutil.UserRecord{
 		Name:       "Revoker",
 		Attributes: string(attr),
 	}
-	ctx.caller = newDBUser(user, nil)
+	ctx.caller = dbutil.NewDBUser(user, nil)
 	err = authChecks(ctx)
 	assert.NoError(t, err, "Should not fail, caller has 'hf.Revoker' with a value of 'true' attribute")
 
@@ -92,11 +92,11 @@ func TestAuthChecks(t *testing.T) {
 	}
 	attr, err = util.Marshal(attributes, "attributes")
 	util.FatalError(t, err, "Failed to marshal attributes")
-	user = &UserRecord{
+	user = &dbutil.UserRecord{
 		Name:       "NotRevoker",
 		Attributes: string(attr),
 	}
-	ctx.caller = newDBUser(user, nil)
+	ctx.caller = dbutil.NewDBUser(user, nil)
 	err = authChecks(ctx)
 	assert.Error(t, err, "Should fail, caller has 'hf.Revoker' but with a value of 'false' attribute")
 }
@@ -112,11 +112,11 @@ func TestProcessCertificateRequest(t *testing.T) {
 	ctx.On("HasRole", "hf.Revoker").Return(errors.New("Does not have attribute"))
 	attr, err := util.Marshal([]api.Attribute{}, "attributes")
 	util.FatalError(t, err, "Failed to marshal attributes")
-	user := &UserRecord{
+	user := &dbutil.UserRecord{
 		Name:       "NotRevoker",
 		Attributes: string(attr),
 	}
-	ctx.On("GetCaller").Return(newDBUser(user, nil), nil)
+	ctx.On("GetCaller").Return(dbutil.NewDBUser(user, nil), nil)
 
 	err = processCertificateRequest(ctx)
 	t.Log("Error: ", err)
@@ -125,7 +125,7 @@ func TestProcessCertificateRequest(t *testing.T) {
 	ctx = new(mocks.ServerRequestContext)
 	ctx.On("TokenAuthentication").Return("", nil)
 	ctx.On("HasRole", "hf.Revoker").Return(nil)
-	ctx.On("GetCaller").Return(newDBUser(user, nil), nil)
+	ctx.On("GetCaller").Return(dbutil.NewDBUser(user, nil), nil)
 	req, err := http.NewRequest("POST", "", bytes.NewReader([]byte{}))
 	util.FatalError(t, err, "Failed to get HTTP request")
 	ctx.On("GetReq").Return(req)
@@ -216,10 +216,10 @@ func TestServerGetCertificates(t *testing.T) {
 	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
 	util.FatalError(t, err, "Failed to get GET HTTP request")
 
-	user := &UserRecord{
+	user := &dbutil.UserRecord{
 		Name: "NotRevoker",
 	}
-	ctx.caller = newDBUser(user, nil)
+	ctx.caller = dbutil.NewDBUser(user, nil)
 
 	ctx.req = req
 	ctx.ca = ca
@@ -241,7 +241,7 @@ func TestServerGetCertificates(t *testing.T) {
 	err = getCertificates(mockCtx, nil)
 	util.ErrorContains(t, err, "failed to get caller", "did not get correct error response")
 
-	testUser := newDBUser(&UserRecord{Name: "testuser"}, nil)
+	testUser := dbutil.NewDBUser(&dbutil.UserRecord{Name: "testuser"}, nil)
 	mockCtx = new(mocks.ServerRequestContext)
 	mockCtx.On("GetResp").Return(nil)
 	mockCtx.On("GetCaller").Return(testUser, nil)

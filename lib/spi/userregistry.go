@@ -83,8 +83,6 @@ type UserRegistry interface {
 	GetAffiliation(name string) (Affiliation, error)
 	GetAllAffiliations(name string) (*sqlx.Rows, error)
 	InsertAffiliation(name string, prekey string, level int) error
-	// GetProperties returns the properties by name from the database
-	GetProperties(name []string) (map[string]string, error)
 	GetUserLessThanLevel(version int) ([]User, error)
 	GetFilteredUsers(affiliation, types string) (*sqlx.Rows, error)
 	DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*DbTxResult, error)

@@ -167,7 +167,7 @@ func (ac *attributeControl) isRegistrarAuthorized(requestedAttr *api.Attribute, 
 		}
 		callersAttrValue = callersAttribute.GetValue()
 
-		log.Debugf("Checking if caller is authorized to register attribute '%s' with the requested value of '%s'", requestedAttrName, requestedAttr.GetValue)
+		log.Debugf("Checking if caller is authorized to register attribute '%s' with the requested value of '%s'", requestedAttrName, requestedAttr.GetValue())
 	}
 
 	switch ac.attrType {

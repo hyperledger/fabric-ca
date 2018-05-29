@@ -17,6 +17,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -189,7 +190,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	rowNumber := 0
 	for rows.Next() {
 		rowNumber++
-		var id UserRecord
+		var id dbutil.UserRecord
 		err := rows.StructScan(&id)
 		if err != nil {
 			return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to get read row: %s", err)
@@ -432,8 +433,8 @@ func processPutRequest(ctx *serverRequestContextImpl, caname string) (*api.Ident
 // Function takes the modification request and fills in missing information with the current user information
 // and parses the modification request to generate the correct input to be stored in the database
 func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo, bool) {
-	modifyUserInfo := user.(*DBUser).UserInfo
-	userPass := user.(*DBUser).pass
+	modifyUserInfo := user.(*dbutil.User).UserInfo
+	userPass := user.(*dbutil.User).GetPass()
 	setPass := false
 
 	if req.Secret != "" {
@@ -441,6 +442,7 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 		modifyUserInfo.Pass = req.Secret
 	} else {
 		modifyUserInfo.Pass = string(userPass)
+
 	}
 
 	if req.MaxEnrollments == -2 {
@@ -465,9 +467,8 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 
 	// Update existing attribute, or add attribute if it does not already exist
 	if len(reqAttrs) != 0 {
-		modifyUserInfo.Attributes = getNewAttributes(modifyUserInfo.Attributes, reqAttrs)
+		modifyUserInfo.Attributes = dbutil.GetNewAttributes(modifyUserInfo.Attributes, reqAttrs)
 	}
-
 	return &modifyUserInfo, setPass
 }
 
@@ -490,36 +491,4 @@ func getIDResp(user spi.User, secret, caname string) (*api.IdentityResponse, err
 		Secret:         secret,
 		CAName:         caname,
 	}, nil
-}
-
-// Update existing attribute, or add attribute if it does not already exist
-func getNewAttributes(modifyAttrs, newAttrs []api.Attribute) []api.Attribute {
-	var attr api.Attribute
-	for _, attr = range newAttrs {
-		log.Debugf("Attribute request: %+v", attr)
-		found := false
-		for i := range modifyAttrs {
-			if modifyAttrs[i].Name == attr.Name {
-				if attr.Value == "" {
-					log.Debugf("Deleting attribute: %+v", modifyAttrs[i])
-					if i == len(modifyAttrs)-1 {
-						modifyAttrs = modifyAttrs[:len(modifyAttrs)-1]
-					} else {
-						modifyAttrs = append(modifyAttrs[:i], modifyAttrs[i+1:]...)
-					}
-				} else {
-					log.Debugf("Updating existing attribute from '%+v' to '%+v'", modifyAttrs[i], attr)
-					modifyAttrs[i].Value = attr.Value
-					modifyAttrs[i].ECert = attr.ECert
-				}
-				found = true
-				break
-			}
-		}
-		if !found && attr.Value != "" {
-			log.Debugf("Adding '%+v' as new attribute", attr)
-			modifyAttrs = append(modifyAttrs, attr)
-		}
-	}
-	return modifyAttrs
 }

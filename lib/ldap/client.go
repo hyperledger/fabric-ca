@@ -288,11 +288,6 @@ func (lc *Client) ModifyAffiliation(oldAffiliation, newAffiliation string, force
 	return nil, errNotSupported
 }
 
-// GetProperties returns the properties from the database
-func (lc *Client) GetProperties(name []string) (map[string]string, error) {
-	return nil, errNotSupported
-}
-
 // GetUserLessThanLevel returns all identities that are less than the level specified
 func (lc *Client) GetUserLessThanLevel(version int) ([]spi.User, error) {
 	return nil, errNotSupported
