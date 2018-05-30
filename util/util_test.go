@@ -18,16 +18,22 @@ package util
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"math/big"
 
 	"github.com/hyperledger/fabric/bccsp/factory"
 	_ "github.com/mattn/go-sqlite3"
@@ -112,6 +118,24 @@ func TestECCreateToken(t *testing.T) {
 	}
 }
 
+func TestDecodeToken(t *testing.T) {
+	token := "x.y.z"
+	_, _, _, err := DecodeToken(token)
+	assert.Error(t, err, "Decode should fail if the token has more than two parts")
+
+	token = "x"
+	_, _, _, err = DecodeToken(token)
+	assert.Error(t, err, "Decode should fail if the token has less than two parts")
+
+	token = "x.y"
+	_, _, _, err = DecodeToken(token)
+	assert.Error(t, err, "Decode should fail if the 1st part of the token is not in base64 encoded format")
+
+	fakecert := B64Encode([]byte("hello"))
+	token = fakecert + ".y"
+	_, _, _, err = DecodeToken(token)
+	assert.Error(t, err, "Decode should fail if the 1st part of the token is not base64 bytes of a X509 cert")
+}
 func TestGetX509CertFromPem(t *testing.T) {
 
 	certBuffer, error := ioutil.ReadFile(getPath("ec.pem"))
@@ -376,12 +400,21 @@ func TestReadFile(t *testing.T) {
 }
 
 func TestWriteFile(t *testing.T) {
-	testData := []byte("foo")
-	err := WriteFile("../testdata/test.txt", testData, 0777)
+	testdir, err := ioutil.TempDir(".", "writefiletest")
 	if err != nil {
-		t.Error("Failed to write file, error: ", err)
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
 	}
-	os.Remove("../testdata/test.txt")
+	defer os.RemoveAll(testdir)
+	testData := []byte("foo")
+	err = WriteFile(path.Join(testdir, "test.txt"), testData, 0777)
+	assert.NoError(t, err)
+	readOnlyDir := path.Join(testdir, "readonlydir")
+	err = os.MkdirAll(readOnlyDir, 4444)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	err = WriteFile(path.Join(readOnlyDir, "test/test.txt"), testData, 0777)
+	assert.Error(t, err, "Should fail to create 'test' directory as the parent directory is read only")
 }
 
 func getPath(file string) string {
@@ -600,6 +633,25 @@ func TestGetSerialAsHex(t *testing.T) {
 func TestECPrivateKey(t *testing.T) {
 	_, err := GetECPrivateKey(getPEM("../testdata/ec-key.pem", t))
 	assert.NoError(t, err)
+
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
+	if err != nil {
+		t.Fatalf("Failed to create rsa key: %s", err.Error())
+	}
+	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
+	if err != nil {
+		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
+	}
+
+	pemEncodedPK := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
+	_, err = GetECPrivateKey(pemEncodedPK)
+	assert.Error(t, err)
+
+	_, err = GetECPrivateKey([]byte("hello"))
+	assert.Error(t, err)
+
+	_, err = GetECPrivateKey(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: []byte("hello")}))
+	assert.Error(t, err)
 }
 
 func TestPKCS8WrappedECPrivateKey(t *testing.T) {
@@ -608,8 +660,40 @@ func TestPKCS8WrappedECPrivateKey(t *testing.T) {
 }
 
 func TestRSAPrivateKey(t *testing.T) {
-	_, err := GetRSAPrivateKey(getPEM("../testdata/rsa-key.pem", t))
+	_, err := GetRSAPrivateKey([]byte("hello"))
+	assert.Error(t, err)
+
+	_, err = GetRSAPrivateKey(getPEM("../testdata/rsa-key.pem", t))
 	assert.NoError(t, err)
+
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
+	if err != nil {
+		t.Fatalf("Failed to create rsa key: %s", err.Error())
+	}
+	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
+	if err != nil {
+		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
+	}
+
+	pemEncodedPK := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
+	_, err = GetRSAPrivateKey(pemEncodedPK)
+	assert.NoError(t, err)
+
+	_, err = GetRSAPrivateKey(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: []byte("hello")}))
+	assert.Error(t, err)
+
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to create rsa key: %s", err.Error())
+	}
+	encodedPK, err = x509.MarshalPKCS8PrivateKey(ecdsaKey)
+	if err != nil {
+		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
+	}
+
+	pemEncodedPK = pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
+	_, err = GetRSAPrivateKey(pemEncodedPK)
+	assert.Error(t, err)
 }
 
 func TestCheckHostsInCert(t *testing.T) {

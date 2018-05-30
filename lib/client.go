@@ -456,13 +456,15 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.
 
 	// Create SignerConfig object with credential bytes from the response
 	// and secret key
-	isAdmin, _ := strconv.ParseBool(result.Attrs["Role"])
+	isAdmin, _ := result.Attrs["IsAdmin"].(bool)
+	ou, _ := result.Attrs["OU"].(string)
+	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	signerConfig := &idemixcred.SignerConfig{
 		Cred:    credBytes,
 		Sk:      idemix.BigToBytes(sk),
 		IsAdmin: isAdmin,
-		OrganizationalUnitIdentifier:    result.Attrs["OU"],
-		EnrollmentID:                    result.Attrs["EnrollmentID"],
+		OrganizationalUnitIdentifier:    ou,
+		EnrollmentID:                    enrollmentID,
 		CredentialRevocationInformation: criBytes,
 	}
 
