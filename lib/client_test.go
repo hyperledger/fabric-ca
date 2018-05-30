@@ -227,8 +227,16 @@ func TestIdemixEnroll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to store idenditity: %s", err.Error())
 	}
+
 	_, err = client.LoadIdentity("", filepath.Join(clientHome, "msp/signcerts/cert.pem"), filepath.Join(clientHome, "msp/user/SignerConfig"))
 	assert.NoError(t, err, "Failed to load identity that has both X509 and Idemix credentials")
+
+	_, err = client.LoadIdentity("", "", filepath.Join(clientHome, "msp/user/SignerConfig"))
+	assert.NoError(t, err, "Failed to load identity that only has Idemix credential")
+
+	// Error case, invalid x509 and Idemix credential
+	_, err = client.LoadIdentity("fake-key.pem", "fake-cert.pem", "fakeIdemixCred")
+	util.ErrorContains(t, err, "Identity does not posses any enrollment credentials", "Should have failed to load identity that has no valid credentials")
 
 	err = client.CheckEnrollment()
 	assert.NoError(t, err, "CheckEnrollment should not return an error")
