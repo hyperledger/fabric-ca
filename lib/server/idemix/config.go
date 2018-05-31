@@ -6,8 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 
 package idemix
 
-import "path/filepath"
-import "github.com/hyperledger/fabric-ca/util"
+import (
+	"path/filepath"
+
+	"github.com/hyperledger/fabric-ca/util"
+)
 
 const (
 	// DefaultIssuerPublicKeyFile is the default name of the file that contains issuer public key

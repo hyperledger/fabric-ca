@@ -199,8 +199,13 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 	result.On("RowsAffected").Return(int64(1), nil)
 	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
+	keystoreDir := path.Join(homeDir, "msp/keystore")
+	err = os.MkdirAll(keystoreDir, 4444)
+	if err != nil {
+		t.Fatalf("Failed to create read only directory: %s", err.Error())
+	}
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+		RevocationPrivateKeyfile: path.Join(keystoreDir, DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
 	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
