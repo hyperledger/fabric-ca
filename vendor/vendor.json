@@ -394,10 +394,10 @@
 			"revisionTime": "2017-05-12T16:44:56Z"
 		},
 		{
-			"checksumSHA1": "bzFbMfsRA82I8THHKIKIRMJbpBU=",
+			"checksumSHA1": "xIdsmorF1r6jym6Tz5UmzAvxhN8=",
 			"path": "github.com/hyperledger/fabric/idemix",
-			"revision": "21d6a802db121026ae626462cc2f8b5613cd1ae8",
-			"revisionTime": "2018-04-27T20:09:32Z"
+			"revision": "4db57a3e5205a096e54bfbc5f5f07d6bd678220f",
+			"revisionTime": "2018-05-31T12:12:45Z"
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",

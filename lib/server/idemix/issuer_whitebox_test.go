@@ -94,7 +94,7 @@ func TestIssuerPublicKey(t *testing.T) {
 		t.Fatalf("Failed to load issuer credential: %s", err.Error())
 	}
 	ik, _ := issuerCred.GetIssuerKey()
-	ik.IPk = nil
+	ik.Ipk = nil
 	_, err = issuer.IssuerPublicKey()
 	assert.Error(t, err, "issuer.IssuerCredential() should return an error as it should fail to marshal issuer public key")
 }

@@ -703,10 +703,6 @@ func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB,
 		validHandles = append(validHandles, fp256bn.NewBIGint(i))
 	}
 	alg := idemix.ALG_NO_REVOCATION
-	if revokedCred > 0 {
-		validHandles = append(validHandles[:revokedCred], validHandles[revokedCred+1:]...)
-		alg = idemix.ALG_PLAIN_SIGNATURE
-	}
 	if idemixCreateCRIError {
 		lib.On("CreateCRI", revocationKey, validHandles, 1, alg, rnd).Return(nil, errors.New("Idemix lib create CRI error"))
 	} else {

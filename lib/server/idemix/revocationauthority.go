@@ -167,9 +167,6 @@ func (ra *revocationAuthority) CreateCRI() (*idemix.CredentialRevocationInformat
 	unrevokedHandles := ra.getUnRevokedHandles(info, revokedCreds)
 
 	alg := idemix.ALG_NO_REVOCATION
-	if len(revokedCreds) > 0 {
-		alg = idemix.ALG_PLAIN_SIGNATURE
-	}
 	cri, err := ra.issuer.IdemixLib().CreateCRI(ra.key.GetKey(), unrevokedHandles, info.Epoch, alg, ra.issuer.IdemixRand())
 	if err != nil {
 		return nil, err

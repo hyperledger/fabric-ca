@@ -86,7 +86,7 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	}
 
 	// Check the if credential request is valid
-	err = req.CredRequest.Check(ik.GetIPk())
+	err = req.CredRequest.Check(ik.GetIpk())
 	if err != nil {
 		log.Errorf("Invalid Idemix credential request: %s", err.Error())
 		return nil, errors.WithMessage(err, "Invalid Idemix credential request")
@@ -99,7 +99,7 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	}
 
 	// Get attributes for the identity
-	attrMap, attrs, err := h.GetAttributeValues(caller, ik.GetIPk(), rh)
+	attrMap, attrs, err := h.GetAttributeValues(caller, ik.GetIpk(), rh)
 	if err != nil {
 		return nil, err
 	}

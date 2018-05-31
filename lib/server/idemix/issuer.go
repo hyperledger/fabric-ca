@@ -137,7 +137,7 @@ func (i *issuer) IssuerPublicKey() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	ipkBytes, err := proto.Marshal(ik.IPk)
+	ipkBytes, err := proto.Marshal(ik.Ipk)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +235,7 @@ func (i *issuer) VerifyToken(authHdr string, body []byte) (string, error) {
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to unmarshal signature bytes specified in the token")
 	}
-	err = sig.Ver(disclosure, issuerKey.IPk, digest, attrs, 3, ra.PublicKey(), epoch)
+	err = sig.Ver(disclosure, issuerKey.Ipk, digest, attrs, 3, ra.PublicKey(), epoch)
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to verify the token")
 	}

@@ -46,10 +46,15 @@ func hiddenIndices(Disclosure []byte) []int {
 // NewSignature creates a new idemix signature (Schnorr-type signature)
 // The []byte Disclosure steers which attributes are disclosed:
 // if Disclosure[i] == 0 then attribute i remains hidden and otherwise it is disclosed.
+// We require the revocation handle to remain undisclosed (i.e., Disclosure[rhIndex] == 0).
 // We use the zero-knowledge proof by http://eprint.iacr.org/2016/663.pdf to prove knowledge of a BBS+ signature
 func NewSignature(cred *Credential, sk *FP256BN.BIG, Nym *FP256BN.ECP, RNym *FP256BN.BIG, ipk *IssuerPublicKey, Disclosure []byte, msg []byte, rhIndex int, cri *CredentialRevocationInformation, rng *amcl.RAND) (*Signature, error) {
 	if cred == nil || sk == nil || Nym == nil || RNym == nil || ipk == nil || rng == nil || cri == nil {
 		return nil, errors.Errorf("cannot create idemix signature: received nil input")
+	}
+
+	if rhIndex < 0 || rhIndex >= len(ipk.AttributeNames) || len(Disclosure) != len(ipk.AttributeNames) {
+		return nil, errors.Errorf("cannot create idemix signature: received invalid input")
 	}
 
 	if cri.RevocationAlg != int32(ALG_NO_REVOCATION) && Disclosure[rhIndex] == 1 {
@@ -167,40 +172,44 @@ func NewSignature(cred *Credential, sk *FP256BN.BIG, Nym *FP256BN.ECP, RNym *FP2
 	}
 
 	return &Signature{
-			EcpToProto(APrime),
-			EcpToProto(ABar),
-			EcpToProto(BPrime),
-			BigToBytes(ProofC),
-			BigToBytes(ProofSSk),
-			BigToBytes(ProofSE),
-			BigToBytes(ProofSR2),
-			BigToBytes(ProofSR3),
-			BigToBytes(ProofSSPrime),
-			ProofSAttrs,
-			BigToBytes(Nonce),
-			EcpToProto(Nym),
-			BigToBytes(ProofSRNym),
-			cri.EpochPK,
-			cri.EpochPKSig,
-			cri.Epoch,
-			nonRevokedProof},
+			APrime:             EcpToProto(APrime),
+			ABar:               EcpToProto(ABar),
+			BPrime:             EcpToProto(BPrime),
+			ProofC:             BigToBytes(ProofC),
+			ProofSSk:           BigToBytes(ProofSSk),
+			ProofSE:            BigToBytes(ProofSE),
+			ProofSR2:           BigToBytes(ProofSR2),
+			ProofSR3:           BigToBytes(ProofSR3),
+			ProofSSPrime:       BigToBytes(ProofSSPrime),
+			ProofSAttrs:        ProofSAttrs,
+			Nonce:              BigToBytes(Nonce),
+			Nym:                EcpToProto(Nym),
+			ProofSRNym:         BigToBytes(ProofSRNym),
+			RevocationEpochPk:  cri.EpochPk,
+			RevocationPkSig:    cri.EpochPkSig,
+			Epoch:              cri.Epoch,
+			NonRevocationProof: nonRevokedProof},
 		nil
 }
 
 // Ver verifies an idemix signature
 // Disclosure steers which attributes it expects to be disclosed
-// attributeValues[i] contains the desired attribute value for the i-th undisclosed attribute in Disclosure
+// attributeValues contains the desired attribute values.
+// This function will check that if attribute i is disclosed, the i-th attribute equals attributeValues[i].
 func (sig *Signature) Ver(Disclosure []byte, ipk *IssuerPublicKey, msg []byte, attributeValues []*FP256BN.BIG, rhIndex int, revPk *ecdsa.PublicKey, epoch int) error {
-	if sig.NonRevokedProof.RevocationAlg != int32(ALG_NO_REVOCATION) && Disclosure[rhIndex] == 1 {
+	if ipk == nil || revPk == nil {
+		return errors.Errorf("cannot verify idemix signature: received nil input")
+	}
+
+	if rhIndex < 0 || rhIndex >= len(ipk.AttributeNames) || len(Disclosure) != len(ipk.AttributeNames) {
+		return errors.Errorf("cannot verify idemix signature: received invalid input")
+	}
+
+	if sig.NonRevocationProof.RevocationAlg != int32(ALG_NO_REVOCATION) && Disclosure[rhIndex] == 1 {
 		return errors.Errorf("Attribute %d is disclosed but is also used as revocation handle, which should remain hidden.", rhIndex)
 	}
 
 	HiddenIndices := hiddenIndices(Disclosure)
-
-	err := VerifyEpochPK(revPk, sig.RevocationPK, sig.RevocationPKSig, epoch, RevocationAlgorithm(sig.NonRevokedProof.RevocationAlg))
-	if err != nil {
-		return errors.Wrap(err, "signature is based on an invalid revocation epoch public key")
-	}
 
 	APrime := EcpFromProto(sig.GetAPrime())
 	ABar := EcpFromProto(sig.GetABar())
@@ -268,14 +277,14 @@ func (sig *Signature) Ver(Disclosure []byte, ipk *IssuerPublicKey, msg []byte, a
 	t3 := HSk.Mul2(ProofSSk, HRand, ProofSRNym)
 	t3.Sub(Nym.Mul(ProofC))
 
-	nonRevokedVer, err := getNonRevocationVerifier(RevocationAlgorithm(sig.NonRevokedProof.RevocationAlg))
+	nonRevokedVer, err := getNonRevocationVerifier(RevocationAlgorithm(sig.NonRevocationProof.RevocationAlg))
 	if err != nil {
 		return err
 	}
 
 	i := sort.SearchInts(HiddenIndices, rhIndex)
 	proofSRh := ProofSAttrs[i]
-	nonRevokedProofBytes, err := nonRevokedVer.recomputeFSContribution(sig.NonRevokedProof, ProofC, Ecp2FromProto(sig.RevocationPK), proofSRh)
+	nonRevokedProofBytes, err := nonRevokedVer.recomputeFSContribution(sig.NonRevocationProof, ProofC, Ecp2FromProto(sig.RevocationEpochPk), proofSRh)
 	if err != nil {
 		return err
 	}
@@ -286,7 +295,7 @@ func (sig *Signature) Ver(Disclosure []byte, ipk *IssuerPublicKey, msg []byte, a
 	// one bigint (hash of the issuer public key) of length FieldBytes
 	// disclosed attributes
 	// message that was signed
-	proofData := make([]byte, len([]byte(signLabel))+7*(2*FieldBytes+1)+FieldBytes+len(Disclosure)+len(msg)+ProofBytes[RevocationAlgorithm(sig.NonRevokedProof.RevocationAlg)])
+	proofData := make([]byte, len([]byte(signLabel))+7*(2*FieldBytes+1)+FieldBytes+len(Disclosure)+len(msg)+ProofBytes[RevocationAlgorithm(sig.NonRevocationProof.RevocationAlg)])
 	index := 0
 	index = appendBytesString(proofData, index, signLabel)
 	index = appendBytesG1(proofData, index, t1)

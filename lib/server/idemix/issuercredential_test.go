@@ -165,7 +165,7 @@ func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
 	ik := NewIssuerCredential(pubkeyfile, testSecretKeyFile, idemixLib)
-	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
+	ik.SetIssuerKey(&idemix.IssuerKey{Ipk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer public key is being stored to readonly directory")
 	if err != nil {
@@ -200,7 +200,7 @@ func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
 	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile, idemixLib)
-	ik.SetIssuerKey(&idemix.IssuerKey{IPk: pubKey})
+	ik.SetIssuerKey(&idemix.IssuerKey{Ipk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer secret key is being stored to read-only directory")
 	if err != nil {

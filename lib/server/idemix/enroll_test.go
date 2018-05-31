@@ -290,7 +290,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.Ipk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -354,7 +354,7 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.Ipk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -434,7 +434,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
-	_, attrs, err := handler.GetAttributeValues(caller, ik.IPk, rh)
+	_, attrs, err := handler.GetAttributeValues(caller, ik.Ipk, rh)
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
@@ -543,5 +543,5 @@ func newIdemixCredentialRequest(t *testing.T, nonce *fp256bn.BIG) (*idemix.CredR
 		return nil, nil, err
 	}
 	sk := idemix.RandModOrder(rng)
-	return idemix.NewCredRequest(sk, nonce, ik.IPk, rng), sk, nil
+	return idemix.NewCredRequest(sk, nonce, ik.Ipk, rng), sk, nil
 }

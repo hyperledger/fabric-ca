@@ -86,8 +86,8 @@ func (ic *caIdemixCredential) Load() error {
 		return errors.New("Issuer secret key file is empty")
 	}
 	ic.issuerKey = &idemix.IssuerKey{
-		IPk: pubKey,
-		ISk: privKey,
+		Ipk: pubKey,
+		Isk: privKey,
 	}
 	//TODO: check if issuer key is valid by checking public and secret key pair
 	return nil
@@ -101,7 +101,7 @@ func (ic *caIdemixCredential) Store() error {
 		return err
 	}
 
-	ipkBytes, err := proto.Marshal(ik.IPk)
+	ipkBytes, err := proto.Marshal(ik.Ipk)
 	if err != nil {
 		return errors.New("Failed to marshal Issuer public key")
 	}
@@ -112,7 +112,7 @@ func (ic *caIdemixCredential) Store() error {
 		return errors.New("Failed to store Issuer public key")
 	}
 
-	err = util.WriteFile(ic.secretKeyFile, ik.ISk, 0644)
+	err = util.WriteFile(ic.secretKeyFile, ik.Isk, 0644)
 	if err != nil {
 		log.Errorf("Failed to store Issuer secret key: %s", err.Error())
 		return errors.New("Failed to store Issuer secret key")
