@@ -477,7 +477,7 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	tx.On("Rollback").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextAndLastHandle).Return(UpdateNextAndLastHandle)
-	tx.On("Exec", UpdateNextAndLastHandle, 101, 200, 2).Return(nil, nil)
+	tx.On("Exec", UpdateNextAndLastHandle, 101, 200, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	f1 := getTxSelectFunc(t, &rcInfos, 100, false, true)
 	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)

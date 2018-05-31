@@ -72,3 +72,26 @@ func TestIdemixCredRevokedUser(t *testing.T) {
 	t.Log("Error: ", err)
 	util.ErrorContains(t, err, "20", "Revoked user with only Idemix credential, should not be able to make requests to the server")
 }
+
+// Test to make sure the UpdateNextandLastHandle SQL statement executes currently agains a database
+func TestUpdatingRevocationHandleQuery(t *testing.T) {
+	srv := TestGetRootServer(t)
+	srv.CA.Config.Idemix.RHPoolSize = 5
+	err := srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+	defer os.RemoveAll(rootDir)
+
+	c := TestGetRootClient()
+	req := &api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+		Type:   "idemix",
+	}
+
+	// Exhaust the RHPoolSize, trigging updating the database with a new revocation handle
+	for i := 1; i <= 6; i++ {
+		_, err := c.Enroll(req)
+		assert.NoError(t, err, "Failed to enroll 'admin'")
+	}
+}

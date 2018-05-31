@@ -159,7 +159,7 @@ func (nm *nonceManager) getNonceFromDB(tx dbutil.FabricCATx, args ...interface{}
 	if len(nonces) == 0 {
 		return nil, errors.New("Nonce not found in the datastore")
 	}
-	result, err := tx.Exec(RemoveNonce, args...)
+	result, err := tx.Exec(tx.Rebind(RemoveNonce), args...)
 	if err != nil {
 		log.Errorf("Failed to remove nonce %s from DB: %s", args[0], err.Error())
 		return nonces[0], nil

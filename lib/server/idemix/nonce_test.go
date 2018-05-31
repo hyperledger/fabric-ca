@@ -140,6 +140,7 @@ func TestCheckNonce(t *testing.T) {
 	tx.On("Select", &nonces, SelectNonce, noncestr).Return(f)
 	numTxRemoveResultCalls := 0
 	numTxRemoveErrorCalls := 0
+	tx.On("Rebind", RemoveNonce).Return(RemoveNonce)
 	f1 := getTxRemoveNonceResultFunc(noncestr, &numTxRemoveResultCalls)
 	f2 := getTxRemoveNonceErrorFunc(&numTxRemoveErrorCalls)
 	tx.On("Exec", RemoveNonce, noncestr).Return(f1, f2)

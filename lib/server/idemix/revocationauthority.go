@@ -26,7 +26,7 @@ const (
 	// SelectRAInfo is the query string for getting revocation authority info
 	SelectRAInfo = "SELECT * FROM revocation_authority_info"
 	// UpdateNextAndLastHandle is the SQL for updating next and last revocation handle
-	UpdateNextAndLastHandle = "UPDATE revocation_authority_info SET next_handle = ? AND lasthandle_in_pool = ? WHERE (epoch = ?)"
+	UpdateNextAndLastHandle = "UPDATE revocation_authority_info SET next_handle = ?, lasthandle_in_pool = ?, epoch = ? WHERE (epoch = ?)"
 	// UpdateNextHandle s the SQL for updating next revocation handle
 	UpdateNextHandle = "UPDATE revocation_authority_info SET next_handle = ? WHERE (epoch = ?)"
 	// DefaultRevocationHandlePoolSize is the default revocation handle pool size
@@ -293,7 +293,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx dbutil.FabricCATx, a
 		newLastHandleInPool := rcInfo.LastHandleInPool + ra.issuer.Config().RHPoolSize
 		newEpoch := rcInfo.Epoch + 1
 		query = UpdateNextAndLastHandle
-		inQuery, args, err = sqlx.In(query, newNextHandle, newLastHandleInPool, newEpoch)
+		inQuery, args, err = sqlx.In(query, newNextHandle, newLastHandleInPool, newEpoch, rcInfo.Epoch)
 	} else {
 		query = UpdateNextHandle
 		inQuery, args, err = sqlx.In(query, newNextHandle, rcInfo.Epoch)
