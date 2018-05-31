@@ -129,12 +129,12 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 	$(eval DOCKER_NAME = $(DOCKER_NS)/$(TARGET))
 	@echo "Building docker $(TARGET) image"
 	@cat images/$(TARGET)/Dockerfile.in \
-		| sed -e 's/_BASE_NS_/$(BASE_DOCKER_NS)/g' \
-		| sed -e 's/_NS_/$(DOCKER_NS)/g' \
-		| sed -e 's/_BASE_TAG_/$(BASE_DOCKER_TAG)/g' \
-		| sed -e 's/_FABRIC_TAG_/$(FABRIC_TAG)/g' \
-		| sed -e 's/_TAG_/$(DOCKER_TAG)/g' \
-		| sed -e 's/_PGVER_/$(PGVER)/g' \
+		| sed -e 's|_BASE_NS_|$(BASE_DOCKER_NS)|g' \
+		| sed -e 's|_NS_|$(DOCKER_NS)|g' \
+		| sed -e 's|_BASE_TAG_|$(BASE_DOCKER_TAG)|g' \
+		| sed -e 's|_FABRIC_TAG_|$(FABRIC_TAG)|g' \
+		| sed -e 's|_TAG_|$(DOCKER_TAG)|g' \
+		| sed -e 's|_PGVER_|$(PGVER)|g' \
 		> $(@D)/Dockerfile
 	$(DBUILD) -t $(DOCKER_NAME) --build-arg FABRIC_CA_DYNAMIC_LINK=$(FABRIC_CA_DYNAMIC_LINK) $(@D)
 	docker tag $(DOCKER_NAME) $(DOCKER_NAME):$(DOCKER_TAG)
