@@ -9,6 +9,9 @@ package idemix_test
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"io/ioutil"
+	"os"
+	"path"
 	"testing"
 
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
@@ -21,84 +24,210 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetRAInfoFromDBError(t *testing.T) {
+func TestLongTermKeyError(t *testing.T) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
+	issuer.On("HomeDir").Return(".")
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(".", DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join("./msp/keystore", DefaultRevocationPrivateKeyFile)}
+	issuer.On("Config").Return(opts)
+	lib := new(mocks.Lib)
+	lib.On("GenerateLongTermRevocationKey").Return(nil, errors.New("Failed to create revocation key"))
+	issuer.On("IdemixLib").Return(lib)
+	db := new(dmocks.FabricCADB)
+	issuer.On("DB").Return(db)
+	_, err := NewRevocationAuthority(issuer, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Contains(t, err.Error(), "Failed to generate revocation key for issuer")
+	}
+}
+func TestRevocationKeyLoadError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "revokekeyloaderrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	revocationpubkeyfile := path.Join(homeDir, DefaultRevocationPublicKeyFile)
+	revocationprivkeyfile := path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)
+	err = util.WriteFile(revocationprivkeyfile, []byte(""), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write to file: %s", err.Error())
+	}
+	err = util.WriteFile(revocationpubkeyfile, []byte(""), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write to file: %s", err.Error())
+	}
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("")
+	issuer.On("HomeDir").Return(homeDir)
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: revocationpubkeyfile,
+		RevocationPrivateKeyfile: revocationprivkeyfile}
+	issuer.On("Config").Return(opts)
+	lib := new(mocks.Lib)
+	issuer.On("IdemixLib").Return(lib)
+	db := new(dmocks.FabricCADB)
+	issuer.On("DB").Return(db)
+	_, err = NewRevocationAuthority(issuer, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Contains(t, err.Error(), "Failed to load revocation key for issuer")
+	}
+}
+
+func TestGetRAInfoFromDBError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "rainfodberrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	issuer := new(mocks.MyIssuer)
+	issuer.On("Name").Return("ca1")
+	lib := new(mocks.Lib)
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
+	}
+	lib.On("GenerateLongTermRevocationKey").Return(revocationKey, nil)
+	issuer.On("IdemixLib").Return(lib)
 	rainfos := []RevocationAuthorityInfo{}
 	db := new(dmocks.FabricCADB)
 	db.On("Select", &rainfos, "SELECT * FROM revocation_authority_info").
 		Return(errors.New("Failed to execute select query"))
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 }
 
 func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "rainfodberrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
-
+	issuer.On("HomeDir").Return(homeDir)
+	lib := new(mocks.Lib)
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
+	}
+	lib.On("GenerateLongTermRevocationKey").Return(revocationKey, nil)
+	issuer.On("IdemixLib").Return(lib)
 	db := new(dmocks.FabricCADB)
 	raInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, true, true, false)
+	f := getSelectFunc(t, true, true)
 	db.On("Select", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 }
 
 func TestGetRAInfoFromExistingDB(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "newraexistingdbtest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
-
+	issuer.On("HomeDir").Return(homeDir)
+	lib := new(mocks.Lib)
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
+	}
+	issuer.On("IdemixLib").Return(lib)
+	rk := NewRevocationKey(path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		path.Join(homeDir, "msp/keystore/", DefaultRevocationPrivateKeyFile), lib)
+	rk.SetKey(revocationKey)
+	err = rk.Store()
+	if err != nil {
+		t.Fatalf("Failed to store test revocation key: %s", err.Error())
+	}
 	db := new(dmocks.FabricCADB)
 	raInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, false, false, false)
+	f := getSelectFunc(t, false, false)
 	db.On("Select", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100,
+		RevocationPublicKeyfile:  path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1)
 	assert.NoError(t, err)
 }
 
-func TestGetRAInfoFromExistingDBBadKey(t *testing.T) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("")
-
-	db := new(dmocks.FabricCADB)
-	raInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, false, false, true)
-	db.On("Select", &raInfos, SelectRAInfo).Return(f)
-	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
-	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
-	assert.Error(t, err)
-}
-
-func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
-	issuer, db, pk := setupForInsertTests(t)
-	pkStr, pubStr, err := EncodeKeys(pk, &pk.PublicKey)
+func TestRevocationKeyStoreFailure(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "rkstoretesthome")
 	if err != nil {
-		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
 	}
+	defer os.RemoveAll(homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir)
+	os.RemoveAll(path.Join(homeDir, "msp/keystore"))
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
 		LastHandleInPool:     100,
 		Level:                1,
-		PrivateKey:           pkStr,
-		PublicKey:            pubStr,
+	}
+	result := new(dmocks.Result)
+	result.On("RowsAffected").Return(int64(1), nil)
+	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
+	issuer.On("DB").Return(db)
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	issuer.On("Config").Return(opts)
+	_, err = NewRevocationAuthority(issuer, 1)
+	assert.Error(t, err)
+	if err != nil {
+		assert.Contains(t, err.Error(), "Failed to store revocation key of issuer")
+	}
+}
+
+func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir)
+	rainfo := RevocationAuthorityInfo{
+		Epoch:                1,
+		NextRevocationHandle: 1,
+		LastHandleInPool:     100,
+		Level:                1,
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(0), nil)
 	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
 	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
@@ -108,24 +237,28 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
-	issuer, db, pk := setupForInsertTests(t)
-	pkStr, pubStr, err := EncodeKeys(pk, &pk.PublicKey)
+	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
 	if err != nil {
-		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
 	}
+	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
 		LastHandleInPool:     100,
 		Level:                1,
-		PrivateKey:           pkStr,
-		PublicKey:            pubStr,
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(2), nil)
 	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
 	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
@@ -135,69 +268,40 @@ func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
-	issuer, db, pk := setupForInsertTests(t)
-	pkStr, pubStr, err := EncodeKeys(pk, &pk.PublicKey)
+	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
 	if err != nil {
-		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
 	}
+	defer os.RemoveAll(homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
 		LastHandleInPool:     100,
 		Level:                1,
-		PrivateKey:           pkStr,
-		PublicKey:            pubStr,
 	}
 	db.On("NamedExec", InsertRAInfo, &rainfo).Return(nil,
 		errors.New("Inserting revocation authority info into DB failed"))
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100}
+	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
 	_, err = NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
-}
-
-func TestGetLongTermKeyError(t *testing.T) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("")
-	lib := new(mocks.Lib)
-	lib.On("GenerateLongTermRevocationKey").Return(nil, errors.New("Failed to create long term key for revocation authority"))
-	issuer.On("IdemixLib").Return(lib)
-	db := new(dmocks.FabricCADB)
-	rcInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, true, false, false)
-	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
-	issuer.On("DB").Return(db)
-	_, err := NewRevocationAuthority(issuer, 1)
-	assert.Error(t, err)
 	if err != nil {
-		assert.Contains(t, err.Error(), "Failed to generate long term key")
+		assert.Contains(t, err.Error(), "Failed to insert revocation authority info into database")
 	}
 }
 
-func TestGetLongTermKeyEncodingError(t *testing.T) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("")
-	lib := new(mocks.Lib)
-	privateKey, err := idemix.GenerateLongTermRevocationKey()
-	if err != nil {
-		t.Fatalf("Failed to generate ECDSA key for revocation authority")
-	}
-	privateKey.PublicKey = ecdsa.PublicKey{}
-	lib.On("GenerateLongTermRevocationKey").Return(privateKey, nil)
-	issuer.On("IdemixLib").Return(lib)
-	db := new(dmocks.FabricCADB)
-	rcInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, true, false, false)
-	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
-	issuer.On("DB").Return(db)
-	_, err = NewRevocationAuthority(issuer, 1)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to encode long term key of the revocation authority")
-}
 func TestGetNewRevocationHandleSelectError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "selecterrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(nil)
@@ -210,14 +314,22 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
-	_, err := ra.GetNewRevocationHandle()
+	_, err = ra.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to get revocation authority info from database")
+	if err != nil {
+		assert.Contains(t, err.Error(), "Failed to get revocation authority info from database")
+	}
 }
 
 func TestGetNewRevocationHandleNoData(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "rhnodatatest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(nil)
@@ -230,14 +342,22 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
-	_, err := ra.GetNewRevocationHandle()
+	_, err = ra.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "No revocation authority info found in database")
+	if err != nil {
+		assert.Contains(t, err.Error(), "No revocation authority info found in database")
+	}
 }
 
 func TestGetNewRevocationHandleExecError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "nextrhexecerrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
@@ -250,14 +370,22 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 	tx.On("Rollback").Return(nil)
 
 	db.On("BeginTx").Return(tx)
-	_, err := ra.GetNewRevocationHandle()
+	_, err = ra.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to update revocation authority info")
+	if err != nil {
+		assert.Contains(t, err.Error(), "Failed to update revocation authority info")
+	}
 }
 
 func TestGetNewRevocationHandleRollbackError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "nextrhrollbackerrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
@@ -270,14 +398,22 @@ func TestGetNewRevocationHandleRollbackError(t *testing.T) {
 	tx.On("Rollback").Return(errors.New("Rollback error"))
 
 	db.On("BeginTx").Return(tx)
-	_, err := ra.GetNewRevocationHandle()
+	_, err = ra.GetNewRevocationHandle()
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Error encountered while rolling back transaction")
+	if err != nil {
+		assert.Contains(t, err.Error(), "Error encountered while rolling back transaction")
+	}
 }
 
 func TestGetNewRevocationHandleCommitError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "nextrhcommiterrortest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(errors.New("Error commiting"))
@@ -290,14 +426,20 @@ func TestGetNewRevocationHandleCommitError(t *testing.T) {
 	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
-	_, err := ra.GetNewRevocationHandle()
+	_, err = ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Error encountered while committing transaction")
 }
 
 func TestGetNewRevocationHandle(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "nextrhtest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	rc := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	rc := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(nil)
@@ -316,8 +458,14 @@ func TestGetNewRevocationHandle(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleLastHandle(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "nextlastrhtest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit").Return(nil)
@@ -332,17 +480,24 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	rh, err := ra.GetNewRevocationHandle()
 	assert.NoError(t, err)
-	assert.Equal(t, 0, bytes.Compare(idemix.BigToBytes(fp256bn.NewBIGint(100)), idemix.BigToBytes(rh)), "Expected next revocation handle to be 100")
-	assert.Equal(t, util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(100))), util.B64Encode(idemix.BigToBytes(rh)), "Expected next revocation handle to be 100")
+	assert.Equal(t, 0, bytes.Compare(idemix.BigToBytes(fp256bn.NewBIGint(100)), idemix.BigToBytes(rh)),
+		"Expected next revocation handle to be 100")
+	assert.Equal(t, util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(100))), util.B64Encode(idemix.BigToBytes(rh)),
+		"Expected next revocation handle to be 100")
 }
 
 func TestGetEpoch(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "getepochtest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, false, false)
+	selectFnc := getSelectFunc(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
 
 	rcInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, true, false, false)
-	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
+	db.On("Select", &rcInfos, SelectRAInfo).Return(selectFnc)
 	epoch, err := ra.Epoch()
 	assert.NoError(t, err)
 	assert.Equal(t, 1, epoch)
@@ -350,65 +505,114 @@ func TestGetEpoch(t *testing.T) {
 	assert.NotNil(t, key, "Public key should not be nil")
 }
 
-func TestCreateCRI(t *testing.T) {
+func TestGetEpochRAInfoError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "createcritest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, db, 0, true, false)
-	_, err := ra.CreateCRI()
+
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	}
+	selectFnc := getSelectFuncForCreateCRI(t, true, true)
+	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
+	_, err = ra.Epoch()
+	assert.Error(t, err, "Epoch should fail if there is an error getting revocation info from DB")
+}
+
+func TestCreateCRIGetRAInfoError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "createcritest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	db := new(dmocks.FabricCADB)
+
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	}
+	selectFnc := getSelectFuncForCreateCRI(t, true, true)
+	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
+	_, err = ra.CreateCRI()
+	assert.Error(t, err, "CreateCRI should fail if there is an error getting revocation info from DB")
+}
+
+func TestCreateCRIGetRevokeCredsError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "createcritest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	db := new(dmocks.FabricCADB)
+
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	}
+
+	selectFnc := getSelectFuncForCreateCRI(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, true, false, selectFnc)
+	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if there is an error getting revoked credentials")
+}
+
+func TestIdemixCreateCRIError(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "createcritest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	db := new(dmocks.FabricCADB)
+
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	}
 
 	db = new(dmocks.FabricCADB)
-	ra = getRevocationAuthority(t, db, 0, false, true)
+	selectFnc := getSelectFuncForCreateCRI(t, true, false)
+	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, true, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if idemix.CreateCRI returns an error")
+}
 
-	db = new(dmocks.FabricCADB)
-	ra = getRevocationAuthority(t, db, 0, false, false)
+func TestEpochValuesInCRI(t *testing.T) {
+	homeDir, err := ioutil.TempDir(".", "createcritest")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	}
+	defer os.RemoveAll(homeDir)
+	revocationKey, err := idemix.GenerateLongTermRevocationKey()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	}
+	selectFnc := getSelectFuncForCreateCRI(t, true, false)
+	db := new(dmocks.FabricCADB)
+	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
 	cri, err := ra.CreateCRI()
 	assert.NoError(t, err)
 
 	db = new(dmocks.FabricCADB)
 	cri1, err := ra.CreateCRI()
 	assert.NoError(t, err)
-	assert.Equal(t, cri.Epoch, cri1.Epoch)
-
-	// db = new(dmocks.FabricCADB)
-	// ra = getRevocationAuthority(t, db, 1, false, false)
-	// _, err = ra.CreateCRI()
-	// assert.NoError(t, err)
-}
-
-func TestEncodeKeys(t *testing.T) {
-	privateKey, err := idemix.GenerateLongTermRevocationKey()
-	if err != nil {
-		t.Fatalf("Failed to generate ECDSA key for revocation authority")
+	if err == nil {
+		assert.Equal(t, cri.Epoch, cri1.Epoch)
 	}
-	pkstr, pubkeystr, err := EncodeKeys(privateKey, &privateKey.PublicKey)
-	assert.NoError(t, err)
-
-	_, _, err = DecodeKeys("", pubkeystr)
-	assert.Error(t, err)
-	assert.Equal(t, "Failed to decode ECDSA private key", err.Error())
-
-	_, _, err = DecodeKeys(pubkeystr, pkstr)
-	assert.Error(t, err, "DecodeKeys should fail as encoded public key string is passed as private key")
-
-	_, _, err = DecodeKeys(pkstr, "")
-	assert.Error(t, err, "DecodeKeys should fail as empty string is passed for encoded public key string")
-	assert.Contains(t, err.Error(), "Failed to decode ECDSA public key")
-
-	_, _, err = DecodeKeys(pkstr, pkstr)
-	assert.Error(t, err, "DecodeKeys should fail as encoded private key string is passed as public key")
-	assert.Contains(t, err.Error(), "Failed to parse ECDSA public key bytes")
-
-	privateKey1, pubKey, err := DecodeKeys(pkstr, pubkeystr)
-	assert.NoError(t, err)
-	assert.NotNil(t, privateKey1)
-	assert.NotNil(t, pubKey)
 }
 
-func setupForInsertTests(t *testing.T) (*mocks.MyIssuer, *dmocks.FabricCADB, *ecdsa.PrivateKey) {
+func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks.FabricCADB, *ecdsa.PrivateKey) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
+	issuer.On("HomeDir").Return(homeDir)
+	keystore := path.Join(homeDir, "msp/keystore")
+	err := os.MkdirAll(keystore, 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory %s: %s", keystore, err.Error())
+	}
 	lib := new(mocks.Lib)
 	privateKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -418,45 +622,49 @@ func setupForInsertTests(t *testing.T) (*mocks.MyIssuer, *dmocks.FabricCADB, *ec
 	issuer.On("IdemixLib").Return(lib)
 	db := new(dmocks.FabricCADB)
 	rcInfos := []RevocationAuthorityInfo{}
-	f := getSelectFunc(t, nil, true, false, false)
+	f := getSelectFunc(t, true, false)
 	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
 	return issuer, db, privateKey
 }
 
-func getRevocationAuthority(t *testing.T, db *dmocks.FabricCADB, revokedCred int,
-	getRevokedCredsError bool, idemixCreateCRIError bool) RevocationAuthority {
+func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB, revocationKey *ecdsa.PrivateKey, revokedCred int,
+	getRevokedCredsError bool, idemixCreateCRIError bool, selectFnc func(interface{}, string, ...interface{}) error) RevocationAuthority {
 	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("")
-	lib := new(mocks.Lib)
-	privateKey, err := idemix.GenerateLongTermRevocationKey()
+	issuer.On("Name").Return("ca1")
+	issuer.On("HomeDir").Return(homeDir)
+	keystore := path.Join(homeDir, "msp/keystore")
+	err := os.MkdirAll(keystore, 0777)
 	if err != nil {
-		t.Fatalf("Failed to generate ECDSA key for revocation authority")
-	}
-	pkStr, pubStr, err := EncodeKeys(privateKey, &privateKey.PublicKey)
-	if err != nil {
-		t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
+		t.Fatalf("Failed to create directory %s: %s", keystore, err.Error())
 	}
 
-	lib.On("GenerateLongTermRevocationKey").Return(privateKey, nil)
+	if revocationKey == nil {
+		var err error
+		revocationKey, err = idemix.GenerateLongTermRevocationKey()
+		if err != nil {
+			t.Fatalf("Failed to generate ECDSA key for revocation authority")
+		}
+	}
+	lib := new(mocks.Lib)
+	lib.On("GenerateLongTermRevocationKey").Return(revocationKey, nil)
 	issuer.On("IdemixLib").Return(lib)
 
-	f := getSelectFunc(t, privateKey, true, false, false)
+	//f := getSelectFunc(t, true, false)
 
 	rcInfosForSelect := []RevocationAuthorityInfo{}
-	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(f)
+	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(selectFnc)
 	rcinfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
 		LastHandleInPool:     100,
 		Level:                1,
-		PrivateKey:           pkStr,
-		PublicKey:            pubStr,
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)
 	db.On("NamedExec", InsertRAInfo, &rcinfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	cfg := &Config{RHPoolSize: 100}
+	cfg := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(cfg)
 
 	rnd, err := idemix.GetRand()
@@ -495,13 +703,13 @@ func getRevocationAuthority(t *testing.T, db *dmocks.FabricCADB, revokedCred int
 		alg = idemix.ALG_PLAIN_SIGNATURE
 	}
 	if idemixCreateCRIError {
-		lib.On("CreateCRI", privateKey, validHandles, 1, alg, rnd).Return(nil, errors.New("Idemix lib create CRI error"))
+		lib.On("CreateCRI", revocationKey, validHandles, 1, alg, rnd).Return(nil, errors.New("Idemix lib create CRI error"))
 	} else {
-		cri, err := idemix.CreateCRI(privateKey, validHandles, 1, alg, rnd)
+		cri, err := idemix.CreateCRI(revocationKey, validHandles, 1, alg, rnd)
 		if err != nil {
 			t.Fatalf("Failed to create CRI: %s", err.Error())
 		}
-		lib.On("CreateCRI", privateKey, validHandles, 1, alg, rnd).Return(cri, nil)
+		lib.On("CreateCRI", revocationKey, validHandles, 1, alg, rnd).Return(cri, nil)
 	}
 
 	ra, err := NewRevocationAuthority(issuer, 1)
@@ -511,32 +719,15 @@ func getRevocationAuthority(t *testing.T, db *dmocks.FabricCADB, revokedCred int
 	return ra
 }
 
-func getSelectFunc(t *testing.T, privateKey *ecdsa.PrivateKey, newDB bool, isError bool, badKey bool) func(interface{}, string, ...interface{}) error {
+func getSelectFunc(t *testing.T, newDB bool, isError bool) func(interface{}, string, ...interface{}) error {
 	numTimesCalled := 0
 	return func(dest interface{}, query string, args ...interface{}) error {
 		rcInfos, _ := dest.(*[]RevocationAuthorityInfo)
-		if privateKey == nil {
-			var err error
-			privateKey, err = idemix.GenerateLongTermRevocationKey()
-			if err != nil {
-				t.Fatalf("Failed to generate ECDSA key for revocation authority")
-			}
-		}
-		var err error
-		pkStr, pubStr, err := EncodeKeys(privateKey, &privateKey.PublicKey)
-		if err != nil {
-			t.Fatalf("Failed to encode revocation authority long term key: %s", err.Error())
-		}
-		if badKey {
-			pkStr = ""
-		}
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,
 			NextRevocationHandle: 1,
 			LastHandleInPool:     100,
 			Level:                1,
-			PrivateKey:           pkStr,
-			PublicKey:            pubStr,
 		}
 		if !newDB || numTimesCalled > 0 {
 			*rcInfos = append(*rcInfos, rcInfo)
@@ -546,6 +737,29 @@ func getSelectFunc(t *testing.T, privateKey *ecdsa.PrivateKey, newDB bool, isErr
 		}
 		numTimesCalled = numTimesCalled + 1
 		return nil
+	}
+}
+
+func getSelectFuncForCreateCRI(t *testing.T, newDB bool, isError bool) func(interface{}, string, ...interface{}) error {
+	numTimesCalled := 0
+	return func(dest interface{}, query string, args ...interface{}) error {
+		rcInfos, _ := dest.(*[]RevocationAuthorityInfo)
+		rcInfo := RevocationAuthorityInfo{
+			Epoch:                1,
+			NextRevocationHandle: 1,
+			LastHandleInPool:     100,
+			Level:                1,
+		}
+		if !newDB || numTimesCalled > 0 {
+			*rcInfos = append(*rcInfos, rcInfo)
+		}
+
+		var err error
+		if isError && numTimesCalled%2 == 1 {
+			err = errors.New("Failed to get RevocationComponentInfo from DB")
+		}
+		numTimesCalled = numTimesCalled + 1
+		return err
 	}
 }
 

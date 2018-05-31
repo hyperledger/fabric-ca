@@ -42,6 +42,7 @@ type Issuer interface {
 // MyIssuer provides functions for accessing issuer components
 type MyIssuer interface {
 	Name() string
+	HomeDir() string
 	Config() *Config
 	IdemixLib() Lib
 	DB() dbutil.FabricCADB
@@ -246,6 +247,11 @@ func (i *issuer) Name() string {
 	return i.name
 }
 
+// HomeDir returns the home directory of the issuer
+func (i *issuer) HomeDir() string {
+	return i.homeDir
+}
+
 // Config returns config of this issuer
 func (i *issuer) Config() *Config {
 	return i.cfg
@@ -289,7 +295,7 @@ func (i *issuer) CredDBAccessor() CredDBAccessor {
 }
 
 func (i *issuer) initKeyMaterial(renew bool) error {
-	log.Debug("Initialize Idemix key material")
+	log.Debug("Initialize Idemix issuer key material")
 
 	rng, err := i.idemixLib.GetRand()
 	if err != nil {
