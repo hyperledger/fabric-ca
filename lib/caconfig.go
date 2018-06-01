@@ -94,7 +94,7 @@ type CAConfig struct {
 	Client       *ClientConfig
 	Intermediate IntermediateCA
 	CRL          CRLConfig
-	Idemix       idemix.Config
+	Idemix       idemix.Config `skip:"true"`
 }
 
 // CfgOptions is a CA configuration that allows for setting different options

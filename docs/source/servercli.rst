@@ -37,12 +37,9 @@ Fabric-CA Server's CLI
           --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
       -d, --debug                                     Enable debug level logging
       -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
-          --idemix.nonceexpiration string             Duration after which a nonce expires (default "15s")
-          --idemix.noncesweepinterval string          Interval at which expired nonces are deleted (default "15m")
-          --idemix.rhpoolsize int                     Specifies revocation handle pool size (default 100)
           --intermediate.enrollment.label string      Label to use in HSM operations
           --intermediate.enrollment.profile string    Name of the signing profile to use in issuing the certificate
-          --intermediate.enrollment.type string       The type of enrollment request: 'x509' or 'idemix' (default "x509")
+          --intermediate.enrollment.type string       The type of enrollment request (default "x509")
           --intermediate.parentserver.caname string   Name of the CA to connect to on fabric-ca-server
       -u, --intermediate.parentserver.url string      URL of the parent fabric-ca-server (e.g. http://<username>:<password>@<address>:<port)
           --intermediate.tls.certfiles stringSlice    A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)

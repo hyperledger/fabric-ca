@@ -53,15 +53,13 @@ Table of Contents
    2. `Registering a new identity`_
    3. `Enrolling a peer identity`_
    4. `Getting a CA certificate chain from another Fabric CA server`_
-   5. `Getting Identity Mixer credential for a user`_
-   6. `Getting Idemix CRI`_
-   7. `Reenrolling an identity`_
-   8. `Revoking a certificate or identity`_
-   9. `Generating a CRL (Certificate Revocation List)`_
-   10. `Attribute-Based Access Control`_
-   11. `Dynamic Server Configuration Update`_
-   12. `Enabling TLS`_
-   13. `Contact specific CA instance`_
+   5. `Reenrolling an identity`_
+   6. `Revoking a certificate or identity`_
+   7. `Generating a CRL (Certificate Revocation List)`_
+   8. `Attribute-Based Access Control`_
+   9. `Dynamic Server Configuration Update`_
+   10. `Enabling TLS`_
+   11. `Contact specific CA instance`_
 
 6. `HSM`_
 
@@ -1448,56 +1446,6 @@ By default, the Fabric CA server returns the CA chain in child-first order. This
 certificate in the chain is followed by its issuer's CA certificate. If you need the Fabric CA server
 to return the CA chain in the opposite order, then set the environment variable ``CA_CHAIN_PARENT_FIRST``
 to ``true`` and restart the Fabric CA server. The Fabric CA client will handle either order appropriately.
-
-Getting Identity Mixer credential for a user
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Identity Mixer (Idemix) is a cryptographic protocol suite for privacy-preserving authentication and transfer of certified attributes.
-Idemix allows users to authenticate with verifiers without the involvement of the issuer (CA) and selectively disclose only those attributes
-that are required by the verifier and can do so without being linkable across their transactions.
-
-Fabric CA server can issue Idemix credentials in addition to X509 certificates. An Idemix credential can be requested by sending the request to
-the ``/api/v1/idemix/credential`` API endpoint. For more information on this and other Fabric CA server API endpoints, please refer to
-`swagger-fabric-ca.json <https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json>`_.
-
-The Idemix credential issuance is a two step process. First, send a request with an empty body to the ``/api/v1/idemix/credential``
-API endpoint to get a nonce and CA's Idemix public key. Second, create a credential request using the nonce and CA's Idemix public key and
-send another request with the credential request in the body to  the ``/api/v1/idemix/credential`` API endpoint to get an Idemix credential,
-Credential Revocation Information (CRI), and attribute names and values. Currently, only three attributes are supported:
-
-- **OU** - organization unit of the user
-- **IsAdmin** - if the user is an admin or not
-- **EnrollmentID** - enrollment ID of the user
-
-You can refer to the `handleIdemixEnroll` function in https://github.com/hyperledger/fabric-ca/blob/master/lib/client.go for reference implementation
-of the two step process for getting Idemix credential.
-
-The ``/api/v1/idemix/credential`` API endpoint accepts both basic and token authorization headers. The basic authorization header should
-contain User's registration ID and password. If the user already has X509 enrollment certificate, it can also be used to create a token authorization header.
-
-Note that Hyperledger Fabric will support clients/users to sign transactions with both X509 and Idemix credentials, but will only support X509 credentials
-for peer and orderer identities. As before, applications can use a Fabric SDK to send requests to the Fabric CA server. SDKs hide the complexity
-associated with creating authorization header and request payload, and with processing the response.
-
-Idemix CRI (Certificate Revocation Information)
------------------------------------------------
-An Idemix CRI (Credential Revocation Information) is similar in purpose to an X509 CRL (Certificate Revocation List):
-to revoke what was previously issued.  However, there are some differences.
-
-In X509, the issuer revokes an end user's certificate and its ID is included in the CRL.
-The verifier checks to see if the user's certificate is in the CRL and if so, returns an authorization failure.
-The end user is not involved in this revocation process, other than receiving an authorization error from a verifier.
-
-In Idemix, the end user is involved.  The issuer revokes an end user's credential similar to X509 and evidence of this 
-revocation is recorded in the CRI.  The CRI is given to the end user (aka "prover").  The end user then generates a 
-proof that their credential has not been revoked according to the CRI.  The end user gives this proof to the verifier
-who verifies the proof according to the CRI.
-For verification to succeed, the version of the CRI (known as the "epoch") used by the end user and verifier must be same.
-The latest CRI can be requested by sending a request to ``/api/v1/idemix/cri`` API endpoint.
-
-The version of the CRI is incremented when an enroll request is received by the fabric-ca-server and there are no revocation
-handles remaining in the revocation handle pool. In this case, the fabric-ca-server must generate a new pool of revocation
-handles which increments the epoch of the CRI. The number of revocation handles in the revocation handle pool is configurable
-via the ``idemix.rhpoolsize`` server configuration property.
 
 Reenrolling an Identity
 ~~~~~~~~~~~~~~~~~~~~~~~

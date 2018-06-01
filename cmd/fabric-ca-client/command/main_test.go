@@ -995,7 +995,7 @@ func testGetCACert(t *testing.T) {
 	os.RemoveAll("msp")
 	err := RunMain([]string{cmdName, "getcacert", "-d", "-u", serverURL})
 	assert.NoError(t, err, "getcacert should not have failed")
-	assert.True(t, util.FileExists(path.Dir(defYaml)+"/msp/IssuerPublicKey"), "IssuerPublicKey file should exist after getcacert call")
+	//assert.True(t, util.FileExists(path.Dir(defYaml)+"/msp/IssuerPublicKey"), "IssuerPublicKey file should exist after getcacert call")
 
 	err = RunMain([]string{cmdName, "getcacert", "-d", "-u", "http://localhost:9999"})
 	if err == nil {

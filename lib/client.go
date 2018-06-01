@@ -243,20 +243,20 @@ func (c *Client) net2LocalCAInfo(net *common.CAInfoResponseNet, local *GetCAInfo
 	if err != nil {
 		return errors.WithMessage(err, "Failed to decode CA chain")
 	}
-	if net.IssuerPublicKey != "" {
-		ipk, err := util.B64Decode(net.IssuerPublicKey)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to decode issuer public key")
-		}
-		local.IssuerPublicKey = ipk
-	}
-	if net.IssuerRevocationPublicKey != "" {
-		rpk, err := util.B64Decode(net.IssuerRevocationPublicKey)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to decode issuer revocation key")
-		}
-		local.IssuerRevocationPublicKey = rpk
-	}
+	// if net.IssuerPublicKey != "" {
+	// 	ipk, err := util.B64Decode(net.IssuerPublicKey)
+	// 	if err != nil {
+	// 		return errors.WithMessage(err, "Failed to decode issuer public key")
+	// 	}
+	// 	local.IssuerPublicKey = ipk
+	// }
+	// if net.IssuerRevocationPublicKey != "" {
+	// 	rpk, err := util.B64Decode(net.IssuerRevocationPublicKey)
+	// 	if err != nil {
+	// 		return errors.WithMessage(err, "Failed to decode issuer revocation key")
+	// 	}
+	// 	local.IssuerRevocationPublicKey = rpk
+	// }
 	local.CAName = net.CAName
 	local.CAChain = caChain
 	local.Version = net.Version
@@ -346,10 +346,11 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 	nonce := fp256bn.FromBytes(nonceBytes)
 	log.Infof("Successfully got nonce from CA %s", req.CAName)
 
-	ipkBytes, err := util.B64Decode(result.CAInfo.IssuerPublicKey)
-	if err != nil {
-		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to decode issuer public key that was returned by CA %s", req.CAName))
-	}
+	ipkBytes := []byte{}
+	// ipkBytes, err := util.B64Decode(result.CAInfo.IssuerPublicKey)
+	// if err != nil {
+	// 	return nil, errors.WithMessage(err, fmt.Sprintf("Failed to decode issuer public key that was returned by CA %s", req.CAName))
+	// }
 	// Create credential request
 	credReq, sk, err := c.newIdemixCredentialRequest(nonce, ipkBytes)
 	if err != nil {

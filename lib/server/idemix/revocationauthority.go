@@ -109,7 +109,7 @@ func NewRevocationAuthority(issuer MyIssuer, level int) (RevocationAuthority, er
 }
 
 func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
-	log.Debug("Initialize Idemix issuer revocation key material")
+	//log.Debug("Initialize Idemix issuer revocation key material")
 	revocationPubKey := ra.issuer.Config().RevocationPublicKeyfile
 	revocationPrivKey := ra.issuer.Config().RevocationPrivateKeyfile
 	rk := NewRevocationKey(revocationPubKey, revocationPrivKey, ra.issuer.IdemixLib())
@@ -119,9 +119,9 @@ func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 		privKeyFileExists := util.FileExists(revocationPrivKey)
 		// If they both exist, the CA was already initialized, load the keys from the disk
 		if pubKeyFileExists && privKeyFileExists {
-			log.Info("The Idemix issuer revocation public and secret key files already exist")
-			log.Infof("   private key file location: %s", revocationPrivKey)
-			log.Infof("   public key file location: %s", revocationPubKey)
+			//log.Info("The Idemix issuer revocation public and secret key files already exist")
+			//log.Infof("   private key file location: %s", revocationPrivKey)
+			//log.Infof("   public key file location: %s", revocationPubKey)
 			err := rk.Load()
 			if err != nil {
 				return errors.WithMessage(err, fmt.Sprintf("Failed to load revocation key for issuer '%s'", ra.issuer.Name()))
@@ -135,7 +135,7 @@ func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 		return errors.WithMessage(err,
 			fmt.Sprintf("Failed to generate revocation key for issuer '%s'", ra.issuer.Name()))
 	}
-	log.Infof("Idemix issuer revocation public and secret keys were generated for CA '%s'", ra.issuer.Name())
+	//log.Infof("Idemix issuer revocation public and secret keys were generated for CA '%s'", ra.issuer.Name())
 	err = rk.Store()
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("Failed to store revocation key of issuer '%s'", ra.issuer.Name()))
