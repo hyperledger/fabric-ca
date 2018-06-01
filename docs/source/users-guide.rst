@@ -488,7 +488,7 @@ server allows passwords to only be used once for a particular enrollment
 ID. If you set the value to -1, the Fabric CA server places no limit on
 the number of times that a secret can be reused for enrollment. The
 default value is -1. Setting the value to 0, the Fabric CA server will
-disable enrollment for all identitiies and registeration of identities will
+disable enrollment for all identities and registration of identities will
 not be allowed.
 
 The Fabric CA server should now be listening on port 7054.
@@ -780,7 +780,7 @@ Where:
     and 636 for *ldaps*;
   * ``base`` is the optional root of the LDAP tree to use for searches;
   * ``filter`` is a filter to use when searching to convert a login
-    user name to a distinquished name. For example, a value of
+    user name to a distinguished name. For example, a value of
     ``(uid=%s)`` searches for LDAP entries with the value of a ``uid``
     attribute whose value is the login user name. Similarly,
     ``(email=%s)`` may be used to login with an email address.
@@ -797,7 +797,7 @@ Where:
     the user's 'uid' LDAP attribute begins with 'revoker'; otherwise, the user
     is given a value of 'false' for the 'hf.Revoker' attribute.
   * the attribute.maps section is used to map LDAP response values.  The typical
-    use case is to map a distinquished name associated with an LDAP group to an
+    use case is to map a distinguished name associated with an LDAP group to an
     identity type.
 
 The LDAP expression language uses the govaluate package as described at
@@ -863,7 +863,7 @@ When LDAP is configured, enrollment works as follows:
 -  The Fabric CA client or client SDK sends an enrollment request with a
    basic authorization header.
 -  The Fabric CA server receives the enrollment request, decodes the
-   identity name and password in the authorization header, looks up the DN (Distinquished
+   identity name and password in the authorization header, looks up the DN (Distinguished
    Name) associated with the identity name using the "userfilter" from the
    configuration file, and then attempts an LDAP bind with the identity's
    password. If the LDAP bind is successful, the enrollment processing is
@@ -1601,7 +1601,7 @@ store the CRL in the `~/msp/crls/crl.pem` file.
     export FABRIC_CA_CLIENT_HOME=~/clientconfig
     fabric-ca-client gencrl -M ~/msp
 
-The next command will create a CRL containing all certficates (expired and unexpired) that were revoked after
+The next command will create a CRL containing all certificates (expired and unexpired) that were revoked after
 2017-09-13T16:39:57-08:00 (specified by the `--revokedafter` flag) and before 2017-09-21T16:39:57-08:00
 (specified by the `--revokedbefore` flag) and store the CRL in the `~/msp/crls/crl.pem` file.
 
@@ -1624,7 +1624,7 @@ can be used to specify a custom value.
 
 The gencrl command will also accept `--expireafter` and `--expirebefore` flags that can be used to generate a CRL
 with revoked certificates that expire during the period specified by these flags. For example, the following command
-will generate a CRL that contains certficates that were revoked after 2017-09-13T16:39:57-08:00 and
+will generate a CRL that contains certificates that were revoked after 2017-09-13T16:39:57-08:00 and
 before 2017-09-21T16:39:57-08:00, and that expire after 2017-09-13T16:39:57-08:00 and before 2018-09-13T16:39:57-08:00
 
 .. code:: bash
@@ -1847,7 +1847,7 @@ The command below make multiple modification to an identity using the --json fla
 
     fabric-ca-client identity modify user1 --json '{"secret": "newPassword", "affiliation": ".", "attrs": [{"name": "hf.Regisrar.Roles", "value": "peer,client"},{"name": "hf.Revoker", "value": "true"}]}'
 
-The commands below make modifcations using direct flags. The following updates the enrollment secret (or password) for identity 'user1' to 'newsecret'.
+The commands below make modifications using direct flags. The following updates the enrollment secret (or password) for identity 'user1' to 'newsecret'.
 
 .. code:: bash
 
@@ -1882,7 +1882,7 @@ the CA's max enrollment setting.
 The following sets the value of the 'hf.Revoker' attribute for identity 'user1' to 'false'.
 If the identity has other attributes, they are not changed.  If the identity did not previously
 possess the 'hf.Revoker' attribute, the attribute is added to the identity. An attribute may
-also be removed by specifiying no value for the attribute.
+also be removed by specifying no value for the attribute.
 
 .. code:: bash
 
@@ -2015,39 +2015,43 @@ issuing the following command.
 Manage Certificates
 ~~~~~~~~~~~~~~~~~~~~
 
-This section describes how to use fabric-ca-client to manage certificates. The
-following shows how to list and delete certificates.
+This section describes how to use fabric-ca-client to manage certificates.
 
-Listing certificates information
+Listing certificate information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The certificates that are visible to a caller include:
 
   - Those certificates which belong to the caller
-  - If the caller possesses the 'hf.Registrar.Roles' attribute or the 'hf.Revoker' attribute with a value of 'true',
+  - If the caller possesses the ``hf.Registrar.Roles`` attribute or the ``hf.Revoker`` attribute with a value of ``true``,
     all certificates which belong to identities in and below the caller's affiliation. For example, if the client's
-    affiliation is "a.b", the client may get certificates for identities who's affiliation
-    is "a.b" or "a.b.c" but not "a" or "a.c".
+    affiliation is ``a.b``, the client may get certificates for identities who's affiliation
+    is ``a.b`` or ``a.b.c`` but not ``a`` or ``a.c``.
 
 If executing a list command that requests certificates of more than one identity, only certificates of identities
-with an affiliation that is equal to or heirachically below the caller's affiliation will be listed.
+with an affiliation that is equal to or hierarchically below the caller's affiliation will be listed.
 
-The certificates which will be listed may be filtered based on ID, AKI, serial number, expiration time, and/or revocation time.
+The certificates which will be listed may be filtered based on ID, AKI, serial number, expiration time, revocation time, notrevoked, and notexpired flags.
 
-ID: List certificates for this enrollment ID
-Serial Number: List certificates that have this serial number
-AKI: List certificates that have this AKI
-Expiration Time: List certificates that have expiration dates that fall within this expiration time
-Revocation Time: List certificates that were revoked within this revocation time
+* ``id``: List certificates for this enrollment ID
+* ``serial``: List certificates that have this serial number
+* ``aki``: List certificates that have this AKI
+* ``expiration``: List certificates that have expiration dates that fall within this expiration time
+* ``revocation``: List certificates that were revoked within this revocation time
+* ``notrevoked``: List certificates that have not yet been revoked
+* ``notexpired``: List certificates that have not yet expired
 
-There are two other filters that will further filter your results. You can choose to not return revoked certificates
-and/or not return expired certificates. For example, if you only care about certificates that have expired but have
-not been revoked you can use this filter to get back such results. An example of this case is provided below.
+You can use flags ``notexpired`` and ``notrevoked`` as filters to exclude revoked certificates and/or expired certificates from the result set.
+For example, if you only care about certificates that have expired but have not been revoked you can use the ``expiration`` and ``notrevoked`` flags to
+get back such results. An example of this case is provided below.
 
 Time should be specified based on RFC3339. For instance, to list certificates that have expirations between
 March 1, 2018 at 1:00 PM and June 15, 2018 at 2:00 AM, the input time string would look like 2018-03-01T13:00:00z
-and 2018-06-15T02:00:00z. If time is not a concern, and only the dates matter then the time part can be left
-of and then the strings become 2018-03-01 and 2018-06-15.
+and 2018-06-15T02:00:00z. If time is not a concern, and only the dates matter, then the time part can be left
+off and then the strings become 2018-03-01 and 2018-06-15.
+
+The string ``now`` may be used to denote the current time and the empty string to denote any time. For example, ``now::`` denotes
+a time range from now to any time in the future, and ``::now`` denotes a time range from any time in the past until now.
 
 The following command shows how to list certificates using various filters.
 
@@ -2082,6 +2086,7 @@ List certificates that are neither revoker nor expired by id:
  fabric-ca-client certificate list --id admin --notrevoked --notexpired
 
 List all certificates that have not been revoked for an id (admin):
+
 .. code:: bash
 
  fabric-ca-client certificate list --id admin --notrevoked
@@ -2185,7 +2190,8 @@ Contact specific CA instance
 When a server is running multiple CA instances, requests can be directed to a
 specific CA. By default, if no CA name is specified in the client request the
 request will be directed to the default CA on the fabric-ca server. A CA name
-can be specified on the command line of a client command as follows:
+can be specified on the command line of a client command using the ``caname``
+filter as follows:
 
 .. code:: bash
 
