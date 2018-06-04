@@ -90,11 +90,11 @@ func TestRegisterFlags(t *testing.T) {
 }
 
 func TestParseObj(t *testing.T) {
-	err := ParseObj(&A{}, printit)
+	err := ParseObj(&A{}, printit, nil)
 	if err != nil {
 		t.Errorf("Failed to parse foo: %s", err)
 	}
-	err = ParseObj(&A{}, nil)
+	err = ParseObj(&A{}, nil, nil)
 	if err == nil {
 		t.Error("Should have failed to parse but didn't")
 	}

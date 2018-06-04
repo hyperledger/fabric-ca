@@ -204,9 +204,10 @@ func (c *ClientCmd) registerFlags() {
 
 	c.clientCfg = &lib.ClientConfig{}
 	tags := map[string]string{
-		"help.csr.cn":           "The common name field of the certificate signing request",
-		"help.csr.serialnumber": "The serial number in a certificate signing request",
-		"help.csr.hosts":        "A list of space-separated host names in a certificate signing request",
+		"help.csr.cn":                "The common name field of the certificate signing request",
+		"help.csr.serialnumber":      "The serial number in a certificate signing request",
+		"help.csr.hosts":             "A list of space-separated host names in a certificate signing request",
+		"skip.csp.pluginopts.config": "true", // Skipping because this a map
 	}
 	err = util.RegisterFlags(c.myViper, pflags, c.clientCfg, tags)
 	if err != nil {

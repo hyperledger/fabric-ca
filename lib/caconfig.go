@@ -82,16 +82,16 @@ type CAConfig struct {
 	Version      string `skip:"true"`
 	Cfg          CfgOptions
 	CA           CAInfo
-	Signing      *config.Signing
+	Signing      *config.Signing `skip:"true"`
 	CSR          api.CSRInfo
 	Registry     CAConfigRegistry
 	Affiliations map[string]interface{}
 	LDAP         ldap.Config
 	DB           CAConfigDB
-	CSP          *factory.FactoryOpts `mapstructure:"bccsp"`
+	CSP          *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
 	// Optional client config for an intermediate server which acts as a client
 	// of the root (or parent) server
-	Client       *ClientConfig
+	Client       *ClientConfig `skip:"true"`
 	Intermediate IntermediateCA
 	CRL          CRLConfig
 	Idemix       idemix.Config

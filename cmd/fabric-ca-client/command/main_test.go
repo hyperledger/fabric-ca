@@ -1029,7 +1029,13 @@ func testEnroll(t *testing.T) {
 		t.Errorf("No username/password provided, should have errored")
 	}
 
-	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-M", filepath.Join(filepath.Dir(defYaml), "msp")})
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL, "-M", filepath.Join(filepath.Dir(defYaml), "msp"), "--csr.keyrequest.algo", "badalgo"})
+	assert.Error(t, err, "Incorrect key algo value, should fail")
+
+	err = RunMain([]string{cmdName, "enroll", "-d", "-u", enrollURL, "-M", filepath.Join(filepath.Dir(defYaml), "msp"), "--csr.keyrequest.algo", "ecdsa", "--csr.keyrequest.size", "1234"})
+	assert.Error(t, err, "Incorrect key size value, should fail")
+
+	err = RunMain([]string{cmdName, "enroll", "-u", enrollURL, "-M", filepath.Join(filepath.Dir(defYaml), "msp"), "--csr.keyrequest.algo", "ecdsa", "--csr.keyrequest.size", "256"})
 	if err != nil {
 		t.Errorf("client enroll -u failed: %s", err)
 	}

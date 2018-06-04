@@ -44,7 +44,7 @@ type ServerConfig struct {
 	TLS tls.ServerTLSConfig
 	// Optional client config for an intermediate server which acts as a client
 	// of the root (or parent) server
-	Client *ClientConfig
+	Client *ClientConfig `skip:"true"`
 	// CACfg is the default CA's config
 	CAcfg CAConfig `skip:"true"`
 	// The names of the CA configuration files

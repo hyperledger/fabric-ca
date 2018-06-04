@@ -36,21 +36,31 @@ type Field struct {
 	Tag   reflect.StructTag
 	Value interface{}
 	Addr  interface{}
+	Hide  string
 }
 
 // ParseObj parses an object structure, calling back with field info
 // for each field
-func ParseObj(obj interface{}, cb func(*Field) error) error {
+func ParseObj(obj interface{}, cb func(*Field) error, tags map[string]string) error {
 	if cb == nil {
 		return errors.New("nil callback")
 	}
-	return parse(obj, cb, nil)
+	return parse(obj, cb, nil, tags)
 }
 
-func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
+func parse(ptr interface{}, cb func(*Field) error, parent *Field, tags map[string]string) error {
+	v := reflect.ValueOf(ptr)
+	err := parse2(v, cb, parent, tags)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func parse2(val reflect.Value, cb func(*Field) error, parent *Field, tags map[string]string) error {
 	var path string
 	var depth int
-	v := reflect.ValueOf(ptr).Elem()
+	v := val.Elem()
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		vf := v.Field(i)
@@ -78,16 +88,31 @@ func parse(ptr interface{}, cb func(*Field) error, parent *Field) error {
 			Value: vf.Interface(),
 			Addr:  vf.Addr().Interface(),
 		}
+		if parent == nil || parent.Hide == "" {
+			getHideTag(field, tags)
+		} else {
+			field.Hide = parent.Hide
+		}
 		err := cb(field)
 		if err != nil {
 			return err
 		}
-		if kind == reflect.Struct {
+		if kind == reflect.Ptr {
 			// Skip parsing the entire struct if "skip" tag is present on a struct field
 			if tf.Tag.Get(TagSkip) == "true" {
 				continue
 			}
-			err := parse(field.Addr, cb, field)
+			rf := reflect.New(vf.Type().Elem())
+			err := parse2(rf, cb, field, tags)
+			if err != nil {
+				return err
+			}
+		} else if kind == reflect.Struct {
+			// Skip parsing the entire struct if "skip" tag is present on a struct field
+			if tf.Tag.Get(TagSkip) == "true" {
+				continue
+			}
+			err := parse(field.Addr, cb, field, tags)
 			if err != nil {
 				return err
 			}
@@ -176,4 +201,16 @@ func copyMissingValues(src, dst reflect.Value) {
 			dst.Set(src)
 		}
 	}
+}
+
+func getHideTag(f *Field, tags map[string]string) {
+	var key, val string
+	key = fmt.Sprintf("%s.%s", "hide", f.Path)
+	if tags != nil {
+		val = tags[key]
+	}
+	if val == "" {
+		val = f.Tag.Get("hide")
+	}
+	f.Hide = val
 }

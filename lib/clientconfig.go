@@ -40,7 +40,7 @@ type ClientConfig struct {
 	Revoke     api.RevocationRequest
 	CAInfo     api.GetCAInfoRequest
 	CAName     string               `help:"Name of CA"`
-	CSP        *factory.FactoryOpts `mapstructure:"bccsp"`
+	CSP        *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.
