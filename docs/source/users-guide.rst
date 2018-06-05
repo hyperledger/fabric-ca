@@ -481,6 +481,10 @@ name and password for a bootstrap identity.
 To cause the Fabric CA server to listen on ``https`` rather than
 ``http``, set ``tls.enabled`` to ``true``.
 
+SECURITY WARNING: The Fabric CA server should always be started with TLS
+enabled (``tls.enabled`` set to true). Failure to do so leaves the
+server vulnerable to an attacker with access to network traffic.
+
 To limit the number of times that the same secret (or password) can be
 used for enrollment, set the ``registry.maxenrollments`` in the configuration
 file to the appropriate value. If you set the value to 1, the Fabric CA
