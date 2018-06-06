@@ -61,7 +61,7 @@ The following are guidelines to follow when contributing:
 3. **lib** contains most of the code.
    a) **server.go** contains the main Server object, which is configured by **serverconfig.go**.
    b) **client.go** contains the main Client object, which is configured by **clientconfig.go**.
-4. **lib/csp** contains some functions related to the Crypto Service Provider.
+4. **util/csp.go** contains the Crypto Service Provider implementation.
 5. **lib/dbutil** contains database utility functions.
 6. **lib/ldap** contains LDAP client code.
 7. **lib/spi** contains Service Provider Interface code for the user registry.
