@@ -325,7 +325,7 @@ func (d *CertDBAccessor) GetCertificates(req server.CertificateRequest, callersA
 	if callersAffiliation != "" {
 		getCertificateSQL = "SELECT certificates.pem FROM certificates INNER JOIN users ON users.id = certificates.id"
 
-		whereConds = append(whereConds, "users.affiliation = ? OR users.affiliation LIKE ?")
+		whereConds = append(whereConds, "(users.affiliation = ? OR users.affiliation LIKE ?)")
 		args = append(args, callersAffiliation)
 		args = append(args, callersAffiliation+".%")
 	}

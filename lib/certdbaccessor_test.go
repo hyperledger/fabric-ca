@@ -88,7 +88,7 @@ func TestGetCertificatesDB(t *testing.T) {
 	certs, err = readRows(rows)
 	assert.Equal(t, 6, len(certs))
 
-	certReq = getCertReq("", "", "", false, false, nil, nil, nil, nil)
+	certReq = getCertReq("", "1111", "", false, false, nil, nil, nil, nil)
 	rows, err = ca.certDBAccessor.GetCertificates(certReq, "dept1")
 	assert.NoError(t, err, "Failed to get certificates from database")
 	certs, err = readRows(rows)
@@ -194,6 +194,10 @@ func populateCertificatesTable(t *testing.T, ca *CA) {
 	}, "testCertificate1", ca)
 	util.FatalError(t, err, "Failed to insert certificate with serial/AKI")
 
+	ca.registry.InsertUser(&spi.UserInfo{
+		Name:        "testCertificate2",
+		Affiliation: "dept1",
+	})
 	err = testInsertCertificate(&certdb.CertificateRecord{
 		Serial: "1112",
 		AKI:    "9876",
