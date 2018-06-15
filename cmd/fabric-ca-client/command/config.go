@@ -22,6 +22,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -326,31 +327,23 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 // processAttributes parses attributes from command line or env variable
 func processAttributes(cfgAttrs []string, cfg *lib.ClientConfig) error {
 	if cfgAttrs != nil {
-		cfg.ID.Attributes = make([]api.Attribute, len(cfgAttrs))
-		for idx, attr := range cfgAttrs {
-			sattr := strings.Split(attr, ":")
-			if len(sattr) > 2 {
-				return fmt.Errorf("Multiple ':' characters not allowed in attribute specification; error at '%s'", attr)
+		attrMap := make(map[string]string)
+		for _, attr := range cfgAttrs {
+			// skipping empty attributes
+			if len(attr) == 0 {
+				continue
 			}
-			attrFlag := ""
-			if len(sattr) > 1 {
-				attrFlag = sattr[1]
-			}
-			sattr = strings.SplitN(sattr[0], "=", 2)
+			sattr := strings.SplitN(attr, "=", 2)
 			if len(sattr) != 2 {
-				return errors.Errorf("Attribute '%s' is missing '=' ; it must be of the form <name>=<value>", attr)
+				return errors.Errorf("Attribute '%s' is missing '=' ; it "+
+					"must be of the form <name>=<value>", attr)
 			}
-			ecert := false
-			switch strings.ToLower(attrFlag) {
-			case "":
-			case "ecert":
-				ecert = true
-			default:
-				return fmt.Errorf("Invalid attribute flag: '%s'", attrFlag)
-			}
-			cfg.ID.Attributes[idx].Name = sattr[0]
-			cfg.ID.Attributes[idx].Value = sattr[1]
-			cfg.ID.Attributes[idx].ECert = ecert
+			attrMap[sattr[0]] = sattr[1]
+		}
+		var err error
+		cfg.ID.Attributes, err = attr.ConvertAttrs(attrMap)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

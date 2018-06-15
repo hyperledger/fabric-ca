@@ -29,6 +29,7 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
@@ -827,12 +828,18 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 		return newFatalError(ErrConfig, "Configuration Error: %s", err)
 	}
 
+	attrs, err := attr.ConvertAttrs(id.Attrs)
+
+	if err != nil {
+		return err
+	}
+
 	rec := spi.UserInfo{
 		Name:           id.Name,
 		Pass:           id.Pass,
 		Type:           id.Type,
 		Affiliation:    id.Affiliation,
-		Attributes:     ca.convertAttrs(id.Attrs),
+		Attributes:     attrs,
 		MaxEnrollments: id.MaxEnrollments,
 		Level:          ca.levels.Identity,
 	}
@@ -861,17 +868,6 @@ func (ca *CA) DBAccessor() spi.UserRegistry {
 // GetDB returns pointer to database
 func (ca *CA) GetDB() *dbutil.DB {
 	return ca.db
-}
-
-func (ca *CA) convertAttrs(inAttrs map[string]string) []api.Attribute {
-	var outAttrs []api.Attribute
-	for name, value := range inAttrs {
-		outAttrs = append(outAttrs, api.Attribute{
-			Name:  name,
-			Value: value,
-		})
-	}
-	return outAttrs
 }
 
 // Make all file names in the CA config absolute
