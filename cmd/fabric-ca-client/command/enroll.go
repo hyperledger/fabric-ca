@@ -85,9 +85,10 @@ func (c *enrollCmd) runEnroll(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	err = storeIssuerPublicKey(cfg, &resp.CAInfo)
-	if err != nil {
-		return err
-	}
-	return storeIssuerRevocationPublicKey(cfg, &resp.CAInfo)
+	// err = storeIssuerPublicKey(cfg, &resp.CAInfo)
+	// if err != nil {
+	// 	return err
+	// }
+	// return storeIssuerRevocationPublicKey(cfg, &resp.CAInfo)
+	return nil
 }

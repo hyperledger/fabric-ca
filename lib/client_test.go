@@ -145,227 +145,229 @@ func TestClientInit(t *testing.T) {
 	}
 }
 
-func TestIdemixEnroll(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixenrollsrv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixenrollclient")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+// IDEMIX_DISABLED BEGIN
+// func TestIdemixEnroll(t *testing.T) {
+// 	srvHome, err := ioutil.TempDir(testdataDir, "idemixenrollsrv")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
+// 	clientHome, err := ioutil.TempDir(testdataDir, "idemixenrollclient")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
 
-	server := TestGetServer(ctport1, srvHome, "", 5, t)
-	if server == nil {
-		t.Fatal("Failed to create test server")
-	}
-	err = server.Start()
-	if err != nil {
-		t.Fatalf("Failed to start server: %s", err)
-	}
-	stopserver := true
-	defer func() {
-		if stopserver {
-			err = server.Stop()
-			if err != nil {
-				t.Errorf("Failed to stop server: %s", err)
-			}
-		}
-		os.RemoveAll(srvHome)
-		os.RemoveAll(clientHome)
-	}()
+// 	server := TestGetServer(ctport1, srvHome, "", 5, t)
+// 	if server == nil {
+// 		t.Fatal("Failed to create test server")
+// 	}
+// 	err = server.Start()
+// 	if err != nil {
+// 		t.Fatalf("Failed to start server: %s", err)
+// 	}
+// 	stopserver := true
+// 	defer func() {
+// 		if stopserver {
+// 			err = server.Stop()
+// 			if err != nil {
+// 				t.Errorf("Failed to stop server: %s", err)
+// 			}
+// 		}
+// 		os.RemoveAll(srvHome)
+// 		os.RemoveAll(clientHome)
+// 	}()
 
-	client := &Client{
-		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
-		HomeDir: clientHome,
-	}
+// 	client := &Client{
+// 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+// 		HomeDir: clientHome,
+// 	}
 
-	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
-	if err != nil {
-		t.Fatalf("Failed to get CA info: %s", err)
-	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
-	if err != nil {
-		t.Fatalf("Failed to store CA's idemix public key: %s", err)
-	}
+// 	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
+// 	if err != nil {
+// 		t.Fatalf("Failed to get CA info: %s", err)
+// 	}
+// 	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+// 	if err != nil {
+// 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
+// 	}
 
-	req := &api.EnrollmentRequest{
-		Type: "idemix",
-	}
+// 	req := &api.EnrollmentRequest{
+// 		Type: "idemix",
+// 	}
 
-	_, err = client.Enroll(req)
-	assert.Error(t, err, "Idemix enroll should have failed as no user id and secret are not specified in the enrollment request")
+// 	_, err = client.Enroll(req)
+// 	assert.Error(t, err, "Idemix enroll should have failed as no user id and secret are not specified in the enrollment request")
 
-	req.Name = "admin"
-	req.Secret = "adminpw1"
-	assert.Error(t, err, "Idemix enroll should have failed as secret is incorrect in the enrollment request")
+// 	req.Name = "admin"
+// 	req.Secret = "adminpw1"
+// 	assert.Error(t, err, "Idemix enroll should have failed as secret is incorrect in the enrollment request")
 
-	req.Secret = "adminpw"
-	idemixEnrollRes, err := client.Enroll(req)
-	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
-	idemixCred := idemixEnrollRes.Identity.GetIdemixCredential()
-	err = idemixCred.Store()
-	if err != nil {
-		t.Fatalf("Failed to store idemix cred")
-	}
+// 	req.Secret = "adminpw"
+// 	idemixEnrollRes, err := client.Enroll(req)
+// 	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
+// 	idemixCred := idemixEnrollRes.Identity.GetIdemixCredential()
+// 	err = idemixCred.Store()
+// 	if err != nil {
+// 		t.Fatalf("Failed to store idemix cred")
+// 	}
 
-	req.Type = "x509"
-	enrollRes, err := client.Enroll(req)
-	assert.NoError(t, err, "X509 enroll should not fail")
+// 	req.Type = "x509"
+// 	enrollRes, err := client.Enroll(req)
+// 	assert.NoError(t, err, "X509 enroll should not fail")
 
-	err = enrollRes.Identity.Store()
-	if err != nil {
-		t.Fatalf("Failed to store X509 credential: %s", err)
-	}
+// 	err = enrollRes.Identity.Store()
+// 	if err != nil {
+// 		t.Fatalf("Failed to store X509 credential: %s", err)
+// 	}
 
-	req.Type = "idemix"
-	req.Name = ""
-	req.Secret = ""
-	enrollRes, err = client.Enroll(req)
-	assert.NoError(t, err, "Idemix enroll should not have failed with valid x509 enrollment certificate")
-	err = enrollRes.Identity.Store()
-	if err != nil {
-		t.Fatalf("Failed to store idenditity: %s", err.Error())
-	}
+// 	req.Type = "idemix"
+// 	req.Name = ""
+// 	req.Secret = ""
+// 	enrollRes, err = client.Enroll(req)
+// 	assert.NoError(t, err, "Idemix enroll should not have failed with valid x509 enrollment certificate")
+// 	err = enrollRes.Identity.Store()
+// 	if err != nil {
+// 		t.Fatalf("Failed to store idenditity: %s", err.Error())
+// 	}
 
-	_, err = client.LoadIdentity("", filepath.Join(clientHome, "msp/signcerts/cert.pem"), filepath.Join(clientHome, "msp/user/SignerConfig"))
-	assert.NoError(t, err, "Failed to load identity that has both X509 and Idemix credentials")
+// 	_, err = client.LoadIdentity("", filepath.Join(clientHome, "msp/signcerts/cert.pem"), filepath.Join(clientHome, "msp/user/SignerConfig"))
+// 	assert.NoError(t, err, "Failed to load identity that has both X509 and Idemix credentials")
 
-	_, err = client.LoadIdentity("", "", filepath.Join(clientHome, "msp/user/SignerConfig"))
-	assert.NoError(t, err, "Failed to load identity that only has Idemix credential")
+// 	_, err = client.LoadIdentity("", "", filepath.Join(clientHome, "msp/user/SignerConfig"))
+// 	assert.NoError(t, err, "Failed to load identity that only has Idemix credential")
 
-	// Error case, invalid x509 and Idemix credential
-	_, err = client.LoadIdentity("fake-key.pem", "fake-cert.pem", "fakeIdemixCred")
-	util.ErrorContains(t, err, "Identity does not posses any enrollment credentials", "Should have failed to load identity that has no valid credentials")
+// 	// Error case, invalid x509 and Idemix credential
+// 	_, err = client.LoadIdentity("fake-key.pem", "fake-cert.pem", "fakeIdemixCred")
+// 	util.ErrorContains(t, err, "Identity does not posses any enrollment credentials", "Should have failed to load identity that has no valid credentials")
 
-	err = client.CheckEnrollment()
-	assert.NoError(t, err, "CheckEnrollment should not return an error")
+// 	err = client.CheckEnrollment()
+// 	assert.NoError(t, err, "CheckEnrollment should not return an error")
 
-	CopyFile("../testdata/ec256-1-cert.pem", filepath.Join(clientHome, "msp/signcerts/cert.pem"))
-	CopyFile("../testdata/ec256-1-key.pem", filepath.Join(clientHome, "msp/keystore/key.pem"))
-	_, err = client.Enroll(req)
-	assert.Error(t, err, "Idemix enroll should fail as the certificate is of unregistered user")
-}
+// 	CopyFile("../testdata/ec256-1-cert.pem", filepath.Join(clientHome, "msp/signcerts/cert.pem"))
+// 	CopyFile("../testdata/ec256-1-key.pem", filepath.Join(clientHome, "msp/keystore/key.pem"))
+// 	_, err = client.Enroll(req)
+// 	assert.Error(t, err, "Idemix enroll should fail as the certificate is of unregistered user")
+// }
 
-func TestGetCRIUsingIdemixToken(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrisrv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcriclient")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+// func TestGetCRIUsingIdemixToken(t *testing.T) {
+// 	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrisrv")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
+// 	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcriclient")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
 
-	server := TestGetServer(ctport1, srvHome, "", 5, t)
-	if server == nil {
-		t.Fatal("Failed to create test server")
-	}
-	err = server.Start()
-	if err != nil {
-		t.Fatalf("Failed to start server: %s", err)
-	}
-	stopserver := true
-	defer func() {
-		if stopserver {
-			err = server.Stop()
-			if err != nil {
-				t.Errorf("Failed to stop server: %s", err)
-			}
-		}
-		os.RemoveAll(srvHome)
-		os.RemoveAll(clientHome)
-	}()
+// 	server := TestGetServer(ctport1, srvHome, "", 5, t)
+// 	if server == nil {
+// 		t.Fatal("Failed to create test server")
+// 	}
+// 	err = server.Start()
+// 	if err != nil {
+// 		t.Fatalf("Failed to start server: %s", err)
+// 	}
+// 	stopserver := true
+// 	defer func() {
+// 		if stopserver {
+// 			err = server.Stop()
+// 			if err != nil {
+// 				t.Errorf("Failed to stop server: %s", err)
+// 			}
+// 		}
+// 		os.RemoveAll(srvHome)
+// 		os.RemoveAll(clientHome)
+// 	}()
 
-	client := &Client{
-		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
-		HomeDir: clientHome,
-	}
+// 	client := &Client{
+// 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+// 		HomeDir: clientHome,
+// 	}
 
-	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
-	if err != nil {
-		t.Fatalf("Failed to get CA info: %s", err)
-	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
-	if err != nil {
-		t.Fatalf("Failed to store CA's idemix public key: %s", err)
-	}
+// 	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
+// 	if err != nil {
+// 		t.Fatalf("Failed to get CA info: %s", err)
+// 	}
+// 	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+// 	if err != nil {
+// 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
+// 	}
 
-	req := &api.EnrollmentRequest{
-		Type:   "idemix",
-		Name:   "admin",
-		Secret: "adminpw",
-	}
+// 	req := &api.EnrollmentRequest{
+// 		Type:   "idemix",
+// 		Name:   "admin",
+// 		Secret: "adminpw",
+// 	}
 
-	enrollRes, err := client.Enroll(req)
-	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
-	err = enrollRes.Identity.Store()
-	if err != nil {
-		t.Fatalf("Failed to store idenditity: %s", err.Error())
-	}
+// 	enrollRes, err := client.Enroll(req)
+// 	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
+// 	err = enrollRes.Identity.Store()
+// 	if err != nil {
+// 		t.Fatalf("Failed to store idenditity: %s", err.Error())
+// 	}
 
-	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
-	assert.NoError(t, err)
-	assert.NotNil(t, criRes)
-}
+// 	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
+// 	assert.NoError(t, err)
+// 	assert.NotNil(t, criRes)
+// }
 
-func TestGetCRIUsingX509Token(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509srv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509client")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+// func TestGetCRIUsingX509Token(t *testing.T) {
+// 	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509srv")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
+// 	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509client")
+// 	if err != nil {
+// 		t.Fatal("Failed to create server home directory")
+// 	}
 
-	server := TestGetServer(ctport1, srvHome, "", 5, t)
-	if server == nil {
-		t.Fatal("Failed to create test server")
-	}
-	err = server.Start()
-	if err != nil {
-		t.Fatalf("Failed to start server: %s", err)
-	}
-	stopserver := true
-	defer func() {
-		if stopserver {
-			err = server.Stop()
-			if err != nil {
-				t.Errorf("Failed to stop server: %s", err)
-			}
-		}
-		os.RemoveAll(srvHome)
-		os.RemoveAll(clientHome)
-	}()
+// 	server := TestGetServer(ctport1, srvHome, "", 5, t)
+// 	if server == nil {
+// 		t.Fatal("Failed to create test server")
+// 	}
+// 	err = server.Start()
+// 	if err != nil {
+// 		t.Fatalf("Failed to start server: %s", err)
+// 	}
+// 	stopserver := true
+// 	defer func() {
+// 		if stopserver {
+// 			err = server.Stop()
+// 			if err != nil {
+// 				t.Errorf("Failed to stop server: %s", err)
+// 			}
+// 		}
+// 		os.RemoveAll(srvHome)
+// 		os.RemoveAll(clientHome)
+// 	}()
 
-	client := &Client{
-		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
-		HomeDir: clientHome,
-	}
+// 	client := &Client{
+// 		Config:  &ClientConfig{URL: fmt.Sprintf("http://localhost:%d", ctport1)},
+// 		HomeDir: clientHome,
+// 	}
 
-	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
-	if err != nil {
-		t.Fatalf("Failed to get CA info: %s", err)
-	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
-	if err != nil {
-		t.Fatalf("Failed to store CA's idemix public key: %s", err)
-	}
+// 	cainfo, err := client.GetCAInfo(&api.GetCAInfoRequest{})
+// 	if err != nil {
+// 		t.Fatalf("Failed to get CA info: %s", err)
+// 	}
+// 	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+// 	if err != nil {
+// 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
+// 	}
 
-	req := &api.EnrollmentRequest{
-		Type:   "x509",
-		Name:   "admin",
-		Secret: "adminpw",
-	}
+// 	req := &api.EnrollmentRequest{
+// 		Type:   "x509",
+// 		Name:   "admin",
+// 		Secret: "adminpw",
+// 	}
 
-	enrollRes, err := client.Enroll(req)
-	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
+// 	enrollRes, err := client.Enroll(req)
+// 	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
 
-	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
-	assert.NoError(t, err)
-	assert.NotNil(t, criRes)
-}
+// 	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
+// 	assert.NoError(t, err)
+// 	assert.NotNil(t, criRes)
+// }
+// IDEMIX_DISABLED END
 
 func TestClient(t *testing.T) {
 	server := TestGetServer(ctport1, path.Join(serversDir, "c1"), "", 1, t)

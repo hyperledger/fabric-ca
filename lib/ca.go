@@ -127,7 +127,7 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 	if err != nil {
 		return err
 	}
-	log.Debug("Initializing Idemix issuer...")
+	//log.Debug("Initializing Idemix issuer...")
 	ca.issuer = idemix.NewIssuer(ca.Config.CA.Name, ca.HomeDir,
 		&ca.Config.Idemix, ca.csp, idemix.NewLib())
 	err = ca.issuer.Init(renew, ca.db, ca.levels)
@@ -979,16 +979,16 @@ func (ca *CA) fillCAInfo(info *common.CAInfoResponseNet) error {
 	info.CAName = ca.Config.CA.Name
 	info.CAChain = util.B64Encode(caChain)
 
-	ipkBytes, err := ca.issuer.IssuerPublicKey()
-	if err != nil {
-		return err
-	}
-	rpkBytes, err := ca.issuer.RevocationPublicKey()
-	if err != nil {
-		return err
-	}
-	info.IssuerPublicKey = util.B64Encode(ipkBytes)
-	info.IssuerRevocationPublicKey = util.B64Encode(rpkBytes)
+	// ipkBytes, err := ca.issuer.IssuerPublicKey()
+	// if err != nil {
+	// 	return err
+	// }
+	// rpkBytes, err := ca.issuer.RevocationPublicKey()
+	// if err != nil {
+	// 	return err
+	// }
+	// info.IssuerPublicKey = util.B64Encode(ipkBytes)
+	// info.IssuerRevocationPublicKey = util.B64Encode(rpkBytes)
 	return nil
 }
 

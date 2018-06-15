@@ -347,30 +347,6 @@ csr:
       expiry: 131400h
       pathlength: <<<PATHLENGTH>>>
 
-###########################################################################
-# Each CA can issue both X509 enrollment certificate as well as Idemix
-# Credential. This section specifies configuration for the issuer component
-# that is responsible for issuing Idemix credentials.
-###########################################################################
-idemix:
-  # Specifies pool size for revocation handles. A revocation handle is an unique identifier of an
-  # Idemix credential. The issuer will create a pool revocation handles of this specified size. When
-  # a credential is requested, issuer will get handle from the pool and assign it to the credential.
-  # Issuer will repopulate the pool with new handles when the last handle in the pool is used.
-  # A revocation handle and credential revocation information (CRI) are used to create non revocation proof
-  # by the prover to prove to the verifier that her credential is not revoked.
-  rhpoolsize: 1000
-
-  # The Idemix credential issuance is a two step process. First step is to  get a nonce from the issuer
-  # and second step is send credential request that is constructed using the nonce to the isuser to
-  # request a credential. This configuration property specifies expiration for the nonces. By default is
-  # nonces expire after 15 seconds. The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration).
-  nonceexpiration: 15s
-
-  # Specifies interval at which expired nonces are removed from datastore. Default value is 15 minutes.
-  #  The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration)
-  noncesweepinterval: 15m
-
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section is used to select which
 # crypto library implementation to use
