@@ -68,7 +68,7 @@ func cmpLevels(t *testing.T, version string, identity, affiliation, certificate 
 
 func TestGetVersionInfo(t *testing.T) {
 	info := metadata.GetVersionInfo("fabric-ca-client")
-	assert.Contains(t, info, "Version: development build")
+	assert.Contains(t, info, "Version: "+metadata.Version)
 
 	metadata.Version = "1.0.0"
 	info = metadata.GetVersionInfo("fabric-ca-client")
