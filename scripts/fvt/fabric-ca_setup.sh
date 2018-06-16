@@ -418,7 +418,7 @@ DST_KEY="fabric-ca-key.pem"
 DST_CERT="fabric-ca-cert.pem"
 test -n "$SRC_CERT" && cp "$SRC_CERT" $DATADIR/$DST_CERT
 test -n "$SRC_KEY" && cp "$SRC_KEY" $DATADIR/$DST_KEY
-RUNCONFIG="$DATADIR/runFabricCaFvt.yaml"
+RUNCONFIG="$DATADIR/$DEFAULT_RUN_CONFIG_FILE_NAME"
 
 case $DRIVER in
    postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres sslmode=$sslmode" ;;
