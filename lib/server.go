@@ -456,13 +456,8 @@ func (s *Server) registerHandlers() {
 	s.registerHandler("cainfo", newCAInfoEndpoint(s))
 	s.registerHandler("register", newRegisterEndpoint(s))
 	s.registerHandler("enroll", newEnrollEndpoint(s))
-
-	// Disabling idemix routes for 1.2, they will be reenabled after 1.2 release is cut.
-	// IDEMIX_DISABLED BEGIN
-	// s.registerHandler("idemix/credential", newIdemixEnrollEndpoint(s))
-	// s.registerHandler("idemix/cri", newIdemixCRIEndpoint(s))
-	// IDEMIX_DISABLED END
-
+	s.registerHandler("idemix/credential", newIdemixEnrollEndpoint(s))
+	s.registerHandler("idemix/cri", newIdemixCRIEndpoint(s))
 	s.registerHandler("reenroll", newReenrollEndpoint(s))
 	s.registerHandler("revoke", newRevokeEndpoint(s))
 	s.registerHandler("tcert", newTCertEndpoint(s))

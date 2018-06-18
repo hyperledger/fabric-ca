@@ -19,7 +19,7 @@ if [ "$FAILURES" != "" ]; then
    echo "*** END FAILURES ***"
    SC=1
 fi
-INSUFFICIENT_COVERAGE=`awk '$1 == "?" || ($1 == "ok" && $5 != "100.0%" && substr($5, 0, length($5)-1) < 80)' $TEST_RESULTS`
+INSUFFICIENT_COVERAGE=`awk '$1 == "?" || ($1 == "ok" && $5 != "100.0%" && substr($5, 0, length($5)-1) < 85)' $TEST_RESULTS`
 if [ "$INSUFFICIENT_COVERAGE" != "" ]; then
    echo "*** BEGIN INSUFFICIENT TEST COVERAGE (less than 85%) ***"
    echo "$INSUFFICIENT_COVERAGE"
