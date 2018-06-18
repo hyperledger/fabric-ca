@@ -770,30 +770,26 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 	} else {
 		revResp, err = id.RevokeSelf()
 	}
-	if withPriv {
-		// Assert that there is no error revoking user/Ecert
-		ar := assert.NoError(t, err, "Revocation failed for user %s", user)
-		if !ar {
-			return
-		}
+	// Assert that there is no error revoking user/Ecert
+	ar := assert.NoError(t, err, "Revocation failed for user %s", user)
+	if !ar {
+		return
+	}
 
-		// Assert that the cert serial in the revocation response is same as that of user certificate
-		cert := id.GetECert().GetX509Cert()
-		if cert == nil {
-			t.Fatalf("Failed to get certificate for the enrolled user %s: %s", user, err)
-		}
-		assert.Equal(t, 1, len(revResp.RevokedCerts), "Expected 1 certificate to be revoked")
-		assert.Equal(t, util.GetSerialAsHex(cert.SerialNumber), revResp.RevokedCerts[0].Serial,
-			"Cert serial in revocation response does match serial number of the cert that was revoked")
+	// Assert that the cert serial in the revocation response is same as that of user certificate
+	cert := id.GetECert().GetX509Cert()
+	if cert == nil {
+		t.Fatalf("Failed to get certificate for the enrolled user %s: %s", user, err)
+	}
+	assert.Equal(t, 1, len(revResp.RevokedCerts), "Expected 1 certificate to be revoked")
+	assert.Equal(t, util.GetSerialAsHex(cert.SerialNumber), revResp.RevokedCerts[0].Serial,
+		"Cert serial in revocation response does match serial number of the cert that was revoked")
 
-		eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
-		assert.Errorf(t, err, "Enrollment of a revoked user %s cert succeeded but should have failed", user)
-		if !ecertOnly {
-			eresp, err = c.Enroll(req)
-			assert.Errorf(t, err, "Enrollment of a revoked user %s succeeded but should have failed", user)
-		}
-	} else {
-		assert.Errorf(t, err, "Revocation for user %s should have failed", user)
+	eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
+	assert.Errorf(t, err, "Enrollment of a revoked user %s cert succeeded but should have failed", user)
+	if !ecertOnly {
+		eresp, err = c.Enroll(req)
+		assert.Errorf(t, err, "Enrollment of a revoked user %s succeeded but should have failed", user)
 	}
 }
 

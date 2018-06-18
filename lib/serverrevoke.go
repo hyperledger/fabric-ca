@@ -48,7 +48,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 		return nil, err
 	}
 	// Authentication
-	id, err := ctx.TokenAuthentication()
+	caller, err := ctx.TokenAuthentication()
 	if err != nil {
 		return nil, err
 	}
@@ -56,12 +56,6 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	ca, err := ctx.GetCA()
 	if err != nil {
 		return nil, err
-	}
-	// Authorization
-	// Make sure that the caller has the "hf.Revoker" attribute.
-	err = ca.attributeIsTrue(id, "hf.Revoker")
-	if err != nil {
-		return nil, newAuthorizationErr(ErrNotRevoker, "Caller does not have authority to revoke")
 	}
 
 	req.AKI = parseInput(req.AKI)
@@ -80,6 +74,12 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 		if err != nil {
 			return nil, newHTTPErr(404, ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
 				req.Serial, req.AKI, err)
+		}
+
+		// Authorization
+		err = checkAuth(caller, certificate.ID, ca)
+		if err != nil {
+			return nil, err
 		}
 
 		if certificate.Status == string(Revoked) {
@@ -110,6 +110,11 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 		}
 		result.RevokedCerts = append(result.RevokedCerts, api.RevokedCert{Serial: req.Serial, AKI: req.AKI})
 	} else if req.Name != "" {
+		// Authorization
+		err = checkAuth(caller, req.Name, ca)
+		if err != nil {
+			return nil, err
+		}
 
 		user, err := registry.GetUser(req.Name, nil)
 		if err != nil {
@@ -170,4 +175,15 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 func parseInput(input string) string {
 	return strings.Replace(strings.TrimLeft(strings.ToLower(input), "0"), ":", "", -1)
+}
+
+func checkAuth(callerName, revokeUserName string, ca *CA) error {
+	if callerName != revokeUserName {
+		// Make sure that the caller has the "hf.Revoker" attribute.
+		err := ca.attributeIsTrue(callerName, "hf.Revoker")
+		if err != nil {
+			return newAuthorizationErr(ErrNotRevoker, "Caller does not have authority to revoke")
+		}
+	}
+	return nil
 }
