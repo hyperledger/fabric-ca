@@ -14,6 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	calog "github.com/hyperledger/fabric-ca/lib/common/log"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -73,7 +74,7 @@ func newListCertificateCommand(c *certificateCommand) *cobra.Command {
 }
 
 func (c *certificateCommand) preRunCertificate(cmd *cobra.Command, args []string) error {
-	log.Level = log.LevelWarning
+	c.command.SetDefaultLogLevel(calog.WARNING)
 	err := c.command.ConfigInit()
 	if err != nil {
 		return err

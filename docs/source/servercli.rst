@@ -37,7 +37,6 @@ Fabric-CA Server's CLI
           --db.tls.client.certfile string             PEM-encoded certificate file when mutual authenticate is enabled
           --db.tls.client.keyfile string              PEM-encoded key file when mutual authentication is enabled
           --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
-      -d, --debug                                     Enable debug level logging
       -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
           --idemix.nonceexpiration string             Duration after which a nonce expires (default "15s")
           --idemix.noncesweepinterval string          Interval at which expired nonces are deleted (default "15m")
@@ -58,6 +57,7 @@ Fabric-CA Server's CLI
           --ldap.tls.client.keyfile string            PEM-encoded key file when mutual authentication is enabled
           --ldap.url string                           LDAP client URL of form ldap://adminDN:adminPassword@host[:port]/base
           --ldap.userfilter string                    The LDAP user filter to use when searching for users (default "(uid=%s)")
+          --loglevel string                           Set logging level (info, warning, debug, error, fatal, critical)
       -p, --port int                                  Listening port of fabric-ca-server (default 7054)
           --registry.maxenrollments int               Maximum number of enrollments; valid if LDAP not enabled (default -1)
           --tls.certfile string                       PEM-encoded TLS certificate file for server's listening port (default "tls-cert.pem")

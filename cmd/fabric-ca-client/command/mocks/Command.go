@@ -106,3 +106,8 @@ func (_m *Command) LoadMyIdentity() (*lib.Identity, error) {
 
 	return r0, r1
 }
+
+// SetDefaultLogLevel provides a mock function with given fields: _a0
+func (_m *Command) SetDefaultLogLevel(_a0 string) {
+	_m.Called(_a0)
+}

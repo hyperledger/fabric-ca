@@ -28,6 +28,7 @@ import (
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	calog "github.com/hyperledger/fabric-ca/lib/common/log"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
@@ -85,6 +86,10 @@ func (s *Server) Init(renew bool) (err error) {
 // init initializses the server leaving the DB open
 func (s *Server) init(renew bool) (err error) {
 	serverVersion := metadata.GetVersion()
+	err = calog.SetLogLevel(s.Config.LogLevel, s.Config.Debug)
+	if err != nil {
+		return err
+	}
 	log.Infof("Server Version: %s", serverVersion)
 	s.levels, err = metadata.GetLevels(serverVersion)
 	if err != nil {
@@ -230,11 +235,6 @@ func (s *Server) initConfig() (err error) {
 	// Create config if not set
 	if s.Config == nil {
 		s.Config = new(ServerConfig)
-	}
-	cfg := s.Config
-	// Set log level if debug is true
-	if cfg.Debug {
-		log.Level = log.LevelDebug
 	}
 	s.CA.server = s
 	s.CA.HomeDir = s.HomeDir

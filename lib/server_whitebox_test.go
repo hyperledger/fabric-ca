@@ -18,6 +18,10 @@ package lib
 import (
 	"os"
 	"testing"
+
+	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -78,4 +82,39 @@ func TestGetAffliation(t *testing.T) {
 	if len(afs) != 1 {
 		t.Fatalf("Found 0 or more than one record for the affiliation %s in the database, expected 1 record", affiliationName)
 	}
+}
+
+func TestServerLogLevel(t *testing.T) {
+	var err error
+
+	srv := TestGetRootServer(t)
+	srv.Config.Debug = false
+	srv.Config.LogLevel = "info"
+	err = srv.Init(false)
+	util.FatalError(t, err, "Failed to init server with 'info' log level")
+	assert.Equal(t, log.Level, log.LevelInfo)
+
+	srv.Config.LogLevel = "Debug"
+	err = srv.Init(false)
+	util.FatalError(t, err, "Failed to init server 'debug' log level")
+	assert.Equal(t, log.Level, log.LevelDebug)
+
+	srv.Config.LogLevel = "warning"
+	err = srv.Init(false)
+	util.FatalError(t, err, "Failed to init server with 'warning' log level")
+	assert.Equal(t, log.Level, log.LevelWarning)
+
+	srv.Config.LogLevel = "critical"
+	err = srv.Init(false)
+	util.FatalError(t, err, "Failed to init server with 'critical' log level")
+	assert.Equal(t, log.Level, log.LevelCritical)
+
+	srv.Config.LogLevel = "fatal"
+	err = srv.Init(false)
+	util.FatalError(t, err, "Failed to init server with 'fatal' log level")
+	assert.Equal(t, log.Level, log.LevelFatal)
+
+	srv.Config.Debug = true
+	err = srv.Init(false)
+	assert.Error(t, err, "Should fail, can't specify a log level and set debug true at same time")
 }

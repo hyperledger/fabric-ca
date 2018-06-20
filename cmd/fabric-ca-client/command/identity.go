@@ -22,6 +22,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	calog "github.com/hyperledger/fabric-ca/lib/common/log"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -54,7 +55,7 @@ func (c *ClientCmd) newListIdentityCommand() *cobra.Command {
 		Short: "List identities",
 		Long:  "List identities visible to caller",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			log.Level = log.LevelWarning
+			c.SetDefaultLogLevel(calog.WARNING)
 			err := c.ConfigInit()
 			if err != nil {
 				return err

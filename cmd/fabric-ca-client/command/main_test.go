@@ -2138,6 +2138,49 @@ func TestDebugSetting(t *testing.T) {
 	assert.Equal(t, 0, log.Level) // With '-d' flag log level should be debug (0)
 }
 
+func TestClientLogLevelCLI(t *testing.T) {
+	// Not passing in -u flag, don't need for the enroll to complete successfully to
+	// verify that the log level is correctly getting set
+	RunMain([]string{cmdName, "enroll", "--loglevel", "info"})
+	assert.Equal(t, log.Level, log.LevelInfo)
+
+	RunMain([]string{cmdName, "enroll", "--loglevel", "debug"})
+	assert.Equal(t, log.Level, log.LevelDebug)
+
+	RunMain([]string{cmdName, "enroll", "--loglevel", "warning"})
+	assert.Equal(t, log.Level, log.LevelWarning)
+
+	RunMain([]string{cmdName, "enroll", "--loglevel", "fatal"})
+	assert.Equal(t, log.Level, log.LevelFatal)
+
+	RunMain([]string{cmdName, "enroll", "--loglevel", "critical"})
+	assert.Equal(t, log.Level, log.LevelCritical)
+}
+
+func TestClientLogLevelEnvVar(t *testing.T) {
+	// Not passing in -u flag, don't need for the enroll to complete successfully to
+	// verify that the log level is correctly getting set
+	os.Setenv("FABRIC_CA_CLIENT_LOGLEVEL", "info")
+	RunMain([]string{cmdName, "enroll"})
+	assert.Equal(t, log.Level, log.LevelInfo)
+
+	os.Setenv("FABRIC_CA_CLIENT_LOGLEVEL", "debug")
+	RunMain([]string{cmdName, "enroll"})
+	assert.Equal(t, log.Level, log.LevelDebug)
+
+	os.Setenv("FABRIC_CA_CLIENT_LOGLEVEL", "warning")
+	RunMain([]string{cmdName, "enroll"})
+	assert.Equal(t, log.Level, log.LevelWarning)
+
+	os.Setenv("FABRIC_CA_CLIENT_LOGLEVEL", "fatal")
+	RunMain([]string{cmdName, "enroll"})
+	assert.Equal(t, log.Level, log.LevelFatal)
+
+	os.Setenv("FABRIC_CA_CLIENT_LOGLEVEL", "critical")
+	RunMain([]string{cmdName, "enroll"})
+	assert.Equal(t, log.Level, log.LevelCritical)
+}
+
 func TestCleanUp(t *testing.T) {
 	os.Remove(filepath.Join(tdDir, "ca-cert.pem"))
 	os.Remove(filepath.Join(tdDir, "ca-key.pem"))

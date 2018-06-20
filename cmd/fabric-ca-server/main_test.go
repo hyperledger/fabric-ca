@@ -27,6 +27,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
@@ -370,6 +371,49 @@ func TestVersion(t *testing.T) {
 	if err != nil {
 		t.Error("Failed to get fabric-ca-server version: ", err)
 	}
+}
+
+func TestServerLogLevelCLI(t *testing.T) {
+	// Not passing in -b flag, don't need for the server to completely start to
+	// verify that the log level is correctly getting set
+	RunMain([]string{cmdName, "start", "--loglevel", "info"})
+	assert.Equal(t, log.Level, log.LevelInfo)
+
+	RunMain([]string{cmdName, "start", "--loglevel", "debug"})
+	assert.Equal(t, log.Level, log.LevelDebug)
+
+	RunMain([]string{cmdName, "start", "--loglevel", "warning"})
+	assert.Equal(t, log.Level, log.LevelWarning)
+
+	RunMain([]string{cmdName, "start", "--loglevel", "fatal"})
+	assert.Equal(t, log.Level, log.LevelFatal)
+
+	RunMain([]string{cmdName, "start", "--loglevel", "critical"})
+	assert.Equal(t, log.Level, log.LevelCritical)
+}
+
+func TestServerLogLevelEnvVar(t *testing.T) {
+	// Not passing in -b flag, don't need for the server to completely start to
+	// verify that the log level is correctly getting set
+	os.Setenv("FABRIC_CA_SERVER_LOGLEVEL", "info")
+	RunMain([]string{cmdName, "start"})
+	assert.Equal(t, log.LevelInfo, log.Level)
+
+	os.Setenv("FABRIC_CA_SERVER_LOGLEVEL", "debug")
+	RunMain([]string{cmdName, "start"})
+	assert.Equal(t, log.LevelDebug, log.Level)
+
+	os.Setenv("FABRIC_CA_SERVER_LOGLEVEL", "warning")
+	RunMain([]string{cmdName, "start"})
+	assert.Equal(t, log.LevelWarning, log.Level)
+
+	os.Setenv("FABRIC_CA_SERVER_LOGLEVEL", "fatal")
+	RunMain([]string{cmdName, "start"})
+	assert.Equal(t, log.LevelFatal, log.Level)
+
+	os.Setenv("FABRIC_CA_SERVER_LOGLEVEL", "critical")
+	RunMain([]string{cmdName, "start"})
+	assert.Equal(t, log.LevelCritical, log.Level)
 }
 
 // Run server with specified args and check if the configuration and datasource

@@ -20,6 +20,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	calog "github.com/hyperledger/fabric-ca/lib/common/log"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -202,8 +203,18 @@ bccsp:
 func (c *ClientCmd) ConfigInit() error {
 	var err error
 
-	if c.debug {
-		log.Level = log.LevelDebug
+	c.myViper.AutomaticEnv() // read in environment variables that match
+	logLevel := c.myViper.GetString("loglevel")
+	debug := c.myViper.GetBool("debug")
+
+	// If log level has been set via the new loglevel property use that as the loglevel
+	// and override any default log levels defined for the commands
+	if logLevel != "" {
+		c.logLevel = logLevel
+	}
+	calog.SetLogLevel(c.logLevel, debug)
+	if err != nil {
+		return err
 	}
 
 	c.cfgFileName, c.homeDirectory, err = util.ValidateAndReturnAbsConf(c.cfgFileName, c.homeDirectory, cmdName)
@@ -215,7 +226,6 @@ func (c *ClientCmd) ConfigInit() error {
 
 	// Set configuration file name for viper and configure it to read env variables
 	c.myViper.SetConfigFile(c.cfgFileName)
-	c.myViper.AutomaticEnv() // read in environment variables that match
 
 	// If the config file doesn't exist, create a default one if enroll
 	// command being executed. Enroll should be the first command to be

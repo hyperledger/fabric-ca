@@ -30,7 +30,6 @@ Fabric-CA Client's CLI
           --csr.keyrequest.size int        Specify key size
           --csr.names stringSlice          A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)
           --csr.serialnumber string        The serial number in a certificate signing request
-      -d, --debug                          Enable debug level logging
           --enrollment.attrs stringSlice   A list of comma-separated attribute requests of the form <name>[:opt] (e.g. foo,bar:opt)
           --enrollment.label string        Label to use in HSM operations
           --enrollment.profile string      Name of the signing profile to use in issuing the certificate
@@ -42,6 +41,7 @@ Fabric-CA Client's CLI
           --id.name string                 Unique name of the identity
           --id.secret string               The enrollment secret for the identity being registered
           --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "client")
+          --loglevel string                Set logging level (info, warning, debug, error, fatal, critical)
       -M, --mspdir string                  Membership Service Provider directory (default "msp")
       -m, --myhost string                  Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
       -a, --revoke.aki string              AKI (Authority Key Identifier) of the certificate to be revoked
