@@ -369,10 +369,10 @@
 			"revisionTime": "2018-03-16T15:29:36Z"
 		},
 		{
-			"checksumSHA1": "eDEN4KoX6GxEx9ucaZ+B8r3fAdU=",
+			"checksumSHA1": "S0hEPC6nm2AwSsGQsEP1LRQOfFg=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "7a5a16eff921cafba35f74797fc92ca3333a0af5",
-			"revisionTime": "2018-03-04T13:51:12Z",
+			"revision": "e01301116758fbabc54c688b461cb72fbc84862d",
+			"revisionTime": "2018-08-10T18:42:28Z",
 			"tree": true
 		},
 		{
@@ -388,10 +388,16 @@
 			"revisionTime": "2017-05-12T16:44:56Z"
 		},
 		{
-			"checksumSHA1": "bJGbjvNRGfR/S4yRVfmJITzkxoI=",
+			"checksumSHA1": "GQyQE8hjITvKuR9QD4XjgBB3QuY=",
 			"path": "github.com/hyperledger/fabric/common/flogging",
-			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
-			"revisionTime": "2017-05-12T16:44:56Z"
+			"revision": "e01301116758fbabc54c688b461cb72fbc84862d",
+			"revisionTime": "2018-08-10T18:42:28Z"
+		},
+		{
+			"checksumSHA1": "94uWokDJIDpyAI29ZYAsdE256CY=",
+			"path": "github.com/hyperledger/fabric/common/flogging/fabenc",
+			"revision": "e01301116758fbabc54c688b461cb72fbc84862d",
+			"revisionTime": "2018-08-10T18:42:28Z"
 		},
 		{
 			"checksumSHA1": "xIdsmorF1r6jym6Tz5UmzAvxhN8=",
@@ -609,6 +615,60 @@
 			"path": "github.com/stretchr/tracer",
 			"revision": "66d3696bba973e1697f7d68413b3f19c6d6e2a7c",
 			"revisionTime": "2014-01-24T18:41:52Z"
+		},
+		{
+			"checksumSHA1": "VrTiQbtu3FoRCY9h3HwjvtGVksw=",
+			"path": "go.uber.org/atomic",
+			"revision": "ca680462431f8c7f96686d91b1d9e5203c4b075b",
+			"revisionTime": "2018-08-06T04:53:14Z"
+		},
+		{
+			"checksumSHA1": "HephvKOmm5xmOrCzhKEtcw7lqE8=",
+			"path": "go.uber.org/multierr",
+			"revision": "ddea229ff1dff9e6fe8a6c0344ac73b09e81fce5",
+			"revisionTime": "2018-01-22T17:25:45Z"
+		},
+		{
+			"checksumSHA1": "bs4Qet93Z8f2eB8MVdM2hXXTyso=",
+			"path": "go.uber.org/zap",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "eC/XVln77aRfE/VocbN0NWdlRdg=",
+			"path": "go.uber.org/zap/buffer",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "MuxOAtZEsJitlWBzhmpm2vGiHok=",
+			"path": "go.uber.org/zap/internal/bufferpool",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "uC0L9eCSAYcCWNC8udJk/t1vvIU=",
+			"path": "go.uber.org/zap/internal/color",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "b80CJExrVpXu3SA1iCQ6uLqTn2c=",
+			"path": "go.uber.org/zap/internal/exit",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "iH3qg/pvsxQ9XW5t8FTc6veuYhY=",
+			"path": "go.uber.org/zap/zapcore",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
+		},
+		{
+			"checksumSHA1": "DaEfYKpBIPTJulBRwIa9QP3ztT0=",
+			"path": "go.uber.org/zap/zapgrpc",
+			"revision": "67bc79d13d155c02fd008f721863ff8cc5f30659",
+			"revisionTime": "2018-08-14T18:34:19Z"
 		},
 		{
 			"checksumSHA1": "oCH3J96RWvO8W4xjix47PModpio=",

@@ -109,7 +109,7 @@ fabric-ca-server: bin/fabric-ca-server
 
 bin/%: $(GO_SOURCE)
 	@echo "Building ${@F} in bin directory ..."
-	@mkdir -p bin && go build -o bin/${@F} -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
+	@mkdir -p bin && go build -o bin/${@F} -tags "pkcs11" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@echo "Built bin/${@F}"
 
 # We (re)build a package within a docker context but persist the $GOPATH/pkg
@@ -234,16 +234,16 @@ release-all: $(patsubst %,release/%, $(RELEASE_PLATFORMS))
 
 release/windows-amd64: GOOS=windows
 release/windows-amd64: CC=/usr/bin/x86_64-w64-mingw32-gcc
-release/windows-amd64: GO_TAGS+= nopkcs11 caclient
+release/windows-amd64: GO_TAGS+= caclient
 release/windows-amd64: $(patsubst %,release/windows-amd64/bin/%, $(RELEASE_PKGS))
 
 release/darwin-amd64: GOOS=darwin
 release/darwin-amd64: CC=/usr/bin/clang
-release/darwin-amd64: GO_TAGS+= nopkcs11 caclient
+release/darwin-amd64: GO_TAGS+= caclient
 release/darwin-amd64: $(patsubst %,release/darwin-amd64/bin/%, $(RELEASE_PKGS))
 
 release/linux-amd64: GOOS=linux
-release/linux-amd64: GO_TAGS+= nopkcs11 caclient
+release/linux-amd64: GO_TAGS+= caclient
 release/linux-amd64: $(patsubst %,release/linux-amd64/bin/%, $(RELEASE_PKGS))
 
 release/%-amd64: GOARCH=amd64
@@ -251,12 +251,12 @@ release/%-amd64: GOARCH=amd64
 release/linux-%: GOOS=linux
 
 release/linux-ppc64le: GOARCH=ppc64le
-release/linux-ppc64le: GO_TAGS+= nopkcs11 caclient
+release/linux-ppc64le: GO_TAGS+= caclient
 release/linux-ppc64le: CC=/usr/bin/powerpc64le-linux-gnu-gcc
 release/linux-ppc64le: $(patsubst %,release/linux-ppc64le/bin/%, $(RELEASE_PKGS))
 
 release/linux-s390x: GOARCH=s390x
-release/linux-s390x: GO_TAGS+= nopkcs11 caclient
+release/linux-s390x: GO_TAGS+= caclient
 release/linux-s390x: $(patsubst %,release/linux-s390x/bin/%, $(RELEASE_PKGS))
 
 release/%/bin/fabric-ca-client: $(GO_SOURCE)
