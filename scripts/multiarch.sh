@@ -46,7 +46,7 @@ if [ "$?" -ne 0 ]; then
   exit 1
 fi
 
-IMAGES="fabric-ca"
+IMAGES="fabric-ca fabric-ca-tools fabric-ca-orderer fabric-ca-peer"
 
 # check that all images have been published
 for image in ${IMAGES}; do
