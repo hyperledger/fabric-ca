@@ -1,4 +1,4 @@
-// +build nopkcs11
+// +build !pkcs11
 
 /*
 Copyright IBM Corp. 2017 All Rights Reserved.
@@ -25,7 +25,6 @@ import "github.com/hyperledger/fabric-ca/api"
 func GetKeyRequest(cfg *CAConfig) *api.BasicKeyRequest {
 	if cfg.CSP.SwOpts != nil {
 		return &api.BasicKeyRequest{Algo: "ecdsa", Size: cfg.CSP.SwOpts.SecLevel}
-	} else {
-		return api.NewBasicKeyRequest()
 	}
+	return api.NewBasicKeyRequest()
 }
