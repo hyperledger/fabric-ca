@@ -1,0 +1,35 @@
+v1.2.0-rc1 June 22, 2018
+------------------------
+
+Release Notes
+-------------
+
+Added support for listing certificates based on various filter criteria.
+
+Bug fixes, documentation and test coverage improvements, UX improvements
+based on user feedback and changes to address a variety of static scan
+findings (unused code, static security scanning, spelling, linting and more).
+
+Updated to Go version 1.10
+Updated baseimage version to 0.4.8
+
+Known Vulnerabilities
+---------------------
+
+[FAB-9938] many commands can be manipulated to delete identities or affiliations
+This vulnerability has a low severity because to exploit it, one would need to
+access the authorization header of the requests. Using HTTPS (TLS) eliminates this
+potential. We will be re-evaluating the authorization approach for the v1.3
+release.
+
+Resolved Vulnerabilities
+------------------------
+https://jira.hyperledger.org/browse/FAB-7534
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/master/CHANGELOG.md#v120-rc1

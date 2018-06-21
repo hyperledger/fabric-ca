@@ -1,3 +1,67 @@
+## v1.2.0-rc1
+Thu Jun 21 13:17:53 EDT 2018
+
+* [5f0accc](https://github.com/hyperledger/fabric-ca/commit/5f0accc) FAB-10752 prepare for v1.2.0-rc1 release
+* [8e852bc](https://github.com/hyperledger/fabric-ca/commit/8e852bc) [FAB-10737](https://jira.hyperledger.org/browse/FAB-10737) Fix release-all target
+* [2697db3](https://github.com/hyperledger/fabric-ca/commit/2697db3) [FAB-10097](https://jira.hyperledger.org/browse/FAB-10097) Support for ecert flag in config.yaml
+* [aaa51c1](https://github.com/hyperledger/fabric-ca/commit/aaa51c1) FAB-10294 add script to publish multiarch manifest
+* [1f1fe2b](https://github.com/hyperledger/fabric-ca/commit/1f1fe2b) [FAB-10411](https://jira.hyperledger.org/browse/FAB-10411) Use default version when not set
+* [260e1c3](https://github.com/hyperledger/fabric-ca/commit/260e1c3) [FAB-8548](https://jira.hyperledger.org/browse/FAB-8548) Fix CA started with wrong cert path
+* [24bb938](https://github.com/hyperledger/fabric-ca/commit/24bb938) [FAB-8123](https://jira.hyperledger.org/browse/FAB-8123) Error out if --cacount is set for int CA
+* [5e4106b](https://github.com/hyperledger/fabric-ca/commit/5e4106b) [FAB-10321](https://jira.hyperledger.org/browse/FAB-10321) Test Certificates API with MySQL
+* [62259cc](https://github.com/hyperledger/fabric-ca/commit/62259cc) [FAB-10224](https://jira.hyperledger.org/browse/FAB-10224) Test Certificates API with PostgreSQL
+* [7aa2298](https://github.com/hyperledger/fabric-ca/commit/7aa2298) [FAB-9938](https://jira.hyperledger.org/browse/FAB-9938) Add alert about not using TLS
+* [1e28190](https://github.com/hyperledger/fabric-ca/commit/1e28190) [FAB-10494](https://jira.hyperledger.org/browse/FAB-10494) Fix formatting in user's guide
+* [128b612](https://github.com/hyperledger/fabric-ca/commit/128b612) [FAB-10517](https://jira.hyperledger.org/browse/FAB-10517) Disabled idemix routes
+* [5702371](https://github.com/hyperledger/fabric-ca/commit/5702371) [FAB-10419](https://jira.hyperledger.org/browse/FAB-10419) Incorrect filtering on affiliation
+* [2e1fdf9](https://github.com/hyperledger/fabric-ca/commit/2e1fdf9) [FAB-10380](https://jira.hyperledger.org/browse/FAB-10380) Create keystore dir if does not exist
+* [fb732d6](https://github.com/hyperledger/fabric-ca/commit/fb732d6) [FAB-10372](https://jira.hyperledger.org/browse/FAB-10372) Store revocation keys on the disk
+* [adcf66b](https://github.com/hyperledger/fabric-ca/commit/adcf66b) FAB-10435 Update Makefile to support custom DOCKER_NS
+* [9b49be6](https://github.com/hyperledger/fabric-ca/commit/9b49be6) [FAB-10341](https://jira.hyperledger.org/browse/FAB-10341) Identity load fails with only Idemix
+* [db9ecd3](https://github.com/hyperledger/fabric-ca/commit/db9ecd3) FAB-10410 Update Dockerfiles to use DOCKER_NS
+* [d16dab1](https://github.com/hyperledger/fabric-ca/commit/d16dab1) [FAB-10405](https://jira.hyperledger.org/browse/FAB-10405) Fix resp props for /cainfo in swagger doc
+* [ac9e3cb](https://github.com/hyperledger/fabric-ca/commit/ac9e3cb) [FAB-10384](https://jira.hyperledger.org/browse/FAB-10384) Modify the document according to the code
+* [37ba2c7](https://github.com/hyperledger/fabric-ca/commit/37ba2c7) [ FAB-6299 ] Remove getDNFromCert() method
+* [a7a4075](https://github.com/hyperledger/fabric-ca/commit/a7a4075) [FAB-10324](https://jira.hyperledger.org/browse/FAB-10324) Add issuer revocation pub key to cainfo
+* [69d5be1](https://github.com/hyperledger/fabric-ca/commit/69d5be1) [FAB-10101](https://jira.hyperledger.org/browse/FAB-10101) Verify token based on idemix cred
+* [2032d77](https://github.com/hyperledger/fabric-ca/commit/2032d77) [FAB-7534](https://jira.hyperledger.org/browse/FAB-7534) Use strong ciphers for TLS
+* [bedd37c](https://github.com/hyperledger/fabric-ca/commit/bedd37c) [FAB-10100](https://jira.hyperledger.org/browse/FAB-10100) Client changes for getting CRI
+* [77dc5a6](https://github.com/hyperledger/fabric-ca/commit/77dc5a6) [FAB-9938](https://jira.hyperledger.org/browse/FAB-9938) Remove method and uri from token
+* [59ffc4f](https://github.com/hyperledger/fabric-ca/commit/59ffc4f) [FAB-9999](https://jira.hyperledger.org/browse/FAB-9999) Update baseimage version
+* [fc97373](https://github.com/hyperledger/fabric-ca/commit/fc97373) [FAB-10099](https://jira.hyperledger.org/browse/FAB-10099) Server changes for getting CRI
+* [9091eb0](https://github.com/hyperledger/fabric-ca/commit/9091eb0) [FAB-10098](https://jira.hyperledger.org/browse/FAB-10098) API for getting CRI
+* [f798e0d](https://github.com/hyperledger/fabric-ca/commit/f798e0d) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 7. Add CRI to the idemix enroll response
+* [6a41a5a](https://github.com/hyperledger/fabric-ca/commit/6a41a5a) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 6. Revendored idemix package
+* [c44f5e1](https://github.com/hyperledger/fabric-ca/commit/c44f5e1) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 5.Client changes to get Idemix credential
+* [84653b2](https://github.com/hyperledger/fabric-ca/commit/84653b2) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 4. Refactor issuer code to issuer.go
+* [33900e7](https://github.com/hyperledger/fabric-ca/commit/33900e7) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 3.Changes for nonce management
+* [1d632b8](https://github.com/hyperledger/fabric-ca/commit/1d632b8) [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 2.Server changes to get Idemix credential
+* [a9644b4](https://github.com/hyperledger/fabric-ca/commit/a9644b4) [FAB-10043](https://jira.hyperledger.org/browse/FAB-10043) 5. Add flag to store certificates
+* [e1d4490](https://github.com/hyperledger/fabric-ca/commit/e1d4490) [FAB-9887](https://jira.hyperledger.org/browse/FAB-9887) Generate docs for client commands
+* [b053b4f](https://github.com/hyperledger/fabric-ca/commit/b053b4f) [FAB-7238](https://jira.hyperledger.org/browse/FAB-7238) 4. DB query to get certificates
+* [02858a7](https://github.com/hyperledger/fabric-ca/commit/02858a7) [FAB-9938](https://jira.hyperledger.org/browse/FAB-9938) Add req method and uri to sig payload
+* [53322cf](https://github.com/hyperledger/fabric-ca/commit/53322cf) [FAB-9958](https://jira.hyperledger.org/browse/FAB-9958) Handle colons in revoke command input
+* [f616de8](https://github.com/hyperledger/fabric-ca/commit/f616de8) [FAB-7238](https://jira.hyperledger.org/browse/FAB-7238) Vendor certificate printing package
+* [f3bd5b9](https://github.com/hyperledger/fabric-ca/commit/f3bd5b9)  [FAB-9244](https://jira.hyperledger.org/browse/FAB-9244) 1. API for getting idemix credential
+* [f718bb5](https://github.com/hyperledger/fabric-ca/commit/f718bb5) [FAB-9243](https://jira.hyperledger.org/browse/FAB-9243) Add ability to get CA's idemix public key
+* [bd52dc4](https://github.com/hyperledger/fabric-ca/commit/bd52dc4) [FAB-9957](https://jira.hyperledger.org/browse/FAB-9957) Skip license check for generated files
+* [2b5ed40](https://github.com/hyperledger/fabric-ca/commit/2b5ed40) [FAB-7882](https://jira.hyperledger.org/browse/FAB-7882) Need wildcard for bootstrap user
+* [45653f2](https://github.com/hyperledger/fabric-ca/commit/45653f2) [FAB-7238](https://jira.hyperledger.org/browse/FAB-7238) 3. CLI Input Validation, Time Parsing, Auth
+* [ba1fb5b](https://github.com/hyperledger/fabric-ca/commit/ba1fb5b) FAB-9861 fix broken links
+* [9869b94](https://github.com/hyperledger/fabric-ca/commit/9869b94) [FAB-7238](https://jira.hyperledger.org/browse/FAB-7238) 2. CLI for listing certificates
+* [34d5148](https://github.com/hyperledger/fabric-ca/commit/34d5148) [FAB-9243](https://jira.hyperledger.org/browse/FAB-9243) Vendored idemix and amcl packages
+* [25e9d11](https://github.com/hyperledger/fabric-ca/commit/25e9d11) [FAB-7238](https://jira.hyperledger.org/browse/FAB-7238) 1. Define the API for listing certs
+* [403f2f7](https://github.com/hyperledger/fabric-ca/commit/403f2f7) [FAB-9392](https://jira.hyperledger.org/browse/FAB-9392) Refactor client CLI code
+* [3d9dbb7](https://github.com/hyperledger/fabric-ca/commit/3d9dbb7) [FAB-1446](https://jira.hyperledger.org/browse/FAB-1446) Adding the run_safesql_scan script
+* [6b16ad8](https://github.com/hyperledger/fabric-ca/commit/6b16ad8) [FAB-9258](https://jira.hyperledger.org/browse/FAB-9258) Create interface to help with unit-tests
+* [e2f93e0](https://github.com/hyperledger/fabric-ca/commit/e2f93e0) [FAB-6299](https://jira.hyperledger.org/browse/FAB-6299) Update certificate-transparency-go pkg
+* [3754d15](https://github.com/hyperledger/fabric-ca/commit/3754d15) FAB-9352 add CODE_OF_CONDUCT.md
+* [e83ff5b](https://github.com/hyperledger/fabric-ca/commit/e83ff5b) FAB-9078 Update go version to 1.10
+* [2fa2174](https://github.com/hyperledger/fabric-ca/commit/2fa2174) FAB-9194 Add tox.ini for building docs in CI
+* [ebc9fef](https://github.com/hyperledger/fabric-ca/commit/ebc9fef) [FAB-9080](https://jira.hyperledger.org/browse/FAB-9080) Prepare fabric-ca for 1.2 development
+* [3601d59](https://github.com/hyperledger/fabric-ca/commit/3601d59) [FAB-8859](https://jira.hyperledger.org/browse/FAB-8859) Include checks for empty certificate
+* [68c210b](https://github.com/hyperledger/fabric-ca/commit/68c210b) [FAB-8750](https://jira.hyperledger.org/browse/FAB-8750) Fabric-ca docs need updating
+
 ## v1.1.0-rc1
 Thu Mar  1 13:05:50 EST 2018
 
