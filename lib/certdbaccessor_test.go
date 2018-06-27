@@ -133,7 +133,8 @@ func TestGetCertificatesDB(t *testing.T) {
 	certs, err = readRows(rows)
 	assert.Equal(t, 6, len(certs))
 
-	expiredEnd := time.Date(2018, time.July, 1, 0, 0, 0, 0, time.UTC)
+	dur, err := time.ParseDuration("+100h")
+	expiredEnd := time.Now().Add(dur).UTC()
 	certReq = getCertReq("", "", "", false, false, nil, nil, nil, &expiredEnd)
 	rows, err = ca.certDBAccessor.GetCertificates(certReq, "")
 	assert.NoError(t, err, "Failed to get certificates from database")
@@ -221,7 +222,6 @@ func populateCertificatesTable(t *testing.T, ca *CA) {
 	util.FatalError(t, err, "Failed to insert certificate with expiration date")
 
 	// Not Expired
-
 	err = testInsertCertificate(&certdb.CertificateRecord{
 		Serial: "1122",
 		AKI:    "98765",
