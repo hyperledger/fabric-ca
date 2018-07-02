@@ -133,7 +133,7 @@ build/image/%/$(DUMMY): Makefile build/image/%/payload
 	@cat images/$(TARGET)/Dockerfile.in \
 		| sed -e 's|_BASE_NS_|$(BASE_DOCKER_NS)|g' \
 		| sed -e 's|_NS_|$(DOCKER_NS)|g' \
-		| sed -e 's|_NEXUS_REPO_|$(NEXUS_URL)|g' \
+		| sed -e 's|_NEXUS_REPO_|$(NEXUS_DOCKER)|g' \
 		| sed -e 's|_BASE_TAG_|$(BASE_DOCKER_TAG)|g' \
 		| sed -e 's|_FABRIC_TAG_|$(FABRIC_TAG)|g' \
 		| sed -e 's|_STABLE_TAG_|$(STABLE_TAG)|g' \
@@ -226,7 +226,7 @@ ci-tests: docker-clean docker-fvt all-tests docs
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
 	-docker images -q $(DOCKER_NS)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
-	-docker images -q $(NEXUS_URL)/*:$(STABLE_TAG) | xargs -I '{}' docker rmi -f '{}'
+	-docker images -q $(NEXUS_DOCKER)/*:$(STABLE_TAG) | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
