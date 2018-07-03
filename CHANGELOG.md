@@ -1,3 +1,12 @@
+## v1.2.0
+Tue Jul  3 06:52:56 EDT 2018
+
+* [607a08a](https://github.com/hyperledger/fabric-ca/commit/607a08a)  FAB-10980 Update nexus_url
+* [c5e564c](https://github.com/hyperledger/fabric-ca/commit/c5e564c) FAB-10806 Build fabric-ca-* images on latest fabric
+* [d779ac0](https://github.com/hyperledger/fabric-ca/commit/d779ac0) FAB-10934 Update Baseimage verison to 0.4.10
+* [89f2af6](https://github.com/hyperledger/fabric-ca/commit/89f2af6) [FAB-10906](https://jira.hyperledger.org/browse/FAB-10906) Fix failing TestGetCertificatesDB
+* [b00c1cb](https://github.com/hyperledger/fabric-ca/commit/b00c1cb) FAB-10753 prepare for next release
+
 ## v1.2.0-rc1
 Thu Jun 21 13:17:53 EDT 2018
 
