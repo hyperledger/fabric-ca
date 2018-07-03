@@ -115,12 +115,12 @@ func (i *issuer) Init(renew bool, db dbutil.FabricCADB, levels *dbutil.Levels) e
 		return err
 	}
 	i.credDBAccessor = NewCredentialAccessor(i.db, levels.Credential)
-	//log.Debugf("Intializing revocation authority for issuer '%s'", i.Name())
+	log.Debugf("Intializing revocation authority for issuer '%s'", i.Name())
 	i.rc, err = NewRevocationAuthority(i, levels.RAInfo)
 	if err != nil {
 		return err
 	}
-	//log.Debugf("Intializing nonce manager for issuer '%s'", i.Name())
+	log.Debugf("Intializing nonce manager for issuer '%s'", i.Name())
 	i.nm, err = NewNonceManager(i, &wallClock{}, levels.Nonce)
 	if err != nil {
 		return err
@@ -312,9 +312,9 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 		privKeyFileExists := util.FileExists(idemixSecretKey)
 		// If they both exist, the CA was already initialized, load the keys from the disk
 		if pubKeyFileExists && privKeyFileExists {
-			// log.Info("The Idemix issuer public and secret key files already exist")
-			// log.Infof("   secret key file location: %s", idemixSecretKey)
-			// log.Infof("   public key file location: %s", idemixPubKey)
+			log.Info("The Idemix issuer public and secret key files already exist")
+			log.Infof("   secret key file location: %s", idemixSecretKey)
+			log.Infof("   public key file location: %s", idemixPubKey)
 			err := issuerCred.Load()
 			if err != nil {
 				return err
