@@ -29,8 +29,8 @@
 #   - clean-all - cleans the build area and release packages
 
 PROJECT_NAME = fabric-ca
-BASE_VERSION = 1.2.0
-PREV_VERSION = 1.2.0-rc1
+BASE_VERSION = 1.3.0
+PREV_VERSION = 1.2.0
 IS_RELEASE = false
 
 ARCH=$(shell go env GOARCH)
@@ -50,7 +50,7 @@ else
 PGVER=9.5
 endif
 
-BASEIMAGE_RELEASE = 0.4.8
+BASEIMAGE_RELEASE = 0.4.10
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)

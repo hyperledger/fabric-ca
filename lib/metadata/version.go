@@ -29,7 +29,7 @@ const (
 
 // Version specifies fabric-ca-client/fabric-ca-server version
 // It is defined by the Makefile and passed in with ldflags
-var Version = "1.2.0"
+var Version = "1.3.0"
 
 // GetVersionInfo returns version information for the fabric-ca-client/fabric-ca-server
 func GetVersionInfo(prgName string) string {
@@ -64,6 +64,10 @@ var versionToLevelsMapping = []versionLevels{
 	},
 	{
 		version: "1.2.0",
+		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+	},
+	{
+		version: "1.3.0",
 		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 }
