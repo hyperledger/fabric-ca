@@ -464,6 +464,11 @@ func (u *user) Revoke() error {
 	return errNotSupported
 }
 
+// IsRevoked is not supported for LDAP
+func (u *user) IsRevoked() bool {
+	return false
+}
+
 // ModifyAttributes adds a new attribute or modifies existing attribute
 func (u *user) ModifyAttributes(attrs []api.Attribute) error {
 	return errNotSupported

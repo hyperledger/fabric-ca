@@ -169,6 +169,8 @@ const (
 	ErrParsingIntEnvVar = 68
 	// CA certificate file is not found warning message
 	ErrCACertFileNotFound = 69
+	// Error occurs when invoking a request revoked enrollment ID
+	ErrRevokedID = 70
 )
 
 // Construct a new HTTP error.
