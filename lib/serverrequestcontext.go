@@ -90,7 +90,7 @@ func (ctx *serverRequestContextImpl) BasicAuthentication() (string, error) {
 	// Extract the username and password from the header
 	username, password, ok := r.BasicAuth()
 	if !ok {
-		return "", newAuthErr(ErrNoUserPass, "No user/pass in authorization header")
+		return "", newAuthenticationErr(ErrNoUserPass, "No user/pass in authorization header")
 	}
 	// Get the CA that is targeted by this request
 	ca, err := ctx.GetCA()
@@ -101,17 +101,17 @@ func (ctx *serverRequestContextImpl) BasicAuthentication() (string, error) {
 	log.Debugf("ca.Config: %+v", ca.Config)
 	caMaxEnrollments := ca.Config.Registry.MaxEnrollments
 	if caMaxEnrollments == 0 {
-		return "", newAuthErr(ErrEnrollDisabled, "Enroll is disabled")
+		return "", newAuthenticationErr(ErrEnrollDisabled, "Enroll is disabled")
 	}
 	// Get the user info object for this user
 	ctx.ui, err = ca.registry.GetUser(username, nil)
 	if err != nil {
-		return "", newAuthErr(ErrInvalidUser, "Failed to get user: %s", err)
+		return "", newAuthenticationErr(ErrInvalidUser, "Failed to get user: %s", err)
 	}
 	// Check the user's password and max enrollments if supported by registry
 	err = ctx.ui.Login(password, caMaxEnrollments)
 	if err != nil {
-		return "", newAuthErr(ErrInvalidPass, "Login failure: %s", err)
+		return "", newAuthenticationErr(ErrInvalidPass, "Login failure: %s", err)
 	}
 	// Store the enrollment ID associated with this server request context
 	ctx.enrollmentID = username
@@ -164,7 +164,7 @@ func (ctx *serverRequestContextImpl) verifyIdemixToken(authHdr string, body []by
 	}
 
 	if caller.IsRevoked() {
-		return "", newAuthErr(ErrRevokedID, "Enrollment ID is revoked, unable to process request")
+		return "", newAuthorizationErr(ErrRevokedID, "Enrollment ID is revoked, unable to process request")
 	}
 
 	return ctx.enrollmentID, nil
@@ -175,12 +175,12 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr string, bod
 	// Verify the token; the signature is over the header and body
 	cert, err2 := util.VerifyToken(ca.csp, authHdr, body)
 	if err2 != nil {
-		return "", newAuthErr(ErrInvalidToken, "Invalid token in authorization header: %s", err2)
+		return "", newAuthenticationErr(ErrInvalidToken, "Invalid token in authorization header: %s", err2)
 	}
 	// Make sure the caller's cert was issued by this CA
 	err2 = ca.VerifyCertificate(cert)
 	if err2 != nil {
-		return "", newAuthErr(ErrUntrustedCertificate, "Untrusted certificate: %s", err2)
+		return "", newAuthenticationErr(ErrUntrustedCertificate, "Untrusted certificate: %s", err2)
 	}
 	id := util.GetEnrollmentIDFromX509Certificate(cert)
 	log.Debugf("Checking for revocation/expiration of certificate owned by '%s'", id)
@@ -192,7 +192,7 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr string, bod
 		return "", newHTTPErr(401, ErrCertRevokeCheckFailure, "Failed while checking for revocation")
 	}
 	if expired {
-		return "", newAuthErr(ErrCertExpired,
+		return "", newAuthenticationErr(ErrCertExpired,
 			"The certificate in the authorization header is a revoked or expired certificate")
 	}
 	aki := hex.EncodeToString(cert.AuthorityKeyId)
@@ -204,11 +204,11 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr string, bod
 		return "", newHTTPErr(500, ErrCertNotFound, "Failed searching certificates: %s", err)
 	}
 	if len(certs) == 0 {
-		return "", newAuthErr(ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)
+		return "", newAuthenticationErr(ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)
 	}
 	for _, certificate := range certs {
 		if certificate.Status == "revoked" {
-			return "", newAuthErr(ErrCertRevoked, "The certificate in the authorization header is a revoked certificate")
+			return "", newAuthenticationErr(ErrCertRevoked, "The certificate in the authorization header is a revoked certificate")
 		}
 	}
 	ctx.enrollmentID = id
@@ -436,7 +436,7 @@ func (ctx *serverRequestContextImpl) CanModifyUser(req *api.ModifyIdentityReques
 		log.Debugf("Checking if caller is authorized to change attributes to %+v", reqAttrs)
 		err := attr.CanRegisterRequestedAttributes(reqAttrs, userToModify, ctx.caller)
 		if err != nil {
-			return newAuthErr(ErrRegAttrAuth, "Failed to register attributes: %s", err)
+			return newAuthorizationErr(ErrRegAttrAuth, "Failed to register attributes: %s", err)
 		}
 	}
 
@@ -452,7 +452,7 @@ func (ctx *serverRequestContextImpl) GetCaller() (spi.User, error) {
 	var err error
 	id := ctx.enrollmentID
 	if id == "" {
-		return nil, newAuthErr(ErrCallerIsNotAuthenticated, "Caller is not authenticated")
+		return nil, newAuthenticationErr(ErrCallerIsNotAuthenticated, "Caller is not authenticated")
 	}
 	ca, err := ctx.GetCA()
 	if err != nil {
@@ -461,7 +461,7 @@ func (ctx *serverRequestContextImpl) GetCaller() (spi.User, error) {
 	// Get the user info object for this user
 	ctx.caller, err = ca.registry.GetUser(id, nil)
 	if err != nil {
-		return nil, newAuthErr(ErrGettingUser, "Failed to get user")
+		return nil, newAuthenticationErr(ErrGettingUser, "Failed to get user")
 	}
 	return ctx.caller, nil
 }
@@ -473,7 +473,7 @@ func (ctx *serverRequestContextImpl) ContainsAffiliation(affiliation string) err
 		return newHTTPErr(500, ErrGettingAffiliation, "Failed to validate if caller has authority to get ID: %s", err)
 	}
 	if !validAffiliation {
-		return newAuthErr(ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", affiliation)
+		return newAuthorizationErr(ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", affiliation)
 	}
 	return nil
 }
@@ -513,7 +513,7 @@ func (ctx *serverRequestContextImpl) IsRegistrar() error {
 		return err
 	}
 	if !isRegistrar {
-		return newAuthErr(ErrMissingRegAttr, "Caller is not a registrar")
+		return newAuthorizationErr(ErrMissingRegAttr, "Caller is not a registrar")
 	}
 
 	return nil
@@ -530,7 +530,7 @@ func (ctx *serverRequestContextImpl) isRegistrar() (string, bool, error) {
 
 	rolesStr, err := caller.GetAttribute("hf.Registrar.Roles")
 	if err != nil {
-		return "", false, newAuthErr(ErrRegAttrAuth, "'%s' is not a registrar", caller.GetName())
+		return "", false, newAuthorizationErr(ErrRegAttrAuth, "'%s' is not a registrar", caller.GetName())
 	}
 
 	// Has some value for attribute 'hf.Registrar.Roles' then user is a registrar
@@ -548,7 +548,7 @@ func (ctx *serverRequestContextImpl) CanActOnType(userType string) error {
 		return newHTTPErr(500, ErrGettingType, "Failed to verify if user can act on type '%s': %s", userType, err)
 	}
 	if !canAct {
-		return newAuthErr(ErrCallerNotAffiliated, "Registrar does not have authority to act on type '%s'", userType)
+		return newAuthorizationErr(ErrCallerNotAffiliated, "Registrar does not have authority to act on type '%s'", userType)
 	}
 	return nil
 }
@@ -566,7 +566,7 @@ func (ctx *serverRequestContextImpl) canActOnType(requestedType string) (bool, e
 		return false, err
 	}
 	if !isRegistrar {
-		return false, newAuthErr(ErrRegAttrAuth, "'%s' is not allowed to manage users", caller.GetName())
+		return false, newAuthorizationErr(ErrRegAttrAuth, "'%s' is not allowed to manage users", caller.GetName())
 	}
 
 	if util.ListContains(typesStr, "*") {
@@ -597,7 +597,7 @@ func (ctx *serverRequestContextImpl) HasRole(role string) error {
 		return err
 	}
 	if !hasRole {
-		return newHTTPErr(400, ErrMissingRole, "Caller has a value of 'false' for attribute/role '%s'", role)
+		return newAuthorizationErr(ErrMissingRole, "Caller has a value of 'false' for attribute/role '%s'", role)
 	}
 	return nil
 }

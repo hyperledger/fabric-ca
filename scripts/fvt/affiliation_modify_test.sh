@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 dbDriver=postgres
 
@@ -122,7 +127,7 @@ function testAffiliationRefs() {
    # @TODO all of these should be 400 bad request FAB-7466
    # Ensure affiliations w/ sub-affiliations cannot be deleted w/o --force
    $FABRIC_CA_CLIENTEXEC affiliation remove org1 $URI -H $TESTDIR/admin/ -d 2>&1 |
-      grep "401 Unauthorized" ||
+      grep "Authorization failure" ||
          ErrorMsg "should not be able to delete 'org1' w/o force (has sub-affiliations)"
    # Ensure affiliations can be deleted if no ID's are referencing them
    $FABRIC_CA_CLIENTEXEC affiliation remove org1.department1 $URI -H $TESTDIR/admin/ -d 2>&1 ||
@@ -279,12 +284,12 @@ function testAlternateTruthValues() {
    for v in 0 F false; do
       $FABRIC_CA_CLIENTEXEC identity modify affman --attrs "hf.AffiliationMgr=$v" $URI -H $TESTDIR/admin
       $FABRIC_CA_CLIENTEXEC affiliation add planetX.landmass0.country1.province0.locale1.village $URI -H $TESTDIR/affman 2>&1 |
-         grep "Caller has a value of 'false'" || ErrorMsg "Should have failed Authorization"
+         grep "Authorization failure" || ErrorMsg "Should have failed Authorization"
       $FABRIC_CA_CLIENTEXEC affiliation remove --force planetX.landmass0.country1.province0.locale1 $URI -H $TESTDIR/affman 2>&1 |
-         grep "Caller has a value of 'false'" || ErrorMsg "Should have failed Authorization"
+         grep "Authorization failure" || ErrorMsg "Should have failed Authorization"
       $FABRIC_CA_CLIENTEXEC affiliation modify planetX.landmass0.country1.province0.locale1 \
          --name planet3 --force $URI -H $TESTDIR/affman 2>&1 |
-         grep "Caller has a value of 'false'" || ErrorMsg "Should have failed Authorization"
+         grep "Authorization failure" || ErrorMsg "Should have failed Authorization"
    done
 }
 

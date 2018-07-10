@@ -129,7 +129,7 @@ func TestProcessCertificateRequest(t *testing.T) {
 
 	err = processCertificateRequest(ctx)
 	t.Log("Error: ", err)
-	util.ErrorContains(t, err, fmt.Sprintf("%d", ErrAuthFailure), "Should have failed to due improper permissions")
+	util.ErrorContains(t, err, fmt.Sprintf("%d", ErrAuthorizationFailure), "Should have failed to due improper permissions")
 
 	ctx = new(mocks.ServerRequestContext)
 	ctx.On("TokenAuthentication").Return("", nil)

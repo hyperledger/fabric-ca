@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 : ${TESTCASE="ident_modify"}
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
@@ -81,16 +86,16 @@ function testAuthenticationAuthorization() {
       -n "/CN=admin/" -p admin >/dev/null 2>&1
    mv /root/admincert.pem $TESTDIR/admin/msp/signcerts/cert.pem
    mv /root/adminkey.pem $TESTDIR/admin/msp/keystore/key.pem
-
    enroll testUser user1
    for op in list remove add modify; do
       # username not required for 'list' operation
       test "$op" != list && user=testUser3 || user=""
+
       # Unknown CA
       $FABRIC_CA_CLIENTEXEC identity $op $user $URI -d -H $TESTDIR/admin 2>&1 |
          # @TODO these messages need to change
-         # grepPrint "401 Unauthorized" || ErrorMsg "Test '$op' Authorization"
-         grepPrint "Authorization failure" || ErrorMsg "Test '$op' Authorization"
+         # grepPrint "Authorization failure" || ErrorMsg "Test '$op' Authorization"
+         grepPrint "Authentication failure" || ErrorMsg "Test '$op' Authorization"
       # testUser not authorized - user must have the "hf.Registrar.Roles" attribute
       $FABRIC_CA_CLIENTEXEC identity $op $user $URI -d -H $TESTDIR/testUser 2>&1 |
          # @TODO these messages need to change
@@ -140,7 +145,7 @@ function testModifyRegistrarRoles() {
    # should fail
    $FABRIC_CA_CLIENTEXEC identity modify userType1 $URI -d \
      -H $TESTDIR/admin2 --type client 2>&1 |
-        grepPrint "401 Unauthorized" ||
+        grepPrint "Authorization failure" ||
            ErrorMsg "admin2 should not be able to modify user whose type is 'role1'"
    $FABRIC_CA_CLIENTEXEC identity modify admin2 $URI -d -H $TESTDIR/admin \
       --attrs '"hf.Registrar.Roles=client,user,peer,validator,auditor,ca,app,role1,role2,role3,role4,role5,role6,role7,role8,apple,orange"' ||
@@ -333,10 +338,10 @@ function testLateralAffiliation() {
       --attrs "hf.Registrar.Attributes=''" 2>&1 ||
          ErrorMsg "Failed to modify user '$admin'"
    # attempt to modify w/o hf.Registrar.Attributes set
-   # this returns '401 Unauthorized' should return '403 Forbidden'
+   # this returns 'Authorization failure' should return '403 Forbidden'
    $FABRIC_CA_CLIENTEXEC identity modify $user $URI -d -H $TESTDIR/$admin \
       --attrs "hf.IntermediateCA=false" 2>&1 |
-         grepPrint "401 Unauthorized" ||
+         grepPrint "Authorization failure" ||
             ErrorMsg "admin '$admin' w/o hf.Registrar.Attributes should not be able to modify user '$user', or wrong error code"
 
    # attempt to register new user in lateral org
