@@ -30,6 +30,7 @@ import (
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/ldap"
@@ -165,7 +166,7 @@ func (ca *CA) init(renew bool) (err error) {
 	if err != nil {
 		log.Error("Error occurred initializing database: ", err)
 		// Return if a server configuration error encountered (e.g. Invalid max enrollment for a bootstrap user)
-		if isFatalError(err) {
+		if caerrors.IsFatalError(err) {
 			return err
 		}
 	}
@@ -250,7 +251,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			}
 			return nil
 		}
-		log.Warning(newServerError(ErrCACertFileNotFound, "The specified CA certificate file %s does not exist", certFile))
+		log.Warning(caerrors.NewServerError(caerrors.ErrCACertFileNotFound, "The specified CA certificate file %s does not exist", certFile))
 	}
 
 	// Get the CA cert
@@ -641,7 +642,7 @@ func (ca *CA) initDB() error {
 		if err != nil {
 			log.Error(err)
 			dbError = true
-			if isFatalError(err) {
+			if caerrors.IsFatalError(err) {
 				return err
 			}
 		}
@@ -826,7 +827,7 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 
 	id.MaxEnrollments, err = getMaxEnrollments(id.MaxEnrollments, ca.Config.Registry.MaxEnrollments)
 	if err != nil {
-		return newFatalError(ErrConfig, "Configuration Error: %s", err)
+		return caerrors.NewFatalError(caerrors.ErrConfig, "Configuration Error: %s", err)
 	}
 
 	attrs, err := attr.ConvertAttrs(id.Attrs)
@@ -1237,7 +1238,7 @@ func (ca *CA) checkDBLevels() error {
 	affVer := getIntLevel(levels, "affiliation")
 	certVer := getIntLevel(levels, "certificate")
 	if (idVer > sl.Identity) || (affVer > sl.Affiliation) || (certVer > sl.Certificate) {
-		return newFatalError(ErrDBLevel, "The version of the database is newer than the server version.  Upgrade your server.")
+		return caerrors.NewFatalError(caerrors.ErrDBLevel, "The version of the database is newer than the server version.  Upgrade your server.")
 	}
 	return nil
 }

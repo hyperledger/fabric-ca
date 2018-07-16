@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/cloudflare/cfssl/api"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,9 +28,9 @@ func TestServerEndpoint(t *testing.T) {
 	testEndpoint(t, "GET", url, 200, 0)
 	testEndpoint(t, "POST", url, 200, 0)
 	// Negative tests
-	testEndpoint(t, "DELETE", url, 405, ErrMethodNotAllowed)
-	handlerError = newAuthenticationErr(ErrInvalidToken, "Invalid token")
-	testEndpoint(t, "GET", url, 401, ErrAuthenticationFailure)
+	testEndpoint(t, "DELETE", url, 405, caerrors.ErrMethodNotAllowed)
+	handlerError = caerrors.NewAuthenticationErr(caerrors.ErrInvalidToken, "Invalid token")
+	testEndpoint(t, "GET", url, 401, caerrors.ErrAuthenticationFailure)
 }
 
 func testEndpoint(t *testing.T, method, url string, scode, rcode int) {

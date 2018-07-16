@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/server"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -83,7 +84,7 @@ func authChecks(ctx ServerRequestContext) error {
 	if err != nil {
 		err = ctx.HasRole("hf.Revoker")
 		if err != nil {
-			return newAuthorizationErr(ErrAuthorizationFailure, "Caller does not posses either hf.Registrar.Roles or hf.Revoker attribute")
+			return caerrors.NewAuthorizationErr(caerrors.ErrAuthorizationFailure, "Caller does not posses either hf.Registrar.Roles or hf.Revoker attribute")
 		}
 	}
 
@@ -96,7 +97,7 @@ func processGetCertificateRequest(ctx ServerRequestContext) error {
 
 	req, err := server.NewCertificateRequest(ctx)
 	if err != nil {
-		return newHTTPErr(400, ErrGettingCert, "Invalid Request: %s", err)
+		return caerrors.NewHTTPErr(400, caerrors.ErrGettingCert, "Invalid Request: %s", err)
 	}
 
 	// Execute DB query and stream response
@@ -141,7 +142,7 @@ func getCertificates(ctx ServerRequestContext, req *server.CertificateRequestImp
 		var cert certPEM
 		err := rows.StructScan(&cert)
 		if err != nil {
-			return newHTTPErr(500, ErrGettingCert, "Failed to get read row: %s", err)
+			return caerrors.NewHTTPErr(500, caerrors.ErrGettingCert, "Failed to get read row: %s", err)
 		}
 
 		if rowNumber > 1 {
@@ -150,7 +151,7 @@ func getCertificates(ctx ServerRequestContext, req *server.CertificateRequestImp
 
 		resp, err := util.Marshal(cert, "certificate")
 		if err != nil {
-			return newHTTPErr(500, ErrGettingCert, "Failed to marshal certificate: %s", err)
+			return caerrors.NewHTTPErr(500, caerrors.ErrGettingCert, "Failed to marshal certificate: %s", err)
 		}
 		w.Write(resp)
 

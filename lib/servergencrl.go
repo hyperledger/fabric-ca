@@ -18,6 +18,7 @@ import (
 	"github.com/cloudflare/cfssl/crl"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -67,7 +68,7 @@ func genCRLHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// configured.
 	err = ca.attributeIsTrue(id, "hf.GenCRL")
 	if err != nil {
-		return nil, newAuthorizationErr(ErrNoGenCRLAuth, "The identity '%s' does not have authority to generate a CRL", id)
+		return nil, caerrors.NewAuthorizationErr(caerrors.ErrNoGenCRLAuth, "The identity '%s' does not have authority to generate a CRL", id)
 	}
 
 	crl, err := genCRL(ca, req)
@@ -84,12 +85,12 @@ func genCRLHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 	var err error
 	if !req.RevokedBefore.IsZero() && req.RevokedAfter.After(req.RevokedBefore) {
-		return nil, newHTTPErr(400, ErrInvalidRevokedAfter,
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrInvalidRevokedAfter,
 			"Invalid 'revokedafter' value. It must not be a timestamp greater than 'revokedbefore'")
 	}
 
 	if !req.ExpireBefore.IsZero() && req.ExpireAfter.After(req.ExpireBefore) {
-		return nil, newHTTPErr(400, ErrInvalidExpiredAfter,
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrInvalidExpiredAfter,
 			"Invalid 'expireafter' value. It must not be a timestamp greater than 'expirebefore'")
 	}
 
@@ -97,17 +98,17 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 	certs, err := ca.certDBAccessor.GetRevokedCertificates(req.ExpireAfter, req.ExpireBefore, req.RevokedAfter, req.RevokedBefore)
 	if err != nil {
 		log.Errorf("Failed to get revoked certificates from the database: %s", err)
-		return nil, newHTTPErr(500, ErrRevokedCertsFromDB, "Failed to get revoked certificates")
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrRevokedCertsFromDB, "Failed to get revoked certificates")
 	}
 
 	caCert, err := getCACert(ca)
 	if err != nil {
 		log.Errorf("Failed to get certficate for CA '%s': %s", ca.HomeDir, err)
-		return nil, newHTTPErr(500, ErrGetCACert, "Failed to get certficate for CA '%s'", ca.HomeDir)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGetCACert, "Failed to get certficate for CA '%s'", ca.HomeDir)
 	}
 
 	if !canSignCRL(caCert) {
-		return nil, newHTTPErr(500, ErrNoCrlSignAuth,
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrNoCrlSignAuth,
 			"The CA does not have authority to generate a CRL. Its certificate does not have 'crl sign' key usage")
 	}
 
@@ -115,7 +116,7 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 	_, signer, err := util.GetSignerFromCert(caCert, ca.csp)
 	if err != nil {
 		log.Errorf("Failed to get signer for CA '%s': %s", ca.HomeDir, err)
-		return nil, newHTTPErr(500, ErrGetCASigner, "Failed to get signer for CA '%s'", ca.HomeDir)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGetCASigner, "Failed to get signer for CA '%s'", ca.HomeDir)
 	}
 
 	expiry := time.Now().UTC().Add(ca.Config.CRL.Expiry)
@@ -135,7 +136,7 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 	crl, err := crl.CreateGenericCRL(revokedCerts, signer, caCert, expiry)
 	if err != nil {
 		log.Errorf("Failed to generate CRL for CA '%s': %s", ca.HomeDir, err)
-		return nil, newHTTPErr(500, ErrGenCRL, "Failed to generate CRL for CA '%s'", ca.HomeDir)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGenCRL, "Failed to generate CRL for CA '%s'", ca.HomeDir)
 	}
 	blk := &pem.Block{Bytes: crl, Type: crlPemType}
 	return pem.EncodeToMemory(blk), nil

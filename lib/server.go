@@ -30,6 +30,7 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
@@ -446,7 +447,7 @@ func (s *Server) GetCA(name string) (*CA, error) {
 	// Lookup the CA from the server
 	ca := s.caMap[name]
 	if ca == nil {
-		return nil, newHTTPErr(404, ErrCANotFound, "CA '%s' does not exist", name)
+		return nil, caerrors.NewHTTPErr(404, caerrors.ErrCANotFound, "CA '%s' does not exist", name)
 	}
 	return ca, nil
 }
