@@ -182,11 +182,12 @@ func TestSweepExpiredNonces(t *testing.T) {
 	issuer.On("Name").Return("ca1")
 	now := time.Now()
 
-	db := new(dmocks.FabricCADB)
-	issuer.On("DB").Return(db)
 	numRemoveExpiredNoncesErrorFuncCalls := 0
 	f := getRemoveExpiredNoncesErrorFunc(&numRemoveExpiredNoncesErrorFuncCalls)
-	db.On("NamedExec", RemoveExpiredNonces, now.UTC()).Return(nil, f)
+	db := new(dmocks.FabricCADB)
+	db.On("Rebind", RemoveExpiredNonces).Return(RemoveExpiredNonces)
+	db.On("Exec", RemoveExpiredNonces, now.UTC()).Return(nil, f)
+	issuer.On("DB").Return(db)
 
 	lib := new(mocks.Lib)
 	opts := &Config{
@@ -298,8 +299,8 @@ func getTxRemoveNonceErrorFunc(numTxRemoveErrorCalls *int) func(string, ...inter
 	}
 }
 
-func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) func(string, interface{}) error {
-	return func(string, interface{}) error {
+func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) func(string, ...interface{}) error {
+	return func(string, ...interface{}) error {
 		if *numRemoveExpiredNoncesErrorFuncCalls == 0 {
 			*numRemoveExpiredNoncesErrorFuncCalls = *numRemoveExpiredNoncesErrorFuncCalls + 1
 			return errors.New("Failed to remove expired nonces from DB")

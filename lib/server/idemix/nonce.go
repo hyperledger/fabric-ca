@@ -26,7 +26,7 @@ const (
 	// RemoveNonce is the query string for removing a specified nonce
 	RemoveNonce = "DELETE FROM nonces WHERE (val = ?)"
 	// RemoveExpiredNonces is the SQL string removing expired nonces
-	RemoveExpiredNonces = "DELETE FROM nonces WHERE (expiry < ?);"
+	RemoveExpiredNonces = "DELETE FROM nonces WHERE (expiry < ?)"
 	// DefaultNonceExpiration is the default value for nonce expiration
 	DefaultNonceExpiration = "15s"
 	// DefaultNonceSweepInterval is the default value for nonce sweep interval
@@ -172,7 +172,7 @@ func (nm *nonceManager) getNonceFromDB(tx dbutil.FabricCATx, args ...interface{}
 }
 
 func (nm *nonceManager) removeExpiredNoncesFromDB(curTime time.Time) error {
-	_, err := nm.issuer.DB().NamedExec(RemoveExpiredNonces, curTime)
+	_, err := nm.issuer.DB().Exec(nm.issuer.DB().Rebind(RemoveExpiredNonces), curTime)
 	if err != nil {
 		log.Errorf("Failed to remove expired nonces from DB for CA '%s': %s", nm.issuer.Name(), err.Error())
 		return errors.New("Failed to remove expired nonces from DB")
