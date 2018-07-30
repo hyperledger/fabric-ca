@@ -340,7 +340,8 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if csr.CA.Expiry == "" {
 			csr.CA.Expiry = defaultRootCACertificateExpiration
 		}
-		if csr.KeyRequest == nil {
+
+		if (csr.KeyRequest == nil) || (csr.KeyRequest.Algo == "" && csr.KeyRequest.Size == 0) {
 			csr.KeyRequest = GetKeyRequest(ca.Config)
 		}
 		req := cfcsr.CertificateRequest{

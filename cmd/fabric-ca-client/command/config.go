@@ -137,6 +137,9 @@ tls:
 #############################################################################
 csr:
   cn: <<<ENROLLMENT_ID>>>
+  keyrequest:
+    algo: ecdsa
+    size: 256
   serialnumber:
   names:
     - C: US
@@ -244,6 +247,11 @@ func (c *ClientCmd) ConfigInit() error {
 	err = c.myViper.Unmarshal(c.clientCfg)
 	if err != nil {
 		return errors.Wrapf(err, "Incorrect format in file '%s'", c.cfgFileName)
+	}
+
+	// If the CSR is not for a CA, set the CA pointer to nil
+	if c.clientCfg.CSR.CA != nil && c.clientCfg.CSR.CA.PathLength == 0 && !c.clientCfg.CSR.CA.PathLenZero {
+		c.clientCfg.CSR.CA = nil
 	}
 
 	purl, err := url.Parse(c.clientCfg.URL)

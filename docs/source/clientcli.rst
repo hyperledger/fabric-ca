@@ -26,6 +26,8 @@ Fabric-CA Client's CLI
           --caname string                  Name of CA
           --csr.cn string                  The common name field of the certificate signing request
           --csr.hosts stringSlice          A list of space-separated host names in a certificate signing request
+          --csr.keyrequest.algo string     Specify key algorithm
+          --csr.keyrequest.size int        Specify key size
           --csr.names stringSlice          A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)
           --csr.serialnumber string        The serial number in a certificate signing request
       -d, --debug                          Enable debug level logging

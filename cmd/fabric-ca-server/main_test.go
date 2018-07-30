@@ -118,6 +118,8 @@ func TestErrors(t *testing.T) {
 		{[]string{cmdName, "init", "-c", initYaml, "-b", "user:"}, "empty password"},
 		{[]string{cmdName, "bogus", "-c", initYaml, "-b", "user:pass"}, "unknown command"},
 		{[]string{cmdName, "start", "-c"}, "needs an argument:"},
+		{[]string{cmdName, "start", "--csr.keyrequest.algo", "fakeAlgo"}, "Invalid algorithm: fakeAlgo"},
+		{[]string{cmdName, "start", "--csr.keyrequest.algo", "ecdsa", "--csr.keyrequest.size", "12345"}, "Invalid ECDSA key size: 12345"},
 		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "Unrecognized arguments found"},
 	}
 

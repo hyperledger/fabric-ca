@@ -47,6 +47,8 @@ const (
 	// TagSkip is the tag name which causes the field to be skipped by
 	// RegisterFlags.
 	TagSkip = "skip"
+	// TagHide is the tag name which causes the field to be hidden
+	TagHide = "hide"
 )
 
 // RegisterFlags registers flags for all fields in an arbitrary 'config' object.
@@ -58,7 +60,7 @@ const (
 func RegisterFlags(v *viper.Viper, flags *pflag.FlagSet, config interface{},
 	tags map[string]string) error {
 	fr := &flagRegistrar{flags: flags, tags: tags, viper: v}
-	return ParseObj(config, fr.Register)
+	return ParseObj(config, fr.Register, tags)
 }
 
 type flagRegistrar struct {
@@ -84,15 +86,16 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 	help := fr.getTag(f, TagHelp)
 	opt := fr.getTag(f, TagOpt)
 	def := fr.getTag(f, TagDefault)
+	hide := fr.getHideBooleanTag(f)
 	switch f.Kind {
 
 	case reflect.String:
-		if help == "" {
+		if help == "" && !hide {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		fr.flags.StringVarP(f.Addr.(*string), f.Path, opt, def, help)
 	case reflect.Int:
-		if help == "" {
+		if help == "" && !hide {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		var intDef int
@@ -104,7 +107,7 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 		}
 		fr.flags.IntVarP(f.Addr.(*int), f.Path, opt, intDef, help)
 	case reflect.Int64:
-		if help == "" {
+		if help == "" && !hide {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		d, ok := f.Addr.(*time.Duration)
@@ -128,7 +131,7 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 			fr.flags.DurationVarP(d, f.Path, opt, intDef, help)
 		}
 	case reflect.Bool:
-		if help == "" {
+		if help == "" && !hide {
 			return errors.Errorf("Field is missing a help tag: %s", f.Path)
 		}
 		var boolDef bool
@@ -141,7 +144,7 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 		fr.flags.BoolVarP(f.Addr.(*bool), f.Path, opt, boolDef, help)
 	case reflect.Slice:
 		if f.Type.Elem().Kind() == reflect.String {
-			if help == "" {
+			if help == "" && !hide {
 				return errors.Errorf("Field is missing a help tag: %s", f.Path)
 			}
 			fr.flags.StringSliceVarP(f.Addr.(*[]string), f.Path, opt, nil, help)
@@ -152,6 +155,9 @@ func (fr *flagRegistrar) Register(f *Field) (err error) {
 		log.Debugf("Not registering flag for '%s' because it is a currently unsupported type: %s\n",
 			f.Path, f.Kind)
 		return nil
+	}
+	if hide {
+		fr.flags.MarkHidden(f.Path)
 	}
 	bindFlag(fr.viper, fr.flags, f.Path)
 	return nil
@@ -167,6 +173,14 @@ func (fr *flagRegistrar) getTag(f *Field, tagName string) string {
 		val = f.Tag.Get(tagName)
 	}
 	return val
+}
+
+func (fr *flagRegistrar) getHideBooleanTag(f *Field) bool {
+	boolVal, err := strconv.ParseBool(f.Hide)
+	if err != nil {
+		return false
+	}
+	return boolVal
 }
 
 // CmdRunBegin is called at the beginning of each cobra run function

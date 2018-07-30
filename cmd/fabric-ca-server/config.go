@@ -334,6 +334,9 @@ signing:
 ###########################################################################
 csr:
    cn: <<<COMMONNAME>>>
+   keyrequest:
+     algo: ecdsa
+     size: 256
    names:
       - C: US
         ST: "North Carolina"
