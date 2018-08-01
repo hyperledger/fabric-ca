@@ -355,7 +355,7 @@ func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	if err == nil {
 		return RSAprivKey, nil
 	}
-	key, err2 := x509.ParsePKCS8PrivateKey(raw)
+	key, err2 := x509.ParsePKCS8PrivateKey(decoded.Bytes)
 	if err2 == nil {
 		switch key.(type) {
 		case *ecdsa.PrivateKey:

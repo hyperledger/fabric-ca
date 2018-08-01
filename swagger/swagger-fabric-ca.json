@@ -319,11 +319,11 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "cert": {
+                    "Cert": {
                       "type": "string",
                       "description": "The enrollment certificate in base 64 encoded format."
                     },
-                    "cainfo": {
+                    "ServerInfo": {
                       "type": "object",
                       "properties": {
                         "CAName": {
@@ -467,15 +467,15 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "credential": {
+                    "Credential": {
                       "type": "string",
                       "description": "The credential in base64 encoding of the bytes of the idemix.Credential proto buffer"
                     },
-                    "nonce": {
+                    "Nonce": {
                       "type": "string",
                       "description": "The nonce in base 64 encoded format"
                     },
-                    "attrs": {
+                    "Attrs": {
                       "type": "object",
                       "properties": {
                         "OU": {
@@ -483,8 +483,8 @@
                           "description": "The Organizational Unit of the identity that requested the credential"
                         },
                         "IsAdmin": {
-                          "type": "string",
-                          "description": "'true' if the identity that requested the credential is an admin"
+                          "type": "boolean",
+                          "description": "true if the identity that requested the credential is an admin"
                         },
                         "EnrollmentID": {
                           "type": "string",
@@ -497,11 +497,11 @@
                         "EnrollmentID"
                       ]
                     },
-                    "cri": {
+                    "CRI": {
                       "type": "string",
                       "description": "The cri base64 encoding of the bytes of the idemix.CredentialRevocationInformation proto buffer"
                     },
-                    "cainfo": {
+                    "CAInfo": {
                       "type": "object",
                       "properties": {
                         "CAName": {
@@ -797,9 +797,41 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "cert": {
+                    "Cert": {
                       "type": "string",
                       "description": "The enrollment certificate in base 64 encoded format."
+                    },
+                    "ServerInfo": {
+                      "type": "object",
+                      "properties": {
+                        "CAName": {
+                          "type": "string",
+                          "description": "The name of the CA that issued the credential"
+                        },
+                        "CAChain": {
+                          "type": "string",
+                          "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                        },
+                        "IssuerPublicKey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
+                        },
+                        "IssuerRevocationPublicKey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
+                        },
+                        "Version": {
+                          "type": "string",
+                          "description": "Version of the server"
+                        }
+                      },
+                      "required": [
+                        "CAName",
+                        "CAChain",
+                        "IssuerPublicKey",
+                        "IssuerRevocationPublicKey",
+                        "Version"
+                      ]
                     }
                   }
                 },
@@ -964,13 +996,13 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "credentials": {
+                    "secret": {
                       "type": "string",
                       "description": "The base64 encoded enrollment secret of the newly registered identity."
                     }
                   },
                   "required": [
-                    "credentials"
+                    "secret"
                   ]
                 },
                 "Errors": {
@@ -1114,25 +1146,25 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "revokedcerts": {
+                    "RevokedCerts": {
                       "type": "array",
                       "description": "An array of revoked certificates",
                       "items": {
                         "type": "object",
                         "description": "A revoked certificate",
                         "properties": {
-                          "serial": {
+                          "Serial": {
                             "type": "string",
                             "description": "Serial number of the revoked certificate"
                           },
-                          "aki": {
+                          "AKI": {
                             "type": "string",
                             "description": "Authority Key Identifier (AKI) of the revoked certificate"
                           }
                         }
                       }
                     },
-                    "crl": {
+                    "CRL": {
                       "type": "string",
                       "description": "base64 encoded PEM-encoded CRL"
                     }
@@ -1272,13 +1304,13 @@
                 "Result": {
                   "type": "object",
                   "properties": {
-                    "crl": {
+                    "CRL": {
                       "type": "string",
                       "description": "base64 encoded PEM-encoded CRL"
                     }
                   },
                   "required": [
-                    "crl"
+                    "CRL"
                   ]
                 },
                 "Errors": {

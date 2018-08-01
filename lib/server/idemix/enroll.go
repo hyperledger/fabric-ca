@@ -26,7 +26,7 @@ type EnrollmentResponse struct {
 	// Base64 encoding of idemix Credential
 	Credential string
 	// Attribute name-value pairs
-	Attrs map[string]string
+	Attrs map[string]interface{}
 	// Base64 encoding of Credential Revocation information
 	CRI string
 	// Base64 encoding of the issuer nonce
@@ -183,9 +183,9 @@ func (h *EnrollRequestHandler) GenerateNonce() *fp256bn.BIG {
 
 // GetAttributeValues returns attribute values of the caller of Idemix enroll request
 func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.IssuerPublicKey,
-	rh *fp256bn.BIG) (map[string]string, []*fp256bn.BIG, error) {
+	rh *fp256bn.BIG) (map[string]interface{}, []*fp256bn.BIG, error) {
 	rc := []*fp256bn.BIG{}
-	attrMap := make(map[string]string)
+	attrMap := make(map[string]interface{})
 	for _, attrName := range ipk.AttributeNames {
 		if attrName == AttrEnrollmentID {
 			idBytes := []byte(caller.GetName())
@@ -203,18 +203,21 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.I
 		} else if attrName == AttrRevocationHandle {
 			rc = append(rc, rh)
 			attrMap[attrName] = util.B64Encode(idemix.BigToBytes(rh))
-		} else if attrName == AttrRole {
+		} else if attrName == AttrIsAdmin {
 			isAdmin := false
 			attrObj, err := caller.GetAttribute("isAdmin")
 			if err == nil {
 				isAdmin, err = strconv.ParseBool(attrObj.GetValue())
+				if err != nil {
+					log.Debugf("isAdmin attribute of user %s must be a boolean value", caller.GetName())
+				}
 			}
 			role := 0
 			if isAdmin {
 				role = 1
 			}
-			rc = append(rc, fp256bn.NewBIGint(int(role)))
-			attrMap[attrName] = strconv.FormatBool(isAdmin)
+			rc = append(rc, fp256bn.NewBIGint(role))
+			attrMap[attrName] = isAdmin
 		} else {
 			attrObj, err := caller.GetAttribute(attrName)
 			if err != nil {
