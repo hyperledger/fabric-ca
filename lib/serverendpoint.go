@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
@@ -22,6 +12,7 @@ import (
 
 	"github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 )
 
 // serverEndpoint represents a particular endpoint (e.g. to "/api/v1/enroll")
@@ -54,8 +45,8 @@ func (se *serverEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	he := getHTTPErr(err)
 	if he != nil {
 		// An error occurred
-		w.WriteHeader(he.scode)
-		log.Infof(`%s %s %s %d %d "%s"`, r.RemoteAddr, r.Method, r.URL, he.scode, he.lcode, he.lmsg)
+		w.WriteHeader(he.GetStatusCode())
+		log.Infof(`%s %s %s %d %d "%s"`, r.RemoteAddr, r.Method, r.URL, he.GetStatusCode(), he.GetLocalCode(), he.GetLocalMsg())
 	} else {
 		// No error occurred
 		scode := se.getSuccessRC()
@@ -73,7 +64,7 @@ func (se *serverEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// If an error was returned by the handler, write it now.
 	w.Write([]byte(`,"errors":[`))
 	if he != nil {
-		rm := &api.ResponseMessage{Code: he.rcode, Message: he.rmsg}
+		rm := &api.ResponseMessage{Code: he.GetRemoteCode(), Message: he.GetRemoteMsg()}
 		writeJSON(rm, w)
 	}
 	// Write true or false for success
@@ -100,12 +91,12 @@ func (se *serverEndpoint) validateMethod(r *http.Request) error {
 			return nil
 		}
 	}
-	return newHTTPErr(405, ErrMethodNotAllowed, "Method %s is not allowed", r.Method)
+	return caerrors.NewHTTPErr(405, caerrors.ErrMethodNotAllowed, "Method %s is not allowed", r.Method)
 }
 
 // Get the top-most HTTP error from the cause stack.
 // If not found, create one with an unknown error code.
-func getHTTPErr(err error) *httpErr {
+func getHTTPErr(err error) *caerrors.HTTPErr {
 	if err == nil {
 		return nil
 	}
@@ -115,15 +106,15 @@ func getHTTPErr(err error) *httpErr {
 	curErr := err
 	for curErr != nil {
 		switch curErr.(type) {
-		case *httpErr:
-			return curErr.(*httpErr)
+		case *caerrors.HTTPErr:
+			return curErr.(*caerrors.HTTPErr)
 		case causer:
 			curErr = curErr.(causer).Cause()
 		default:
-			return createHTTPErr(500, ErrUnknown, err.Error())
+			return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, err.Error())
 		}
 	}
-	return createHTTPErr(500, ErrUnknown, "nil error")
+	return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, "nil error")
 }
 
 func writeJSON(obj interface{}, w http.ResponseWriter) {
@@ -133,7 +124,6 @@ func writeJSON(obj interface{}, w http.ResponseWriter) {
 		log.Errorf("Failed encoding response to JSON: %s", err)
 	}
 }
-
 func newHTTPResponseWriter(r *http.Request, w http.ResponseWriter, se *serverEndpoint) *httpResponseWriter {
 	return &httpResponseWriter{r: r, w: w, se: se}
 }

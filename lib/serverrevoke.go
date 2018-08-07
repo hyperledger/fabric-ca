@@ -13,6 +13,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -72,7 +73,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 		certificate, err := certDBAccessor.GetCertificateWithID(req.Serial, req.AKI)
 		if err != nil {
-			return nil, newHTTPErr(404, ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
+			return nil, caerrors.NewHTTPErr(404, caerrors.ErrRevCertNotFound, "Certificate with serial %s and AKI %s was not found: %s",
 				req.Serial, req.AKI, err)
 		}
 
@@ -83,18 +84,18 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 		}
 
 		if certificate.Status == string(Revoked) {
-			return nil, newHTTPErr(404, ErrCertAlreadyRevoked, "Certificate with serial %s and AKI %s was already revoked",
+			return nil, caerrors.NewHTTPErr(404, caerrors.ErrCertAlreadyRevoked, "Certificate with serial %s and AKI %s was already revoked",
 				req.Serial, req.AKI)
 		}
 
 		if req.Name != "" && req.Name != certificate.ID {
-			return nil, newHTTPErr(400, ErrCertWrongOwner, "Certificate with serial %s and AKI %s is not owned by %s",
+			return nil, caerrors.NewHTTPErr(400, caerrors.ErrCertWrongOwner, "Certificate with serial %s and AKI %s is not owned by %s",
 				req.Serial, req.AKI, req.Name)
 		}
 
 		userInfo, err := registry.GetUser(certificate.ID, nil)
 		if err != nil {
-			return nil, newHTTPErr(404, ErrRevokeIDNotFound, "Identity %s was not found: %s", certificate.ID, err)
+			return nil, caerrors.NewHTTPErr(404, caerrors.ErrRevokeIDNotFound, "Identity %s was not found: %s", certificate.ID, err)
 		}
 
 		if !((req.AKI == calleraki) && (req.Serial == callerserial)) {
@@ -106,7 +107,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 		err = certDBAccessor.RevokeCertificate(req.Serial, req.AKI, reason)
 		if err != nil {
-			return nil, newHTTPErr(500, ErrRevokeFailure, "Revoke of certificate <%s,%s> failed: %s", req.Serial, req.AKI, err)
+			return nil, caerrors.NewHTTPErr(500, caerrors.ErrRevokeFailure, "Revoke of certificate <%s,%s> failed: %s", req.Serial, req.AKI, err)
 		}
 		result.RevokedCerts = append(result.RevokedCerts, api.RevokedCert{Serial: req.Serial, AKI: req.AKI})
 	} else if req.Name != "" {
@@ -118,7 +119,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 		user, err := registry.GetUser(req.Name, nil)
 		if err != nil {
-			return nil, newHTTPErr(404, ErrRevokeIDNotFound, "Identity %s was not found: %s", req.Name, err)
+			return nil, caerrors.NewHTTPErr(404, caerrors.ErrRevokeIDNotFound, "Identity %s was not found: %s", req.Name, err)
 		}
 
 		// Set user state to -1 for revoked user
@@ -137,14 +138,14 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 			err = user.Revoke()
 			if err != nil {
-				return nil, newHTTPErr(500, ErrRevokeUpdateUser, "Failed to revoke user: %s", err)
+				return nil, caerrors.NewHTTPErr(500, caerrors.ErrRevokeUpdateUser, "Failed to revoke user: %s", err)
 			}
 		}
 
 		var recs []CertRecord
 		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, reason)
 		if err != nil {
-			return nil, newHTTPErr(500, ErrNoCertsRevoked, "Failed to revoke certificates for '%s': %s",
+			return nil, caerrors.NewHTTPErr(500, caerrors.ErrNoCertsRevoked, "Failed to revoke certificates for '%s': %s",
 				req.Name, err)
 		}
 
@@ -157,7 +158,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 			}
 		}
 	} else {
-		return nil, newHTTPErr(400, ErrMissingRevokeArgs, "Either Name or Serial and AKI are required for a revoke request")
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrMissingRevokeArgs, "Either Name or Serial and AKI are required for a revoke request")
 	}
 
 	log.Debugf("Revoke was successful: %+v", req)
@@ -182,7 +183,7 @@ func checkAuth(callerName, revokeUserName string, ca *CA) error {
 		// Make sure that the caller has the "hf.Revoker" attribute.
 		err := ca.attributeIsTrue(callerName, "hf.Revoker")
 		if err != nil {
-			return newAuthorizationErr(ErrNotRevoker, "Caller does not have authority to revoke")
+			return caerrors.NewAuthorizationErr(caerrors.ErrNotRevoker, "Caller does not have authority to revoke")
 		}
 	}
 	return nil

@@ -16,6 +16,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 )
@@ -185,7 +186,7 @@ func canRegister(registrar spi.User, req *api.RegistrationRequest, ctx *serverRe
 
 	err = attr.CanRegisterRequestedAttributes(req.Attributes, nil, registrar)
 	if err != nil {
-		return newAuthorizationErr(ErrRegAttrAuth, "Failed to register attribute: %s", err)
+		return caerrors.NewAuthorizationErr(caerrors.ErrRegAttrAuth, "Failed to register attribute: %s", err)
 	}
 
 	return nil

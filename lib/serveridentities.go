@@ -16,6 +16,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
@@ -157,7 +158,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 		return err
 	}
 	if !isRegistrar {
-		return newAuthorizationErr(ErrGettingUser, "Caller is not a registrar")
+		return caerrors.NewAuthorizationErr(caerrors.ErrGettingUser, "Caller is not a registrar")
 	}
 
 	// Getting all identities of appropriate affiliation and type
@@ -165,7 +166,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	registry := ctx.ca.registry
 	rows, err := registry.GetFilteredUsers(callerAff, callerTypes)
 	if err != nil {
-		return newHTTPErr(500, ErrGettingUser, "Failed to get users by affiliation and type: %s", err)
+		return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to get users by affiliation and type: %s", err)
 	}
 
 	// Get the number of identities to return back to client in a chunk based on the environment variable
@@ -177,7 +178,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	} else {
 		numIdentities, err = strconv.Atoi(numberOfIdentities)
 		if err != nil {
-			return newHTTPErr(500, ErrGettingUser, "Incorrect format specified for environment variable 'FABRIC_CA_SERVER_MAX_IDS_PER_CHUNK', an integer value is required: %s", err)
+			return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Incorrect format specified for environment variable 'FABRIC_CA_SERVER_MAX_IDS_PER_CHUNK', an integer value is required: %s", err)
 		}
 	}
 
@@ -191,7 +192,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 		var id UserRecord
 		err := rows.StructScan(&id)
 		if err != nil {
-			return newHTTPErr(500, ErrGettingUser, "Failed to get read row: %s", err)
+			return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to get read row: %s", err)
 		}
 
 		if rowNumber > 1 {
@@ -211,7 +212,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 
 		resp, err := util.Marshal(idInfo, "identities info")
 		if err != nil {
-			return newHTTPErr(500, ErrGettingUser, "Failed to marshal identity info: %s", err)
+			return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to marshal identity info: %s", err)
 		}
 		w.Write(resp)
 
@@ -263,7 +264,7 @@ func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.Id
 	log.Debug("Processing DELETE request")
 
 	if !ctx.ca.Config.Cfg.Identities.AllowRemove {
-		return nil, newHTTPErr(403, ErrRemoveIdentity, "Identity removal is disabled")
+		return nil, caerrors.NewHTTPErr(403, caerrors.ErrRemoveIdentity, "Identity removal is disabled")
 	}
 
 	removeID, err := ctx.GetVar("id")
@@ -272,7 +273,7 @@ func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.Id
 	}
 
 	if removeID == "" {
-		return nil, newHTTPErr(400, ErrRemoveIdentity, "No ID name specified in remove request")
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrRemoveIdentity, "No ID name specified in remove request")
 	}
 
 	log.Debugf("Removing identity '%s'", removeID)
@@ -283,7 +284,7 @@ func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.Id
 	}
 
 	if removeID == ctx.caller.GetName() && !force {
-		return nil, newHTTPErr(403, ErrRemoveIdentity, "Need to use 'force' option to delete your own identity")
+		return nil, caerrors.NewHTTPErr(403, caerrors.ErrRemoveIdentity, "Need to use 'force' option to delete your own identity")
 	}
 
 	registry := ctx.ca.registry
@@ -299,7 +300,7 @@ func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.Id
 
 	_, err = registry.DeleteUser(removeID)
 	if err != nil {
-		return nil, newHTTPErr(500, ErrRemoveIdentity, "Failed to remove identity: ", err)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrRemoveIdentity, "Failed to remove identity: ", err)
 	}
 
 	resp, err := getIDResp(userToRemove, "", caname)
@@ -322,7 +323,7 @@ func processPostRequest(ctx *serverRequestContextImpl, caname string) (*api.Iden
 	}
 
 	if req.ID == "" {
-		return nil, newHTTPErr(400, ErrAddIdentity, "Missing 'ID' in request to add a new identity")
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrAddIdentity, "Missing 'ID' in request to add a new identity")
 	}
 	addReq := &api.RegistrationRequest{
 		Name:           req.ID,
@@ -342,7 +343,7 @@ func processPostRequest(ctx *serverRequestContextImpl, caname string) (*api.Iden
 
 	pass, err := registerUser(addReq, callerID, ctx.ca, ctx)
 	if err != nil {
-		return nil, newHTTPErr(400, ErrAddIdentity, "Failed to add identity: %s", err)
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrAddIdentity, "Failed to add identity: %s", err)
 
 	}
 
@@ -369,7 +370,7 @@ func processPutRequest(ctx *serverRequestContextImpl, caname string) (*api.Ident
 	}
 
 	if modifyID == "" {
-		return nil, newHTTPErr(400, ErrModifyingIdentity, "No ID name specified in modify request")
+		return nil, caerrors.NewHTTPErr(400, caerrors.ErrModifyingIdentity, "No ID name specified in modify request")
 	}
 
 	log.Debugf("Modifying identity '%s'", modifyID)
@@ -395,7 +396,7 @@ func processPutRequest(ctx *serverRequestContextImpl, caname string) (*api.Ident
 		if newAff != "." { // Only need to check if not requesting root affiliation
 			aff, _ := registry.GetAffiliation(newAff)
 			if aff == nil {
-				return nil, newHTTPErr(400, ErrModifyingIdentity, "Affiliation '%s' is not supported", newAff)
+				return nil, caerrors.NewHTTPErr(400, caerrors.ErrModifyingIdentity, "Affiliation '%s' is not supported", newAff)
 			}
 		}
 		checkAff = true
