@@ -203,7 +203,7 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.I
 		} else if attrName == AttrRevocationHandle {
 			rc = append(rc, rh)
 			attrMap[attrName] = util.B64Encode(idemix.BigToBytes(rh))
-		} else if attrName == AttrIsAdmin {
+		} else if attrName == AttrRole {
 			isAdmin := false
 			attrObj, err := caller.GetAttribute("isAdmin")
 			if err == nil {

@@ -19,8 +19,8 @@ import (
 const (
 	// AttrEnrollmentID is the attribute name for enrollment ID
 	AttrEnrollmentID = "EnrollmentID"
-	// AttrIsAdmin is the attribute name for role
-	AttrIsAdmin = "IsAdmin"
+	// AttrRole is the attribute name for role
+	AttrRole = "Role"
 	// AttrOU is the attribute name for OU
 	AttrOU = "OU"
 	// AttrRevocationHandle is the attribute name for revocation handle
@@ -160,5 +160,5 @@ func (ic *caIdemixCredential) NewIssuerKey() (*idemix.IssuerKey, error) {
 
 // GetAttributeNames returns attribute names supported by the Fabric CA for Idemix credentials
 func GetAttributeNames() []string {
-	return []string{AttrOU, AttrIsAdmin, AttrEnrollmentID, AttrRevocationHandle}
+	return []string{AttrOU, AttrRole, AttrEnrollmentID, AttrRevocationHandle}
 }
