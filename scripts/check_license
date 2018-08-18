@@ -29,6 +29,7 @@ function filterExcludedFiles {
 		| grep -v "^Gopkg\.lock$" \
 		| grep -v "\.md$" \
 		| grep -v "\.pb\.go$" \
+		| grep -v ".gitignore" \
 		| sort -u`
 
   CHECK=$(filterGeneratedFiles "$CHECK")
