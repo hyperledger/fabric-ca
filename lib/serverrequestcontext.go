@@ -46,6 +46,10 @@ type ServerRequestContext interface {
 	GetBoolQueryParm(name string) (bool, error)
 	GetResp() http.ResponseWriter
 	GetCertificates(server.CertificateRequest, string) (*sqlx.Rows, error)
+	IsLDAPEnabled() bool
+	ReadBody(interface{}) error
+	ContainsAffiliation(string) error
+	CanActOnType(string) error
 }
 
 // serverRequestContextImpl represents an HTTP request/response context in the server
@@ -701,6 +705,10 @@ func (ctx *serverRequestContextImpl) GetRegistry() spi.UserRegistry {
 
 func (ctx *serverRequestContextImpl) GetCAConfig() *CAConfig {
 	return ctx.ca.Config
+}
+
+func (ctx *serverRequestContextImpl) IsLDAPEnabled() bool {
+	return ctx.ca.Config.LDAP.Enabled
 }
 
 func convertAttrReqs(attrReqs []*api.AttributeRequest) []attrmgr.AttributeRequest {

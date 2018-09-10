@@ -70,6 +70,10 @@ for u in ${users1[*]}; do
    checkUserCert $u
 done
 
+$FABRIC_CA_CLIENTEXEC register -d -u "$PROTO${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
+                           --id.name "testldapuser" \
+                           -c /tmp/ldap/users/testUser8/fabric-ca-client-config.yaml 2>&1 | egrep "Registration is not supported when using LDAP"
+test $? -ne 0 && ErrorExit "Registration while using LDAP should have failed"
 # Sleep for more than the idle connection timeout limit of 1 second
 sleep 3
 

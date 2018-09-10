@@ -13,6 +13,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	"github.com/hyperledger/fabric-ca/lib/mocks"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -524,4 +525,14 @@ func TestAffiliationAndTypeCheck(t *testing.T) {
 
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to start server")
+}
+
+func TestRegisterWithLDAP(t *testing.T) {
+	ctxMock := new(mocks.ServerRequestContext)
+	ctxMock.On("ReadBody", &api.RegistrationRequestNet{}).Return(nil)
+	ctxMock.On("TokenAuthentication").Return("", nil)
+	ctxMock.On("IsLDAPEnabled").Return(true)
+
+	_, err := register(ctxMock, &CA{})
+	util.ErrorContains(t, err, "72", "Failed to get back write error for registering identities with LDAP")
 }
