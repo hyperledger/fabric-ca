@@ -47,7 +47,7 @@ FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
 ifeq ($(ARCH),s390x)
-PGVER=9.4
+PGVER=9.6
 else
 PGVER=9.5
 endif
