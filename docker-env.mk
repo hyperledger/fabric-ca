@@ -51,6 +51,7 @@ BASE_DOCKER_NS ?= hyperledger
 BASE_DOCKER_TAG=$(ARCH)-$(BASEIMAGE_RELEASE)
 
 DOCKER_NS ?= hyperledger
+NEXUS_URL ?= nexus3.hyperledger.org:10001/hyperledger
 DOCKER_TAG=$(ARCH)-$(PROJECT_VERSION)
 
 DOCKER_GO_LDFLAGS += $(GO_LDFLAGS)
