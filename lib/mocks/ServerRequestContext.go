@@ -34,6 +34,20 @@ func (_m *ServerRequestContext) BasicAuthentication() (string, error) {
 	return r0, r1
 }
 
+// CanActOnType provides a mock function with given fields: _a0
+func (_m *ServerRequestContext) CanActOnType(_a0 string) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ChunksToDeliver provides a mock function with given fields: _a0
 func (_m *ServerRequestContext) ChunksToDeliver(_a0 string) (int, error) {
 	ret := _m.Called(_a0)
@@ -53,6 +67,20 @@ func (_m *ServerRequestContext) ChunksToDeliver(_a0 string) (int, error) {
 	}
 
 	return r0, r1
+}
+
+// ContainsAffiliation provides a mock function with given fields: _a0
+func (_m *ServerRequestContext) ContainsAffiliation(_a0 string) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // GetBoolQueryParm provides a mock function with given fields: name
@@ -175,6 +203,34 @@ func (_m *ServerRequestContext) HasRole(role string) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string) error); ok {
 		r0 = rf(role)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// IsLDAPEnabled provides a mock function with given fields:
+func (_m *ServerRequestContext) IsLDAPEnabled() bool {
+	ret := _m.Called()
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func() bool); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// ReadBody provides a mock function with given fields: _a0
+func (_m *ServerRequestContext) ReadBody(_a0 interface{}) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(interface{}) error); ok {
+		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
 	}

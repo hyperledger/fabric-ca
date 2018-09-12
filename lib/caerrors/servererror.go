@@ -163,6 +163,8 @@ const (
 	ErrRevokedID = 70
 	// Authorization failure
 	ErrAuthorizationFailure = 71
+	// Action is not allowed when using LDAP
+	ErrInvalidLDAPAction = 72
 )
 
 // CreateHTTPErr constructs a new HTTP error.
