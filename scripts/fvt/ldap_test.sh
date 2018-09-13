@@ -130,5 +130,11 @@ echo "User 'notadmin' is attempting to generate a crl ... "
 $FABRIC_CA_CLIENTEXEC gencrl -u $URI -H $UDIR/notadmin $TLSOPT 2>&1| grep 'Authorization failure'
 test "$?" -eq 0 || ErrorMsg "User 'notadmin' should not generate a crl"
 
+export LDAP_ERROR=true
+$SCRIPTDIR/fabric-ca_setup.sh -R
+$SCRIPTDIR/fabric-ca_setup.sh -I -a -D -X -S -n1
+CA_CFG_PATH=$UDIR enroll testUser testUserpw uid,hf.Revoker 2>&1 | grep "Failed to evaluate LDAP expression"
+test "$?" -eq 0 || ErrorMsg "Enroll should fail, incorrect LDAP converter specified"
+
 CleanUp $RC
 exit $RC

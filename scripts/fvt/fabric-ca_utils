@@ -535,6 +535,7 @@ function genRunconfig() {
    : ${FABRIC_TLS:='false'}
    : ${FABRIC_CA_DEBUG:='false'}
    local registry=""
+   local converters=""
    setTLS
 
    case ${version:-"yaml"} in
@@ -858,6 +859,26 @@ done)
       maxEnrollments: $maxEnroll
       attrs: []"
 fi
+
+converters='
+    converters:
+      - name: hf.GenCRL
+        value: attr("memberOf") =~ "cn=Gencrl,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
+      - name: hf.Revoker
+        value: attr("memberOf") =~ "cn=Revoker,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
+      - name: hf.IntermediateCA
+        value: attr("memberOf") =~ "cn=Ca,ou=groups,dc=example,dc=com"
+      - name: hf.Registrar.Roles
+        value: map(attr("memberOf"),"roles")'
+
+if [ "$LDAP_ERROR" == "true" ]; then converters='
+    converters:
+      - name: hf.GenCRL
+        value: attr("memberOf") =~ "cn=Gencrl,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
+      - name: hf.Type
+        value: client'
+fi
+
 cat > $runconfig <<EOF
 address: $CA_HOST_ADDRESS
 port: $CA_DEFAULT_PORT
@@ -902,15 +923,7 @@ ldap:
              "uidNumber",
              "memberOf"
            ]
-    converters:
-      - name: hf.GenCRL
-        value: attr("memberOf") =~ "cn=Gencrl,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
-      - name: hf.Revoker 
-        value: attr("memberOf") =~ "cn=Revoker,ou=groups,dc=example,dc=com" || attr("memberOf") =~ "cn=pkiAdmin,ou=groups,dc=example,dc=com"
-      - name: hf.IntermediateCA
-        value: attr("memberOf") =~ "cn=Ca,ou=groups,dc=example,dc=com"
-      - name: hf.Registrar.Roles
-        value: map(attr("memberOf"),"roles")
+    $converters
     maps:
       ROLES:
          - name: cn=Client,ou=groups,dc=example,dc=com
