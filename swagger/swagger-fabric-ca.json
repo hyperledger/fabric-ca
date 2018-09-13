@@ -482,9 +482,9 @@
                           "type": "string",
                           "description": "The Organizational Unit of the identity that requested the credential"
                         },
-                        "IsAdmin": {
-                          "type": "boolean",
-                          "description": "true if the identity that requested the credential is an admin"
+                        "Role": {
+                          "type": "integer",
+                          "description": "Represent the role value of an identity"
                         },
                         "EnrollmentID": {
                           "type": "string",
@@ -493,7 +493,7 @@
                       },
                       "required": [
                         "OU",
-                        "IsAdmin",
+                        "Role",
                         "EnrollmentID"
                       ]
                     },

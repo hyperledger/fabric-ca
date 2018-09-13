@@ -204,20 +204,16 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.I
 			rc = append(rc, rh)
 			attrMap[attrName] = util.B64Encode(idemix.BigToBytes(rh))
 		} else if attrName == AttrRole {
-			isAdmin := false
-			attrObj, err := caller.GetAttribute("isAdmin")
+			role := MEMBER.getValue()
+			attrObj, err := caller.GetAttribute("role")
 			if err == nil {
-				isAdmin, err = strconv.ParseBool(attrObj.GetValue())
+				role, err = strconv.Atoi(attrObj.GetValue())
 				if err != nil {
-					log.Debugf("isAdmin attribute of user %s must be a boolean value", caller.GetName())
+					log.Debugf("role attribute of user %s must be a integer value", caller.GetName())
 				}
 			}
-			role := 0
-			if isAdmin {
-				role = 1
-			}
 			rc = append(rc, fp256bn.NewBIGint(role))
-			attrMap[attrName] = isAdmin
+			attrMap[attrName] = role
 		} else {
 			attrObj, err := caller.GetAttribute(attrName)
 			if err != nil {

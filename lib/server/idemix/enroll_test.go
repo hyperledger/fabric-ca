@@ -283,7 +283,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
 	caller.On("GetAffiliationPath").Return([]string{"a", "b", "c"})
-	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
+	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
 	credReq, _, err := newIdemixCredentialRequest(t, nonce)
@@ -347,7 +347,7 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
 	caller.On("GetAffiliationPath").Return([]string{"a", "b", "c"})
-	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
+	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
 	credReq, _, err := newIdemixCredentialRequest(t, nonce)
@@ -427,7 +427,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
 	caller.On("GetAffiliationPath").Return([]string{"a", "b", "c"})
-	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
+	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
 	credReq, _, err := newIdemixCredentialRequest(t, nonce)
@@ -482,7 +482,7 @@ func TestGetAttributeValues(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
 	caller.On("GetAffiliationPath").Return([]string{"a", "b", "c"})
-	caller.On("GetAttribute", "isAdmin").Return(&api.Attribute{Name: "isAdmin", Value: "true"}, nil)
+	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("GetAttribute", "type").Return(&api.Attribute{Name: "type", Value: "client"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
