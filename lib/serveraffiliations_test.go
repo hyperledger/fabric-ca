@@ -16,7 +16,6 @@ limitations under the License.
 package lib
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -37,7 +36,6 @@ func TestGetAllAffiliations(t *testing.T) {
 	srv.RegisterBootstrapUser("admin2", "admin2pw", "org2")
 	err = srv.Start()
 	util.FatalError(t, err, "Failed to start server")
-	defer srv.Stop()
 
 	client := getTestClient(7075)
 	resp, err := client.Enroll(&api.EnrollmentRequest{
@@ -64,7 +62,6 @@ func TestGetAllAffiliations(t *testing.T) {
 		t.Error("Failed to get all affiliations in database")
 	}
 
-	fmt.Println("affiliations: ", affiliations)
 	for _, aff := range affiliations {
 		if !searchTree(getResp, aff.Name) {
 			t.Error("Failed to get all appropriate affiliations")
@@ -88,6 +85,26 @@ func TestGetAllAffiliations(t *testing.T) {
 	if assert.Error(t, err, "Should have failed, as the caller does not have the attribute 'hf.AffiliationMgr'") {
 		assert.Contains(t, err.Error(), "User does not have attribute 'hf.AffiliationMgr'")
 	}
+
+	err = srv.Stop()
+	util.FatalError(t, err, "Failed to stop server")
+
+	srv = TestGetRootServer(t)
+	srv.CA.Config.Affiliations = nil
+	err = srv.Start()
+	util.FatalError(t, err, "Failed to start server")
+	defer srv.Stop()
+
+	client = getTestClient(7075)
+	resp, err = client.Enroll(&api.EnrollmentRequest{
+		Name:   "admin",
+		Secret: "adminpw",
+	})
+	util.FatalError(t, err, "Failed to enroll user 'admin'")
+	admin = resp.Identity
+
+	getResp, err = admin.GetAllAffiliations("")
+	util.ErrorContains(t, err, "16", "If no affiliations are configured, should throw an error")
 }
 
 func TestGetAffiliation(t *testing.T) {

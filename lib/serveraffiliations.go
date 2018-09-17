@@ -177,6 +177,9 @@ func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname stri
 		an.insertByName(aff.Name)
 	}
 	root := an.GetRoot()
+	if root == nil {
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "No affiliations are configured on the CA")
+	}
 
 	resp := &api.AffiliationResponse{
 		CAName: caname,
