@@ -14,8 +14,8 @@ type SignerConfig struct {
 	Sk []byte `protobuf:"bytes,2,opt,name=Sk,proto3" json:"Sk,omitempty"`
 	// OrganizationalUnitIdentifier defines the organizational unit the default signer is in
 	OrganizationalUnitIdentifier string `protobuf:"bytes,3,opt,name=organizational_unit_identifier,json=organizationalUnitIdentifier" json:"organizational_unit_identifier,omitempty"`
-	// IsAdmin defines whether the default signer is admin or not
-	IsAdmin bool `protobuf:"varint,4,opt,name=is_admin,json=isAdmin" json:"is_admin,omitempty"`
+	// Role defines whether the default signer is admin, member, peer, or client
+	Role int `protobuf:"varint,4,opt,name=role,json=role" json:"role,omitempty"`
 	// EnrollmentID contains the enrollment id of this signer
 	EnrollmentID string `protobuf:"bytes,5,opt,name=enrollment_id,json=enrollmentId" json:"enrollment_id,omitempty"`
 	// CRI contains a serialized Credential Revocation Information
@@ -38,10 +38,10 @@ func (s *SignerConfig) GetOrganizationalUnitIdentifier() string {
 	return s.OrganizationalUnitIdentifier
 }
 
-// GetIsAdmin returns true if the user associated with this signer config is an admin, else
-// returns false
-func (s *SignerConfig) GetIsAdmin() bool {
-	return s.IsAdmin
+// GetRole returns true if the user associated with this signer config is an admin, else
+// returns role
+func (s *SignerConfig) GetRole() int {
+	return s.Role
 }
 
 // GetEnrollmentID returns enrollment ID of the user associated with this signer config

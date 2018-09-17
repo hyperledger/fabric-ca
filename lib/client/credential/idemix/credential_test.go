@@ -17,6 +17,7 @@ import (
 
 	lib "github.com/hyperledger/fabric-ca/lib"
 	. "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
+	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,8 +120,8 @@ func TestIdemixCredential(t *testing.T) {
 	assert.True(t, len(sk) > 0, "Secret key bytes length should be more than zero")
 
 	signercfg.GetOrganizationalUnitIdentifier()
-	isAdmin := signercfg.GetIsAdmin()
-	assert.False(t, isAdmin)
+	role := signercfg.GetRole()
+	assert.False(t, idemix.CheckRole(role, idemix.ADMIN))
 
 	err = idemixCred.SetVal(val)
 	assert.NoError(t, err, "Setting the value that we got from the credential should not return an error")

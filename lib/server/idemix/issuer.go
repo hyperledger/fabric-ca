@@ -187,7 +187,7 @@ func (i *issuer) VerifyToken(authHdr string, body []byte) (string, error) {
 		return "", errors.New("Issuer is not initialized")
 	}
 	// Disclosure array indicates which attributes are disclosed. 1 means disclosed. Currently four attributes are
-	// supported: OU, isAdmin, enrollmentID and revocationHandle. Third element of disclosure array is set to 1
+	// supported: OU, role, enrollmentID and revocationHandle. Third element of disclosure array is set to 1
 	// to indicate that the server expects enrollmentID to be disclosed in the signature sent in the authorization token.
 	// EnrollmentID is disclosed to check if the signature was infact created using credential of a user whose
 	// enrollment ID is the one specified in the token. So, enrollment ID in the token is used to check if the user
