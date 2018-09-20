@@ -278,7 +278,10 @@ func (ctx *serverRequestContextImpl) GetAttrExtension(attrReqs []*api.AttributeR
 	if err != nil {
 		return nil, err
 	}
-	allAttrs, _ := ui.GetAttributes(nil)
+	allAttrs, err := ui.GetAttributes(nil)
+	if err != nil {
+		return nil, err
+	}
 	if attrReqs == nil {
 		attrReqs = getDefaultAttrReqs(allAttrs)
 		if attrReqs == nil {
