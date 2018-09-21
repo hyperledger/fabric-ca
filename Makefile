@@ -40,7 +40,7 @@ STABLE_TAG ?= $(ARCH)-$(BASE_VERSION)-stable
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
 PROJECT_VERSION=$(BASE_VERSION)-$(EXTRA_VERSION)
-FABRIC_TAG ?= $(ARCH)-latest
+FABRIC_TAG ?= latest
 else
 PROJECT_VERSION=$(BASE_VERSION)
 FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
@@ -61,7 +61,9 @@ GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
 
-IMAGES = $(PROJECT_NAME) $(PROJECT_NAME)-orderer $(PROJECT_NAME)-peer $(PROJECT_NAME)-tools
+IMAGES_ALL = $(PROJECT_NAME) $(PROJECT_NAME)-orderer $(PROJECT_NAME)-peer $(PROJECT_NAME)-tools
+
+IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
 RELEASE_PLATFORMS = linux-amd64 darwin-amd64 linux-ppc64le linux-s390x windows-amd64
@@ -78,6 +80,8 @@ rename: .FORCE
 	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
+
+docker-all: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES_ALL))
 
 docker-fabric-ca: build/image/fabric-ca/$(DUMMY)
 
@@ -153,11 +157,11 @@ build/image/fabric-ca-fvt/payload: \
 	build/docker/bin/fabric-ca-server \
 	build/fabric-ca-fvt.tar.bz2
 build/image/fabric-ca-orderer/payload: \
-	build/docker/bin/fabric-ca-client
+        build/docker/bin/fabric-ca-client
 build/image/fabric-ca-peer/payload: \
-	build/docker/bin/fabric-ca-client
+        build/docker/bin/fabric-ca-client
 build/image/fabric-ca-tools/payload: \
-	build/docker/bin/fabric-ca-client
+        build/docker/bin/fabric-ca-client
 build/image/%/payload:
 	@echo "Copying $^ to $@"
 	mkdir -p $@
@@ -177,6 +181,8 @@ all-tests: checks fabric-ca-server fabric-ca-client
 
 unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
+
+unit-test: unit-tests
 
 int-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
@@ -229,7 +235,7 @@ ci-tests: docker-clean docker-fvt all-tests docs
 	-docker images -q $(NEXUS_URL)/*:$(STABLE_TAG) | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
-docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
+docker-clean: $(patsubst %,%-docker-clean, $(IMAGES_ALL) $(PROJECT_NAME)-fvt)
 	@rm -rf build/docker/bin/* ||:
 
 native: fabric-ca-client fabric-ca-server

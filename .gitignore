@@ -1,6 +1,9 @@
 bin
 build
 coverage.xml
+results.txt
+profile.cov
+report.xml
 *.csr
 *.der
 testdata/fabric-ca-cert.pem
