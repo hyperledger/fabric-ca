@@ -2027,7 +2027,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 	csp := util.GetDefaultBCCSP()
 	_, err := dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "No TLS certificate files were provided")
+	assert.Contains(t, err.Error(), "No trusted root certificates for TLS were provided")
 
 	// Test with with a file that does not exist
 	tlsConfig = &libtls.ClientTLSConfig{
