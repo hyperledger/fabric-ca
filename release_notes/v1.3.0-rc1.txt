@@ -1,0 +1,35 @@
+v1.3.0-rc1 Release Notes - September 24, 2018
+---------------------------------------------
+
+What's New in Hyperledger Fabric CA v1.3
+----------------------------------------
+
+The following features/epics are included in this release:
+
+FABC-592 - Identity Mixer for anonymous transactions
+Fabric-CA can now issue Identity Mixer credentials to enable anonymous and
+unlinkable client identities through the use of zero-knowledge proofs.
+
+
+Changes, Known Issues, and Workarounds
+--------------------------------------
+None.
+
+
+Known Vulnerabilities
+---------------------
+None.
+
+
+Resolved Vulnerabilities
+------------------------
+None.
+
+
+Other improvements and fixes
+----------------------------
+Updated to Go version 1.10.4
+Updated baseimage version to 0.4.12
+
+For the full list of improvements and fixes, refer to the release change log:
+https://github.com/hyperledger/fabric-ca/blob/master/CHANGELOG.md#v130-rc1

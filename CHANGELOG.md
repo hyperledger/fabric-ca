@@ -1,3 +1,38 @@
+## v1.3.0-rc1
+Mon Sep 24 18:27:21 EDT 2018
+
+* [ab184f1](https://github.com/hyperledger/fabric-ca/commit/ab184f1) FABC-722 remove default hybrid image generation
+* [2eda2f6](https://github.com/hyperledger/fabric-ca/commit/2eda2f6) FABC-563 Update Postgres version to 9.6 in s390x
+* [8ecada3](https://github.com/hyperledger/fabric-ca/commit/8ecada3) FABC-720 update baseimage to 0.4.12
+* [67dd000](https://github.com/hyperledger/fabric-ca/commit/67dd000) [FABC-718] NPE when listing all affiliations
+* [d47dbf6](https://github.com/hyperledger/fabric-ca/commit/d47dbf6) [FAB-11992](https://jira.hyperledger.org/browse/FAB-11992) idemix role from boolean to int
+* [6efd5e2](https://github.com/hyperledger/fabric-ca/commit/6efd5e2) FABC-719 Upgrade go version to 1.10.4
+* [8d700d7](https://github.com/hyperledger/fabric-ca/commit/8d700d7) [FABC-716] Use current version for Base version
+* [7cb4d81](https://github.com/hyperledger/fabric-ca/commit/7cb4d81) [FABC-709] Fix error message for LDAP converter
+* [785ebd6](https://github.com/hyperledger/fabric-ca/commit/785ebd6) [FABC-711] Registration with LDAP throws better error
+* [f32901e](https://github.com/hyperledger/fabric-ca/commit/f32901e) FABC-713 Update Baseimage to 0.4.11
+* [b0e037c](https://github.com/hyperledger/fabric-ca/commit/b0e037c) [FABC-712] Updating fabric-amcl
+* [b6196b1](https://github.com/hyperledger/fabric-ca/commit/b6196b1) [FABC-710] Omit duplicate if statement
+* [2603374](https://github.com/hyperledger/fabric-ca/commit/2603374) [FABC-708] Revendor BCCSP
+* [54f3bcf](https://github.com/hyperledger/fabric-ca/commit/54f3bcf) [FABC-706] Remove unused "fabric-ca" in gitignore
+* [70b854e](https://github.com/hyperledger/fabric-ca/commit/70b854e) [FABC-704] Fix attribute name
+* [1eb786b](https://github.com/hyperledger/fabric-ca/commit/1eb786b) [FAB-11200](https://jira.hyperledger.org/browse/FAB-11200) Create an errors package
+* [ddc9c3d](https://github.com/hyperledger/fabric-ca/commit/ddc9c3d) [FAB-11232](https://jira.hyperledger.org/browse/FAB-11232) Fix removing expired nonces SQL
+* [49d3936](https://github.com/hyperledger/fabric-ca/commit/49d3936) [FAB-10319](https://jira.hyperledger.org/browse/FAB-10319) Idemix FVT test with postgres & mysql
+* [be1b7dc](https://github.com/hyperledger/fabric-ca/commit/be1b7dc) [FAB-8726](https://jira.hyperledger.org/browse/FAB-8726) Revoke one's own certificate
+* [0a3e8f1](https://github.com/hyperledger/fabric-ca/commit/0a3e8f1) [FAB-8092](https://jira.hyperledger.org/browse/FAB-8092) Return 403 for authorization failures
+* [e5bdbec](https://github.com/hyperledger/fabric-ca/commit/e5bdbec) [FAB-10498](https://jira.hyperledger.org/browse/FAB-10498) Fix Idemix SQL Query to Update Handle
+* [901d150](https://github.com/hyperledger/fabric-ca/commit/901d150) [FAB-10386](https://jira.hyperledger.org/browse/FAB-10386) Revoked ID using Idemix should fail
+* [4563457](https://github.com/hyperledger/fabric-ca/commit/4563457) [FAB-8868](https://jira.hyperledger.org/browse/FAB-8868) Fixed env var for key request
+* [6b86289](https://github.com/hyperledger/fabric-ca/commit/6b86289) [FAB-10485](https://jira.hyperledger.org/browse/FAB-10485) Revendor Idemix Library
+* [ae7a91a](https://github.com/hyperledger/fabric-ca/commit/ae7a91a) [FAB-8033](https://jira.hyperledger.org/browse/FAB-8033) Optimize DB queries
+* [334f7f0](https://github.com/hyperledger/fabric-ca/commit/334f7f0) Prepare fabric-ca for 1.3.0 development
+* [e44bf12](https://github.com/hyperledger/fabric-ca/commit/e44bf12) [FAB-10906](https://jira.hyperledger.org/browse/FAB-10906) Fix failing TestGetCertificatesDB
+* [10b5711](https://github.com/hyperledger/fabric-ca/commit/10b5711) FAB-10821 make multiarch.sh executable
+* [b00c1cb](https://github.com/hyperledger/fabric-ca/commit/b00c1cb) FAB-10753 prepare for next release
+* [ab90eed](https://github.com/hyperledger/fabric-ca/commit/ab90eed) [FAB-10474](https://jira.hyperledger.org/browse/FAB-10474) Changed IsAdmin attr type to bool
+* [4cd67f0](https://github.com/hyperledger/fabric-ca/commit/4cd67f0) [FAB-10671](https://jira.hyperledger.org/browse/FAB-10671) Re-enable idemix routes
+
 ## v1.2.0-rc1
 Thu Jun 21 13:17:53 EDT 2018
 
