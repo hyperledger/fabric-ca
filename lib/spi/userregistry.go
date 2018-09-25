@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 /*
@@ -27,14 +17,15 @@ import (
 
 // UserInfo contains information about a user
 type UserInfo struct {
-	Name           string
-	Pass           string `mask:"password"`
-	Type           string
-	Affiliation    string
-	Attributes     []api.Attribute
-	State          int
-	MaxEnrollments int
-	Level          int
+	Name                      string
+	Pass                      string `mask:"password"`
+	Type                      string
+	Affiliation               string
+	Attributes                []api.Attribute
+	State                     int
+	MaxEnrollments            int
+	Level                     int
+	IncorrectPasswordAttempts int
 }
 
 // DbTxResult returns information on any affiliations and/or identities affected
@@ -72,6 +63,10 @@ type User interface {
 	GetLevel() int
 	// SetLevel sets the level of the user
 	SetLevel(level int) error
+	// IncrementIncorrectPasswordAttempts updates the incorrect password count of user
+	IncrementIncorrectPasswordAttempts() error
+	// GetFailedLoginAttempts returns the number of times the user has entered an incorrect password
+	GetFailedLoginAttempts() int
 }
 
 // UserRegistry is the API for retreiving users and groups

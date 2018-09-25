@@ -137,7 +137,9 @@ type sqliteMigrator struct {
 func (m sqliteMigrator) migrateUsersTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
-	if m.curLevels.Identity < 1 {
+	curLevel := m.curLevels.Identity
+	if curLevel < 1 {
+		log.Debug("Upgrade identity table to level 1")
 		_, err := tx.Exec("ALTER TABLE users RENAME TO users_old")
 		if err != nil {
 			return err
@@ -155,6 +157,28 @@ func (m sqliteMigrator) migrateUsersTable() error {
 		if err != nil {
 			return err
 		}
+		curLevel++
+	}
+	if curLevel < 2 {
+		log.Debug("Upgrade identity table to level 2")
+		_, err := tx.Exec("ALTER TABLE users RENAME TO users_old")
+		if err != nil {
+			return err
+		}
+		err = createSQLiteIdentityTable(tx)
+		if err != nil {
+			return err
+		}
+		// If coming from a table that did not yet have the level column then we can only copy columns that exist in both the tables
+		_, err = tx.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) SELECT id, token, type, affiliation, attributes, state, max_enrollments, level FROM users_old")
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec("DROP TABLE users_old")
+		if err != nil {
+			return err
+		}
+		curLevel++
 	}
 	err := migrateUsers(tx, m.srvLevels.Identity)
 	if err != nil {
@@ -175,6 +199,7 @@ func (m sqliteMigrator) migrateCertificatesTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Certificate < 1 {
+		log.Debug("Upgrade certificates table to level 1")
 		_, err := tx.Exec("ALTER TABLE certificates RENAME TO certificates_old")
 		if err != nil {
 			return err
@@ -208,6 +233,7 @@ func (m sqliteMigrator) migrateAffiliationsTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Affiliation < 1 {
+		log.Debug("Upgrade affiliations table to level 1")
 		_, err := tx.Exec("ALTER TABLE affiliations RENAME TO affiliations_old")
 		if err != nil {
 			return err
@@ -255,7 +281,9 @@ type mysqlMigrator struct {
 func (m mysqlMigrator) migrateUsersTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
-	if m.curLevels.Identity < 1 {
+	curLevel := m.curLevels.Identity
+	if curLevel < 1 {
+		log.Debug("Upgrade identity table to level 1")
 		_, err := tx.Exec("ALTER TABLE users MODIFY id VARCHAR(255), MODIFY type VARCHAR(256), MODIFY affiliation VARCHAR(1024)")
 		if err != nil {
 			return err
@@ -270,6 +298,17 @@ func (m mysqlMigrator) migrateUsersTable() error {
 				return err
 			}
 		}
+		curLevel++
+	}
+	if curLevel < 2 {
+		log.Debug("Upgrade identity table to level 2")
+		_, err := tx.Exec("ALTER TABLE users ADD COLUMN incorrect_password_attempts INTEGER DEFAULT 0 AFTER level")
+		if err != nil {
+			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
+				return err
+			}
+		}
+		curLevel++
 	}
 	err := migrateUsers(tx, m.srvLevels.Identity)
 	if err != nil {
@@ -286,6 +325,7 @@ func (m mysqlMigrator) migrateCertificatesTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Certificate < 1 {
+		log.Debug("Upgrade certificates table to level 1")
 		_, err := tx.Exec("ALTER TABLE certificates ADD COLUMN level INTEGER DEFAULT 0 AFTER pem")
 		if err != nil {
 			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
@@ -308,6 +348,7 @@ func (m mysqlMigrator) migrateAffiliationsTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Affiliation < 1 {
+		log.Debug("Upgrade affiliations table to level 1")
 		_, err := tx.Exec("ALTER TABLE affiliations ADD COLUMN level INTEGER DEFAULT 0 AFTER prekey")
 		if err != nil {
 			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
@@ -368,7 +409,12 @@ type postgresMigrator struct {
 func (m postgresMigrator) migrateUsersTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
-	if m.curLevels.Identity < 1 {
+	curLevel := m.curLevels.Identity
+	res := []struct {
+		columnName string `db:"column_name"`
+	}{}
+	if curLevel < 1 {
+		log.Debug("Upgrade identity table to level 1")
 		_, err := tx.Exec("ALTER TABLE users ALTER COLUMN id TYPE VARCHAR(255), ALTER COLUMN type TYPE VARCHAR(256), ALTER COLUMN affiliation TYPE VARCHAR(1024)")
 		if err != nil {
 			return err
@@ -377,9 +423,6 @@ func (m postgresMigrator) migrateUsersTable() error {
 		if err != nil {
 			return err
 		}
-		res := []struct {
-			columnName string `db:"column_name"`
-		}{}
 		query := "SELECT column_name  FROM information_schema.columns WHERE table_name='users' and column_name='level'"
 		err = tx.Select(&res, tx.Rebind(query))
 		if err != nil {
@@ -393,6 +436,24 @@ func (m postgresMigrator) migrateUsersTable() error {
 				}
 			}
 		}
+		curLevel++
+	}
+	if curLevel < 2 {
+		log.Debug("Upgrade identity table to level 2")
+		query := "SELECT column_name  FROM information_schema.columns WHERE table_name='users' and column_name='incorrect_password_attempts'"
+		err := tx.Select(&res, tx.Rebind(query))
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			_, err = tx.Exec("ALTER TABLE users ADD COLUMN incorrect_password_attempts INTEGER DEFAULT 0")
+			if err != nil {
+				if !strings.Contains(err.Error(), "already exists") {
+					return err
+				}
+			}
+		}
+		curLevel++
 	}
 	err := migrateUsers(tx, m.srvLevels.Identity)
 	if err != nil {
@@ -409,6 +470,7 @@ func (m postgresMigrator) migrateCertificatesTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Certificate < 1 {
+		log.Debug("Upgrade certificates table to level 1")
 		res := []struct {
 			columnName string `db:"column_name"`
 		}{}
@@ -441,6 +503,7 @@ func (m postgresMigrator) migrateAffiliationsTable() error {
 	tx := m.tx
 	// Future schema updates should add to the logic below to handle other levels
 	if m.curLevels.Affiliation < 1 {
+		log.Debug("Upgrade affiliations table to level 1")
 		res := []struct {
 			columnName string `db:"column_name"`
 		}{}

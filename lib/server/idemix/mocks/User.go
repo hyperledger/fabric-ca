@@ -71,6 +71,20 @@ func (_m *User) GetAttributes(attrNames []string) ([]api.Attribute, error) {
 	return r0, r1
 }
 
+// GetFailedLoginAttempts provides a mock function with given fields:
+func (_m *User) GetFailedLoginAttempts() int {
+	ret := _m.Called()
+
+	var r0 int
+	if rf, ok := ret.Get(0).(func() int); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	return r0
+}
+
 // GetLevel provides a mock function with given fields:
 func (_m *User) GetLevel() int {
 	ret := _m.Called()
@@ -122,6 +136,20 @@ func (_m *User) GetType() string {
 		r0 = rf()
 	} else {
 		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// IncrementIncorrectPasswordAttempts provides a mock function with given fields:
+func (_m *User) IncrementIncorrectPasswordAttempts() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0

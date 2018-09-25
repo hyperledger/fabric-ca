@@ -112,6 +112,17 @@ func (ctx *serverRequestContextImpl) BasicAuthentication() (string, error) {
 	if err != nil {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrInvalidUser, "Failed to get user: %s", err)
 	}
+
+	attempts := ctx.ui.GetFailedLoginAttempts()
+	allowedAttempts := ca.Config.Cfg.Identities.PasswordAttempts
+	if allowedAttempts > 0 {
+		if attempts == ca.Config.Cfg.Identities.PasswordAttempts {
+			msg := fmt.Sprintf("Incorrect password entered %d times, max incorrect password limit of %d reached", attempts, ca.Config.Cfg.Identities.PasswordAttempts)
+			log.Errorf(msg)
+			return "", caerrors.NewHTTPErr(401, caerrors.ErrPasswordAttempts, msg)
+		}
+	}
+
 	// Check the user's password and max enrollments if supported by registry
 	err = ctx.ui.Login(password, caMaxEnrollments)
 	if err != nil {

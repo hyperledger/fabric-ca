@@ -20,14 +20,15 @@ import (
 
 // UserRecord defines the properties of a user
 type UserRecord struct {
-	Name           string `db:"id"`
-	Pass           []byte `db:"token"`
-	Type           string `db:"type"`
-	Affiliation    string `db:"affiliation"`
-	Attributes     string `db:"attributes"`
-	State          int    `db:"state"`
-	MaxEnrollments int    `db:"max_enrollments"`
-	Level          int    `db:"level"`
+	Name                      string `db:"id"`
+	Pass                      []byte `db:"token"`
+	Type                      string `db:"type"`
+	Affiliation               string `db:"affiliation"`
+	Attributes                string `db:"attributes"`
+	State                     int    `db:"state"`
+	MaxEnrollments            int    `db:"max_enrollments"`
+	Level                     int    `db:"level"`
+	IncorrectPasswordAttempts int    `db:"incorrect_password_attempts"`
 }
 
 // User is the databases representation of a user
@@ -48,6 +49,7 @@ func NewDBUser(userRec *UserRecord, db *DB) *User {
 	user.Affiliation = userRec.Affiliation
 	user.Type = userRec.Type
 	user.Level = userRec.Level
+	user.IncorrectPasswordAttempts = userRec.IncorrectPasswordAttempts
 
 	var attrs []api.Attribute
 	json.Unmarshal([]byte(userRec.Attributes), &attrs)
@@ -139,6 +141,10 @@ func (u *User) Login(pass string, caMaxEnrollments int) error {
 	// Check the password by comparing to stored hash
 	err := bcrypt.CompareHashAndPassword(u.pass, []byte(pass))
 	if err != nil {
+		err2 := u.IncrementIncorrectPasswordAttempts()
+		if err2 != nil {
+			return errors.Wrap(err2, "Failed to mark incorrect password attempt")
+		}
 		return errors.Wrap(err, "Password mismatch")
 	}
 
@@ -165,8 +171,41 @@ func (u *User) Login(pass string, caMaxEnrollments int) error {
 
 	log.Debugf("DB: identity %s successfully logged in", u.Name)
 
-	return nil
+	return u.resetIncorrectLoginAttempts()
+}
 
+func (u *User) resetIncorrectLoginAttempts() error {
+	var passAttempts int
+	err := u.db.Get(&passAttempts, u.db.Rebind("Select incorrect_password_attempts FROM users WHERE (id = ?)"), u.GetName())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get incorrect password attempt for %s", u.Name)
+	}
+
+	// Incorrect password attempts already at zero, don't need to reset
+	if passAttempts == 0 {
+		return nil
+	}
+
+	resetSQL := "UPDATE users SET incorrect_password_attempts = 0 WHERE (id = ?)"
+	res, err := u.db.Exec(u.db.Rebind(resetSQL), u.GetName())
+	if err != nil {
+		return errors.Wrapf(err, "Failed to update incorrect password attempt count to 0 for %s", u.Name)
+	}
+
+	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "db.RowsAffected failed")
+	}
+
+	if numRowsAffected == 0 {
+		return errors.Errorf("No rows were affected when updating the state of identity %s", u.Name)
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, u.Name)
+	}
+
+	return nil
 }
 
 // LoginComplete completes the login process by incrementing the state of the user
@@ -359,4 +398,33 @@ func GetNewAttributes(modifyAttrs, newAttrs []api.Attribute) []api.Attribute {
 		}
 	}
 	return modifyAttrs
+}
+
+// IncrementIncorrectPasswordAttempts updates the incorrect password count of user
+func (u *User) IncrementIncorrectPasswordAttempts() error {
+	log.Debugf("Incorrect password entered by user '%s'", u.GetName())
+	query := "UPDATE users SET incorrect_password_attempts = incorrect_password_attempts + 1 where (id = ?)"
+	id := u.GetName()
+	res, err := u.db.Exec(u.db.Rebind(query), id)
+	if err != nil {
+		return err
+	}
+	numRowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "Failed to get number of rows affected")
+	}
+
+	if numRowsAffected == 0 {
+		return errors.Errorf("No rows were affected when updating the state of identity %s", id)
+	}
+
+	if numRowsAffected != 1 {
+		return errors.Errorf("%d rows were affected when updating the state of identity %s", numRowsAffected, id)
+	}
+	return nil
+}
+
+// GetFailedLoginAttempts returns the number of times the user has entered an incorrect password
+func (u *User) GetFailedLoginAttempts() int {
+	return u.IncorrectPasswordAttempts
 }

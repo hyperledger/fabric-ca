@@ -440,6 +440,7 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 	if req.Secret != "" {
 		setPass = true
 		modifyUserInfo.Pass = req.Secret
+		modifyUserInfo.IncorrectPasswordAttempts = 0
 	} else {
 		modifyUserInfo.Pass = string(userPass)
 

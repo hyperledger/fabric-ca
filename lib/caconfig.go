@@ -105,7 +105,8 @@ type CfgOptions struct {
 
 // identitiesOptions are options that are related to identities
 type identitiesOptions struct {
-	AllowRemove bool `help:"Enables removal of identities dynamically"`
+	PasswordAttempts int  `def:"10" help:"Number of incorrect password attempts allowed"`
+	AllowRemove      bool `help:"Enables removal of identities dynamically"`
 }
 
 // affiliationsOptions are options that are related to affiliations

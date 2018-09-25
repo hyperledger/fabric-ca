@@ -164,7 +164,7 @@ func createAllSQLiteTables(tx *sqlx.Tx, args ...interface{}) error {
 
 func createSQLiteIdentityTable(tx FabricCATx) error {
 	log.Debug("Creating users table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	return nil
@@ -292,7 +292,7 @@ func createPostgresDatabase(dbName string, db *sqlx.DB) error {
 // createPostgresDB creates postgres database
 func createPostgresTables(dbName string, db *sqlx.DB) error {
 	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
@@ -390,7 +390,7 @@ func createMySQLDatabase(dbName string, db *sqlx.DB) error {
 
 func createMySQLTables(dbName string, db *sqlx.DB) error {
 	log.Debug("Creating users table if it doesn't exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
+	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it doesn't exist")
