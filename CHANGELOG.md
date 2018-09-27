@@ -1,3 +1,8 @@
+## v1.2.1
+Thu Sep 27 15:17:42 EDT 2018
+
+* [86ae906b](https://github.com/hyperledger/fabric-ca/commit/86ae906b) [FABC-708] Revendor BCCSP
+
 ## v1.2.0
 Tue Jul  3 06:52:56 EDT 2018
 

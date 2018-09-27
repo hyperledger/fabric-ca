@@ -1,0 +1,23 @@
+v1.2.1 September 27, 2018
+-------------------
+
+Release Notes
+-------------
+
+Update vendored version of BCCSP package.
+
+Known Vulnerabilities
+---------------------
+none
+
+Resolved Vulnerabilities
+------------------------
+none
+
+Known Issues & Workarounds
+--------------------------
+none
+
+Change Log
+----------
+https://github.com/hyperledger/fabric-ca/blob/release-1.2/CHANGELOG.md#v121
