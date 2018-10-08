@@ -293,11 +293,6 @@ func processDeleteRequest(ctx *serverRequestContextImpl, caname string) (*api.Id
 		return nil, err
 	}
 
-	err = ctx.CanManageUser(userToRemove)
-	if err != nil {
-		return nil, err
-	}
-
 	_, err = registry.DeleteUser(removeID)
 	if err != nil {
 		return nil, caerrors.NewHTTPErr(500, caerrors.ErrRemoveIdentity, "Failed to remove identity: %s", err)
