@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/initca"
@@ -868,6 +869,22 @@ func (ca *CA) DBAccessor() spi.UserRegistry {
 // GetDB returns pointer to database
 func (ca *CA) GetDB() *dbutil.DB {
 	return ca.db
+}
+
+// GetCertificate returns a single certificate matching serial and aki, if multiple certificates
+// found for serial and aki an error is returned
+func (ca *CA) GetCertificate(serial, aki string) (*certdb.CertificateRecord, error) {
+	certs, err := ca.CertDBAccessor().GetCertificate(serial, aki)
+	if err != nil {
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrCertNotFound, "Failed searching certificates: %s", err)
+	}
+	if len(certs) == 0 {
+		return nil, caerrors.NewAuthenticationErr(caerrors.ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)
+	}
+	if len(certs) > 1 {
+		return nil, caerrors.NewAuthenticationErr(caerrors.ErrCertNotFound, "Multiple certificates found, when only should exist with AKI '%s' and serial '%s' combination", aki, serial)
+	}
+	return &certs[0], nil
 }
 
 // Make all file names in the CA config absolute

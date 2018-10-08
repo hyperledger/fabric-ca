@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
@@ -26,7 +16,7 @@ import (
 	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/server"
+	cr "github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -306,7 +296,7 @@ func (d *CertDBAccessor) UpsertOCSP(serial, aki, body string, expiry time.Time) 
 }
 
 // GetCertificates returns based on filter parameters certificates
-func (d *CertDBAccessor) GetCertificates(req server.CertificateRequest, callersAffiliation string) (*sqlx.Rows, error) {
+func (d *CertDBAccessor) GetCertificates(req cr.CertificateRequest, callersAffiliation string) (*sqlx.Rows, error) {
 	log.Debugf("DB: Get Certificates")
 
 	err := d.checkDB()

@@ -13,7 +13,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	"github.com/hyperledger/fabric-ca/lib/server"
+	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -95,7 +95,7 @@ func processGetCertificateRequest(ctx ServerRequestContext) error {
 	log.Debug("Processing GET certificate request")
 	var err error
 
-	req, err := server.NewCertificateRequest(ctx)
+	req, err := certificaterequest.NewCertificateRequest(ctx)
 	if err != nil {
 		return caerrors.NewHTTPErr(400, caerrors.ErrGettingCert, "Invalid Request: %s", err)
 	}
@@ -110,7 +110,7 @@ func processGetCertificateRequest(ctx ServerRequestContext) error {
 }
 
 // getCertificates executes the DB query and streams the results to client
-func getCertificates(ctx ServerRequestContext, req *server.CertificateRequestImpl) error {
+func getCertificates(ctx ServerRequestContext, req *certificaterequest.Impl) error {
 	w := ctx.GetResp()
 	flusher, _ := w.(http.Flusher)
 

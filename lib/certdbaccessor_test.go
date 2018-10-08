@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2018 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
@@ -31,7 +21,7 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/server"
+	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
@@ -303,8 +293,8 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, ca *CA) err
 	return err
 }
 
-func getCertReq(id, serial, aki string, notrevoked, notexpired bool, revokedTimeStart, revokedTimeEnd, expiredTimeStart, expiredTimeEnd *time.Time) *server.CertificateRequestImpl {
-	return &server.CertificateRequestImpl{
+func getCertReq(id, serial, aki string, notrevoked, notexpired bool, revokedTimeStart, revokedTimeEnd, expiredTimeStart, expiredTimeEnd *time.Time) *certificaterequest.Impl {
+	return &certificaterequest.Impl{
 		ID:               id,
 		SerialNumber:     serial,
 		Aki:              aki,

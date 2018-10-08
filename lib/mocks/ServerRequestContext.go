@@ -4,7 +4,7 @@ package mocks
 import http "net/http"
 
 import mock "github.com/stretchr/testify/mock"
-import server "github.com/hyperledger/fabric-ca/lib/server"
+import server "github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 import spi "github.com/hyperledger/fabric-ca/lib/spi"
 import sqlx "github.com/jmoiron/sqlx"
 

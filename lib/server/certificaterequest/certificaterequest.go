@@ -1,20 +1,10 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
-package server
+package certificaterequest
 
 import (
 	"regexp"
@@ -46,8 +36,8 @@ type RequestContext interface {
 	GetBoolQueryParm(string) (bool, error)
 }
 
-// CertificateRequestImpl defines the properties of a certificate request
-type CertificateRequestImpl struct {
+// Impl defines the properties of a certificate request
+type Impl struct {
 	ID               string
 	SerialNumber     string
 	Aki              string
@@ -68,7 +58,7 @@ type TimeFilters struct {
 }
 
 // NewCertificateRequest returns a certificate request object
-func NewCertificateRequest(ctx RequestContext) (*CertificateRequestImpl, error) {
+func NewCertificateRequest(ctx RequestContext) (*Impl, error) {
 
 	// Convert time string to time type
 	times, err := getTimes(ctx)
@@ -88,7 +78,7 @@ func NewCertificateRequest(ctx RequestContext) (*CertificateRequestImpl, error) 
 		return nil, err
 	}
 
-	return &CertificateRequestImpl{
+	return &Impl{
 		ID:               req.ID,
 		SerialNumber:     req.Serial,
 		Aki:              req.AKI,
@@ -102,47 +92,47 @@ func NewCertificateRequest(ctx RequestContext) (*CertificateRequestImpl, error) 
 }
 
 // GetID returns the enrollment id filter value
-func (c *CertificateRequestImpl) GetID() string {
+func (c *Impl) GetID() string {
 	return c.ID
 }
 
 // GetSerial returns the serial number filter value
-func (c *CertificateRequestImpl) GetSerial() string {
+func (c *Impl) GetSerial() string {
 	return c.SerialNumber
 }
 
 // GetAKI returns the AKI filter value
-func (c *CertificateRequestImpl) GetAKI() string {
+func (c *Impl) GetAKI() string {
 	return c.Aki
 }
 
 // GetNotExpired returns the notexpired bool value
-func (c *CertificateRequestImpl) GetNotExpired() bool {
+func (c *Impl) GetNotExpired() bool {
 	return c.Notexpired
 }
 
 // GetNotRevoked returns the notrevoked bool value
-func (c *CertificateRequestImpl) GetNotRevoked() bool {
+func (c *Impl) GetNotRevoked() bool {
 	return c.Notrevoked
 }
 
 // GetExpiredTimeStart returns the starting expiration time filter value
-func (c *CertificateRequestImpl) GetExpiredTimeStart() *time.Time {
+func (c *Impl) GetExpiredTimeStart() *time.Time {
 	return c.ExpiredTimeStart
 }
 
 // GetExpiredTimeEnd returns the ending expiration time filter value
-func (c *CertificateRequestImpl) GetExpiredTimeEnd() *time.Time {
+func (c *Impl) GetExpiredTimeEnd() *time.Time {
 	return c.ExpiredTimeEnd
 }
 
 // GetRevokedTimeStart returns the starting revoked time filter value
-func (c *CertificateRequestImpl) GetRevokedTimeStart() *time.Time {
+func (c *Impl) GetRevokedTimeStart() *time.Time {
 	return c.RevokedTimeStart
 }
 
 // GetRevokedTimeEnd returns the ending revoked time filter value
-func (c *CertificateRequestImpl) GetRevokedTimeEnd() *time.Time {
+func (c *Impl) GetRevokedTimeEnd() *time.Time {
 	return c.RevokedTimeEnd
 }
 

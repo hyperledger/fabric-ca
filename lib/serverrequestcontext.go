@@ -24,7 +24,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	"github.com/hyperledger/fabric-ca/lib/server"
+	cr "github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
@@ -44,7 +44,7 @@ type ServerRequestContext interface {
 	GetQueryParm(name string) string
 	GetBoolQueryParm(name string) (bool, error)
 	GetResp() http.ResponseWriter
-	GetCertificates(server.CertificateRequest, string) (*sqlx.Rows, error)
+	GetCertificates(cr.CertificateRequest, string) (*sqlx.Rows, error)
 	IsLDAPEnabled() bool
 	ReadBody(interface{}) error
 	ContainsAffiliation(string) error
@@ -203,18 +203,15 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr string, bod
 	serial := util.GetSerialAsHex(cert.SerialNumber)
 	aki = strings.ToLower(strings.TrimLeft(aki, "0"))
 	serial = strings.ToLower(strings.TrimLeft(serial, "0"))
-	certs, err := ca.CertDBAccessor().GetCertificate(serial, aki)
+
+	certificate, err := ca.GetCertificate(serial, aki)
 	if err != nil {
-		return "", caerrors.NewHTTPErr(500, caerrors.ErrCertNotFound, "Failed searching certificates: %s", err)
+		return "", err
 	}
-	if len(certs) == 0 {
-		return "", caerrors.NewAuthenticationErr(caerrors.ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)
+	if certificate.Status == "revoked" {
+		return "", caerrors.NewAuthenticationErr(caerrors.ErrCertRevoked, "The certificate in the authorization header is a revoked certificate")
 	}
-	for _, certificate := range certs {
-		if certificate.Status == "revoked" {
-			return "", caerrors.NewAuthenticationErr(caerrors.ErrCertRevoked, "The certificate in the authorization header is a revoked certificate")
-		}
-	}
+
 	ctx.enrollmentID = id
 	ctx.enrollmentCert = cert
 	ctx.caller, err = ctx.GetCaller()
@@ -680,7 +677,7 @@ func (ctx *serverRequestContextImpl) GetResp() http.ResponseWriter {
 }
 
 // GetCertificates executes the DB query to get back certificates based on the filters passed in
-func (ctx *serverRequestContextImpl) GetCertificates(req server.CertificateRequest, callerAff string) (*sqlx.Rows, error) {
+func (ctx *serverRequestContextImpl) GetCertificates(req cr.CertificateRequest, callerAff string) (*sqlx.Rows, error) {
 	return ctx.ca.certDBAccessor.GetCertificates(req, callerAff)
 }
 
