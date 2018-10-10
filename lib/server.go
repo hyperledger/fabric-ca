@@ -509,6 +509,7 @@ func (s *Server) listenAndServe() (err error) {
 			if !util.FileExists(c.TLS.CertFile) {
 				return fmt.Errorf("File specified by 'tls.certfile' does not exist: %s", c.TLS.CertFile)
 			}
+			log.Debugf("TLS Certificate: %s, TLS Key: %s", c.TLS.CertFile, c.TLS.KeyFile)
 		} else if !util.FileExists(c.TLS.CertFile) {
 			// TLS key file is not specified, generate TLS key and cert if they are not already generated
 			err = s.autoGenerateTLSCertificateKey()
@@ -516,7 +517,6 @@ func (s *Server) listenAndServe() (err error) {
 				return fmt.Errorf("Failed to automatically generate TLS certificate and key: %s", err)
 			}
 		}
-		log.Debugf("TLS Certificate: %s, TLS Key: %s", c.TLS.CertFile, c.TLS.KeyFile)
 
 		cer, err := util.LoadX509KeyPair(c.TLS.CertFile, c.TLS.KeyFile, s.csp)
 		if err != nil {
@@ -712,7 +712,7 @@ func (s *Server) loadDNFromCertFile(certFile string) (*DN, error) {
 }
 
 func (s *Server) autoGenerateTLSCertificateKey() error {
-	log.Debug("TLS enabled but no certificate or key provided, automatically generate TLS credentials")
+	log.Debug("TLS enabled but either certificate or key file does not exist, automatically generating TLS credentials")
 
 	clientCfg := &ClientConfig{
 		CSP: s.CA.Config.CSP,
@@ -747,7 +747,15 @@ func (s *Server) autoGenerateTLSCertificateKey() error {
 	}
 
 	// Write the TLS certificate to the file system
-	ioutil.WriteFile(s.Config.TLS.CertFile, cert, 0644)
+	err = ioutil.WriteFile(s.Config.TLS.CertFile, cert, 0644)
+	if err != nil {
+		return fmt.Errorf("Failed to write TLS certificate: %s", err)
+	}
+
+	// If c.TLS.Keyfile is specified then print out the key file path. If key file is not provided, then key generation is
+	// handled by BCCSP then only print out cert file path
+	c := s.Config
+	log.Debugf("Generated TLS Certificate: %s", c.TLS.CertFile)
 
 	return nil
 }
