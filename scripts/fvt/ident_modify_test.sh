@@ -119,7 +119,7 @@ function testRoleAuthorization() {
    # the type of the identity being added must be in the user's hf.Registrar.Roles list
    $FABRIC_CA_CLIENTEXEC identity add userType1 $URI -H $TESTDIR/admin \
         --type account --affiliation ${defaultValues[Affiliation]} 2>&1 |
-           grepPrint "Registrar does not have authority to act on type 'account'" ||
+           grepPrint "Authorization failure" ||
            ErrorMsg "admin should not be able to add user of type 'account'"
    $FABRIC_CA_CLIENTEXEC identity modify admin $URI -H $TESTDIR/admin/ -d \
       --attrs '"hf.Registrar.Roles=client,user,peer,validator,auditor,ca,app,role1,role2,role3,role4,role5,role6,role7,role8,apple,orange"'
@@ -197,7 +197,7 @@ function testDelegation () {
    $FABRIC_CA_CLIENTEXEC identity add userType10 $URI -d -H $TESTDIR/admin \
       --type role1 --affiliation ${defaultValues[Affiliation]} \
       --attrs '"hf.Registrar.DelegateRoles=type10"' 2>&1 |
-         grepPrint "not authorized to register" ||
+         grepPrint "Authorization failure" ||
             ErrorMsg "admin should not be able to add user with type 'type10', or wrong error code"
 restrictedAdminAttrsAttrs='
    {
@@ -235,7 +235,7 @@ SuperAttrs='
     {"name": "hf.Registrar.Attributes", "value": "*"}]}'
    $FABRIC_CA_CLIENTEXEC identity add SuperUser $URI -d \
       --json "$SuperAttrs" -H $TESTDIR/restrictedAdmin 2>&1 |
-         grepPrint "attribute value:.*is not a member" ||
+         grepPrint "Authorization failure" ||
             ErrorMsg "restrictedAdmin should not be able to add SuperUser, or wrong error code"
 }
 
@@ -350,7 +350,7 @@ function testLateralAffiliation() {
    org=org1.department2
    eval "userDef=\"$adminTemplate\""
    $FABRIC_CA_CLIENTEXEC identity add $user $URI -d --json "$userDef" -H $TESTDIR/$admin 2>&1 |
-      grepPrint "Caller does not have authority to act on affiliation '$org'" ||
+      grepPrint "Authorization failure" ||
          ErrorMsg "Incorrectly added '$user', or improper error message"
 
    # attempt to register higher affiliation
@@ -359,7 +359,7 @@ function testLateralAffiliation() {
    org=org1
    eval "userDef=\"$adminTemplate\""
    $FABRIC_CA_CLIENTEXEC identity add $user $URI -d --json "$userDef" -H $TESTDIR/$admin 2>&1 |
-      grepPrint "Caller does not have authority to act on affiliation '$org'" ||
+      grepPrint "Authorization failure" ||
          ErrorMsg "Incorrectly added '$user', or improper error message"
 }
 
@@ -385,7 +385,7 @@ function testConflictingHfAttrs() {
    done
 
    $FABRIC_CA_CLIENTEXEC identity add ${user}1 $URI -d --json "$userdef" -H $TESTDIR/$admin 2>&1 |
-         grepPrint "Cannot register fixed value attribute 'hf.Type'" ||
+         grepPrint "Authorization failure" ||
             ErrorMsg "Should not be able to set hf.Type against '--type'"
 
    userdef='
@@ -397,7 +397,7 @@ function testConflictingHfAttrs() {
    [ {"name": "hf.EnrollmentID", "value": "admin"}]}
    '
    $FABRIC_CA_CLIENTEXEC identity add ${user}2 $URI -d --json "$userdef" -H $TESTDIR/admin2 2>&1 |
-      grepPrint "Cannot register fixed value attribute 'hf.EnrollmentID'" ||
+      grepPrint "Authorization failure" ||
          ErrorMsg "Should not be able to configure 'hf.EnrollmentID'"
 }
 

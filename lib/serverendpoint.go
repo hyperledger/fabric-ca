@@ -100,21 +100,12 @@ func getHTTPErr(err error) *caerrors.HTTPErr {
 	if err == nil {
 		return nil
 	}
-	type causer interface {
-		Cause() error
+	curErr := caerrors.GetCause(err)
+	if curErr == nil {
+		return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, err.Error())
 	}
-	curErr := err
-	for curErr != nil {
-		switch curErr.(type) {
-		case *caerrors.HTTPErr:
-			return curErr.(*caerrors.HTTPErr)
-		case causer:
-			curErr = curErr.(causer).Cause()
-		default:
-			return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, err.Error())
-		}
-	}
-	return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, "nil error")
+	return curErr
+
 }
 
 func writeJSON(obj interface{}, w http.ResponseWriter) {

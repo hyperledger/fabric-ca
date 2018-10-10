@@ -163,7 +163,7 @@ func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname stri
 	callerAff := GetUserAffiliation(caller)
 	rows, err := registry.GetAllAffiliations(callerAff)
 	if err != nil {
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to get affiliation: %s", err)
+		return nil, errors.WithMessagef(err, "Failed to get all affiliations")
 	}
 
 	an := &affiliationNode{}
@@ -178,7 +178,7 @@ func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname stri
 	}
 	root := an.GetRoot()
 	if root == nil {
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "No affiliations are configured on the CA")
+		return nil, caerrors.NewHTTPErr(404, caerrors.ErrGettingAffiliation, "No affiliations are configured on the CA")
 	}
 
 	resp := &api.AffiliationResponse{
@@ -202,7 +202,7 @@ func getAffiliation(ctx *serverRequestContextImpl, caller spi.User, requestedAff
 
 	result, err := registry.GetAffiliationTree(requestedAffiliation)
 	if err != nil {
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "Failed to get affiliation: %s", err)
+		return nil, errors.WithMessage(err, "Failed to get affiliation")
 	}
 
 	resp, err := getResponse(result, caname)
@@ -278,9 +278,12 @@ func processAffiliationPostRequest(ctx *serverRequestContextImpl, caname string)
 	log.Debugf("Request to add affiliation '%s'", addAffiliation)
 
 	registry := ctx.ca.registry
-	_, err = registry.GetAffiliation(addAffiliation)
-	if err == nil {
-		return nil, caerrors.NewHTTPErr(400, caerrors.ErrUpdateConfigAddAff, "Affiliation already exists")
+	result, err := registry.GetAffiliation(addAffiliation)
+	if err != nil && !IsGetError(err) {
+		return nil, err
+	}
+	if result != nil {
+		return nil, caerrors.NewHTTPErr(409, caerrors.ErrUpdateConfigAddAff, "Affiliation already exists")
 	}
 
 	err = ctx.ContainsAffiliation(addAffiliation)
@@ -371,7 +374,7 @@ func processAffiliationPutRequest(ctx *serverRequestContextImpl, caname string) 
 	if forceStr != "" {
 		force, err = strconv.ParseBool(forceStr)
 		if err != nil {
-			return nil, caerrors.NewHTTPErr(500, caerrors.ErrUpdateConfigAddAff, "The 'force' query parameter value must be a boolean: %s", err)
+			return nil, caerrors.NewHTTPErr(400, caerrors.ErrUpdateConfigAddAff, "The 'force' query parameter value must be a boolean: %s", err)
 		}
 
 	}

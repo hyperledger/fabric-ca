@@ -42,6 +42,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -845,7 +846,7 @@ func ErrorContains(t *testing.T, err error, contains, msg string, args ...interf
 		msg = fmt.Sprintf(msg, args)
 	}
 	if assert.Error(t, err, msg) {
-		assert.Contains(t, err.Error(), contains)
+		assert.Contains(t, caerrors.Print(err), contains)
 	}
 }
 

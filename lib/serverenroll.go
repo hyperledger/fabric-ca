@@ -136,7 +136,7 @@ func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error)
 	// Get an attribute extension if one is being requested
 	ext, err := ctx.GetAttrExtension(req.AttrReqs, req.Profile)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "Failed to find requested attributes")
 	}
 	// If there is an extension requested, add it to the request
 	if ext != nil {
@@ -172,7 +172,7 @@ func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverR
 	// Decode and parse the request into a CSR so we can make checks
 	block, _ := pem.Decode([]byte(req.Request))
 	if block == nil {
-		return cferr.New(cferr.CSRError, cferr.DecodeFailed)
+		return caerrors.NewHTTPErr(400, caerrors.ErrBadCSR, "CSR Decode failed")
 	}
 	if block.Type != "NEW CERTIFICATE REQUEST" && block.Type != "CERTIFICATE REQUEST" {
 		return cferr.Wrap(cferr.CSRError,
@@ -184,7 +184,7 @@ func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverR
 	}
 	log.Debugf("Processing sign request: id=%s, CommonName=%s, Subject=%+v", id, csrReq.Subject.CommonName, req.Subject)
 	if (req.Subject != nil && req.Subject.CN != id) || csrReq.Subject.CommonName != id {
-		return errors.New("The CSR subject common name must equal the enrollment ID")
+		return caerrors.NewHTTPErr(403, caerrors.ErrCNInvalidEnroll, "The CSR subject common name must equal the enrollment ID")
 	}
 	isForCACert, err := isRequestForCASigningCert(csrReq, ca, req.Profile)
 	if err != nil {
@@ -195,13 +195,13 @@ func processSignRequest(id string, req *signer.SignRequest, ca *CA, ctx *serverR
 		// has the 'hf.IntermediateCA' attribute
 		err := ca.attributeIsTrue(id, "hf.IntermediateCA")
 		if err != nil {
-			return err
+			return caerrors.NewAuthorizationErr(caerrors.ErrInvokerMissAttr, "Enrolled failed: %s", err)
 		}
 	}
 	// Check the CSR input length
 	err = csrInputLengthCheck(csrReq)
 	if err != nil {
-		return err
+		return caerrors.NewHTTPErr(400, caerrors.ErrInputValidCSR, "CSR input validation failed: %s", err)
 	}
 	caller, err := ctx.GetCaller()
 	if err != nil {

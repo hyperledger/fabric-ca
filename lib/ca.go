@@ -870,7 +870,7 @@ func (ca *CA) GetDB() *dbutil.DB {
 func (ca *CA) GetCertificate(serial, aki string) (*certdb.CertificateRecord, error) {
 	certs, err := ca.CertDBAccessor().GetCertificate(serial, aki)
 	if err != nil {
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrCertNotFound, "Failed searching certificates: %s", err)
+		return nil, err
 	}
 	if len(certs) == 0 {
 		return nil, caerrors.NewAuthenticationErr(caerrors.ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)

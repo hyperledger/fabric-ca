@@ -384,7 +384,7 @@ func (ctx *serverRequestContextImpl) ReadBodyBytes() ([]byte, error) {
 	}
 	err := ctx.body.err
 	if err != nil {
-		return nil, caerrors.NewHTTPErr(400, caerrors.ErrReadingReqBody, "Failed reading request body: %s", err)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrReadingReqBody, "Failed reading request body: %s", err)
 	}
 	return ctx.body.buf, nil
 }
@@ -485,7 +485,7 @@ func (ctx *serverRequestContextImpl) GetCaller() (spi.User, error) {
 func (ctx *serverRequestContextImpl) ContainsAffiliation(affiliation string) error {
 	validAffiliation, err := ctx.containsAffiliation(affiliation)
 	if err != nil {
-		return caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "Failed to validate if caller has authority to get ID: %s", err)
+		return errors.WithMessage(err, "Failed to validate if caller has authority to act on affiliation")
 	}
 	if !validAffiliation {
 		return caerrors.NewAuthorizationErr(caerrors.ErrCallerNotAffiliated, "Caller does not have authority to act on affiliation '%s'", affiliation)
@@ -560,7 +560,7 @@ func (ctx *serverRequestContextImpl) isRegistrar() (string, bool, error) {
 func (ctx *serverRequestContextImpl) CanActOnType(userType string) error {
 	canAct, err := ctx.canActOnType(userType)
 	if err != nil {
-		return caerrors.NewHTTPErr(500, caerrors.ErrGettingType, "Failed to verify if user can act on type '%s': %s", userType, err)
+		return errors.WithMessage(err, "Failed to verify if user can act on type")
 	}
 	if !canAct {
 		return caerrors.NewAuthorizationErr(caerrors.ErrCallerNotAffiliated, "Registrar does not have authority to act on type '%s'", userType)
@@ -635,11 +635,11 @@ func (ctx *serverRequestContextImpl) hasRole(role string) (bool, error) {
 
 	roleAttr, err := caller.GetAttribute(role)
 	if err != nil {
-		return false, err
+		return false, caerrors.NewAuthorizationErr(caerrors.ErrInvokerMissAttr, "Invoker does not have following role'%s': '%s'", role, err)
 	}
 	roleStatus, err = strconv.ParseBool(roleAttr.Value)
 	if err != nil {
-		return false, errors.Wrap(err, fmt.Sprintf("Failed to get boolean value of '%s'", role))
+		return false, caerrors.NewHTTPErr(400, caerrors.ErrInvalidBool, "Failed to get boolean value of '%s': '%s'", role, err)
 	}
 	ctx.callerRoles[role] = roleStatus
 

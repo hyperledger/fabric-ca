@@ -167,6 +167,24 @@ const (
 	ErrInvalidLDAPAction = 72
 	// Incorrect password limit reached
 	ErrPasswordAttempts = 73
+	// Registering multiple identities with same name
+	ErrDupIdentityReg = 74
+	// Error occured registering identity
+	ErrRegisteringIdentity = 75
+	// Registrat does not have authority to register identity
+	ErrRegistrarRegAuth = 76
+	// Common name does not match username during enroll
+	ErrCNInvalidEnroll = 77
+	// Invoker does not have required attribute to perform function
+	ErrInvokerMissAttr = 78
+	// Invalid boolean value for attribute
+	ErrInvalidBool = 79
+	// Input validation failed on CSR
+	ErrInputValidCSR = 80
+	// Error occurred while generating attribute extension
+	ErrAttrExt = 81
+	// Error for invalid max enrolment registeration value
+	ErrInvalidMaxEnroll = 82
 )
 
 // CreateHTTPErr constructs a new HTTP error.
@@ -183,7 +201,7 @@ func CreateHTTPErr(scode, code int, format string, args ...interface{}) *HTTPErr
 
 // NewHTTPErr constructs a new HTTP error wrappered with pkg/errors error.
 func NewHTTPErr(scode, code int, format string, args ...interface{}) error {
-	return errors.Wrap(CreateHTTPErr(scode, code, format, args...), "")
+	return CreateHTTPErr(scode, code, format, args...)
 }
 
 // NewAuthenticationErr constructs an HTTP error specifically indicating an authentication failure.
@@ -192,7 +210,7 @@ func NewHTTPErr(scode, code int, format string, args ...interface{}) error {
 func NewAuthenticationErr(code int, format string, args ...interface{}) error {
 	he := CreateHTTPErr(401, code, format, args...)
 	he.Remote(ErrAuthenticationFailure, "Authentication failure")
-	return errors.Wrap(he, "")
+	return he
 }
 
 // NewAuthorizationErr constructs an HTTP error specifically indicating an authorization failure.
@@ -201,7 +219,16 @@ func NewAuthenticationErr(code int, format string, args ...interface{}) error {
 func NewAuthorizationErr(code int, format string, args ...interface{}) error {
 	he := CreateHTTPErr(403, code, format, args...)
 	he.Remote(ErrAuthorizationFailure, "Authorization failure")
-	return errors.Wrap(he, "")
+	return he
+}
+
+// Print prints a properly formatted http error string
+func Print(err error) string {
+	he := GetCause(err)
+	if he != nil {
+		return he.Print()
+	}
+	return err.Error()
 }
 
 // HTTPErr is an HTTP error.
@@ -225,11 +252,7 @@ func (he *HTTPErr) Error() string {
 
 // String returns a string representation of this augmented error
 func (he *HTTPErr) String() string {
-	if he.lcode == he.rcode && he.lmsg == he.rmsg {
-		return fmt.Sprintf("scode: %d, code: %d, msg: %s", he.scode, he.lcode, he.lmsg)
-	}
-	return fmt.Sprintf("scode: %d, local code: %d, local msg: %s, remote code: %d, remote msg: %s",
-		he.scode, he.lcode, he.lmsg, he.rcode, he.rmsg)
+	return he.lmsg
 }
 
 // Remote sets the remote code and message to something different from that of the local code and message
@@ -276,9 +299,18 @@ func (he *HTTPErr) GetRemoteMsg() string {
 	return he.rmsg
 }
 
-// GetLocalMsg returns the remote error message
+// GetLocalMsg returns the local error message
 func (he *HTTPErr) GetLocalMsg() string {
 	return he.lmsg
+}
+
+// Print will print a properly formated error message
+func (he *HTTPErr) Print() string {
+	if he.lcode == he.rcode && he.lmsg == he.rmsg {
+		return fmt.Sprintf("scode: %d, code: %d, msg: %s", he.scode, he.lcode, he.lmsg)
+	}
+	return fmt.Sprintf("scode: %d, local code: %d, local msg: %s, remote code: %d, remote msg: %s",
+		he.scode, he.lcode, he.lmsg, he.rcode, he.rmsg)
 }
 
 // ServerErr contains error message with corresponding CA error code
@@ -333,4 +365,23 @@ func IsFatalError(err error) bool {
 		return true
 	}
 	return false
+}
+
+type causer interface {
+	Cause() error
+}
+
+// GetCause gets the root cause of the error
+func GetCause(err error) *HTTPErr {
+	for err != nil {
+		switch err.(type) {
+		case *HTTPErr:
+			return err.(*HTTPErr)
+		case causer:
+			err = err.(causer).Cause()
+		default:
+			return nil
+		}
+	}
+	return nil
 }

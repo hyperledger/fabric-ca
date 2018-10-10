@@ -480,7 +480,7 @@ func TestDBErrorMessages(t *testing.T) {
 	expectedErr := "Failed to get %s"
 	_, err = ta.Accessor.GetAffiliation("hyperledger")
 	if assert.Error(t, err, "Should have errored, and not returned any results") {
-		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "Affiliation"))
+		assert.Contains(t, err.Error(), fmt.Sprintf(expectedErr, "affiliation"))
 	}
 
 	_, err = ta.Accessor.GetUser("testuser", []string{})
