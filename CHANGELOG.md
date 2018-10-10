@@ -1,3 +1,10 @@
+## v1.3.0
+Wed Oct 10 03:56:13 EDT 2018
+
+* [e075bab](https://github.com/hyperledger/fabric-ca/commit/e075bab) [FABC-730] Update fabric-ca to baseimage 0.4.13
+* [60ee35e](https://github.com/hyperledger/fabric-ca/commit/60ee35e) [FABC-703] Improved TLS error message
+* [fe659db](https://github.com/hyperledger/fabric-ca/commit/fe659db) [FAB-12141](https://jira.hyperledger.org/browse/FAB-12141) Prepare for next rel (1.3.0 on release-1.3)
+
 ## v1.3.0-rc1
 Mon Sep 24 19:30:06 EDT 2018
 
