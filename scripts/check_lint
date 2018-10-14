@@ -24,7 +24,7 @@ function runlint {
 
 if [ ! -f $GOLINT ]; then
    echo "Installing golint ..."
-   go get -u github.com/golang/lint/golint
+   go get -u golang.org/x/lint/golint
 fi
 
 echo "Running lint ..."
