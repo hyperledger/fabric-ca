@@ -18,12 +18,6 @@ package tcert
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"time"
-
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/ecdsa"
@@ -32,7 +26,12 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"math/big"
+	"time"
 
 	"github.com/cloudflare/cfssl/log"
 )

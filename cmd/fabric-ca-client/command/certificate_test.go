@@ -8,18 +8,15 @@ package command
 
 import (
 	"testing"
-
 	"time"
-
-	"github.com/spf13/viper"
-
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/hyperledger/fabric-ca/cmd/fabric-ca-client/command/mocks"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 // Unit Tests

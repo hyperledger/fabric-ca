@@ -26,10 +26,9 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"fmt"
-	"time"
-
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"

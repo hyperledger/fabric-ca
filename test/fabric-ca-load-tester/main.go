@@ -27,10 +27,9 @@ import (
 	"sync"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // IdentityType represents type of identity in the fabric

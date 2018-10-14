@@ -13,13 +13,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/go-sql-driver/mysql"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 var (

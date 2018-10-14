@@ -19,11 +19,10 @@ import (
 	"os"
 	"testing"
 
-	"golang.org/x/crypto/ocsp"
-
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/ocsp"
 )
 
 func TestGetAllAffiliations(t *testing.T) {

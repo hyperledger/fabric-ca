@@ -24,9 +24,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
-
 	"github.com/Knetic/govaluate"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -34,6 +31,8 @@ import (
 	ctls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	ldap "gopkg.in/ldap.v2"
 )
 

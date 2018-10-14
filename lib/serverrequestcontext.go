@@ -16,8 +16,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
@@ -31,6 +29,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 

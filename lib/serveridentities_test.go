@@ -24,14 +24,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/spi"
-
-	"golang.org/x/crypto/ocsp"
-
-	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/ocsp"
 )
 
 func TestGetAllIDs(t *testing.T) {

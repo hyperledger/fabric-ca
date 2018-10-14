@@ -8,15 +8,14 @@ package lib
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
-	"testing"
-
-	"fmt"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
+	"testing"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/hyperledger/fabric-ca/api"

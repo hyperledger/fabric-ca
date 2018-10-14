@@ -29,8 +29,6 @@ import (
 	"strings"
 	_ "time" // for ocspSignerFromConfig
 
-	"github.com/pkg/errors"
-
 	_ "github.com/cloudflare/cfssl/cli" // for ocspSignerFromConfig
 	"github.com/cloudflare/cfssl/config"
 	"github.com/cloudflare/cfssl/csr"
@@ -43,6 +41,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/hyperledger/fabric/bccsp/utils"
+	"github.com/pkg/errors"
 )
 
 // GetDefaultBCCSP returns the default BCCSP

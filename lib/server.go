@@ -15,15 +15,12 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof" // import to support profiling
-
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
@@ -35,6 +32,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 

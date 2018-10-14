@@ -9,12 +9,11 @@ package idemix
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUnRevokedHandles(t *testing.T) {

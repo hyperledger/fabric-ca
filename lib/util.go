@@ -19,13 +19,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/grantae/certinfo"
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/log"
+	"github.com/grantae/certinfo"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 

@@ -26,8 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric-ca/lib/spi"
-
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -35,6 +33,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/stretchr/testify/assert"

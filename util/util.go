@@ -41,12 +41,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ocsp"
 )
 

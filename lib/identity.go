@@ -12,8 +12,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
@@ -21,6 +19,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 )
 
 // Identity is fabric-ca's implementation of an identity

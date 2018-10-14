@@ -12,11 +12,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
-
-	"github.com/pkg/errors"
-
 	"reflect"
+	"strings"
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
@@ -24,6 +21,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 )
 
 const (

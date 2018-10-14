@@ -20,13 +20,11 @@ import (
 	"strconv"
 	"strings"
 
-	proto "github.com/golang/protobuf/proto"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/pkg/errors"
-
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
+	proto "github.com/golang/protobuf/proto"
+	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
 	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
@@ -38,6 +36,7 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
 // Client is the fabric-ca client object

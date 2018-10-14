@@ -13,9 +13,8 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/pkg/errors"
-
 	"github.com/kisielk/sqlstruct"
+	"github.com/pkg/errors"
 )
 
 const (

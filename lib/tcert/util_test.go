@@ -17,11 +17,10 @@ limitations under the License.
 package tcert
 
 import (
+	"crypto/rand"
 	"io/ioutil"
 	"math/big"
 	"testing"
-
-	"crypto/rand"
 )
 
 func TestGenNumber(t *testing.T) {

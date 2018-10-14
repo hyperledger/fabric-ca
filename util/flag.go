@@ -23,11 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/mitchellh/mapstructure"
 	"github.com/op/go-logging"
+	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"

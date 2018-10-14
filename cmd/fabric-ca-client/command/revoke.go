@@ -19,12 +19,11 @@ package command
 import (
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
