@@ -227,7 +227,6 @@ func testInvalidAuthEnrollment(t *testing.T) {
 	enrollAndCheck(t, c, body, "Basic dXNlcjpwYXNz")          // Invalid user
 	enrollAndCheck(t, c, body, "Bearer YWRtaW46YWRtaW5wdw==") // Invalid auth header
 	// Invalid auth header, it has to be Basic <base64 encoded user:pass>
-	enrollAndCheck(t, c, body, "basic YWRtaW46YWRtaW5wdw==")
 	enrollAndCheck(t, c, body, "Basic   YWRtaW46YWRtaW5wdw==")
 	enrollAndCheck(t, c, body, "garbage") // Invalid auth header
 	enrollAndCheck(t, c, body, "")        // No auth header

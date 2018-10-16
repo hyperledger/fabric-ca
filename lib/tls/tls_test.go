@@ -170,7 +170,7 @@ func TestCheckCertDates(t *testing.T) {
 func createTestCertificate() error {
 	// Dynamically create a certificate with future valid date for testing purposes
 	certTemplate := &x509.Certificate{
-		IsCA: true,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 		SubjectKeyId:          []byte{1, 2, 3},
 		SerialNumber:          big.NewInt(1234),

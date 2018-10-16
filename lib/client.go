@@ -461,9 +461,9 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.
 	ou, _ := result.Attrs["OU"].(string)
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	signerConfig := &idemixcred.SignerConfig{
-		Cred: credBytes,
-		Sk:   idemix.BigToBytes(sk),
-		Role: role,
+		Cred:                            credBytes,
+		Sk:                              idemix.BigToBytes(sk),
+		Role:                            role,
 		OrganizationalUnitIdentifier:    ou,
 		EnrollmentID:                    enrollmentID,
 		CredentialRevocationInformation: criBytes,

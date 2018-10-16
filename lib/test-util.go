@@ -168,7 +168,7 @@ func CopyFile(src, dst string) error {
 // GenerateECDSATestCert generates EC based certificate for testing purposes
 func GenerateECDSATestCert() error {
 	template := &x509.Certificate{
-		IsCA: true,
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 		SubjectKeyId:          []byte{1, 2, 3},
 		SerialNumber:          big.NewInt(1234),
