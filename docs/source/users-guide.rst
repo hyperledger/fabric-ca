@@ -1490,8 +1490,8 @@ In X509, the issuer revokes an end user's certificate and its ID is included in 
 The verifier checks to see if the user's certificate is in the CRL and if so, returns an authorization failure.
 The end user is not involved in this revocation process, other than receiving an authorization error from a verifier.
 
-In Idemix, the end user is involved.  The issuer revokes an end user's credential similar to X509 and evidence of this 
-revocation is recorded in the CRI.  The CRI is given to the end user (aka "prover").  The end user then generates a 
+In Idemix, the end user is involved.  The issuer revokes an end user's credential similar to X509 and evidence of this
+revocation is recorded in the CRI.  The CRI is given to the end user (aka "prover").  The end user then generates a
 proof that their credential has not been revoked according to the CRI.  The end user gives this proof to the verifier
 who verifies the proof according to the CRI.
 For verification to succeed, the version of the CRI (known as the "epoch") used by the end user and verifier must be same.
@@ -2215,8 +2215,23 @@ Configuring Fabric CA server to use softhsm2
 This section shows how to configure the Fabric CA server or client to use a software version
 of PKCS11 called softhsm (see https://github.com/opendnssec/SoftHSMv2).
 
-After installing softhsm, create a token, label it “ForFabric”, set the pin to ‘98765432’
+After installing softhsm, make sure to set your SOFTHSM2_CONF environment variable to
+point to the location where the softhsm2 configuration file is stored. The config file looks like
+
+ .. code::
+
+  directories.tokendir = /tmp/
+
+   objectstore.backend = file
+
+   log.level = INFO
+
+You can find example configuration file named softhsm2.conf under testdata directory.
+
+Create a token, label it “ForFabric”, set the pin to ‘98765432’
 (refer to softhsm documentation).
+
+
 
 You can use both the config file and environment variables to configure BCCSP
 For example, set the bccsp section of Fabric CA server configuration file as follows.
@@ -2342,3 +2357,4 @@ Troubleshooting
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
+ƒ
