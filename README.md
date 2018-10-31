@@ -6,7 +6,7 @@ See [User's Guide for Fabric CA](https://hyperledger-fabric-ca.readthedocs.io) f
 
 ## Prerequisites
 
-* Go 1.9+ installation or later
+* Go 1.10+ installation or later
 * **GOPATH** environment variable is set correctly
 * docker version 17.03 or later
 * docker-compose version 1.11 or later
