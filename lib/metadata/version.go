@@ -20,16 +20,16 @@ import (
 // requires database migration
 const (
 	// IdentityLevel is the current level of identities
-	IdentityLevel = 1
+	IdentityLevel = 2
 	// AffiliationLevel is the current level of affiliations
-	AffiliationLevel = 0
+	AffiliationLevel = 1
 	// CertificateLevel is the current level of certificates
-	CertificateLevel = 0
+	CertificateLevel = 1
 )
 
 // Version specifies fabric-ca-client/fabric-ca-server version
 // It is defined by the Makefile and passed in with ldflags
-var Version = "1.3.0"
+var Version = "1.3.1"
 
 // GetVersionInfo returns version information for the fabric-ca-client/fabric-ca-server
 func GetVersionInfo(prgName string) string {
@@ -69,6 +69,14 @@ var versionToLevelsMapping = []versionLevels{
 	{
 		version: "1.3.0",
 		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+	},
+	{
+		version: "1.3.1",
+		levels:  &dbutil.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+	},
+	{
+		version: "1.4.0",
+		levels:  &dbutil.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 }
 

@@ -59,9 +59,13 @@ grep 'level|INTEGER' $TESTDIR/output.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'level' should be a INTEGER field"
 fi
-sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'SELECT value FROM properties WHERE (property = "identity.level")' | grep '1'
+sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'SELECT value FROM properties WHERE (property = "identity.level")' | grep '2'
 if [ $? != 0 ]; then
     ErrorMsg "Incorrect level found for 'identity.level' in properties table"
+fi
+grep 'incorrect_password_attempts|INTEGER' $TESTDIR/output.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'incorrect_password_attempts' should be a INTEGER field"
 fi
 
 sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'pragma table_info(affiliations)' > $TESTDIR/output.txt
@@ -163,6 +167,10 @@ grep 'attributes'$'\t''65535' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'attributes' should have character limit of 65535"
 fi
+grep 'incorrect_password_attempts' $TESTDIR/text.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Failed to create column 'incorrect_password_attempts' in MySQL"
+fi
 
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length, data_type, extra FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'affiliations';" > $TESTDIR/text.txt
 grep 'id'$'\t''NULL'$'\t''int'$'\t''auto_increment' $TESTDIR/text.txt
@@ -230,15 +238,15 @@ $SCRIPTDIR/fabric-ca_setup.sh -K
 
 # Check that the new schema took affect
 psql -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'users';" > $TESTDIR/text.txt
-grep 'id              |                      255' $TESTDIR/text.txt
+grep -E 'id|255' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
 fi
-grep 'type            |                      256' $TESTDIR/text.txt
+grep -E 'type|256' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should have character limit of 256"
 fi
-grep 'affiliation     |                     1024' $TESTDIR/text.txt
+grep -E 'affiliation|1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should have character limit of 1024"
 fi
@@ -246,13 +254,17 @@ psql -d $DBNAME -c "SELECT data_type FROM information_schema.columns where table
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should be type 'text'"
 fi
+grep 'incorrect_password_attempts' $TESTDIR/text.txt
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'incorrect_passwords_attempts' failed to be created"
+fi
 
 psql -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'affiliations';" > $TESTDIR/text.txt
-grep 'name        |                     1024' $TESTDIR/text.txt
+grep -E 'name|1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'name' should have character limit of 1024"
 fi
-grep 'prekey      |                     1024' $TESTDIR/text.txt
+grep -E 'prekey|1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'prekey' should have character limit of 1024"
 fi

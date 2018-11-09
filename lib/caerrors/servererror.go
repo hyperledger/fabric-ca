@@ -165,6 +165,8 @@ const (
 	ErrAuthorizationFailure = 71
 	// Action is not allowed when using LDAP
 	ErrInvalidLDAPAction = 72
+	// Incorrect password limit reached
+	ErrPasswordAttempts = 73
 )
 
 // CreateHTTPErr constructs a new HTTP error.

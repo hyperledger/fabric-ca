@@ -610,12 +610,6 @@ func (ca *CA) initDB() error {
 		return errors.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
 	}
 
-	// Update the database to use the latest schema
-	err = dbutil.UpdateSchema(ca.db, ca.server.levels)
-	if err != nil {
-		return errors.Wrap(err, "Failed to update schema")
-	}
-
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db, ca.levels.Certificate)
 
@@ -630,13 +624,19 @@ func (ca *CA) initDB() error {
 		return err
 	}
 
+	err = ca.checkDBLevels()
+	if err != nil {
+		return err
+	}
+
+	// Migrate the database
+	err = dbutil.Migrate(ca.db, ca.server.levels)
+	if err != nil {
+		return errors.Wrap(err, "Failed to migrate database")
+	}
+
 	// If not using LDAP, migrate database if needed to latest version and load the users and affiliations table
 	if !ca.Config.LDAP.Enabled {
-		err = ca.checkDBLevels()
-		if err != nil {
-			return err
-		}
-
 		err = ca.loadUsersTable()
 		if err != nil {
 			log.Error(err)
@@ -647,12 +647,6 @@ func (ca *CA) initDB() error {
 		}
 
 		err = ca.loadAffiliationsTable()
-		if err != nil {
-			log.Error(err)
-			dbError = true
-		}
-
-		err = ca.performMigration()
 		if err != nil {
 			log.Error(err)
 			dbError = true
@@ -1185,37 +1179,6 @@ func (ca *CA) loadCNFromEnrollmentInfo(certFile string) (string, error) {
 	return name, nil
 }
 
-func (ca *CA) performMigration() error {
-	log.Debug("Checking and performing migration, if needed")
-
-	users, err := ca.registry.GetUserLessThanLevel(metadata.IdentityLevel)
-	if err != nil {
-		return err
-	}
-
-	for _, user := range users {
-		currentLevel := user.GetLevel()
-		if currentLevel < 1 {
-			err := ca.migrateUserToLevel1(user)
-			if err != nil {
-				return err
-			}
-			currentLevel++
-		}
-	}
-
-	sl, err := metadata.GetLevels(metadata.GetVersion())
-	if err != nil {
-		return err
-	}
-	err = dbutil.UpdateDBLevel(ca.db, sl)
-	if err != nil {
-		return errors.Wrap(err, "Failed to correctly update level of tables in the database")
-	}
-
-	return nil
-}
-
 // This function returns an error if the version specified in the configuration file is greater than the server version
 func (ca *CA) checkConfigLevels() error {
 	var err error
@@ -1240,7 +1203,7 @@ func (ca *CA) checkConfigLevels() error {
 
 func (ca *CA) checkDBLevels() error {
 	// Check database table levels against server levels to make sure that a database levels are compatible with server
-	levels, err := ca.registry.GetProperties([]string{"identity.level", "affiliation.level", "certificate.level"})
+	levels, err := dbutil.CurrentDBLevels(ca.db)
 	if err != nil {
 		return err
 	}
@@ -1249,36 +1212,10 @@ func (ca *CA) checkDBLevels() error {
 		return err
 	}
 	log.Debugf("Checking database levels '%+v' against server levels '%+v'", levels, sl)
-	idVer := getIntLevel(levels, "identity")
-	affVer := getIntLevel(levels, "affiliation")
-	certVer := getIntLevel(levels, "certificate")
-	if (idVer > sl.Identity) || (affVer > sl.Affiliation) || (certVer > sl.Certificate) {
+	if (levels.Identity > sl.Identity) || (levels.Affiliation > sl.Affiliation) || (levels.Certificate > sl.Certificate) ||
+		(levels.Credential > sl.Credential) || (levels.Nonce > sl.Nonce) || (levels.RAInfo > sl.RAInfo) {
 		return caerrors.NewFatalError(caerrors.ErrDBLevel, "The version of the database is newer than the server version.  Upgrade your server.")
 	}
-	return nil
-}
-
-func (ca *CA) migrateUserToLevel1(user spi.User) error {
-	log.Debugf("Migrating user '%s' to level 1", user.GetName())
-
-	// Update identity to level 1
-	_, err := user.GetAttribute("hf.Registrar.Roles") // Check if user a registrar
-	if err == nil {
-		_, err := user.GetAttribute("hf.Registrar.Attributes") // Check if user already has "hf.Registrar.Attributes" attribute
-		if err != nil {
-			addAttr := []api.Attribute{api.Attribute{Name: "hf.Registrar.Attributes", Value: "*"}}
-			err := user.ModifyAttributes(addAttr)
-			if err != nil {
-				return errors.WithMessage(err, "Failed to set attribute")
-			}
-		}
-	}
-
-	err = user.SetLevel(1)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to update level of user")
-	}
-
 	return nil
 }
 
@@ -1322,18 +1259,6 @@ func initSigningProfile(spp **config.SigningProfile, expiry time.Duration, isCA 
 	}
 	// This is set so that all profiles permit an attribute extension in CFSSL
 	sp.ExtensionWhitelist[attrmgr.AttrOIDString] = true
-}
-
-func getIntLevel(properties map[string]string, version string) int {
-	strVersion := properties[version]
-	if strVersion == "" {
-		strVersion = "0"
-	}
-	intVersion, err := strconv.Atoi(strVersion)
-	if err != nil {
-		panic(err)
-	}
-	return intVersion
 }
 
 type wallClock struct{}

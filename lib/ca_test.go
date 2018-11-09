@@ -640,7 +640,10 @@ func TestServerMigration(t *testing.T) {
 	dir := "migrationTest"
 	os.RemoveAll(dir)
 	defer os.RemoveAll(dir)
-	os.Mkdir(dir, 0777)
+	err := os.Mkdir(dir, 0777)
+	if err != nil {
+		t.Fatalf("Failed to create directory: %s", err.Error())
+	}
 	db, err := dbutil.NewUserRegistrySQLLite3(filepath.Join(dir, "fabric-ca-server.db"))
 	util.FatalError(t, err, "Failed to create db")
 	_, err = db.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('registrar', '', 'user', 'org2', '[{\"name\":\"hf.Registrar.Roles\",\"value\":\"user,peer,client\"}]', '0', '-1', '0')")
