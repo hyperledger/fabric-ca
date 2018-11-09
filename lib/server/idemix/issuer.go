@@ -36,7 +36,7 @@ type Issuer interface {
 	RevocationPublicKey() ([]byte, error)
 	IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, error)
 	GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error)
-	VerifyToken(authHdr string, body []byte) (string, error)
+	VerifyToken(authHdr, method, uri string, body []byte) (string, error)
 }
 
 // MyIssuer provides functions for accessing issuer components
@@ -182,7 +182,7 @@ func (i *issuer) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
 	return handler.HandleRequest()
 }
 
-func (i *issuer) VerifyToken(authHdr string, body []byte) (string, error) {
+func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, error) {
 	if !i.isInitialized {
 		return "", errors.New("Issuer is not initialized")
 	}
@@ -210,7 +210,9 @@ func (i *issuer) VerifyToken(authHdr string, body []byte) (string, error) {
 	}
 	idBytes := []byte(enrollmentID)
 	attrs := []*fp256bn.BIG{nil, nil, idemix.HashModOrder(idBytes), nil}
-	msg := util.B64Encode(body)
+	b64body := util.B64Encode(body)
+	b64uri := util.B64Encode([]byte(uri))
+	msg := method + "." + b64uri + "." + b64body
 	digest, digestError := i.csp.Hash([]byte(msg), &bccsp.SHAOpts{})
 	if digestError != nil {
 		return "", errors.WithMessage(digestError, fmt.Sprintf("Failed to create authentication token '%s'", msg))

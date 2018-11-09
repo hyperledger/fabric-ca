@@ -136,7 +136,9 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	// Generate a fresh Pseudonym (and a corresponding randomness)
 	nym, randNym := idemix.MakeNym(sk, ipk, rng)
 
-	msg := util.B64Encode(reqBody)
+	b64body := util.B64Encode(reqBody)
+	b64uri := util.B64Encode([]byte(req.URL.RequestURI()))
+	msg := req.Method + "." + b64uri + "." + b64body
 
 	digest, digestError := cred.client.GetCSP().Hash([]byte(msg), &bccsp.SHAOpts{})
 	if digestError != nil {
