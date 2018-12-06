@@ -543,5 +543,5 @@ func newIdemixCredentialRequest(t *testing.T, nonce *fp256bn.BIG) (*idemix.CredR
 		return nil, nil, err
 	}
 	sk := idemix.RandModOrder(rng)
-	return idemix.NewCredRequest(sk, nonce, ik.Ipk, rng), sk, nil
+	return idemix.NewCredRequest(sk, idemix.BigToBytes(nonce), ik.Ipk, rng), sk, nil
 }

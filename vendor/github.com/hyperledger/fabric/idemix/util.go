@@ -60,6 +60,12 @@ func appendBytesG1(data []byte, index int, E *FP256BN.ECP) int {
 	E.ToBytes(data[index:index+length], false)
 	return index + length
 }
+func EcpToBytes(E *FP256BN.ECP) []byte {
+	length := 2*FieldBytes + 1
+	res := make([]byte, length)
+	E.ToBytes(res, false)
+	return res
+}
 func appendBytesG2(data []byte, index int, E *FP256BN.ECP2) int {
 	length := 4 * FieldBytes
 	E.ToBytes(data[index : index+length])
@@ -78,6 +84,8 @@ func appendBytesString(data []byte, index int, s string) int {
 
 // MakeNym creates a new unlinkable pseudonym
 func MakeNym(sk *FP256BN.BIG, IPk *IssuerPublicKey, rng *amcl.RAND) (*FP256BN.ECP, *FP256BN.BIG) {
+	// Construct a commitment to the sk
+	// Nym = h_{sk}^sk \cdot h_r^r
 	RandNym := RandModOrder(rng)
 	Nym := EcpFromProto(IPk.HSk).Mul2(sk, EcpFromProto(IPk.HRand), RandNym)
 	return Nym, RandNym

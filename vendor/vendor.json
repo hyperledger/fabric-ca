@@ -425,10 +425,10 @@
 			"revisionTime": "2018-03-16T15:29:36Z"
 		},
 		{
-			"checksumSHA1": "S0hEPC6nm2AwSsGQsEP1LRQOfFg=",
+			"checksumSHA1": "SciKezSPmS5x+LFe2AB2ERbxtF0=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "e01301116758fbabc54c688b461cb72fbc84862d",
-			"revisionTime": "2018-08-10T18:42:28Z",
+			"revision": "5b2b5616d49538ace14aa9e08a482b9089c78df8",
+			"revisionTime": "2018-12-05T11:40:09Z",
 			"tree": true
 		},
 		{
@@ -456,10 +456,11 @@
 			"revisionTime": "2018-08-10T18:42:28Z"
 		},
 		{
-			"checksumSHA1": "xIdsmorF1r6jym6Tz5UmzAvxhN8=",
+			"checksumSHA1": "PZEB7eAHAev0KuBWBfDvfGGIO9c=",
 			"path": "github.com/hyperledger/fabric/idemix",
-			"revision": "4db57a3e5205a096e54bfbc5f5f07d6bd678220f",
-			"revisionTime": "2018-05-31T12:12:45Z"
+			"revision": "5b2b5616d49538ace14aa9e08a482b9089c78df8",
+			"revisionTime": "2018-12-05T11:40:09Z",
+			"tree": true
 		},
 		{
 			"checksumSHA1": "40vJyUB4ezQSn/NSadsKEOrudMc=",

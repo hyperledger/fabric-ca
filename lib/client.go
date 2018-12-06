@@ -532,7 +532,7 @@ func (c *Client) newIdemixCredentialRequest(nonce *fp256bn.BIG, ipkBytes []byte)
 	if err != nil {
 		return nil, nil, err
 	}
-	return idemix.NewCredRequest(sk, nonce, issuerPubKey, rng), sk, nil
+	return idemix.NewCredRequest(sk, idemix.BigToBytes(nonce), issuerPubKey, rng), sk, nil
 }
 
 func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
