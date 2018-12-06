@@ -149,7 +149,7 @@ func TestHandleIdemixEnrollForCredentialError(t *testing.T) {
 	}
 	rmo := idemix.RandModOrder(rnd)
 	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+	idemixlib.On("RandModOrder", rnd).Return(rmo, nil)
 
 	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixlib)
 	issuer := new(mocks.MyIssuer)
@@ -160,7 +160,10 @@ func TestHandleIdemixEnrollForCredentialError(t *testing.T) {
 	ctx.On("GetIssuer").Return(issuer, nil)
 	ctx.On("IsBasicAuth").Return(true)
 	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
-	nonce := handler.GenerateNonce()
+	nonce, err := handler.GenerateNonce()
+	if err != nil {
+		t.Fatalf("Failed to generate nonce: %s", err.Error())
+	}
 
 	credReq, _, err := newIdemixCredentialRequest(t, nonce)
 	if err != nil {

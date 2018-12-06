@@ -55,7 +55,7 @@ func TestGetNonce(t *testing.T) {
 		t.Fatalf("Error generating a random number")
 	}
 	rmo := idemix.RandModOrder(rnd)
-	lib.On("RandModOrder", rnd).Return(rmo)
+	lib.On("RandModOrder", rnd).Return(rmo, nil)
 
 	issuer.On("IdemixRand").Return(rnd)
 

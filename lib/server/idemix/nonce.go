@@ -91,9 +91,12 @@ func NewNonceManager(issuer MyIssuer, clock Clock, level int) (NonceManager, err
 // GetNonce returns a new nonce
 func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
 	idmixLib := nm.issuer.IdemixLib()
-	nonce := idmixLib.RandModOrder(nm.issuer.IdemixRand())
+	nonce, err := idmixLib.RandModOrder(nm.issuer.IdemixRand())
+	if err != nil {
+		return nil, err
+	}
 	nonceBytes := idemix.BigToBytes(nonce)
-	err := nm.insertNonceInDB(&Nonce{
+	err = nm.insertNonceInDB(&Nonce{
 		Val:    util.B64Encode(nonceBytes),
 		Expiry: nm.clock.Now().UTC().Add(nm.nonceExpiration),
 		Level:  nm.level,

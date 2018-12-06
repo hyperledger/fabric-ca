@@ -177,7 +177,7 @@ func (h *EnrollRequestHandler) Authenticate() error {
 }
 
 // GenerateNonce generates a nonce for an Idemix enroll request
-func (h *EnrollRequestHandler) GenerateNonce() *fp256bn.BIG {
+func (h *EnrollRequestHandler) GenerateNonce() (*fp256bn.BIG, error) {
 	return h.IdmxLib.RandModOrder(h.Issuer.IdemixRand())
 }
 
