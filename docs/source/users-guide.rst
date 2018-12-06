@@ -2230,13 +2230,11 @@ of PKCS11 called softhsm (see https://github.com/opendnssec/SoftHSMv2).
 After installing softhsm, make sure to set your SOFTHSM2_CONF environment variable to
 point to the location where the softhsm2 configuration file is stored. The config file looks like
 
- .. code::
+.. code::
 
   directories.tokendir = /tmp/
-
-   objectstore.backend = file
-
-   log.level = INFO
+  objectstore.backend = file
+  log.level = INFO
 
 You can find example configuration file named softhsm2.conf under testdata directory.
 
@@ -2269,10 +2267,12 @@ Note that the default field’s value is PKCS11.
 
 And you can override relevant fields via environment variables as follows:
 
-FABRIC_CA_SERVER_BCCSP_DEFAULT=PKCS11
-FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
-FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
-FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
+.. code:: bash
+
+  FABRIC_CA_SERVER_BCCSP_DEFAULT=PKCS11
+  FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
+  FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
+  FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
 
 `Back to Top`_
 
