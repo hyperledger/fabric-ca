@@ -1,3 +1,31 @@
+## v1.4.0-rc1
+Mon Dec 10 15:08:08 EST 2018
+
+* [4e4b1c2](https://github.com/hyperledger/fabric-ca/commit/4e4b1c2) FABC-771 Update multiarch script
+* [e064dcc](https://github.com/hyperledger/fabric-ca/commit/e064dcc) [FABC-769] Add the ability to recover from panic
+* [a0ebc50](https://github.com/hyperledger/fabric-ca/commit/a0ebc50) [FABC-765] Vendor fabric/bccsp/idemix
+* [b2a3132](https://github.com/hyperledger/fabric-ca/commit/b2a3132) [FABC-768] Doc: Better Markup
+* [8a8f1b3](https://github.com/hyperledger/fabric-ca/commit/8a8f1b3) [FABC-752] Vendor gomega and ginkgo
+* [7b5f2b6](https://github.com/hyperledger/fabric-ca/commit/7b5f2b6) [FABC-767] Failing goimports
+* [8c5bc35](https://github.com/hyperledger/fabric-ca/commit/8c5bc35) [FABC-757] add charset to mysql tables
+* [2ebd68e](https://github.com/hyperledger/fabric-ca/commit/2ebd68e) [FABC-467] - Print TLS key used
+* [d80509b](https://github.com/hyperledger/fabric-ca/commit/d80509b) [FABC-748]Incorrect version description of Go
+* [99517e9](https://github.com/hyperledger/fabric-ca/commit/99517e9) [FAB-9938](https://jira.hyperledger.org/browse/FAB-9938) Add req method and uri to sig payload
+* [b7a5590](https://github.com/hyperledger/fabric-ca/commit/b7a5590) [FABC-741] Update user doc for HSM configuration
+* [b270271](https://github.com/hyperledger/fabric-ca/commit/b270271) [FABC-723] Brute force attack
+* [a88ff53](https://github.com/hyperledger/fabric-ca/commit/a88ff53) [FAB-8475](https://jira.hyperledger.org/browse/FAB-8475) Run migration logic only if db level is old
+* [ebbd2ed](https://github.com/hyperledger/fabric-ca/commit/ebbd2ed) [FAB-7347](https://jira.hyperledger.org/browse/FAB-7347) Flag and env var for logging level
+* [bd7f997](https://github.com/hyperledger/fabric-ca/commit/bd7f997) [FABC-744] Revendor certificate-transparency-go
+* [3c1585b](https://github.com/hyperledger/fabric-ca/commit/3c1585b) [FABC-459] Optimize GetCertificate request
+* [bbe7b65](https://github.com/hyperledger/fabric-ca/commit/bbe7b65) [FAB-12444](https://jira.hyperledger.org/browse/FAB-12444) Update fabric-ca to baseimage 0.4.14
+* [15209a3](https://github.com/hyperledger/fabric-ca/commit/15209a3) [FABC-740] Update to Go 1.11.1
+* [cb7353f](https://github.com/hyperledger/fabric-ca/commit/cb7353f) [FABC-736] Use proper golint pkg
+* [11cc823](https://github.com/hyperledger/fabric-ca/commit/11cc823) FABC-737 Fix goimports errors
+* [959cd51](https://github.com/hyperledger/fabric-ca/commit/959cd51) [FABC-730] Update fabric-ca to baseimage 0.4.13
+* [0de6679](https://github.com/hyperledger/fabric-ca/commit/0de6679) [FABC-492] Superfluous checks for deleting identity
+* [16877b8](https://github.com/hyperledger/fabric-ca/commit/16877b8) [FAB-12141](https://jira.hyperledger.org/browse/FAB-12141) Prepare for next release (1.4.0 on master)
+* [360f46e](https://github.com/hyperledger/fabric-ca/commit/360f46e) [FABC-703] Improved TLS error message
+
 ## v1.3.0-rc1
 Mon Sep 24 19:30:06 EDT 2018
 
