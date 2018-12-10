@@ -57,4 +57,6 @@ type ServerConfig struct {
 	CAcount int `def:"0" help:"Number of non-default CA instances"`
 	// Size limit of an acceptable CRL in bytes
 	CRLSizeLimit int `def:"512000" help:"Size limit of an acceptable CRL in bytes"`
+	// CompMode1_3 determines if to run in comptability for version 1.3
+	CompMode1_3 bool `skip:"true"`
 }

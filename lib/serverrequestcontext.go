@@ -188,7 +188,7 @@ func (ctx *serverRequestContextImpl) verifyIdemixToken(authHdr, method, uri stri
 func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr, method, uri string, body []byte) (string, error) {
 	log.Debug("Caller is using a x509 certificate")
 	// Verify the token; the signature is over the header and body
-	cert, err2 := util.VerifyToken(ca.csp, authHdr, method, uri, body)
+	cert, err2 := util.VerifyToken(ca.csp, authHdr, method, uri, body, ca.server.Config.CompMode1_3)
 	if err2 != nil {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrInvalidToken, "Invalid token in authorization header: %s", err2)
 	}

@@ -264,7 +264,7 @@ func genECDSAToken(csp bccsp.BCCSP, key bccsp.Key, b64cert, payload string) (str
 
 // VerifyToken verifies token signed by either ECDSA or RSA and
 // returns the associated user ID
-func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte) (*x509.Certificate, error) {
+func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte, compMode1_3 bool) (*x509.Certificate, error) {
 
 	if csp == nil {
 		return nil, errors.New("BCCSP instance is not present")
@@ -289,9 +289,6 @@ func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte)
 		return nil, errors.New("Public Key Cannot be imported into BCCSP")
 	}
 
-	compMode := os.Getenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1.3")
-	compMode = "true" // TODO: Remove this default setting once all the SDKs have been updated to use the new authorization header
-
 	//bccsp.X509PublicKeyImportOpts
 	//Using default hash algo
 	digest, digestError := csp.Hash([]byte(sigString), &bccsp.SHAOpts{})
@@ -300,7 +297,7 @@ func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte)
 	}
 
 	valid, validErr := csp.Verify(pk2, sig, digest, nil)
-	if strings.ToLower(compMode) == "true" && !valid {
+	if compMode1_3 && !valid {
 		log.Debugf("Failed to verify token based on new authentication header requirements: %s", err)
 		sigString := b64Body + "." + b64Cert
 		digest, digestError := csp.Hash([]byte(sigString), &bccsp.SHAOpts{})
