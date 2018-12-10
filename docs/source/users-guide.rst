@@ -52,15 +52,15 @@ Table of Contents
    1. `Enrolling the bootstrap identity`_
    2. `Registering a new identity`_
    3. `Enrolling a peer identity`_
-   5. `Getting Identity Mixer credential for a user`_
-   6. `Getting Idemix CRI`_
-   7. `Reenrolling an identity`_
-   8. `Revoking a certificate or identity`_
-   9. `Generating a CRL (Certificate Revocation List)`_
-   10. `Attribute-Based Access Control`_
-   11. `Dynamic Server Configuration Update`_
-   12. `Enabling TLS`_
-   13. `Contact specific CA instance`_
+   4. `Getting Identity Mixer credential for a user`_
+   5. `Getting Idemix CRI`_
+   6. `Reenrolling an identity`_
+   7. `Revoking a certificate or identity`_
+   8. `Generating a CRL (Certificate Revocation List)`_
+   9. `Attribute-Based Access Control`_
+   10. `Dynamic Server Configuration Update`_
+   11. `Enabling TLS`_
+   12. `Contact specific CA instance`_
 
 6. `HSM`_
 
