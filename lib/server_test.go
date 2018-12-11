@@ -2383,6 +2383,22 @@ func TestRegistrationAffiliation(t *testing.T) {
 	assert.Error(t, err, "Should have failed, can't register a user with root affiliation if the registrar does not have root affiliation")
 }
 
+func TestCompEnvVar(t *testing.T) {
+	os.Setenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3", "badVal")
+	defer os.Unsetenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3")
+
+	os.RemoveAll(rootDir)
+	defer os.RemoveAll(rootDir)
+
+	server := TestGetRootServer(t)
+	err := server.Init(false)
+	util.ErrorContains(t, err, "parsing \"badVal\": invalid syntax", "Should error if using an invalid boolean value")
+
+	os.Setenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3", "true")
+	err = server.Init(false)
+	assert.NoError(t, err)
+}
+
 func cleanMultiCADir(t *testing.T) {
 	var err error
 	caFolder := "../testdata/ca"

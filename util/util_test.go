@@ -71,39 +71,40 @@ func TestECCreateToken(t *testing.T) {
 		t.Fatalf("CreatToken failed: %s", err)
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body)
+	os.Setenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3", "false") // Test new token
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body, false)
 	if err != nil {
 		t.Fatalf("VerifyToken failed: %s", err)
 	}
 
-	_, err = VerifyToken(nil, ECtoken, "GET", "/enroll", body)
+	_, err = VerifyToken(nil, ECtoken, "GET", "/enroll", body, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as no instance of csp is passed")
 	}
 
-	_, err = VerifyToken(bccsp, "", "GET", "/enroll", body)
+	_, err = VerifyToken(bccsp, "", "GET", "/enroll", body, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as no EC Token is passed")
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", nil)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", nil, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as no body is passed")
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, "POST", "/enroll", nil)
+	_, err = VerifyToken(bccsp, ECtoken, "POST", "/enroll", nil, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as method was tampered")
 	}
 
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/affiliations", nil)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/affiliations", nil, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as path was tampered")
 	}
 
 	verifiedByte := []byte("TEST")
 	body = append(body, verifiedByte[0])
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body)
+	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body, false)
 	if err == nil {
 		t.Fatal("VerifyToken should have failed as body was tampered")
 	}
@@ -117,13 +118,17 @@ func TestECCreateToken(t *testing.T) {
 		t.Fatal("CreatToken should have failed as certificate passed is not correct")
 	}
 
-	os.Setenv("FABRIC_CA_SERVER_AUTHHDR_COMPATIBILITY", "true")
-	defer os.Unsetenv("FABRIC_CA_SERVER_AUTHHDR_COMPATIBILITY")
+	// With comptability mode disabled, using old token should fail
 	b64Cert := B64Encode(cert)
 	payload := B64Encode(body) + "." + b64Cert
 	oldToken, err := genECDSAToken(bccsp, privKey, b64Cert, payload)
 	FatalError(t, err, "Failed to create token")
-	_, err = VerifyToken(bccsp, oldToken, "GET", "/enroll", body)
+	_, err = VerifyToken(bccsp, oldToken, "GET", "/enroll", body, false)
+	assert.Error(t, err)
+
+	// Test that by default with no environment variable set, the old token is considered valid
+	os.Unsetenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3")
+	_, err = VerifyToken(bccsp, oldToken, "GET", "/enroll", body, true)
 	assert.NoError(t, err, "Failed to verify token using old token type")
 }
 
@@ -250,7 +255,7 @@ func TestEmptyToken(t *testing.T) {
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
-	_, err := VerifyToken(csp, "", "POST", "/enroll", body)
+	_, err := VerifyToken(csp, "", "POST", "/enroll", body, true)
 	if err == nil {
 		t.Fatalf("TestEmptyToken passed but should have failed")
 	}
