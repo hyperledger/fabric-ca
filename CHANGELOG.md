@@ -1,3 +1,8 @@
+## v1.4.0-rc2
+Thu Dec 20 09:14:03 EST 2018
+
+* [236dec5](https://github.com/hyperledger/fabric-ca/commit/236dec5) [FAB-13116](https://jira.hyperledger.org/browse/FAB-13116) Prepare for next rel (1.4.0 on release-1.4)
+
 ## v1.4.0-rc1
 Mon Dec 10 15:08:08 EST 2018
 
