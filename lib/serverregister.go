@@ -21,6 +21,7 @@ import (
 
 func newRegisterEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "register",
 		Methods:   []string{"POST"},
 		Handler:   registerHandler,
 		Server:    s,

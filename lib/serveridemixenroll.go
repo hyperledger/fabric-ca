@@ -15,6 +15,7 @@ import (
 
 func newIdemixEnrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "idemix/credential",
 		Methods:   []string{"POST"},
 		Handler:   handleIdemixEnrollReq,
 		Server:    s,

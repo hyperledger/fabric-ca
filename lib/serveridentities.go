@@ -25,6 +25,7 @@ import (
 
 func newIdentitiesEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "identities/{id}",
 		Methods:   []string{"GET", "DELETE", "PUT"},
 		Handler:   identitiesHandler,
 		Server:    s,
@@ -34,6 +35,7 @@ func newIdentitiesEndpoint(s *Server) *serverEndpoint {
 
 func newIdentitiesStreamingEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "identities",
 		Methods:   []string{"GET", "POST"},
 		Handler:   identitiesStreamingHandler,
 		Server:    s,

@@ -21,6 +21,7 @@ import (
 
 func newAffiliationsEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "affiliations/{affiliation}",
 		Methods:   []string{"GET", "DELETE", "PUT"},
 		Handler:   affiliationsHandler,
 		Server:    s,
@@ -30,6 +31,7 @@ func newAffiliationsEndpoint(s *Server) *serverEndpoint {
 
 func newAffiliationsStreamingEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "affiliations",
 		Methods:   []string{"GET", "POST"},
 		Handler:   affiliationsStreamingHandler,
 		Server:    s,
