@@ -183,6 +183,12 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "Fanvk5Tua0lSCtgEB+Ji0lZD1B8=",
+			"path": "github.com/felixge/httpsnoop",
+			"revision": "eadd4fad6aac69ae62379194fe0219f3dbc80fd3",
+			"revisionTime": "2017-06-29T01:04:42Z"
+		},
+		{
 			"checksumSHA1": "hveFTNQ9YEyYRs6SWuXM+XU9qRI=",
 			"path": "github.com/fsnotify/fsnotify",
 			"revision": "fd9ec7deca8bf46ecd2a795baaacf2b3a9be1197",
@@ -454,6 +460,24 @@
 			"path": "github.com/hyperledger/fabric/common/flogging/fabenc",
 			"revision": "e01301116758fbabc54c688b461cb72fbc84862d",
 			"revisionTime": "2018-08-10T18:42:28Z"
+		},
+		{
+			"checksumSHA1": "WOLMxJCYaKYleZvmGEClhuhM3BE=",
+			"path": "github.com/hyperledger/fabric/common/metrics",
+			"revision": "46a6b0e6b2ffd772e8ddf949af4f685b9fd413ee",
+			"revisionTime": "2019-01-03T18:48:40Z"
+		},
+		{
+			"checksumSHA1": "G1kPTyG6AIFY3EE7QnJTMSQe4Yk=",
+			"path": "github.com/hyperledger/fabric/common/metrics/disabled",
+			"revision": "46a6b0e6b2ffd772e8ddf949af4f685b9fd413ee",
+			"revisionTime": "2019-01-03T18:48:40Z"
+		},
+		{
+			"checksumSHA1": "sxoQ5f6L9yyicIDIvLNM0BGldSE=",
+			"path": "github.com/hyperledger/fabric/common/metrics/metricsfakes",
+			"revision": "46a6b0e6b2ffd772e8ddf949af4f685b9fd413ee",
+			"revisionTime": "2019-01-03T18:48:40Z"
 		},
 		{
 			"checksumSHA1": "PZEB7eAHAev0KuBWBfDvfGGIO9c=",
@@ -1029,6 +1053,10 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
 			"revisionTime": "2016-09-28T15:37:09Z"
+		},
+		{
+			"path": "https://github.com/felixge/httpsnoop",
+			"revision": ""
 		}
 	],
 	"rootPath": "github.com/hyperledger/fabric-ca"

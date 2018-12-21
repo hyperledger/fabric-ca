@@ -25,14 +25,17 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
+	"github.com/felixge/httpsnoop"
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	calog "github.com/hyperledger/fabric-ca/lib/common/log"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/server/metrics"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -53,6 +56,8 @@ type Server struct {
 	BlockingStart bool
 	// The server's configuration
 	Config *ServerConfig
+	// Metrics are the metrics that the server tracks
+	Metrics metrics.Metrics
 	// The server mux
 	mux *gmux.Router
 	// The current listener for this server
@@ -107,8 +112,15 @@ func (s *Server) init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
+	s.initMetrics()
 	// Successful initialization
 	return nil
+}
+
+func (s *Server) initMetrics() {
+	provider := disabled.Provider{} // This is temporary, will eventually be replaced by actual provider
+	s.Metrics.APICounter = provider.NewCounter(metrics.APICounterOpts)
+	s.Metrics.APIDuration = provider.NewHistogram(metrics.APIDurationOpts)
 }
 
 // Start the fabric-ca server
@@ -489,8 +501,29 @@ func (s *Server) registerHandler(se *serverEndpoint) {
 
 func (s *Server) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
+		apiName := s.getAPIName(r)
+		caName := s.getCAName()
+		s.recordMetrics(metrics.Duration, caName, apiName, strconv.Itoa(metrics.Code))
 	})
+}
+
+func (s *Server) getAPIName(r *http.Request) string {
+	var apiName string
+	var match gmux.RouteMatch
+	if s.mux.Match(r, &match) {
+		apiName = match.Route.GetName()
+	}
+	return apiName
+}
+
+func (s *Server) getCAName() string {
+	return s.CA.Config.CA.Name
+}
+
+func (s *Server) recordMetrics(duration time.Duration, caName, apiName, statusCode string) {
+	s.Metrics.APICounter.With("ca_name", caName, "api_name", apiName, "status_code", statusCode).Add(1)
+	s.Metrics.APIDuration.With("ca_name", caName, "api_name", apiName, "status_code", statusCode).Observe(duration.Seconds())
 }
 
 // Starting listening and serving
@@ -611,6 +644,7 @@ func (s *Server) serve() error {
 		// in https://jira.hyperledger.org/browse/FAB-3100.
 		return nil
 	}
+
 	s.serveError = http.Serve(listener, s.mux)
 	log.Errorf("Server has stopped serving: %s", s.serveError)
 	s.closeListener()

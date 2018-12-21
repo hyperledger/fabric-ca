@@ -16,7 +16,7 @@ go get github.com/AlekSi/gocov-xml
 # Skipping /lib/common package as there is only one file that contains request/response structs used by both client and server. It needs to be removed from exclude package list
 # when code is added to this package
 # Skipping credential package as there is only one file that contains Credential interface definition. It needs to be removed from exclude package list when code is added to this package
-PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/integration|/fabric-ca-client$|/credential$|/lib/common$'`
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|/ldap|/mocks|/test/fabric-ca-load-tester|/integration|/fabric-ca-client$|/credential$|/lib/common$|/metrics'`
 
 gocov test -timeout 15m $PKGS | gocov-xml > coverage.xml
 
