@@ -33,6 +33,7 @@ const (
 
 func newRevokeEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:    "revoke",
 		Methods: []string{"POST"},
 		Handler: revokeHandler,
 		Server:  s,

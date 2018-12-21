@@ -25,6 +25,7 @@ type ServerInfoResponseNet struct {
 
 func newCAInfoEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:    "cainfo",
 		Methods: []string{"GET", "POST", "HEAD"},
 		Handler: cainfoHandler,
 		Server:  s,

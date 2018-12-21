@@ -24,6 +24,7 @@ type certPEM struct {
 
 func newCertificateEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "certificates",
 		Methods:   []string{"GET", "DELETE"},
 		Handler:   certificatesHandler,
 		Server:    s,
