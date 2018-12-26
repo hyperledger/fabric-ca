@@ -1,22 +1,16 @@
 /*
-Copyright IBM Corp. 2017 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package lib
 
-import "github.com/hyperledger/fabric-ca/lib/tls"
+import (
+	"time"
+
+	"github.com/hyperledger/fabric-ca/lib/tls"
+)
 
 const (
 	// DefaultServerPort is the default listening port for the fabric-ca server
@@ -59,4 +53,20 @@ type ServerConfig struct {
 	CRLSizeLimit int `def:"512000" help:"Size limit of an acceptable CRL in bytes"`
 	// CompMode1_3 determines if to run in comptability for version 1.3
 	CompMode1_3 bool `skip:"true"`
+	// Metrics contains metric related configuration
+	Metrics MetricsConfig `skip:"true"`
+}
+
+// MetricsConfig contains the information on providers
+type MetricsConfig struct {
+	Provider string
+	Statsd   *Statsd
+}
+
+// Statsd contains configuration of statsd
+type Statsd struct {
+	Network       string
+	Address       string
+	WriteInterval time.Duration
+	Prefix        string
 }
