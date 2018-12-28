@@ -417,6 +417,11 @@ func (ctx *serverRequestContextImpl) CanManageUser(user spi.User) error {
 		return err
 	}
 
+	caller,_ := ctx.GetCaller()
+	if user.GetName() == caller.GetName() {
+		return nil
+	}
+
 	userType := user.GetType()
 	err = ctx.CanActOnType(userType)
 	if err != nil {
