@@ -1635,11 +1635,6 @@ before 2017-09-21T16:39:57-08:00, and that expire after 2017-09-13T16:39:57-08:0
     export FABRIC_CA_CLIENT_HOME=~/clientconfig
     fabric-ca-client gencrl --caname "" --expireafter 2017-09-13T16:39:57-08:00 --expirebefore 2018-09-13T16:39:57-08:00  --revokedafter 2017-09-13T16:39:57-08:00 --revokedbefore 2017-09-21T16:39:57-08:00 -M ~/msp
 
-The `fabric-samples/fabric-ca <https://github.com/hyperledger/fabric-samples/blob/master/fabric-ca/scripts/run-fabric.sh>`_
-sample demonstrates how to generate a CRL that contains certificate of a revoked user and update the channel
-msp. It will then demonstrate that querying the channel using the revoked user credentials will result
-in an authorization error.
-
 Enabling TLS
 ~~~~~~~~~~~~
 
@@ -1741,10 +1736,7 @@ value of the affiliation (which is 'org1') must be the same in both the
     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
 
 For information on the chaincode library API for Attribute-Based Access Control,
-see `https://github.com/hyperledger/fabric/tree/release-1.1/core/chaincode/lib/cid/README.md <https://github.com/hyperledger/fabric/tree/release-1.1/core/chaincode/lib/cid/README.md>`_
-
-For an end-to-end sample which demonstrates Attribute-Based Access Control and more,
-see `https://github.com/hyperledger/fabric-samples/tree/release-1.1/fabric-ca/README.md <https://github.com/hyperledger/fabric-samples/tree/release-1.1/fabric-ca/README.md>`_
+see `https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md <https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md>`_
 
 Dynamic Server Configuration Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
