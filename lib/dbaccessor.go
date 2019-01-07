@@ -8,14 +8,16 @@ package lib
 
 import (
 	"encoding/json"
-	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	cadbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
@@ -78,23 +80,15 @@ UPDATE affiliations
 	WHERE (name = ?)`
 )
 
-// AffiliationRecord defines the properties of an affiliation
-type AffiliationRecord struct {
-	ID     int    `db:"id"`
-	Name   string `db:"name"`
-	Prekey string `db:"prekey"`
-	Level  int    `db:"level"`
-}
-
 // Accessor implements db.Accessor interface.
 type Accessor struct {
-	db *dbutil.DB
+	db db.FabricCADB
 }
 
 // NewDBAccessor is a constructor for the database API
-func NewDBAccessor(db *dbutil.DB) *Accessor {
+func NewDBAccessor(cadb db.FabricCADB) *Accessor {
 	return &Accessor{
-		db: db,
+		db: cadb,
 	}
 }
 
@@ -106,12 +100,12 @@ func (d *Accessor) checkDB() error {
 }
 
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
-func (d *Accessor) SetDB(db *dbutil.DB) {
+func (d *Accessor) SetDB(db db.FabricCADB) {
 	d.db = db
 }
 
 // InsertUser inserts user into database
-func (d *Accessor) InsertUser(user *spi.UserInfo) error {
+func (d *Accessor) InsertUser(user *cadbuser.Info) error {
 	if user == nil {
 		return errors.New("User is not defined")
 	}
@@ -135,7 +129,7 @@ func (d *Accessor) InsertUser(user *spi.UserInfo) error {
 	}
 
 	// Store the user record in the DB
-	res, err := d.db.NamedExec(insertUser, &dbutil.UserRecord{
+	res, err := d.db.NamedExec(insertUser, &cadbuser.Record{
 		Name:                      user.Name,
 		Pass:                      pwd,
 		Type:                      user.Type,
@@ -171,7 +165,7 @@ func (d *Accessor) InsertUser(user *spi.UserInfo) error {
 }
 
 // DeleteUser deletes user from database
-func (d *Accessor) DeleteUser(id string) (spi.User, error) {
+func (d *Accessor) DeleteUser(id string) (user.User, error) {
 	log.Debugf("DB: Delete identity %s", id)
 
 	result, err := d.doTransaction(d.deleteUserTx, id, ocsp.CessationOfOperation) // 5 (cessationofoperation) reason for certificate revocation
@@ -179,8 +173,8 @@ func (d *Accessor) DeleteUser(id string) (spi.User, error) {
 		return nil, err
 	}
 
-	userRec := result.(*dbutil.UserRecord)
-	user := dbutil.NewDBUser(userRec, d.db)
+	userRec := result.(*cadbuser.Record)
+	user := cadbuser.New(userRec, d.db)
 
 	return user, nil
 }
@@ -189,10 +183,10 @@ func (d *Accessor) deleteUserTx(tx *sqlx.Tx, args ...interface{}) (interface{}, 
 	id := args[0].(string)
 	reason := args[1].(int)
 
-	var userRec dbutil.UserRecord
+	var userRec cadbuser.Record
 	err := tx.Get(&userRec, tx.Rebind(getUser), id)
 	if err != nil {
-		return nil, getError(err, "User")
+		return nil, cadbutil.GetError(err, "User")
 	}
 
 	_, err = tx.Exec(tx.Rebind(deleteUser), id)
@@ -200,7 +194,7 @@ func (d *Accessor) deleteUserTx(tx *sqlx.Tx, args ...interface{}) (interface{}, 
 		return nil, caerrors.NewHTTPErr(500, caerrors.ErrDBDeleteUser, "Error deleting identity '%s': %s", id, err)
 	}
 
-	record := &CertRecord{
+	record := &db.CertRecord{
 		ID: id,
 	}
 	record.Reason = reason
@@ -214,7 +208,7 @@ func (d *Accessor) deleteUserTx(tx *sqlx.Tx, args ...interface{}) (interface{}, 
 }
 
 // UpdateUser updates user in database
-func (d *Accessor) UpdateUser(user *spi.UserInfo, updatePass bool) error {
+func (d *Accessor) UpdateUser(user *cadbuser.Info, updatePass bool) error {
 	if user == nil {
 		return errors.New("User is not defined")
 	}
@@ -240,7 +234,7 @@ func (d *Accessor) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 	}
 
 	// Store the updated user entry
-	res, err := d.db.NamedExec(updateUser, &dbutil.UserRecord{
+	res, err := d.db.NamedExec(updateUser, cadbuser.Record{
 		Name:                      user.Name,
 		Pass:                      pwd,
 		Type:                      user.Type,
@@ -271,7 +265,7 @@ func (d *Accessor) UpdateUser(user *spi.UserInfo, updatePass bool) error {
 }
 
 // GetUser gets user from database
-func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
+func (d *Accessor) GetUser(id string, attrs []string) (user.User, error) {
 	log.Debugf("DB: Getting identity %s", id)
 
 	err := d.checkDB()
@@ -279,13 +273,13 @@ func (d *Accessor) GetUser(id string, attrs []string) (spi.User, error) {
 		return nil, err
 	}
 
-	var userRec dbutil.UserRecord
+	var userRec cadbuser.Record
 	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
 	if err != nil {
-		return nil, getError(err, "User")
+		return nil, cadbutil.GetError(err, "User")
 	}
 
-	return dbutil.NewDBUser(&userRec, d.db), nil
+	return cadbuser.New(&userRec, d.db), nil
 }
 
 // InsertAffiliation inserts affiliation into database
@@ -324,7 +318,7 @@ func (d *Accessor) InsertAffiliation(name string, prekey string, level int) erro
 // DeleteAffiliation deletes affiliation from database. Using the force option with identity removal allowed
 // this will also delete the identities associated with removed affiliations, and also delete the certificates
 // for the identities removed
-func (d *Accessor) DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*spi.DbTxResult, error) {
+func (d *Accessor) DeleteAffiliation(name string, force, identityRemoval, isRegistrar bool) (*user.DbTxResult, error) {
 	log.Debugf("DB: Delete affiliation %s", name)
 
 	_, err := d.GetAffiliation(name)
@@ -337,7 +331,7 @@ func (d *Accessor) DeleteAffiliation(name string, force, identityRemoval, isRegi
 		return nil, err
 	}
 
-	deletedInfo := result.(*spi.DbTxResult)
+	deletedInfo := result.(*user.DbTxResult)
 
 	return deletedInfo, nil
 }
@@ -352,7 +346,7 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 
 	subAffName := name + ".%"
 	query := "SELECT * FROM users WHERE (affiliation = ? OR affiliation LIKE ?)"
-	ids := []dbutil.UserRecord{}
+	ids := []cadbuser.Record{}
 	err = tx.Select(&ids, tx.Rebind(query), name, subAffName)
 	if err != nil {
 		return nil, caerrors.NewHTTPErr(500, caerrors.ErrRemoveAffDB, "Failed to select users with sub-affiliation of '%s': %s", name, err)
@@ -378,10 +372,10 @@ func (d *Accessor) deleteAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 		}
 	}
 
-	allAffs := []AffiliationRecord{}
+	allAffs := []db.AffiliationRecord{}
 	err = tx.Select(&allAffs, tx.Rebind(getAllAffiliationsQuery), name, subAffName)
 	if err != nil {
-		return nil, getError(err, "Affiliation")
+		return nil, cadbutil.GetError(err, "Affiliation")
 	}
 
 	affNames := []string{}
@@ -448,11 +442,11 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 		return nil, err
 	}
 
-	var affiliationRecord AffiliationRecord
+	var affiliationRecord db.AffiliationRecord
 
 	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
-		return nil, getError(err, "affiliation")
+		return nil, cadbutil.GetError(err, "affiliation")
 	}
 
 	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
@@ -461,7 +455,7 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 }
 
 // GetAffiliationTree returns the requested affiliation and affiliations below
-func (d *Accessor) GetAffiliationTree(name string) (*spi.DbTxResult, error) {
+func (d *Accessor) GetAffiliationTree(name string) (*user.DbTxResult, error) {
 	log.Debugf("DB: Get affiliation tree for '%s'", name)
 
 	if name != "" {
@@ -476,7 +470,7 @@ func (d *Accessor) GetAffiliationTree(name string) (*spi.DbTxResult, error) {
 		return nil, caerrors.NewHTTPErr(409, caerrors.ErrGettingAffiliation, "Failed to complete database transaction: %s", err)
 	}
 
-	getResult := result.(*spi.DbTxResult)
+	getResult := result.(*user.DbTxResult)
 
 	return getResult, nil
 }
@@ -492,7 +486,7 @@ func (d *Accessor) getAffiliationTreeTx(tx *sqlx.Tx, args ...interface{}) (inter
 	}
 
 	// Getting affiliations
-	allAffs := []AffiliationRecord{}
+	allAffs := []db.AffiliationRecord{}
 	if name == "" { // Requesting all affiliations
 		err = tx.Select(&allAffs, tx.Rebind("SELECT * FROM affiliations"))
 		if err != nil {
@@ -505,16 +499,16 @@ func (d *Accessor) getAffiliationTreeTx(tx *sqlx.Tx, args ...interface{}) (inter
 		}
 	}
 
-	ids := []dbutil.UserRecord{} // TODO: Return identities associated with these affiliations
+	ids := []cadbuser.Record{} // TODO: Return identities associated with these affiliations
 	result := d.getResult(ids, allAffs)
 	return result, nil
 }
 
 // GetUserLessThanLevel returns all identities that are less than the level specified
 // Otherwise, returns no users if requested level is zero
-func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
+func (d *Accessor) GetUserLessThanLevel(level int) ([]user.User, error) {
 	if level == 0 {
-		return []spi.User{}, nil
+		return []user.User{}, nil
 	}
 
 	rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
@@ -522,13 +516,13 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]spi.User, error) {
 		return nil, errors.Wrap(err, "Failed to get identities that need to be updated")
 	}
 
-	allUsers := []spi.User{}
+	allUsers := []user.User{}
 
 	for rows.Next() {
-		var user dbutil.UserRecord
+		var user cadbuser.Record
 		rows.StructScan(&user)
-		dbUser := dbutil.NewDBUser(&user, d.db)
-		allUsers = append(allUsers, dbUser)
+		cadbuser := cadbuser.New(&user, d.db)
+		allUsers = append(allUsers, cadbuser)
 	}
 
 	return allUsers, nil
@@ -620,7 +614,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 
 // ModifyAffiliation renames the affiliation and updates all identities to use the new affiliation depending on
 // the value of the "force" parameter
-func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*spi.DbTxResult, error) {
+func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, force, isRegistrar bool) (*user.DbTxResult, error) {
 	log.Debugf("DB: Modify affiliation from '%s' to '%s'", oldAffiliation, newAffiliation)
 	err := d.checkDB()
 	if err != nil {
@@ -644,7 +638,7 @@ func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, forc
 		return nil, err
 	}
 
-	modifiedInfo := result.(*spi.DbTxResult)
+	modifiedInfo := result.(*user.DbTxResult)
 
 	return modifiedInfo, nil
 }
@@ -656,7 +650,7 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	isRegistar := args[3].(bool)
 
 	// Get the affiliation records including all sub affiliations
-	var allOldAffiliations []AffiliationRecord
+	var allOldAffiliations []db.AffiliationRecord
 	err := tx.Select(&allOldAffiliations, tx.Rebind(getAllAffiliationsQuery), oldAffiliation, oldAffiliation+".%")
 	if err != nil {
 		return nil, err
@@ -667,7 +661,7 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	// Iterate through all the affiliations found and update to use new affiliation path
 	idsUpdated := []string{}
 	for _, affiliation := range allOldAffiliations {
-		var idsWithOldAff []dbutil.UserRecord
+		var idsWithOldAff []cadbuser.Record
 		oldPath := affiliation.Name
 		oldParentPath := affiliation.Prekey
 		newPath := strings.Replace(oldPath, oldAffiliation, newAffiliation, 1)
@@ -704,11 +698,11 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 
 				// If user's affiliation is being updated, need to also update 'hf.Affiliation' attribute of user
 				for _, userRec := range idsWithOldAff {
-					user := dbutil.NewDBUser(&userRec, d.db)
+					user := cadbuser.New(&userRec, d.db)
 					currentAttrs, _ := user.GetAttributes(nil)                            // Get all current user attributes
-					userAff := GetUserAffiliation(user)                                   // Get the current affiliation
+					userAff := cadbuser.GetAffiliation(user)                              // Get the current affiliation
 					newAff := strings.Replace(userAff, oldAffiliation, newAffiliation, 1) // Replace old affiliation with new affiliation
-					userAttrs := dbutil.GetNewAttributes(currentAttrs, []api.Attribute{   // Generate the new set of attributes for user
+					userAttrs := cadbuser.GetNewAttributes(currentAttrs, []api.Attribute{ // Generate the new set of attributes for user
 						api.Attribute{
 							Name:  attr.Affiliation,
 							Value: newAff,
@@ -762,7 +756,7 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 	}
 
 	// Generate the result set that has all identities with their new affiliation and all renamed affiliations
-	var idsWithNewAff []dbutil.UserRecord
+	var idsWithNewAff []cadbuser.Record
 	if len(idsUpdated) > 0 {
 		query := "Select * FROM users WHERE (id IN (?))"
 		inQuery, args, err := sqlx.In(query, idsUpdated)
@@ -775,7 +769,7 @@ func (d *Accessor) modifyAffiliationTx(tx *sqlx.Tx, args ...interface{}) (interf
 		}
 	}
 
-	allNewAffs := []AffiliationRecord{}
+	allNewAffs := []db.AffiliationRecord{}
 	err = tx.Select(&allNewAffs, tx.Rebind("Select * FROM affiliations where (name LIKE ?) OR (name = ?)"), newAffiliation+".%", newAffiliation)
 	if err != nil {
 		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "Failed to get affiliation tree for '%s': %s", newAffiliation, err)
@@ -812,11 +806,11 @@ func (d *Accessor) doTransaction(doit func(tx *sqlx.Tx, args ...interface{}) (in
 }
 
 // Returns the identities and affiliations that were modified
-func (d *Accessor) getResult(ids []dbutil.UserRecord, affs []AffiliationRecord) *spi.DbTxResult {
+func (d *Accessor) getResult(ids []cadbuser.Record, affs []db.AffiliationRecord) *user.DbTxResult {
 	// Collect all the identities that were modified
-	identities := []spi.User{}
+	identities := []user.User{}
 	for _, id := range ids {
-		identities = append(identities, dbutil.NewDBUser(&id, d.db))
+		identities = append(identities, cadbuser.New(&id, d.db))
 	}
 
 	// Collect the name of all affiliations that were modified
@@ -826,20 +820,8 @@ func (d *Accessor) getResult(ids []dbutil.UserRecord, affs []AffiliationRecord) 
 		affiliations = append(affiliations, newAff)
 	}
 
-	return &spi.DbTxResult{
+	return &user.DbTxResult{
 		Affiliations: affiliations,
 		Identities:   identities,
 	}
-}
-
-func getError(err error, getType string) error {
-	if err.Error() == "sql: no rows in result set" {
-		return caerrors.NewHTTPErr(404, caerrors.ErrDBGet, "Failed to get %s: %s", getType, err)
-	}
-	return caerrors.NewHTTPErr(504, caerrors.ErrConnectingDB, "Failed to process database request: %s", err)
-}
-
-// IsGetError returns true of if the error is for is a database get error (not found)
-func IsGetError(err error) bool {
-	return strings.Contains(caerrors.Print(err), strconv.Itoa(caerrors.ErrDBGet))
 }

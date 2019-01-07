@@ -13,7 +13,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/jmoiron/sqlx"
@@ -65,7 +65,7 @@ type RevocationAuthorityInfo struct {
 type revocationAuthority struct {
 	issuer     MyIssuer
 	key        RevocationKey
-	db         dbutil.FabricCADB
+	db         db.FabricCADB
 	currentCRI *idemix.CredentialRevocationInformation
 }
 
@@ -271,7 +271,7 @@ func (ra *revocationAuthority) getNextRevocationHandle() (int, error) {
 	return nextHandle, nil
 }
 
-func (ra *revocationAuthority) getNextRevocationHandleTx(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
 	var err error
 
 	// Get the latest revocation authority info from the database
@@ -309,7 +309,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx dbutil.FabricCATx, a
 	return nextHandle, nil
 }
 
-func doTransaction(db dbutil.FabricCADB, doit func(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
+func doTransaction(db db.FabricCADB, doit func(tx db.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
 	if db == nil {
 		return nil, errors.New("Failed to correctly setup database connection")
 	}

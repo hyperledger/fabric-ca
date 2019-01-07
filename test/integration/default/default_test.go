@@ -28,6 +28,7 @@ import (
 	"github.com/hyperledger/fabric-ca/cmd/fabric-ca-client/command"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -470,16 +471,19 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, srv *lib.Se
 	}
 
 	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	var record = new(lib.CertRecord)
-	record.ID = id
-	record.Serial = req.Serial
-	record.AKI = req.AKI
-	record.CALabel = req.CALabel
-	record.Status = req.Status
-	record.Reason = req.Reason
-	record.Expiry = req.Expiry.UTC()
-	record.RevokedAt = req.RevokedAt.UTC()
-	record.PEM = string(cert)
+	record := &db.CertRecord{
+		ID: id,
+		CertificateRecord: certdb.CertificateRecord{
+			Serial:    req.Serial,
+			AKI:       req.AKI,
+			CALabel:   req.CALabel,
+			Status:    req.Status,
+			Reason:    req.Reason,
+			Expiry:    req.Expiry.UTC(),
+			RevokedAt: req.RevokedAt.UTC(),
+			PEM:       string(cert),
+		},
+	}
 
 	db := srv.CA.GetDB()
 	res, err := db.NamedExec(`INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level)

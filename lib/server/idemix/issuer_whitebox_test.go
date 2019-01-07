@@ -12,7 +12,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +33,7 @@ func TestIssuer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
-	issuer := issuer{name: "ca1", homeDir: testdir, cfg: &Config{}, db: &dbutil.DB{}, idemixLib: NewLib()}
+	issuer := issuer{name: "ca1", homeDir: testdir, cfg: &Config{}, db: &db.DB{}, idemixLib: NewLib()}
 	assert.NotNil(t, issuer.DB(), "DB() should not return nil")
 	assert.NotNil(t, issuer.IdemixLib(), "GetIdemixLib() should not return nil")
 	assert.Equal(t, "ca1", issuer.Name())
@@ -80,7 +81,7 @@ func TestIssuerPublicKey(t *testing.T) {
 	issuer := issuer{name: "ca1",
 		homeDir:       testdir,
 		cfg:           &Config{IssuerPublicKeyfile: "IssuerPublicKey", IssuerSecretKeyfile: "IssuerSecretKey"},
-		db:            &dbutil.DB{},
+		db:            &db.DB{},
 		idemixLib:     NewLib(),
 		isInitialized: true,
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 )
 
@@ -142,7 +143,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 			}
 		}
 
-		var recs []CertRecord
+		var recs []db.CertRecord
 		recs, err = certDBAccessor.RevokeCertificatesByID(req.Name, reason)
 		if err != nil {
 			return nil, caerrors.NewHTTPErr(500, caerrors.ErrNoCertsRevoked, "Failed to revoke certificates for '%s': %s",

@@ -14,6 +14,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -121,7 +122,7 @@ func getCertificates(ctx ServerRequestContext, req *certificaterequest.Impl) err
 	}
 
 	// Execute DB query
-	rows, err := ctx.GetCertificates(req, GetUserAffiliation(caller))
+	rows, err := ctx.GetCertificates(req, cadbuser.GetAffiliation(caller))
 	if err != nil {
 		return err
 	}

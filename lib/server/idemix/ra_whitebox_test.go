@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +40,7 @@ func TestGetUnRevokedHandles(t *testing.T) {
 }
 
 func TestDoTransactionNilDB(t *testing.T) {
-	f := func(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+	f := func(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
 		return nil, nil
 	}
 	_, err := doTransaction(nil, f)

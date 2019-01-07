@@ -26,7 +26,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	cr "github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/jmoiron/sqlx"
@@ -37,7 +37,7 @@ import (
 type ServerRequestContext interface {
 	BasicAuthentication() (string, error)
 	TokenAuthentication() (string, error)
-	GetCaller() (spi.User, error)
+	GetCaller() (user.User, error)
 	HasRole(role string) error
 	ChunksToDeliver(string) (int, error)
 	GetReq() *http.Request
@@ -59,8 +59,8 @@ type serverRequestContextImpl struct {
 	ca             *CA
 	enrollmentID   string
 	enrollmentCert *x509.Certificate
-	ui             spi.User
-	caller         spi.User
+	ui             user.User
+	caller         user.User
 	body           struct {
 		read bool   // true after body is read
 		buf  []byte // the body itself
@@ -389,7 +389,7 @@ func (ctx *serverRequestContextImpl) ReadBodyBytes() ([]byte, error) {
 	return ctx.body.buf, nil
 }
 
-func (ctx *serverRequestContextImpl) GetUser(userName string) (spi.User, error) {
+func (ctx *serverRequestContextImpl) GetUser(userName string) (user.User, error) {
 	ca, err := ctx.getCA()
 	if err != nil {
 		return nil, err
@@ -410,7 +410,7 @@ func (ctx *serverRequestContextImpl) GetUser(userName string) (spi.User, error) 
 }
 
 // CanManageUser determines if the caller has the right type and affiliation to act on on a user
-func (ctx *serverRequestContextImpl) CanManageUser(user spi.User) error {
+func (ctx *serverRequestContextImpl) CanManageUser(user user.User) error {
 	userAff := strings.Join(user.GetAffiliationPath(), ".")
 	err := ctx.ContainsAffiliation(userAff)
 	if err != nil {
@@ -427,7 +427,7 @@ func (ctx *serverRequestContextImpl) CanManageUser(user spi.User) error {
 }
 
 // CanModifyUser determines if the modifications to the user are allowed
-func (ctx *serverRequestContextImpl) CanModifyUser(req *api.ModifyIdentityRequest, checkAff bool, checkType bool, checkAttrs bool, userToModify spi.User) error {
+func (ctx *serverRequestContextImpl) CanModifyUser(req *api.ModifyIdentityRequest, checkAff bool, checkType bool, checkAttrs bool, userToModify user.User) error {
 	if checkAff {
 		reqAff := req.Affiliation
 		log.Debugf("Checking if caller is authorized to change affiliation to '%s'", reqAff)
@@ -459,7 +459,7 @@ func (ctx *serverRequestContextImpl) CanModifyUser(req *api.ModifyIdentityReques
 }
 
 // GetCaller gets the user who is making this server request
-func (ctx *serverRequestContextImpl) GetCaller() (spi.User, error) {
+func (ctx *serverRequestContextImpl) GetCaller() (user.User, error) {
 	if ctx.caller != nil {
 		return ctx.caller, nil
 	}
@@ -500,7 +500,7 @@ func (ctx *serverRequestContextImpl) containsAffiliation(affiliation string) (bo
 		return false, err
 	}
 
-	callerAffiliationPath := GetUserAffiliation(caller)
+	callerAffiliationPath := user.GetAffiliation(caller)
 	log.Debugf("Checking to see if affiliation '%s' contains caller's affiliation '%s'", affiliation, callerAffiliationPath)
 
 	// If the caller has root affiliation return "true"
@@ -709,7 +709,7 @@ func (ctx *serverRequestContextImpl) ChunksToDeliver(envVar string) (int, error)
 }
 
 // Registry returns the registry for the ca
-func (ctx *serverRequestContextImpl) GetRegistry() spi.UserRegistry {
+func (ctx *serverRequestContextImpl) GetRegistry() user.Registry {
 	return ctx.ca.registry
 }
 

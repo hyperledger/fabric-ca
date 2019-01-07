@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ocsp"
@@ -46,7 +48,7 @@ func TestGetAllAffiliations(t *testing.T) {
 	getResp, err := admin.GetAllAffiliations("")
 	assert.NoError(t, err, "Failed to get all affiliations")
 
-	affiliations := []AffiliationRecord{}
+	affiliations := []db.AffiliationRecord{}
 	err = srv.CA.db.Select(&affiliations, srv.CA.db.Rebind("SELECT * FROM affiliations"))
 	if err != nil {
 		t.Error("Failed to get all affiliations in database")
@@ -427,7 +429,7 @@ func TestDynamicModifyAffiliation(t *testing.T) {
 	user, err := registry.GetUser("testuser1", nil)
 	util.FatalError(t, err, "Failed to get user")
 
-	userAff := GetUserAffiliation(user)
+	userAff := cadbuser.GetAffiliation(user)
 	assert.Equal(t, "org3", userAff)
 
 	assert.Equal(t, "org3", modifyResp.Name)

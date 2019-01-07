@@ -15,6 +15,10 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	"github.com/hyperledger/fabric-ca/lib/server/db/util"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/pkg/errors"
 )
@@ -99,7 +103,7 @@ func affiliationsStreamingHandler(ctx *serverRequestContextImpl) (interface{}, e
 }
 
 // processStreamingAffiliationRequest will process the configuration request
-func processStreamingAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
+func processStreamingAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller user.User) (interface{}, error) {
 	log.Debug("Processing affiliation configuration update request")
 
 	method := ctx.req.Method
@@ -114,7 +118,7 @@ func processStreamingAffiliationRequest(ctx *serverRequestContextImpl, caname st
 }
 
 // processRequest will process the configuration request
-func processAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
+func processAffiliationRequest(ctx *serverRequestContextImpl, caname string, caller user.User) (interface{}, error) {
 	log.Debug("Processing affiliation configuration update request")
 
 	method := ctx.req.Method
@@ -130,7 +134,7 @@ func processAffiliationRequest(ctx *serverRequestContextImpl, caname string, cal
 	}
 }
 
-func processGetAllAffiliationsRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func processGetAllAffiliationsRequest(ctx *serverRequestContextImpl, caller user.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET all affiliations request")
 
 	resp, err := getAffiliations(ctx, caller, caname)
@@ -141,7 +145,7 @@ func processGetAllAffiliationsRequest(ctx *serverRequestContextImpl, caller spi.
 	return resp, nil
 }
 
-func processGetAffiliationRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func processGetAffiliationRequest(ctx *serverRequestContextImpl, caller user.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Processing GET affiliation request")
 
 	affiliation, err := ctx.GetVar("affiliation")
@@ -157,12 +161,12 @@ func processGetAffiliationRequest(ctx *serverRequestContextImpl, caller spi.User
 	return resp, nil
 }
 
-func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname string) (*api.AffiliationResponse, error) {
+func getAffiliations(ctx *serverRequestContextImpl, caller user.User, caname string) (*api.AffiliationResponse, error) {
 	log.Debug("Requesting all affiliations that the caller is authorized view")
 	var err error
 
 	registry := ctx.ca.registry
-	callerAff := GetUserAffiliation(caller)
+	callerAff := cadbuser.GetAffiliation(caller)
 	rows, err := registry.GetAllAffiliations(callerAff)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "Failed to get all affiliations")
@@ -170,7 +174,7 @@ func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname stri
 
 	an := &affiliationNode{}
 	for rows.Next() {
-		var aff AffiliationRecord
+		var aff db.AffiliationRecord
 		err := rows.StructScan(&aff)
 		if err != nil {
 			return nil, caerrors.NewHTTPErr(500, caerrors.ErrGettingAffiliation, "Failed to get read row: %s", err)
@@ -193,7 +197,7 @@ func getAffiliations(ctx *serverRequestContextImpl, caller spi.User, caname stri
 	return resp, nil
 }
 
-func getAffiliation(ctx *serverRequestContextImpl, caller spi.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
+func getAffiliation(ctx *serverRequestContextImpl, caller user.User, requestedAffiliation, caname string) (*api.AffiliationResponse, error) {
 	log.Debugf("Requesting affiliation '%s'", requestedAffiliation)
 
 	registry := ctx.ca.registry
@@ -228,7 +232,7 @@ func processAffiliationDeleteRequest(ctx *serverRequestContextImpl, caname strin
 	}
 	log.Debugf("Request to remove affiliation '%s'", removeAffiliation)
 
-	callerAff := GetUserAffiliation(ctx.caller)
+	callerAff := cadbuser.GetAffiliation(ctx.caller)
 	if callerAff == removeAffiliation {
 		return nil, caerrors.NewAuthorizationErr(caerrors.ErrUpdateConfigRemoveAff, "Can't remove affiliation '%s' because the caller is associated with this affiliation", removeAffiliation)
 	}
@@ -281,7 +285,7 @@ func processAffiliationPostRequest(ctx *serverRequestContextImpl, caname string)
 
 	registry := ctx.ca.registry
 	result, err := registry.GetAffiliation(addAffiliation)
-	if err != nil && !IsGetError(err) {
+	if err != nil && !util.IsGetError(err) {
 		return nil, err
 	}
 	if result != nil {
@@ -403,7 +407,7 @@ func processAffiliationPutRequest(ctx *serverRequestContextImpl, caname string) 
 	return resp, nil
 }
 
-func getResponse(result *spi.DbTxResult, caname string) (*api.AffiliationResponse, error) {
+func getResponse(result *user.DbTxResult, caname string) (*api.AffiliationResponse, error) {
 	resp := &api.AffiliationResponse{CAName: caname}
 	// Get all root affiliation names from the result
 	rootNames := getRootAffiliationNames(result.Affiliations)
@@ -443,7 +447,7 @@ func getRootAffiliationNames(affiliations []spi.Affiliation) []string {
 // Fill 'info' with affiliation info associated with affiliation 'name' hierarchically.
 // Use 'affiliations' to find child affiliations for this affiliation, and
 // 'identities' to find identities associated with this affiliation.
-func fillAffiliationInfo(info *api.AffiliationInfo, name string, result *spi.DbTxResult, affiliations []spi.Affiliation) error {
+func fillAffiliationInfo(info *api.AffiliationInfo, name string, result *user.DbTxResult, affiliations []spi.Affiliation) error {
 	info.Name = name
 	// Add identities which have this affiliation
 	identities := []api.IdentityInfo{}
@@ -506,7 +510,7 @@ func isChildAffiliation(name, child string) bool {
 	return true
 }
 
-func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
+func getIDInfo(user user.User) (*api.IdentityInfo, error) {
 	allAttributes, err := user.GetAttributes(nil)
 	if err != nil {
 		return nil, err
@@ -514,7 +518,7 @@ func getIDInfo(user spi.User) (*api.IdentityInfo, error) {
 	return &api.IdentityInfo{
 		ID:             user.GetName(),
 		Type:           user.GetType(),
-		Affiliation:    GetUserAffiliation(user),
+		Affiliation:    cadbuser.GetAffiliation(user),
 		Attributes:     allAttributes,
 		MaxEnrollments: user.GetMaxEnrollments(),
 	}, nil

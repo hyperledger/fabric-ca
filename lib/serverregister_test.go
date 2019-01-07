@@ -14,6 +14,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/mocks"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -521,7 +522,7 @@ func TestAffiliationAndTypeCheck(t *testing.T) {
 	assert.NoError(t, err, "Failed to get user")
 
 	assert.Equal(t, "user", user.GetType(), "Failed to set correct default type for a registering user")
-	assert.Equal(t, "org2", GetUserAffiliation(user), "Failed to set correct default affiliation for a registering userr")
+	assert.Equal(t, "org2", cadbuser.GetAffiliation(user), "Failed to set correct default affiliation for a registering userr")
 
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to start server")

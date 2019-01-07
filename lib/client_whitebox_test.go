@@ -31,7 +31,7 @@ import (
 
 const (
 	whitePort            = 7058
-	user                 = "admin"
+	username             = "admin"
 	pass                 = "adminpw"
 	serversDir           = "testservers"
 	testTLSClientAuthDir = "testTLSClientAuthDir"
@@ -91,7 +91,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 		HomeDir: path.Join(testTLSClientAuthDir, "client"),
 	}
 
-	eresp, err := client.Enroll(&api.EnrollmentRequest{Name: user, Secret: pass})
+	eresp, err := client.Enroll(&api.EnrollmentRequest{Name: username, Secret: pass})
 	if err != nil {
 		server.Stop()
 		t.Fatalf("Failed to enroll admin: %s", err)
@@ -357,7 +357,7 @@ func testMasqueradeReenroll(t *testing.T, c *Client, id *Identity) {
 
 func getEnrollmentPayload(t *testing.T, c *Client) ([]byte, error) {
 	req := &api.EnrollmentRequest{
-		Name:   user,
+		Name:   username,
 		Secret: pass,
 	}
 
@@ -443,7 +443,7 @@ func createServer(port int, home, parentURL string, maxEnroll int) (*Server, err
 	}
 	// The bootstrap user's affiliation is the empty string, which
 	// means the user is at the affiliation root
-	err := srv.RegisterBootstrapUser(user, pass, "")
+	err := srv.RegisterBootstrapUser(username, pass, "")
 	if err != nil {
 		return nil, err
 	}

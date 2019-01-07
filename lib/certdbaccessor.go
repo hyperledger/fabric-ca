@@ -15,8 +15,10 @@ import (
 	"github.com/cloudflare/cfssl/certdb"
 	certsql "github.com/cloudflare/cfssl/certdb/sql"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	cr "github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/kisielk/sqlstruct"
@@ -46,27 +48,20 @@ DELETE FROM certificates
 		WHERE (ID = ?);`
 )
 
-// CertRecord extends CFSSL CertificateRecord by adding an enrollment ID to the record
-type CertRecord struct {
-	ID    string `db:"id"`
-	Level int    `db:"level"`
-	certdb.CertificateRecord
-}
-
 // CertDBAccessor implements certdb.Accessor interface.
 type CertDBAccessor struct {
 	level    int
 	accessor certdb.Accessor
-	db       *dbutil.DB
+	db       cadb.FabricCADB
 }
 
 // NewCertDBAccessor returns a new Accessor.
-func NewCertDBAccessor(db *dbutil.DB, level int) *CertDBAccessor {
-	cffslAcc := new(CertDBAccessor)
-	cffslAcc.db = db
-	cffslAcc.accessor = certsql.NewAccessor(db.DB)
-	cffslAcc.level = level
-	return cffslAcc
+func NewCertDBAccessor(db cadb.FabricCADB, level int) *CertDBAccessor {
+	return &CertDBAccessor{
+		db:       db,
+		accessor: certsql.NewAccessor(db.(*cadb.DB).DB.(*sqlx.DB)),
+		level:    level,
+	}
 }
 
 func (d *CertDBAccessor) checkDB() error {
@@ -77,7 +72,7 @@ func (d *CertDBAccessor) checkDB() error {
 }
 
 // SetDB changes the underlying sql.DB object Accessor is manipulating.
-func (d *CertDBAccessor) SetDB(db *dbutil.DB) {
+func (d *CertDBAccessor) SetDB(db *db.DB) {
 	d.db = db
 }
 
@@ -103,17 +98,20 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 
 	log.Debugf("Saved serial number as hex %s", serial)
 
-	var record = new(CertRecord)
-	record.ID = id
-	record.Serial = serial
-	record.AKI = aki
-	record.CALabel = cr.CALabel
-	record.Status = cr.Status
-	record.Reason = cr.Reason
-	record.Expiry = cr.Expiry.UTC()
-	record.RevokedAt = cr.RevokedAt.UTC()
-	record.PEM = cr.PEM
-	record.Level = d.level
+	record := &db.CertRecord{
+		ID:    id,
+		Level: d.level,
+		CertificateRecord: certdb.CertificateRecord{
+			Serial:    serial,
+			AKI:       aki,
+			CALabel:   cr.CALabel,
+			Status:    cr.Status,
+			Reason:    cr.Reason,
+			Expiry:    cr.Expiry.UTC(),
+			RevokedAt: cr.RevokedAt.UTC(),
+			PEM:       cr.PEM,
+		},
+	}
 
 	res, err := d.db.NamedExec(insertSQL, record)
 	if err != nil {
@@ -135,14 +133,14 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 }
 
 // GetCertificatesByID gets a CertificateRecord indexed by id.
-func (d *CertDBAccessor) GetCertificatesByID(id string) (crs []CertRecord, err error) {
+func (d *CertDBAccessor) GetCertificatesByID(id string) (crs []db.CertRecord, err error) {
 	log.Debugf("DB: Get certificate by ID (%s)", id)
 	err = d.checkDB()
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectSQLbyID), sqlstruct.Columns(CertRecord{})), id)
+	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectSQLbyID), sqlstruct.Columns(db.CertRecord{})), id)
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +153,14 @@ func (d *CertDBAccessor) GetCertificate(serial, aki string) (crs []certdb.Certif
 	log.Debugf("DB: Get certificate by serial (%s) and aki (%s)", serial, aki)
 	crs, err = d.accessor.GetCertificate(serial, aki)
 	if err != nil {
-		return nil, getError(err, "certificate")
+		return nil, dbutil.GetError(err, "certificate")
 	}
 
 	return crs, nil
 }
 
 // GetCertificateWithID gets a CertificateRecord indexed by serial and returns user too.
-func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs CertRecord, err error) {
+func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs db.CertRecord, err error) {
 	log.Debugf("DB: Get certificate by serial (%s) and aki (%s)", serial, aki)
 
 	err = d.checkDB()
@@ -170,9 +168,9 @@ func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs CertRecor
 		return crs, err
 	}
 
-	err = d.db.Get(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(CertRecord{})), serial, aki)
+	err = d.db.Get(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(db.CertRecord{})), serial, aki)
 	if err != nil {
-		return crs, getError(err, "Certificate")
+		return crs, dbutil.GetError(err, "Certificate")
 	}
 
 	return crs, nil
@@ -212,7 +210,7 @@ func (d *CertDBAccessor) GetRevokedCertificates(expiredAfter, expiredBefore, rev
 	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(revokedSQL),
 		sqlstruct.Columns(certdb.CertificateRecord{})), args...)
 	if err != nil {
-		return crs, getError(err, "Certificate")
+		return crs, dbutil.GetError(err, "Certificate")
 	}
 	return crs, nil
 }
@@ -236,7 +234,7 @@ func (d *CertDBAccessor) GetRevokedAndUnexpiredCertificatesByLabel(label string)
 }
 
 // RevokeCertificatesByID updates all certificates for a given ID and marks them revoked.
-func (d *CertDBAccessor) RevokeCertificatesByID(id string, reasonCode int) (crs []CertRecord, err error) {
+func (d *CertDBAccessor) RevokeCertificatesByID(id string, reasonCode int) (crs []db.CertRecord, err error) {
 	log.Debugf("DB: Revoke certificate by ID (%s)", id)
 
 	err = d.checkDB()
@@ -244,7 +242,7 @@ func (d *CertDBAccessor) RevokeCertificatesByID(id string, reasonCode int) (crs 
 		return nil, err
 	}
 
-	var record = new(CertRecord)
+	var record = new(db.CertRecord)
 	record.ID = id
 	record.Reason = reasonCode
 
@@ -393,7 +391,7 @@ func (d *CertDBAccessor) GetCertificates(req cr.CertificateRequest, callersAffil
 	log.Debugf("Executing get certificates query: %s, with args: %s", getCertificateSQL, args)
 	rows, err := d.db.Queryx(d.db.Rebind(getCertificateSQL), args...)
 	if err != nil {
-		return nil, getError(err, "Certificate")
+		return nil, dbutil.GetError(err, "Certificate")
 	}
 
 	return rows, nil

@@ -29,9 +29,11 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	"github.com/hyperledger/fabric-ca/lib/server/db/mysql"
 	"github.com/hyperledger/fabric-ca/lib/server/operations"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -156,7 +158,7 @@ func TestSRVRootServer(t *testing.T) {
 	var err error
 	var admin, user1 *Identity
 	var rr *api.RegistrationResponse
-	var recs []CertRecord
+	var recs []db.CertRecord
 
 	// Start the server
 	server := TestGetRootServer(t)
@@ -2030,7 +2032,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled: true,
 	}
 	csp := util.GetDefaultBCCSP()
-	_, err := dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err := getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No trusted root certificates for TLS were provided")
 
@@ -2039,7 +2041,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"doesnotexit.pem"},
 	}
-	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 
@@ -2048,7 +2050,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"../testdata/empty.json"},
 	}
-	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to process certificate from file")
 
@@ -2068,7 +2070,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{tmpFile},
 	}
-	_, err = dbutil.NewUserRegistryMySQL(datasource, tlsConfig, csp)
+	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
 	assert.Error(t, err)
 	if err != nil {
 		t.Logf("%s", err.Error())
@@ -2336,7 +2338,7 @@ func TestRegistrationAffiliation(t *testing.T) {
 	user, err := db.GetUser("testuser", nil)
 	assert.NoError(t, err)
 
-	userAff := GetUserAffiliation(user)
+	userAff := cadbuser.GetAffiliation(user)
 	if userAff != "" {
 		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", userAff)
 	}
@@ -2351,7 +2353,7 @@ func TestRegistrationAffiliation(t *testing.T) {
 	user, err = db.GetUser("testuser2", nil)
 	assert.NoError(t, err)
 
-	userAff = GetUserAffiliation(user)
+	userAff = cadbuser.GetAffiliation(user)
 	if userAff != "" {
 		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected '' got %s", userAff)
 	}
@@ -2375,7 +2377,7 @@ func TestRegistrationAffiliation(t *testing.T) {
 	user, err = db.GetUser("testuser3", nil)
 	assert.NoError(t, err)
 
-	userAff = GetUserAffiliation(user)
+	userAff = cadbuser.GetAffiliation(user)
 	if userAff != "hyperledger" {
 		t.Errorf("Incorrect affiliation set for user being registered when no affiliation was specified, expected 'hyperledger' got %s", userAff)
 	}
@@ -2958,4 +2960,16 @@ func (dr *DatagramReader) Close() error {
 		}
 	})
 	return dr.err
+}
+
+func getMysqlDb(m *mysql.Mysql) (*db.DB, error) {
+	err := m.Connect()
+	if err != nil {
+		return nil, err
+	}
+	testdb, err := m.Create()
+	if err != nil {
+		return nil, err
+	}
+	return testdb, nil
 }
