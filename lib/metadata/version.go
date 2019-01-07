@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	db "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/pkg/errors"
 )
 
@@ -56,37 +56,37 @@ func GetVersion() string {
 var versionToLevelsMapping = []versionLevels{
 	{
 		version: "0",
-		levels:  &dbutil.Levels{Identity: 0, Affiliation: 0, Certificate: 0},
+		levels:  &db.Levels{Identity: 0, Affiliation: 0, Certificate: 0},
 	},
 	{
 		version: "1.1.0",
-		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1},
+		levels:  &db.Levels{Identity: 1, Affiliation: 1, Certificate: 1},
 	},
 	{
 		version: "1.2.0",
-		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+		levels:  &db.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 	{
 		version: "1.3.0",
-		levels:  &dbutil.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+		levels:  &db.Levels{Identity: 1, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 	{
 		version: "1.3.1",
-		levels:  &dbutil.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+		levels:  &db.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 	{
 		version: "1.4.0",
-		levels:  &dbutil.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
+		levels:  &db.Levels{Identity: 2, Affiliation: 1, Certificate: 1, Credential: 1, RAInfo: 1, Nonce: 1},
 	},
 }
 
 type versionLevels struct {
 	version string
-	levels  *dbutil.Levels
+	levels  *db.Levels
 }
 
 // GetLevels returns the levels for a particular version
-func GetLevels(version string) (*dbutil.Levels, error) {
+func GetLevels(version string) (*db.Levels, error) {
 	for i := len(versionToLevelsMapping) - 1; i >= 0; i-- {
 		vl := versionToLevelsMapping[i]
 		cmp, err := CmpVersion(vl.version, version)

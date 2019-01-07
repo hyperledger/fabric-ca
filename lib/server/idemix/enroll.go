@@ -15,7 +15,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
@@ -182,7 +182,7 @@ func (h *EnrollRequestHandler) GenerateNonce() (*fp256bn.BIG, error) {
 }
 
 // GetAttributeValues returns attribute values of the caller of Idemix enroll request
-func (h *EnrollRequestHandler) GetAttributeValues(caller spi.User, ipk *idemix.IssuerPublicKey,
+func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.IssuerPublicKey,
 	rh *fp256bn.BIG) (map[string]interface{}, []*fp256bn.BIG, error) {
 	rc := []*fp256bn.BIG{}
 	attrMap := make(map[string]interface{})

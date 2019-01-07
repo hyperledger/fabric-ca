@@ -17,8 +17,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -92,7 +91,7 @@ func identitiesHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 }
 
 // processStreamingRequest will process the configuration request
-func processStreamingRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
+func processStreamingRequest(ctx *serverRequestContextImpl, caname string, caller user.User) (interface{}, error) {
 	log.Debug("Processing identity configuration update request")
 
 	method := ctx.req.Method
@@ -107,7 +106,7 @@ func processStreamingRequest(ctx *serverRequestContextImpl, caname string, calle
 }
 
 // processRequest will process the configuration request
-func processRequest(ctx *serverRequestContextImpl, caname string, caller spi.User) (interface{}, error) {
+func processRequest(ctx *serverRequestContextImpl, caname string, caller user.User) (interface{}, error) {
 	log.Debug("Processing identity configuration update request")
 
 	method := ctx.req.Method
@@ -123,7 +122,7 @@ func processRequest(ctx *serverRequestContextImpl, caname string, caller spi.Use
 	}
 }
 
-func processGetAllIDsRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) error {
+func processGetAllIDsRequest(ctx *serverRequestContextImpl, caller user.User, caname string) error {
 	log.Debug("Processing GET all IDs request")
 
 	err := getIDs(ctx, caller, caname)
@@ -133,7 +132,7 @@ func processGetAllIDsRequest(ctx *serverRequestContextImpl, caller spi.User, can
 	return nil
 }
 
-func processGetIDRequest(ctx *serverRequestContextImpl, caller spi.User, caname string) (interface{}, error) {
+func processGetIDRequest(ctx *serverRequestContextImpl, caller user.User, caname string) (interface{}, error) {
 	log.Debug("Processing GET ID request")
 
 	id, err := ctx.GetVar("id")
@@ -149,7 +148,7 @@ func processGetIDRequest(ctx *serverRequestContextImpl, caller spi.User, caname 
 	return resp, nil
 }
 
-func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error {
+func getIDs(ctx *serverRequestContextImpl, caller user.User, caname string) error {
 	log.Debug("Requesting all identities that the caller is authorized view")
 	var err error
 
@@ -165,7 +164,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	}
 
 	// Getting all identities of appropriate affiliation and type
-	callerAff := GetUserAffiliation(caller)
+	callerAff := user.GetAffiliation(caller)
 	registry := ctx.ca.registry
 	rows, err := registry.GetFilteredUsers(callerAff, callerTypes)
 	if err != nil {
@@ -192,7 +191,7 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	rowNumber := 0
 	for rows.Next() {
 		rowNumber++
-		var id dbutil.UserRecord
+		var id user.Record
 		err := rows.StructScan(&id)
 		if err != nil {
 			return caerrors.NewHTTPErr(500, caerrors.ErrGettingUser, "Failed to get read row: %s", err)
@@ -232,31 +231,31 @@ func getIDs(ctx *serverRequestContextImpl, caller spi.User, caname string) error
 	return nil
 }
 
-func getID(ctx *serverRequestContextImpl, caller spi.User, id, caname string) (*api.GetIDResponse, error) {
+func getID(ctx *serverRequestContextImpl, caller user.User, id, caname string) (*api.GetIDResponse, error) {
 	log.Debugf("Requesting identity '%s'", id)
 
 	registry := ctx.ca.registry
-	user, err := registry.GetUser(id, nil)
+	caUser, err := registry.GetUser(id, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ctx.CanManageUser(user)
+	err = ctx.CanManageUser(caUser)
 	if err != nil {
 		return nil, err
 	}
 
-	allAttributes, err := user.GetAttributes(nil)
+	allAttributes, err := caUser.GetAttributes(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &api.GetIDResponse{
-		ID:             user.GetName(),
-		Type:           user.GetType(),
-		Affiliation:    GetUserAffiliation(user),
+		ID:             caUser.GetName(),
+		Type:           caUser.GetType(),
+		Affiliation:    user.GetAffiliation(caUser),
 		Attributes:     allAttributes,
-		MaxEnrollments: user.GetMaxEnrollments(),
+		MaxEnrollments: caUser.GetMaxEnrollments(),
 		CAName:         caname,
 	}
 
@@ -434,9 +433,9 @@ func processPutRequest(ctx *serverRequestContextImpl, caname string) (*api.Ident
 
 // Function takes the modification request and fills in missing information with the current user information
 // and parses the modification request to generate the correct input to be stored in the database
-func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo, bool) {
-	modifyUserInfo := user.(*dbutil.User).UserInfo
-	userPass := user.(*dbutil.User).GetPass()
+func getModifyReq(caUser user.User, req *api.ModifyIdentityRequest) (*user.Info, bool) {
+	modifyUserInfo := caUser.(*user.Impl).Info
+	userPass := caUser.(*user.Impl).GetPass()
 	setPass := false
 
 	if req.Secret != "" {
@@ -470,7 +469,7 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 
 	// Update existing attribute, or add attribute if it does not already exist
 	if len(reqAttrs) != 0 {
-		modifyUserInfo.Attributes = dbutil.GetNewAttributes(modifyUserInfo.Attributes, reqAttrs)
+		modifyUserInfo.Attributes = user.GetNewAttributes(modifyUserInfo.Attributes, reqAttrs)
 	}
 	return &modifyUserInfo, setPass
 }
@@ -480,17 +479,17 @@ func getModifyReq(user spi.User, req *api.ModifyIdentityRequest) (*spi.UserInfo,
 // caller is permitted to see the secret.  For example,
 // when adding a new identity and a secret is automatically
 // generated, it must be returned to the registrar.
-func getIDResp(user spi.User, secret, caname string) (*api.IdentityResponse, error) {
-	allAttributes, err := user.GetAttributes(nil)
+func getIDResp(caUser user.User, secret, caname string) (*api.IdentityResponse, error) {
+	allAttributes, err := caUser.GetAttributes(nil)
 	if err != nil {
 		return nil, err
 	}
 	return &api.IdentityResponse{
-		ID:             user.GetName(),
-		Type:           user.GetType(),
-		Affiliation:    GetUserAffiliation(user),
+		ID:             caUser.GetName(),
+		Type:           caUser.GetType(),
+		Affiliation:    user.GetAffiliation(caUser),
 		Attributes:     allAttributes,
-		MaxEnrollments: user.GetMaxEnrollments(),
+		MaxEnrollments: caUser.GetMaxEnrollments(),
 		Secret:         secret,
 		CAName:         caname,
 	}, nil

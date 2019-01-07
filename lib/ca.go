@@ -33,11 +33,18 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/common"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/ldap"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
+	cadbfactory "github.com/hyperledger/fabric-ca/lib/server/db/factory"
+	"github.com/hyperledger/fabric-ca/lib/server/db/mysql"
+	"github.com/hyperledger/fabric-ca/lib/server/db/postgres"
+	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	idemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/ldap"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
@@ -73,13 +80,13 @@ type CA struct {
 	// The database handle used to store certificates and optionally
 	// the user registry information, unless LDAP it enabled for the
 	// user registry function.
-	db *dbutil.DB
+	db db.FabricCADB
 	// The crypto service provider (BCCSP)
 	csp bccsp.BCCSP
 	// The certificate DB accessor
 	certDBAccessor *CertDBAccessor
 	// The user registry
-	registry spi.UserRegistry
+	registry user.Registry
 	// The signer used for enrollment
 	enrollSigner signer.Signer
 	// Idemix issuer
@@ -566,50 +573,43 @@ func (ca *CA) initDB() error {
 		return nil
 	}
 
-	db := &ca.Config.DB
+	dbCfg := &ca.Config.DB
 	dbError := false
 	var err error
 
-	if db.Type == "" || db.Type == defaultDatabaseType {
+	if dbCfg.Type == "" || dbCfg.Type == defaultDatabaseType {
 
-		db.Type = defaultDatabaseType
+		dbCfg.Type = defaultDatabaseType
 
-		if db.Datasource == "" {
-			db.Datasource = "fabric-ca-server.db"
+		if dbCfg.Datasource == "" {
+			dbCfg.Datasource = "fabric-ca-server.db"
 		}
 
-		db.Datasource, err = util.MakeFileAbs(db.Datasource, ca.HomeDir)
+		dbCfg.Datasource, err = util.MakeFileAbs(dbCfg.Datasource, ca.HomeDir)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Strip out user:pass from datasource for logging
-	ds := db.Datasource
+	ds := dbCfg.Datasource
 	ds = dbutil.MaskDBCred(ds)
 
-	log.Debugf("Initializing '%s' database at '%s'", db.Type, ds)
-
-	switch db.Type {
-	case defaultDatabaseType:
-		ca.db, err = dbutil.NewUserRegistrySQLLite3(db.Datasource)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to create user registry for SQLite")
-		}
-	case "postgres":
-		ca.db, err = dbutil.NewUserRegistryPostgres(db.Datasource, &db.TLS)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to create user registry for PostgreSQL")
-		}
-	case "mysql":
-		ca.db, err = dbutil.NewUserRegistryMySQL(db.Datasource, &db.TLS, ca.csp)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to create user registry for MySQL")
-		}
-	default:
-		return errors.Errorf("Invalid db.type in config file: '%s'; must be 'sqlite3', 'postgres', or 'mysql'", db.Type)
+	log.Debugf("Initializing '%s' database at '%s'", dbCfg.Type, ds)
+	caDB, err := cadbfactory.New(dbCfg.Type, dbCfg.Datasource, &dbCfg.TLS, ca.csp)
+	if err != nil {
+		return err
+	}
+	err = caDB.Connect()
+	if err != nil {
+		return err
+	}
+	sqlxdb, err := caDB.Create()
+	if err != nil {
+		return err
 	}
 
+	ca.db = sqlxdb
 	// Set the certificate DB accessor
 	ca.certDBAccessor = NewCertDBAccessor(ca.db, ca.levels.Certificate)
 
@@ -630,7 +630,15 @@ func (ca *CA) initDB() error {
 	}
 
 	// Migrate the database
-	err = dbutil.Migrate(ca.db, ca.server.levels)
+	curLevels, err := cadb.CurrentDBLevels(ca.db)
+	if err != nil {
+		return errors.Wrap(err, "Failed to current ca levels")
+	}
+	migrator, err := getMigrator(ca.db.DriverName(), ca.db.BeginTx(), curLevels, ca.server.levels)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get migrator")
+	}
+	err = db.Migrate(migrator, curLevels, ca.server.levels)
 	if err != nil {
 		return errors.Wrap(err, "Failed to migrate database")
 	}
@@ -654,11 +662,11 @@ func (ca *CA) initDB() error {
 	}
 
 	if dbError {
-		return errors.Errorf("Failed to initialize %s database at %s ", db.Type, ds)
+		return errors.Errorf("Failed to initialize %s database at %s ", dbCfg.Type, ds)
 	}
 
-	ca.db.IsDBInitialized = true
-	log.Infof("Initialized %s database at %s", db.Type, ds)
+	ca.db.SetDBInitialized(true)
+	log.Infof("Initialized %s database at %s", dbCfg.Type, ds)
 
 	return nil
 }
@@ -694,9 +702,7 @@ func (ca *CA) initUserRegistry() error {
 	}
 
 	// Use the DB for the user registry
-	dbAccessor := new(Accessor)
-	dbAccessor.SetDB(ca.db)
-	ca.registry = dbAccessor
+	ca.registry = NewDBAccessor(ca.db)
 	log.Debug("Initialized DB identity registry")
 	return nil
 }
@@ -829,7 +835,7 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 		return err
 	}
 
-	rec := spi.UserInfo{
+	rec := cadbuser.Info{
 		Name:           id.Name,
 		Pass:           id.Pass,
 		Type:           id.Type,
@@ -856,12 +862,12 @@ func (ca *CA) CertDBAccessor() *CertDBAccessor {
 }
 
 // DBAccessor returns the registry DB accessor for server
-func (ca *CA) DBAccessor() spi.UserRegistry {
+func (ca *CA) DBAccessor() user.Registry {
 	return ca.registry
 }
 
 // GetDB returns pointer to database
-func (ca *CA) GetDB() *dbutil.DB {
+func (ca *CA) GetDB() db.FabricCADB {
 	return ca.db
 }
 
@@ -972,7 +978,7 @@ func (ca *CA) getUserAffiliation(username string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	aff := GetUserAffiliation(user)
+	aff := cadbuser.GetAffiliation(user)
 	log.Debugf("getUserAffiliation identity=%s, aff=%s", username, aff)
 	return aff, nil
 }
@@ -1203,7 +1209,7 @@ func (ca *CA) checkConfigLevels() error {
 
 func (ca *CA) checkDBLevels() error {
 	// Check database table levels against server levels to make sure that a database levels are compatible with server
-	levels, err := dbutil.CurrentDBLevels(ca.db)
+	levels, err := db.CurrentDBLevels(ca.db)
 	if err != nil {
 		return err
 	}
@@ -1265,4 +1271,19 @@ type wallClock struct{}
 
 func (wc wallClock) Now() time.Time {
 	return time.Now()
+}
+
+func getMigrator(driverName string, tx cadb.FabricCATx, curLevels, srvLevels *dbutil.Levels) (cadb.Migrator, error) {
+	var migrator cadb.Migrator
+	switch driverName {
+	case "sqlite3":
+		migrator = sqlite.NewMigrator(tx, curLevels, srvLevels)
+	case "mysql":
+		migrator = mysql.NewMigrator(tx, curLevels, srvLevels)
+	case "postgres":
+		migrator = postgres.NewMigrator(tx, curLevels, srvLevels)
+	default:
+		return nil, errors.Errorf("Unsupported database type: %s", driverName)
+	}
+	return migrator, nil
 }

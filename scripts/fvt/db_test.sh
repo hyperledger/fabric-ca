@@ -285,7 +285,7 @@ $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 | tee $SERVERLOG 2>&1
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
 
 # Enroll with a server that does not have a DB initialized, should expect to get back error
-enroll a b 2>&1 | grep "Failed to create user registry for PostgreSQL"
+enroll a b 2>&1 | grep "Failed to connect to Postgres database"
 if [ $? != 0 ]; then
     ErrorMsg "Enroll request should have failed due to uninitialized postgres database"
 fi
@@ -314,7 +314,7 @@ $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 | tee $SERVERLOG 2>&1
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
 
 # Enroll with a server that does not have a DB initialized, should expect to get back error
-enroll a b 2>&1 | grep "Failed to create user registry for MySQL"
+enroll a b 2>&1 | grep "Failed to connect to MySQL database"
 if [ $? != 0 ]; then
     ErrorMsg "Enroll request should have failed due to uninitialized mysql database"
 fi

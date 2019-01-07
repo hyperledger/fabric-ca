@@ -12,7 +12,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
@@ -152,7 +152,7 @@ func (nm *nonceManager) sweep(curTime time.Time) error {
 }
 
 // Gets the specified nonce from DB and removes it from the DB
-func (nm *nonceManager) getNonceFromDB(tx dbutil.FabricCATx, args ...interface{}) (interface{}, error) {
+func (nm *nonceManager) getNonceFromDB(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
 	nonces := []Nonce{}
 	err := tx.Select(&nonces, tx.Rebind(SelectNonce), args...)
 	if err != nil {

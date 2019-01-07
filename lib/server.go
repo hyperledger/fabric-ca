@@ -31,8 +31,8 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	calog "github.com/hyperledger/fabric-ca/lib/common/log"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	cametrics "github.com/hyperledger/fabric-ca/lib/server/metrics"
 	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
@@ -50,8 +50,10 @@ const (
 	apiPathPrefix             = "/api/v1/"
 )
 
-// OperationsServer defines the contract required for an operations server
-type OperationsServer interface {
+//go:generate counterfeiter -o mocks/operations_server.go -fake-name OperationsServer . operationsServer
+
+// operationsServer defines the contract required for an operations server
+type operationsServer interface {
 	metrics.Provider
 	Start() error
 	Stop() error
@@ -70,10 +72,8 @@ type Server struct {
 	Config *ServerConfig
 	// Metrics are the metrics that the server tracks
 	Metrics cametrics.Metrics
-	// MetricsProvider is the configured metrics provider
-	MetricsProvider metrics.Provider
 	// Operations is responsible for the server's operation information
-	Operations OperationsServer
+	Operations operationsServer
 	// The server mux
 	mux *gmux.Router
 	// The current listener for this server
@@ -106,6 +106,9 @@ func (s *Server) Init(renew bool) (err error) {
 
 // init initializses the server leaving the DB open
 func (s *Server) init(renew bool) (err error) {
+	s.Config.Operations.Metrics = s.Config.Metrics
+	s.Operations = operations.NewSystem(s.Config.Operations)
+
 	serverVersion := metadata.GetVersion()
 	err = calog.SetLogLevel(s.Config.LogLevel, s.Config.Debug)
 	if err != nil {
@@ -139,9 +142,7 @@ func (s *Server) initMetrics() {
 	s.Metrics.APIDuration = metricsProvider.NewHistogram(cametrics.APIDurationOpts)
 }
 
-func (s *Server) startOperationsServer(options operations.Options) error {
-	s.Operations = operations.NewSystem(options)
-
+func (s *Server) startOperationsServer() error {
 	err := s.Operations.Start()
 	if err != nil {
 		return err
@@ -176,8 +177,7 @@ func (s *Server) Start() (err error) {
 	log.Debugf("%d CA instance(s) running on server", len(s.caMap))
 
 	// Start operations server
-	s.Config.Operations.Metrics = s.Config.Metrics
-	err = s.startOperationsServer(s.Config.Operations)
+	err = s.startOperationsServer()
 	if err != nil {
 		return err
 	}

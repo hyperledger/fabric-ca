@@ -20,9 +20,11 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	"github.com/hyperledger/fabric-ca/lib/mocks"
 	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/db"
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -40,7 +42,8 @@ func TestGetCertificatesDB(t *testing.T) {
 		Certificate: 1,
 	}
 	srv := &Server{
-		levels: level,
+		Operations: &mocks.OperationsServer{},
+		levels:     level,
 	}
 	ca, err := newCA("getCertDBTest/config.yaml", &CAConfig{}, srv, false)
 	util.FatalError(t, err, "Failed to get CA")
@@ -173,7 +176,7 @@ func populateCertificatesTable(t *testing.T, ca *CA) {
 	util.FatalError(t, err, "Failed to parse duration '+100h'")
 	futureTime := time.Now().Add(dur).UTC()
 
-	ca.registry.InsertUser(&spi.UserInfo{
+	ca.registry.InsertUser(&cadbuser.Info{
 		Name:        "testCertificate1",
 		Affiliation: "dept1",
 	})
@@ -185,7 +188,7 @@ func populateCertificatesTable(t *testing.T, ca *CA) {
 	}, "testCertificate1", ca)
 	util.FatalError(t, err, "Failed to insert certificate with serial/AKI")
 
-	ca.registry.InsertUser(&spi.UserInfo{
+	ca.registry.InsertUser(&cadbuser.Info{
 		Name:        "testCertificate2",
 		Affiliation: "dept1",
 	})
@@ -262,16 +265,19 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, ca *CA) err
 
 	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 
-	var record = new(CertRecord)
-	record.ID = id
-	record.Serial = req.Serial
-	record.AKI = req.AKI
-	record.CALabel = req.CALabel
-	record.Status = req.Status
-	record.Reason = req.Reason
-	record.Expiry = req.Expiry.UTC()
-	record.RevokedAt = req.RevokedAt.UTC()
-	record.PEM = string(cert)
+	var record = &db.CertRecord{
+		ID: id,
+		CertificateRecord: certdb.CertificateRecord{
+			Serial:    req.Serial,
+			AKI:       req.AKI,
+			CALabel:   req.CALabel,
+			Status:    req.Status,
+			Reason:    req.Reason,
+			Expiry:    req.Expiry.UTC(),
+			RevokedAt: req.RevokedAt.UTC(),
+			PEM:       string(cert),
+		},
+	}
 
 	db := ca.GetDB()
 	res, err := db.NamedExec(insertSQL, record)

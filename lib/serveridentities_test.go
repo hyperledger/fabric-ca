@@ -16,8 +16,8 @@ import (
 
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
+	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ocsp"
@@ -525,7 +525,7 @@ func TestDynamicModifyIdentity(t *testing.T) {
 	}
 }
 
-func modifyTypeAndAffiliation(t *testing.T, registry spi.UserRegistry, admin2, admin3 *Identity) {
+func modifyTypeAndAffiliation(t *testing.T, registry user.Registry, admin2, admin3 *Identity) {
 	modReq := &api.ModifyIdentityRequest{
 		ID: "testuser",
 	}
@@ -600,7 +600,7 @@ func modifyFixedValueAttrs(t *testing.T, admin *Identity) {
 	assert.Error(t, err, "Should have failed, caller is not allowed to register/modify 'hf.Type' attribute")
 }
 
-func modifyAttributes(t *testing.T, registry spi.UserRegistry, admin, admin3 *Identity) {
+func modifyAttributes(t *testing.T, registry user.Registry, admin, admin3 *Identity) {
 	modReq := &api.ModifyIdentityRequest{
 		ID: "testuser2",
 	}
@@ -724,7 +724,7 @@ func modifyAttributes(t *testing.T, registry spi.UserRegistry, admin, admin3 *Id
 	assert.Error(t, err, "Should have failed to get attribute 'foo', should have been deleted")
 }
 
-func modifySecretAndMaxEnroll(t *testing.T, registry spi.UserRegistry, admin *Identity) {
+func modifySecretAndMaxEnroll(t *testing.T, registry user.Registry, admin *Identity) {
 	modReq := &api.ModifyIdentityRequest{
 		ID: "testuser2",
 	}
@@ -737,12 +737,12 @@ func modifySecretAndMaxEnroll(t *testing.T, registry spi.UserRegistry, admin *Id
 	user, err := registry.GetUser("testuser2", nil)
 	assert.NoError(t, err, "Failed to get user 'testuser2'")
 
-	maxEnroll := user.(*dbutil.User).UserInfo.MaxEnrollments
+	maxEnroll := user.(*cadbuser.Impl).Info.MaxEnrollments
 	if maxEnroll != 0 {
 		t.Error("Failed to correctly modify max enrollments for user 'testuser2'")
 	}
 
-	userAff := GetUserAffiliation(user)
+	userAff := cadbuser.GetAffiliation(user)
 	if userAff != "org2" {
 		t.Errorf("Failed to correctly modify affiliation for user 'testuser2'")
 	}
@@ -755,7 +755,7 @@ func modifySecretAndMaxEnroll(t *testing.T, registry spi.UserRegistry, admin *Id
 	user, err = registry.GetUser("testuser2", nil)
 	assert.NoError(t, err, "Failed to get user 'testuser2'")
 
-	maxEnroll = user.(*dbutil.User).UserInfo.MaxEnrollments
+	maxEnroll = user.(*cadbuser.Impl).Info.MaxEnrollments
 	if maxEnroll != 5 {
 		t.Error("Failed to correctly modify max enrollments for user 'testuser2'")
 	}

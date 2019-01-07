@@ -1,18 +1,9 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
+
 package lib
 
 import (
@@ -24,7 +15,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/gorilla/mux"
-	"github.com/hyperledger/fabric-ca/lib/dbutil"
+	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/metrics"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
@@ -82,13 +73,16 @@ func TestGetAffliation(t *testing.T) {
 		}
 	}()
 
-	afs := []AffiliationRecord{}
-	err = srv.db.Select(&afs, srv.db.Rebind(getAffiliationQuery), affiliationName)
-	t.Logf("Retrieved %+v for the affiliation %s", afs, affiliationName)
+	name := "org1.department1"
+	rows, err := srv.CA.registry.GetAllAffiliations(name)
 	if err != nil {
 		t.Fatalf("Failed to get affiliation %s: %v", affiliationName, err)
 	}
-	if len(afs) != 1 {
+	var count int
+	for rows.Next() {
+		count++
+	}
+	if count != 1 {
 		t.Fatalf("Found 0 or more than one record for the affiliation %s in the database, expected 1 record", affiliationName)
 	}
 }
@@ -186,7 +180,7 @@ func TestServerHealthCheck(t *testing.T) {
 	db, err := sqlx.Open("sqlite3", dataSource)
 	assert.NoError(t, err)
 
-	srv.CA.db = &dbutil.DB{DB: db, IsDBInitialized: false}
+	srv.CA.db = &cadb.DB{DB: db, IsDBInitialized: false}
 
 	err = srv.HealthCheck(context.Background())
 	assert.NoError(t, err)

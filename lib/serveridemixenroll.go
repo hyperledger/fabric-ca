@@ -10,7 +10,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
 )
 
 func newIdemixEnrollEndpoint(s *Server) *serverEndpoint {
@@ -69,7 +69,7 @@ func (c *idemixServerCtx) BasicAuthentication() (string, error) {
 func (c *idemixServerCtx) TokenAuthentication() (string, error) {
 	return c.srvCtx.TokenAuthentication()
 }
-func (c *idemixServerCtx) GetCaller() (spi.User, error) {
+func (c *idemixServerCtx) GetCaller() (user.User, error) {
 	return c.srvCtx.GetCaller()
 }
 func (c *idemixServerCtx) ReadBody(body interface{}) error {

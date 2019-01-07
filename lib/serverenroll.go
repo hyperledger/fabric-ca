@@ -20,7 +20,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/common"
-	"github.com/hyperledger/fabric-ca/lib/spi"
+	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 )
@@ -304,7 +304,7 @@ func csrInputLengthCheck(req *x509.CertificateRequest) error {
 // This is necessary because authorization decisions are made based on the OU fields,
 // so we ignore any OU values specified in the enroll request and set them according
 // to the type and affiliation.
-func setRequestOUs(req *signer.SignRequest, caller spi.User) {
+func setRequestOUs(req *signer.SignRequest, caller user.User) {
 	s := req.Subject
 	if s == nil {
 		s = &signer.Subject{}
