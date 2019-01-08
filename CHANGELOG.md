@@ -1,3 +1,9 @@
+## v1.4.0
+Tue Jan  8 12:21:52 EST 2019
+
+* [cd6ed88](https://github.com/hyperledger/fabric-ca/commit/cd6ed88) FABC-781 Remove fabric-ca sample
+* [b191f9c](https://github.com/hyperledger/fabric-ca/commit/b191f9c) [FAB-13393](https://jira.hyperledger.org/browse/FAB-13393) Prepare for next release (1.4.0)
+
 ## v1.4.0-rc2
 Thu Dec 20 09:14:03 EST 2018
 
