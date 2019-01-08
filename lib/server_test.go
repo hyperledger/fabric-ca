@@ -497,9 +497,7 @@ func TestSRVIntermediateServerWithFalseAttr(t *testing.T) {
 	}
 
 	err = intermediateServer.Init(false)
-	if assert.Error(t, err, "Should have failed, the attribute 'hf.IntermediateCA' is not set to true. Cannot register as Intermediate CA") {
-		assert.Contains(t, err.Error(), "is not set to true")
-	}
+	util.ErrorContains(t, err, "Authorization failure", "Should have failed, the attribute 'hf.IntermediateCA' is not set to true. Cannot register as Intermediate CA")
 
 	// deferred cleanup
 }

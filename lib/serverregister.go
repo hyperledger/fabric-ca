@@ -16,6 +16,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/spi"
 	"github.com/hyperledger/fabric-ca/util"
+
 	"github.com/pkg/errors"
 )
 
@@ -80,14 +81,13 @@ func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx Se
 	// Check the permissions of member named 'registrar' to perform this registration
 	err = canRegister(registrarUser, req, ca, ctx)
 	if err != nil {
-		log.Debugf("Registration of '%s' failed: %s", req.Name, err)
-		return "", err
+		log.Debugf("Registrar is not allowed to register user '%s': %s", req.Name, err)
+		return "", caerrors.NewAuthorizationErr(caerrors.ErrRegistrarRegAuth, "Registraton of '%s' failed", req.Name)
 	}
 
 	secret, err := registerUserID(req, ca)
-
 	if err != nil {
-		return "", errors.WithMessage(err, fmt.Sprintf("Registration of '%s' failed", req.Name))
+		return "", errors.WithMessagef(err, "Registration of '%s' failed", req.Name)
 	}
 	// Set the location header to the URI of the identity that was created by the registration request
 	ctx.GetResp().Header().Set("Location", fmt.Sprintf("%sidentities/%s", apiPathPrefix, url.PathEscape(req.Name)))
@@ -124,7 +124,7 @@ func validateAffiliation(req *api.RegistrationRequest, ca *CA, ctx ServerRequest
 
 	_, err = ca.registry.GetAffiliation(affiliation)
 	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Failed getting affiliation '%s'", affiliation))
+		return caerrors.NewHTTPErr(404, caerrors.ErrGettingAffiliation, "Failed getting affiliation '%s': %s", affiliation, err)
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func registerUserID(req *api.RegistrationRequest, ca *CA) (string, error) {
 
 	_, err = registry.GetUser(req.Name, nil)
 	if err == nil {
-		return "", errors.Errorf("Identity '%s' is already registered", req.Name)
+		return "", caerrors.NewHTTPErr(409, caerrors.ErrDupIdentityReg, "Identity '%s' is already registered", req.Name)
 	}
 
 	err = registry.InsertUser(&insert)
@@ -185,7 +185,7 @@ func canRegister(registrar spi.User, req *api.RegistrationRequest, ca *CA, ctx S
 	// Check that the affiliation requested is of the appropriate level
 	err = validateAffiliation(req, ca, ctx)
 	if err != nil {
-		return fmt.Errorf("Registration of '%s' failed in affiliation validation: %s", req.Name, err)
+		return errors.WithMessagef(err, "Registration of '%s' failed in affiliation validation", req.Name)
 	}
 
 	err = attr.CanRegisterRequestedAttributes(req.Attributes, nil, registrar)

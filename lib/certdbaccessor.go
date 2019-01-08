@@ -155,7 +155,7 @@ func (d *CertDBAccessor) GetCertificate(serial, aki string) (crs []certdb.Certif
 	log.Debugf("DB: Get certificate by serial (%s) and aki (%s)", serial, aki)
 	crs, err = d.accessor.GetCertificate(serial, aki)
 	if err != nil {
-		return nil, err
+		return nil, getError(err, "certificate")
 	}
 
 	return crs, nil

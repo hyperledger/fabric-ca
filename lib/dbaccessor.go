@@ -8,6 +8,7 @@ package lib
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
@@ -451,7 +452,7 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 
 	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
-		return nil, getError(err, "Affiliation")
+		return nil, getError(err, "affiliation")
 	}
 
 	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
@@ -472,7 +473,7 @@ func (d *Accessor) GetAffiliationTree(name string) (*spi.DbTxResult, error) {
 
 	result, err := d.doTransaction(d.getAffiliationTreeTx, name)
 	if err != nil {
-		return nil, err
+		return nil, caerrors.NewHTTPErr(409, caerrors.ErrGettingAffiliation, "Failed to complete database transaction: %s", err)
 	}
 
 	getResult := result.(*spi.DbTxResult)
@@ -635,7 +636,7 @@ func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, forc
 	// Check to see if the new affiliation being requested exists in the affiliation table
 	_, err = d.GetAffiliation(newAffiliation)
 	if err == nil {
-		return nil, caerrors.NewHTTPErr(400, caerrors.ErrUpdateConfigModifyAff, "Affiliation '%s' already exists", newAffiliation)
+		return nil, errors.WithMessagef(err, "Affiliation '%s' already exists", newAffiliation)
 	}
 
 	result, err := d.doTransaction(d.modifyAffiliationTx, oldAffiliation, newAffiliation, force, isRegistrar)
@@ -836,4 +837,9 @@ func getError(err error, getType string) error {
 		return caerrors.NewHTTPErr(404, caerrors.ErrDBGet, "Failed to get %s: %s", getType, err)
 	}
 	return caerrors.NewHTTPErr(504, caerrors.ErrConnectingDB, "Failed to process database request: %s", err)
+}
+
+// IsGetError returns true of if the error is for is a database get error (not found)
+func IsGetError(err error) bool {
+	return strings.Contains(caerrors.Print(err), strconv.Itoa(caerrors.ErrDBGet))
 }
