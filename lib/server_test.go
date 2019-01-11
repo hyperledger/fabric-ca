@@ -31,6 +31,7 @@ import (
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
+	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -47,6 +48,7 @@ const (
 	intermediateDir  = "intDir"
 	testdataDir      = "../testdata"
 	pportEnvVar      = "FABRIC_CA_SERVER_PROFILE_PORT"
+	testdata         = "../testdata"
 )
 
 func TestMain(m *testing.M) {
@@ -2726,7 +2728,7 @@ func cleanTestSlateSRV(t *testing.T) {
 	cleanMultiCADir(t)
 }
 
-func TestMetricsE2E(t *testing.T) {
+func TestStatsdMetricsE2E(t *testing.T) {
 	gt := NewGomegaWithT(t)
 	var err error
 
@@ -2735,10 +2737,11 @@ func TestMetricsE2E(t *testing.T) {
 	// Statsd
 	datagramReader := NewDatagramReader(t)
 	go datagramReader.Start()
+	defer datagramReader.Close()
 
-	server.Config.Metrics = MetricsConfig{
+	server.Config.Metrics = operations.MetricsOptions{
 		Provider: "statsd",
-		Statsd: &Statsd{
+		Statsd: &operations.Statsd{
 			Network:       "udp",
 			Address:       datagramReader.Address(),
 			Prefix:        "server",
@@ -2768,34 +2771,75 @@ func TestMetricsE2E(t *testing.T) {
 	})
 	gt.Expect(err).NotTo(HaveOccurred())
 
-	err = server.Stop()
-	gt.Expect(err).NotTo(HaveOccurred())
+	eventuallyTimeout := 10 * time.Second
+	gt.Eventually(datagramReader, eventuallyTimeout).Should(gbytes.Say("server.api_request.count.ca.enroll.201:1.000000|c"))
+	gt.Eventually(datagramReader, eventuallyTimeout).Should(gbytes.Say("server.api_request.duration.ca.enroll.201"))
+	contents := datagramReader.String()
+	gt.Expect(contents).To(ContainSubstring("server.api_request.duration.ca.enroll.401"))
+	gt.Expect(contents).To(ContainSubstring("server.api_request.count.ca.enroll.401:1.000000|c"))
+}
 
-	gt.Expect(datagramReader.String()).To(ContainSubstring("server.api_request.count.ca.enroll.201:1.000000|c"))
-	gt.Expect(datagramReader.String()).To(ContainSubstring("server.api_request.count.ca.enroll.401:1.000000|c"))
-	gt.Expect(datagramReader.String()).To(ContainSubstring("server.api_request.duration.ca.enroll.401"))
+func TestPrometheusMetricsE2E(t *testing.T) {
+	gt := NewGomegaWithT(t)
+	var err error
 
+	server := TestGetRootServer(t)
 	// Prometheus
 	server.Config.Metrics.Provider = "prometheus"
-	metricsURL := fmt.Sprintf("http://localhost:%d/metrics", rootPort)
+	server.Config.Operations.ListenAddress = "localhost:0"
+
+	server.Config.Operations.TLS = operations.TLS{
+		Enabled:            true,
+		CertFile:           filepath.Join(testdata, "tls_server-cert.pem"),
+		KeyFile:            filepath.Join(testdata, "tls_server-key.pem"),
+		ClientCertRequired: true,
+		ClientCACertFiles:  []string{"../testdata/root.pem"},
+	}
+
+	server.CA.Config.CA.Name = "ca"
 	err = server.Start()
 	gt.Expect(err).NotTo(HaveOccurred())
+	defer server.Stop()
+	defer os.RemoveAll(rootDir)
 
+	client := TestGetClient(rootPort, "metrics")
 	_, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "badpass",
 		CAName: "ca",
 	})
 	gt.Expect(err).To(HaveOccurred())
+	defer os.RemoveAll("metrics")
 
 	_, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "adminpw",
+		CAName: "ca",
 	})
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	// Prometheus client
-	c := &http.Client{}
+	clientCert, err := tls.LoadX509KeyPair(
+		filepath.Join(testdata, "tls_client-cert.pem"),
+		filepath.Join(testdata, "tls_client-key.pem"),
+	)
+	gt.Expect(err).NotTo(HaveOccurred())
+	clientCertPool := x509.NewCertPool()
+	caCert, err := ioutil.ReadFile(filepath.Join(testdata, "root.pem"))
+	gt.Expect(err).NotTo(HaveOccurred())
+	clientCertPool.AppendCertsFromPEM(caCert)
+
+	c := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				Certificates: []tls.Certificate{clientCert},
+				RootCAs:      clientCertPool,
+			},
+		},
+	}
+
+	addr := strings.Split(server.Operations.Addr(), ":")
+	metricsURL := fmt.Sprintf("https://localhost:%s/metrics", addr[1])
 	resp, err := c.Get(metricsURL)
 	gt.Expect(err).NotTo(HaveOccurred())
 	gt.Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -2804,6 +2848,9 @@ func TestMetricsE2E(t *testing.T) {
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	gt.Expect(err).NotTo(HaveOccurred())
 	body := string(bodyBytes)
+
+	err = server.Stop()
+	gt.Expect(err).NotTo(HaveOccurred())
 
 	gt.Expect(body).To(ContainSubstring(`# HELP api_request_count Number of requests made to an API`))
 	gt.Expect(body).To(ContainSubstring(`# TYPE api_request_count counter`))
@@ -2839,9 +2886,6 @@ func TestMetricsE2E(t *testing.T) {
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_bucket{api_name="enroll",ca_name="ca",status_code="401",le="+Inf"}`))
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_sum{api_name="enroll",ca_name="ca",status_code="401"}`))
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_count{api_name="enroll",ca_name="ca",status_code="401"} 1.0`))
-
-	err = server.Stop()
-	gt.Expect(err).NotTo(HaveOccurred())
 }
 
 type DatagramReader struct {

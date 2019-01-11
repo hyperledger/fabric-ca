@@ -26,7 +26,6 @@ import (
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/felixge/httpsnoop"
-	kitstatsd "github.com/go-kit/kit/metrics/statsd"
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
@@ -34,14 +33,11 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	cametrics "github.com/hyperledger/fabric-ca/lib/server/metrics"
+	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/metrics"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
-	"github.com/hyperledger/fabric/common/metrics/prometheus"
-	"github.com/hyperledger/fabric/common/metrics/statsd"
 	"github.com/pkg/errors"
-	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
 )
 
@@ -51,6 +47,14 @@ const (
 	allRoles                  = "peer,orderer,client,user"
 	apiPathPrefix             = "/api/v1/"
 )
+
+// OperationsServer defines the contract required for an operations server
+type OperationsServer interface {
+	metrics.Provider
+	Start() error
+	Stop() error
+	Addr() string
+}
 
 // Server is the fabric-ca server
 type Server struct {
@@ -65,6 +69,8 @@ type Server struct {
 	Metrics cametrics.Metrics
 	// MetricsProvider is the configured metrics provider
 	MetricsProvider metrics.Provider
+	// Operations is responsible for the server's operation information
+	Operations OperationsServer
 	// The server mux
 	mux *gmux.Router
 	// The current listener for this server
@@ -83,8 +89,6 @@ type Server struct {
 	mutex sync.Mutex
 	// The server's current levels
 	levels *dbutil.Levels
-	// statsd object to create metrics
-	statsd *kitstatsd.Statsd
 }
 
 // Init initializes a fabric-ca server
@@ -122,63 +126,22 @@ func (s *Server) init(renew bool) (err error) {
 	if err != nil {
 		return err
 	}
-	s.initMetricsProvider()
-	s.initMetrics()
-	err = s.startMetricsTickers()
-	if err != nil {
-		return err
-	}
 	// Successful initialization
 	return nil
 }
 
-func (s *Server) initMetricsProvider() {
-	m := s.Config.Metrics
-	providerType := m.Provider
-	switch providerType {
-	case "statsd":
-		prefix := m.Statsd.Prefix
-		if prefix != "" && !strings.HasSuffix(prefix, ".") {
-			prefix = prefix + "."
-		}
-
-		ks := kitstatsd.New(prefix, s)
-		s.MetricsProvider = &statsd.Provider{Statsd: ks}
-		s.statsd = ks
-
-	case "prometheus":
-		s.MetricsProvider = &prometheus.Provider{}
-		s.mux.Handle("/metrics", prom.Handler())
-
-	default:
-		if providerType != "disabled" {
-			log.Warningf("Unknown provider type: %s; metrics disabled", providerType)
-		}
-
-		s.MetricsProvider = &disabled.Provider{}
-	}
-}
-
 func (s *Server) initMetrics() {
-	s.Metrics.APICounter = s.MetricsProvider.NewCounter(cametrics.APICounterOpts)
-	s.Metrics.APIDuration = s.MetricsProvider.NewHistogram(cametrics.APIDurationOpts)
+	metricsProvider := s.Operations
+	s.Metrics.APICounter = metricsProvider.NewCounter(cametrics.APICounterOpts)
+	s.Metrics.APIDuration = metricsProvider.NewHistogram(cametrics.APIDurationOpts)
 }
 
-func (s *Server) startMetricsTickers() error {
-	m := s.Config.Metrics
-	if s.statsd != nil {
-		network := m.Statsd.Network
-		address := m.Statsd.Address
-		c, err := net.Dial(network, address)
-		if err != nil {
-			return errors.Wrapf(err, "failed to connect to statsd endpoint: %s", address)
-		}
-		c.Close()
+func (s *Server) startOperationsServer(options operations.Options) error {
+	s.Operations = operations.NewSystem(options)
 
-		writeInterval := s.Config.Metrics.Statsd.WriteInterval
-
-		sendTicker := time.NewTicker(writeInterval)
-		go s.statsd.SendLoop(sendTicker.C, network, address)
+	err := s.Operations.Start()
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -209,6 +172,14 @@ func (s *Server) Start() (err error) {
 
 	log.Debugf("%d CA instance(s) running on server", len(s.caMap))
 
+	// Start operations server
+	s.Config.Operations.Metrics = s.Config.Metrics
+	err = s.startOperationsServer(s.Config.Operations)
+	if err != nil {
+		return err
+	}
+	s.initMetrics()
+
 	// Start listening and serving
 	err = s.listenAndServe()
 	if err != nil {
@@ -226,7 +197,13 @@ func (s *Server) Start() (err error) {
 // requests in transit to fail, and so is only used for testing.
 // A graceful shutdown will be supported with golang 1.8.
 func (s *Server) Stop() error {
-	err := s.closeListener()
+	// Stop operations server
+	err := s.Operations.Stop()
+	if err != nil {
+		return err
+	}
+
+	err = s.closeListener()
 	if err != nil {
 		return err
 	}
