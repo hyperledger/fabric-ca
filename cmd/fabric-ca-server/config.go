@@ -478,6 +478,35 @@ cfg:
 
 ###############################################################################
 #
+#    Operations section
+#
+###############################################################################
+operations:
+    # host and port for the operations server
+    listenAddress: 127.0.0.1:9443
+
+    # TLS configuration for the operations endpoint
+    tls:
+        # TLS enabled
+        enabled: false
+
+        # path to PEM encoded server certificate for the operations server
+        cert:
+            file:
+
+        # path to PEM encoded server key for the operations server
+        key:
+            file:
+
+        # require client certificate authentication to access all resources
+        clientAuthRequired: false
+
+        # paths to PEM encoded ca certificates to trust for client authentication
+        clientRootCAs:
+            files: []
+
+###############################################################################
+#
 #    Metrics section
 #
 ###############################################################################
