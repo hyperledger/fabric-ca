@@ -464,26 +464,33 @@ func (s *Server) GetCA(name string) (*CA, error) {
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
 	s.mux = gmux.NewRouter()
-	s.registerHandler("cainfo", newCAInfoEndpoint(s))
-	s.registerHandler("register", newRegisterEndpoint(s))
-	s.registerHandler("enroll", newEnrollEndpoint(s))
-	s.registerHandler("idemix/credential", newIdemixEnrollEndpoint(s))
-	s.registerHandler("idemix/cri", newIdemixCRIEndpoint(s))
-	s.registerHandler("reenroll", newReenrollEndpoint(s))
-	s.registerHandler("revoke", newRevokeEndpoint(s))
-	s.registerHandler("tcert", newTCertEndpoint(s))
-	s.registerHandler("gencrl", newGenCRLEndpoint(s))
-	s.registerHandler("identities", newIdentitiesStreamingEndpoint(s))
-	s.registerHandler("identities/{id}", newIdentitiesEndpoint(s))
-	s.registerHandler("affiliations", newAffiliationsStreamingEndpoint(s))
-	s.registerHandler("affiliations/{affiliation}", newAffiliationsEndpoint(s))
-	s.registerHandler("certificates", newCertificateEndpoint(s))
+	s.mux.Use(s.middleware)
+	s.registerHandler(newCAInfoEndpoint(s))
+	s.registerHandler(newRegisterEndpoint(s))
+	s.registerHandler(newEnrollEndpoint(s))
+	s.registerHandler(newIdemixEnrollEndpoint(s))
+	s.registerHandler(newIdemixCRIEndpoint(s))
+	s.registerHandler(newReenrollEndpoint(s))
+	s.registerHandler(newRevokeEndpoint(s))
+	s.registerHandler(newTCertEndpoint(s))
+	s.registerHandler(newGenCRLEndpoint(s))
+	s.registerHandler(newIdentitiesStreamingEndpoint(s))
+	s.registerHandler(newIdentitiesEndpoint(s))
+	s.registerHandler(newAffiliationsStreamingEndpoint(s))
+	s.registerHandler(newAffiliationsEndpoint(s))
+	s.registerHandler(newCertificateEndpoint(s))
 }
 
 // Register a handler
-func (s *Server) registerHandler(path string, se *serverEndpoint) {
-	s.mux.Handle("/"+path, se)
-	s.mux.Handle(apiPathPrefix+path, se)
+func (s *Server) registerHandler(se *serverEndpoint) {
+	s.mux.Handle("/"+se.Path, se).Name(se.Path)
+	s.mux.Handle(apiPathPrefix+se.Path, se).Name(se.Path)
+}
+
+func (s *Server) middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Starting listening and serving

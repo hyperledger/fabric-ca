@@ -35,6 +35,7 @@ type genCRLResponseNet struct {
 
 func newGenCRLEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:    "gencrl",
 		Methods: []string{"POST"},
 		Handler: genCRLHandler,
 		Server:  s,

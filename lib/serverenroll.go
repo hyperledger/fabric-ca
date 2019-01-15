@@ -49,6 +49,7 @@ var (
 
 func newEnrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "enroll",
 		Methods:   []string{"POST"},
 		Handler:   enrollHandler,
 		Server:    s,
@@ -58,6 +59,7 @@ func newEnrollEndpoint(s *Server) *serverEndpoint {
 
 func newReenrollEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "reenroll",
 		Methods:   []string{"POST"},
 		Handler:   reenrollHandler,
 		Server:    s,

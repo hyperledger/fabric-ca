@@ -311,10 +311,10 @@
 			"revisionTime": "2016-08-17T18:46:32Z"
 		},
 		{
-			"checksumSHA1": "hUTpkQKTPpTUll9JmFj9NyQ+wjs=",
+			"checksumSHA1": "izIPT8pa+w1Inz4z7yrzyLyf1To=",
 			"path": "github.com/gorilla/mux",
-			"revision": "7f08801859139f86dfafd1c296e2cba9a80d292e",
-			"revisionTime": "2017-11-05T17:23:20Z"
+			"revision": "ef912dd76ebe9d9848c6e0fd80eaebccc9a11631",
+			"revisionTime": "2018-12-28T00:42:16Z"
 		},
 		{
 			"checksumSHA1": "LChm0/YOab/n0lxcDu/KBhO6Xyw=",

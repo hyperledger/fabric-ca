@@ -12,6 +12,7 @@ import (
 
 func newIdemixCRIEndpoint(s *Server) *serverEndpoint {
 	return &serverEndpoint{
+		Path:      "idemix/cri",
 		Methods:   []string{"POST"},
 		Handler:   handleIdemixCRIReq,
 		Server:    s,

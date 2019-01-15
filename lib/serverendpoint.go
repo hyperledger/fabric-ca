@@ -17,6 +17,8 @@ import (
 
 // serverEndpoint represents a particular endpoint (e.g. to "/api/v1/enroll")
 type serverEndpoint struct {
+	// Path is the path to the endpoint
+	Path string
 	// The HTTP methods ("GET", "POST", etc) which the function will handle
 	Methods []string
 	// The HTTP status code for a successful response
