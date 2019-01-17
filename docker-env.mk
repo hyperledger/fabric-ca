@@ -55,11 +55,7 @@ NEXUS_URL ?= nexus3.hyperledger.org:10001/hyperledger
 DOCKER_TAG=$(ARCH)-$(PROJECT_VERSION)
 
 DOCKER_GO_LDFLAGS += $(GO_LDFLAGS)
-ifeq ($(FABRIC_CA_DYNAMIC_LINK),true)
 DOCKER_GO_LDFLAGS += -linkmode external -extldflags '-lpthread'
-else
-DOCKER_GO_LDFLAGS += -linkmode external -extldflags '-static -lpthread'
-endif
 
 #
 # What is a .dummy file?

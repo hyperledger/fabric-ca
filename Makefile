@@ -12,8 +12,8 @@
 #   - fabric-ca-client - builds the fabric-ca-client executable
 #   - unit-tests - Performs checks first and runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
-#   - docker[-clean] - ensures all docker images are available[/cleaned]
-#   - docker-fabric-ca - build the fabric-ca docker image
+#   - docker[-clean] - builds/cleans the fabric-ca docker image
+#   - docker-fvt[-clean] - builds/cleans the fabric-ca functional verification testing image
 #   - bench - Runs benchmarks in all the packages and stores the results in /tmp/bench.results
 #   - bench-cpu - Runs the benchmarks in the specified package with cpu profiling
 #   - bench-mem - Runs the benchmarks in the specified package with memory profiling
@@ -29,6 +29,8 @@
 #   - clean-all - cleans the build area and release packages
 
 PROJECT_NAME = fabric-ca
+ALPINE_VER ?= 3.8
+DEBIAN_VER ?= stretch
 BASE_VERSION = 2.0.0
 PREV_VERSION = 1.4.0
 IS_RELEASE = false
@@ -47,9 +49,9 @@ FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
 ifeq ($(ARCH),s390x)
-PGVER=9.6
+PG_VER=9.6
 else
-PGVER=9.5
+PG_VER=9.5
 endif
 
 BASEIMAGE_RELEASE = 0.4.14
@@ -57,6 +59,7 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
+GO_VER = $(shell grep "GO_VER" ci.properties |cut -d'=' -f2-)
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
@@ -79,11 +82,13 @@ rename: .FORCE
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
-docker-all: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
-
-docker-fabric-ca: build/image/fabric-ca/$(DUMMY)
-
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
+
+# should be removed once CI scripts are updated
+docker-all: docker
+
+# should be removed once CI scripts are updated
+docker-fabric-ca: docker
 
 changelog:
 	./scripts/changelog.sh v$(PREV_VERSION) HEAD v$(BASE_VERSION)
@@ -116,56 +121,34 @@ bin/%: $(GO_SOURCE)
 	@mkdir -p bin && go build -o bin/${@F} -tags "pkcs11" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@echo "Built bin/${@F}"
 
-# We (re)build a package within a docker context but persist the $GOPATH/pkg
-# directory so that subsequent builds are faster
-build/docker/bin/%:
-	@echo "Building $@"
-	@mkdir -p $(@D) build/docker/$(@F)/pkg
-	@$(DRUN) \
-		-v $(abspath build/docker/bin):/opt/gopath/bin \
-		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
-		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
-	@touch $@
-
-build/image/%/$(DUMMY): Makefile build/image/%/payload
+build/image/fabric-ca/$(DUMMY):
+	@mkdir -p $(@D)
 	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
-	$(eval DOCKER_NAME = $(DOCKER_NS)/$(TARGET))
-	@echo "Building docker $(TARGET) image"
-	@cat images/$(TARGET)/Dockerfile.in \
-		| sed -e 's|_BASE_NS_|$(BASE_DOCKER_NS)|g' \
-		| sed -e 's|_NS_|$(DOCKER_NS)|g' \
-		| sed -e 's|_NEXUS_REPO_|$(NEXUS_URL)|g' \
-		| sed -e 's|_BASE_TAG_|$(BASE_DOCKER_TAG)|g' \
-		| sed -e 's|_FABRIC_TAG_|$(FABRIC_TAG)|g' \
-		| sed -e 's|_STABLE_TAG_|$(STABLE_TAG)|g' \
-		| sed -e 's|_TAG_|$(DOCKER_TAG)|g' \
-		| sed -e 's|_PGVER_|$(PGVER)|g' \
-		> $(@D)/Dockerfile
-	$(DBUILD) -t $(DOCKER_NAME) --build-arg FABRIC_CA_DYNAMIC_LINK=$(FABRIC_CA_DYNAMIC_LINK) $(@D)
-	docker tag $(DOCKER_NAME) $(DOCKER_NAME):$(DOCKER_TAG)
+	@echo "Docker:  building $(TARGET) image"
+	$(DBUILD) -f images/$(TARGET)/Dockerfile \
+		--build-arg GO_VER=${GO_VER} \
+		--build-arg GO_TAGS=pkcs11 \
+		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
+		--build-arg ALPINE_VER=${ALPINE_VER} \
+		-t $(BASE_DOCKER_NS)/$(TARGET) .
+	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
+		$(DOCKER_NS)/$(TARGET):$(BASE_VERSION)
+	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
+		$(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
 	@touch $@
 
-build/image/fabric-ca/payload: \
-	build/docker/bin/fabric-ca-client \
-	build/docker/bin/fabric-ca-server \
-	build/fabric-ca.tar.bz2
-build/image/fabric-ca-fvt/payload: \
-	build/docker/bin/fabric-ca-client \
-	build/docker/bin/fabric-ca-server \
-	build/fabric-ca-fvt.tar.bz2
-build/image/%/payload:
-	@echo "Copying $^ to $@"
-	mkdir -p $@
-	cp $^ $@
+build/image/fabric-ca-fvt/$(DUMMY):
+	@mkdir -p $(@D)
+	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
+	@echo "Docker:  building $(TARGET) image"
+	$(DBUILD) -f images/$(TARGET)/Dockerfile \
+		--build-arg BASEIMAGE_RELEASE=${BASEIMAGE_RELEASE} \
+		--build-arg GO_TAGS=pkcs11 \
+		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
+		--build-arg PG_VER=${PG_VER} \
+		-t $(BASE_DOCKER_NS)/$(TARGET) .
+	@touch $@
 
-build/fabric-ca.tar.bz2: $(shell git ls-files images/fabric-ca/payload)
-
-build/fabric-ca-fvt.tar.bz2: $(shell find images/fabric-ca-fvt/payload/ -maxdepth 1)
-
-build/%.tar.bz2:
-	@echo "Building $@"
-	@tar -jc -C images/$*/payload $(notdir $^) > $@
 
 all-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
