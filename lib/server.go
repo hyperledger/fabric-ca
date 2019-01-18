@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package lib
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -36,6 +37,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric-lib-go/healthz"
 	"github.com/hyperledger/fabric/common/metrics"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -54,6 +56,7 @@ type OperationsServer interface {
 	Start() error
 	Stop() error
 	Addr() string
+	RegisterChecker(component string, checker healthz.HealthChecker) error
 }
 
 // Server is the fabric-ca server
@@ -178,6 +181,11 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
+
+	err = s.Operations.RegisterChecker("server", s)
+	if err != nil {
+		return nil
+	}
 	s.initMetrics()
 
 	// Start listening and serving
@@ -189,6 +197,7 @@ func (s *Server) Start() (err error) {
 		}
 		return err
 	}
+
 	return nil
 }
 
@@ -203,6 +212,15 @@ func (s *Server) Stop() error {
 		return err
 	}
 
+	if s.listener == nil {
+		return nil
+	}
+
+	_, port, err := net.SplitHostPort(s.listener.Addr().String())
+	if err != nil {
+		return err
+	}
+
 	err = s.closeListener()
 	if err != nil {
 		return err
@@ -210,27 +228,26 @@ func (s *Server) Stop() error {
 	if s.wait == nil {
 		return nil
 	}
-	// Wait for message on wait channel from the http.serve thread. If message
-	// is not received in 10 seconds, return
-	port := s.Config.Port
+
 	for i := 0; i < 10; i++ {
 		select {
 		case <-s.wait:
-			log.Debugf("Stop: successful stop on port %d", port)
+			log.Debugf("Stop: successful stop on port %s", port)
 			close(s.wait)
 			s.wait = nil
 			return nil
 		default:
-			log.Debugf("Stop: waiting for listener on port %d to stop", port)
+			log.Debugf("Stop: waiting for listener on port %s to stop", port)
 			time.Sleep(time.Second)
 		}
 	}
-	log.Debugf("Stop: timed out waiting for stop notification for port %d", port)
+	log.Debugf("Stop: timed out waiting for stop notification for port %s", port)
 	// make sure DB is closed
 	err = s.closeDB()
 	if err != nil {
 		log.Errorf("Close DB failed: %s", err)
 	}
+
 	return nil
 }
 
@@ -695,6 +712,11 @@ func (s *Server) serve() error {
 	return s.serveError
 }
 
+// HealthCheck pings the database to determine if it is reachable
+func (s *Server) HealthCheck(ctx context.Context) error {
+	return s.db.PingContext(ctx)
+}
+
 // checkAndEnableProfiling checks for FABRIC_CA_SERVER_PROFILE_PORT env variable
 // if it is set, starts listening for profiling requests at the port specified
 // by the environment variable
@@ -737,19 +759,27 @@ func (s *Server) makeFileNamesAbsolute() error {
 func (s *Server) closeListener() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	port := s.Config.Port
+
 	if s.listener == nil {
-		msg := fmt.Sprintf("Stop: listener was already closed on port %d", port)
+		msg := fmt.Sprintf("Stop: listener was already closed")
 		log.Debugf(msg)
 		return errors.New(msg)
 	}
-	err := s.listener.Close()
-	s.listener = nil
+
+	_, port, err := net.SplitHostPort(s.listener.Addr().String())
 	if err != nil {
-		log.Debugf("Stop: failed to close listener on port %d: %s", port, err)
 		return err
 	}
-	log.Debugf("Stop: successfully closed listener on port %d", port)
+
+	err = s.listener.Close()
+	if err != nil {
+		log.Debugf("Stop: failed to close listener on port %s: %s", port, err)
+		return err
+	}
+
+	log.Debugf("Stop: successfully closed listener on port %s", port)
+	s.listener = nil
+
 	return nil
 }
 
