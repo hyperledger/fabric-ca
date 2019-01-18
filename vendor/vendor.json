@@ -651,6 +651,12 @@
 			"revisionTime": "2018-03-16T15:29:36Z"
 		},
 		{
+			"checksumSHA1": "XfJV+2ab+KDQ4lkVnBQqtGh0NYo=",
+			"path": "github.com/hyperledger/fabric-lib-go/healthz",
+			"revision": "20a0acfb37ba5397dea0109bf3a911c4f7750f3e",
+			"revisionTime": "2018-12-30T09:37:25Z"
+		},
+		{
 			"checksumSHA1": "SciKezSPmS5x+LFe2AB2ERbxtF0=",
 			"path": "github.com/hyperledger/fabric/bccsp",
 			"revision": "5b2b5616d49538ace14aa9e08a482b9089c78df8",

@@ -16,6 +16,7 @@ limitations under the License.
 package lib
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,9 +24,11 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/gorilla/mux"
+	"github.com/hyperledger/fabric-ca/lib/dbutil"
 	"github.com/hyperledger/fabric-ca/lib/server/metrics"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
+	"github.com/jmoiron/sqlx"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 )
@@ -169,4 +172,28 @@ func TestServerMetrics(t *testing.T) {
 	gt.Expect(fakeHist.ObserveCallCount()).To(Equal(1))
 	gt.Expect(fakeHist.WithArgsForCall(0)).NotTo(BeZero())
 	gt.Expect(fakeHist.WithArgsForCall(0)).To(Equal([]string{"ca_name", "ca1", "api_name", "/test", "status_code", "405"}))
+}
+
+func TestServerHealthCheck(t *testing.T) {
+	srv := TestGetRootServer(t)
+
+	os.Mkdir("./.tmpDir", 0755)
+
+	dataSource := "./.tmpDir/sqlite.db"
+	srv.CA.Config.DB.Datasource = dataSource
+	defer os.RemoveAll("./.tmpDir")
+
+	db, err := sqlx.Open("sqlite3", dataSource)
+	assert.NoError(t, err)
+
+	srv.CA.db = &dbutil.DB{DB: db, IsDBInitialized: false}
+
+	err = srv.HealthCheck(context.Background())
+	assert.NoError(t, err)
+
+	err = srv.db.Close()
+	assert.NoError(t, err)
+
+	err = srv.HealthCheck(context.Background())
+	assert.EqualError(t, err, "sql: database is closed")
 }
