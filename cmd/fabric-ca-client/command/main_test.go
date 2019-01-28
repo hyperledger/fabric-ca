@@ -1735,10 +1735,10 @@ func testAffiliation(t *testing.T) {
 		t.Errorf("client enroll -u failed: %s", err)
 	}
 
-	// Registering with affiliation of "", should result in error. Registrar does not have absolute root affiliaton
+	// Registering with affiliation of "", should result in error. Registrar does not have absolute root affiliation
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister5", "--id.type", "client", "--id.affiliation", "."})
 	if err == nil {
-		t.Error("Registering with affiliation of '', should result in error. Registrar does not have absolute root affiliaton")
+		t.Error("Registering with affiliation of '', should result in error. Registrar does not have absolute root affiliation")
 	}
 
 	// admin has affiliation of ""
