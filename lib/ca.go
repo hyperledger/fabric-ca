@@ -596,7 +596,7 @@ func (ca *CA) initDB() error {
 	ds = dbutil.MaskDBCred(ds)
 
 	log.Debugf("Initializing '%s' database at '%s'", dbCfg.Type, ds)
-	caDB, err := cadbfactory.New(dbCfg.Type, dbCfg.Datasource, &dbCfg.TLS, ca.csp)
+	caDB, err := cadbfactory.New(dbCfg.Type, dbCfg.Datasource, ca.Config.CA.Name, &dbCfg.TLS, ca.csp, ca.server.Operations)
 	if err != nil {
 		return err
 	}

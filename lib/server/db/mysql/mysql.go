@@ -17,6 +17,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/common/metrics"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -27,21 +28,25 @@ var (
 
 // Mysql defines MySQL database
 type Mysql struct {
-	SqlxDB db.FabricCADB
-	TLS    *tls.ClientTLSConfig
-	CSP    bccsp.BCCSP
+	SqlxDB          db.FabricCADB
+	TLS             *tls.ClientTLSConfig
+	CSP             bccsp.BCCSP
+	CAName          string
+	MetricsProvider metrics.Provider
 
 	datasource string
 	dbName     string
 }
 
 // NewDB create a MySQL database
-func NewDB(datasource string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP) *Mysql {
+func NewDB(datasource, caName string, clientTLSConfig *tls.ClientTLSConfig, csp bccsp.BCCSP, metricsProvider metrics.Provider) *Mysql {
 	log.Debugf("Using MySQL database, connecting to database...")
 	return &Mysql{
-		TLS:        clientTLSConfig,
-		CSP:        csp,
-		datasource: datasource,
+		TLS:             clientTLSConfig,
+		CSP:             csp,
+		datasource:      datasource,
+		CAName:          caName,
+		MetricsProvider: metricsProvider,
 	}
 }
 
@@ -70,7 +75,7 @@ func (m *Mysql) Connect() error {
 		return errors.Wrap(err, "Failed to connect to MySQL database")
 	}
 
-	m.SqlxDB = db.New(sqlxdb)
+	m.SqlxDB = db.New(sqlxdb, m.CAName, m.MetricsProvider)
 	return nil
 }
 
@@ -111,7 +116,7 @@ func (m *Mysql) CreateDatabase() (*db.DB, error) {
 		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
 	}
 
-	m.SqlxDB = db.New(sqlxdb)
+	m.SqlxDB = db.New(sqlxdb, m.CAName, m.MetricsProvider)
 
 	return m.SqlxDB.(*db.DB), nil
 }

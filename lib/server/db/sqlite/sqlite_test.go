@@ -13,6 +13,7 @@ import (
 
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite/mocks"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -31,7 +32,7 @@ var _ = Describe("Sqlite", func() {
 	)
 
 	BeforeEach(func() {
-		db = sqlite.NewDB(dbName)
+		db = sqlite.NewDB(dbName, "", &disabled.Provider{})
 		mockDB = &mocks.FabricCADB{}
 		mockCreateTx = &mocks.Create{}
 	})

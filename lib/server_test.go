@@ -37,6 +37,7 @@ import (
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/spf13/viper"
@@ -2032,7 +2033,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled: true,
 	}
 	csp := util.GetDefaultBCCSP()
-	_, err := getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
+	_, err := getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No trusted root certificates for TLS were provided")
 
@@ -2041,7 +2042,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"doesnotexit.pem"},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 
@@ -2050,7 +2051,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"../testdata/empty.json"},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to process certificate from file")
 
@@ -2070,7 +2071,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{tmpFile},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, tlsConfig, csp))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
 	assert.Error(t, err)
 	if err != nil {
 		t.Logf("%s", err.Error())
@@ -2772,11 +2773,48 @@ func TestStatsdMetricsE2E(t *testing.T) {
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	eventuallyTimeout := 10 * time.Second
-	gt.Eventually(datagramReader, eventuallyTimeout).Should(gbytes.Say("server.api_request.count.ca.enroll.201:1.000000|c"))
+	gt.Eventually(datagramReader, eventuallyTimeout).Should(gbytes.Say("serverx.api_request.count.ca.enroll.201:1.000000|c"))
 	gt.Eventually(datagramReader, eventuallyTimeout).Should(gbytes.Say("server.api_request.duration.ca.enroll.201"))
 	contents := datagramReader.String()
 	gt.Expect(contents).To(ContainSubstring("server.api_request.duration.ca.enroll.401"))
 	gt.Expect(contents).To(ContainSubstring("server.api_request.count.ca.enroll.401:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.GetRAInfo.Select:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateAffiliationsTable.Exec:2.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateCertificatesTable.Exec:2.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreatePropertiesTable.Exec:2.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.GetProperty.Get:12.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.InsertAffiliation.Exec:11.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateTable.Commit:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.GetUserLessThanLevel.Queryx:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.MigrateAffiliationsTable.Exec:4.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.Migration.Commit:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateUsersTable.Exec:3.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.MigrateCertificatesTable.Exec:4.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.GetUser.Get:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.AddRAInfo.NamedExec:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateCredentialsTable.Exec:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateRevocationAuthorityTable.Exec:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.CreateNoncesTable.Exec:1.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.count.ca.MigrateUsersTable.Exec:7.000000|c"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreatePropertiesTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.GetUserLessThanLevel.Queryx"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.MigrateCertificatesTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.GetUser.Get"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.Migration.Commit"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.InsertUser.NamedExec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateAffiliationsTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateCredentialsTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateRevocationAuthorityTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateNoncesTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.GetProperty.Get"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.AddRAInfo.NamedExec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateCertificatesTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateTable.Commit"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.MigrateUsersTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.InsertAffiliation.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.GetRAInfo.Select"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.CreateUsersTable.Exec"))
+	gt.Expect(contents).To(ContainSubstring("server.db_api_request.duration.ca.MigrateAffiliationsTable.Exec"))
 }
 
 func TestPrometheusMetricsE2E(t *testing.T) {
@@ -2886,6 +2924,58 @@ func TestPrometheusMetricsE2E(t *testing.T) {
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_bucket{api_name="enroll",ca_name="ca",status_code="401",le="+Inf"}`))
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_sum{api_name="enroll",ca_name="ca",status_code="401"}`))
 	gt.Expect(body).To(ContainSubstring(`api_request_duration_count{api_name="enroll",ca_name="ca",status_code="401"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`# HELP db_api_request_count Number of requests made to a database API`))
+	gt.Expect(body).To(ContainSubstring(`# TYPE db_api_request_count counter`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Commit",func_name="CreateTable"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Commit",func_name="Migration"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateAffiliationsTable"} 2.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateCertificatesTable"} 2.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateCredentialsTable"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateNoncesTable"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreatePropertiesTable"} 2.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateRevocationAuthorityTable"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="CreateUsersTable"} 3.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="IncrementIncorrectPasswordAttempts"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="InsertAffiliation"} 11.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="LoginComplete"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="MigrateAffiliationsTable"} 4.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="MigrateCertificatesTable"} 4.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="MigrateUsersTable"} 7.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Exec",func_name="ResetIncorrectLoginAttempts"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Get",func_name="GetProperty"} 12.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Get",func_name="GetUser"} 5.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Get",func_name="ResetIncorrectLoginAttempts"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="NamedExec",func_name="AddRAInfo"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="NamedExec",func_name="InsertCertificate"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="NamedExec",func_name="InsertUser"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Queryx",func_name="GetUserLessThanLevel"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_count{ca_name="ca",dbapi_name="Select",func_name="GetRAInfo"} 1.0`))
+	gt.Expect(body).To(ContainSubstring(`# HELP db_api_request_duration Time taken in seconds for the request to a database API to be completed`))
+	gt.Expect(body).To(ContainSubstring(`# TYPE db_api_request_duration histogram`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Commit",func_name="CreateTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Commit",func_name="Migration",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateAffiliationsTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateCertificatesTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateCredentialsTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateNoncesTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreatePropertiesTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateRevocationAuthorityTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="CreateUsersTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="IncrementIncorrectPasswordAttempts",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="InsertAffiliation",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="LoginComplete",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="MigrateAffiliationsTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="MigrateCertificatesTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Exec",func_name="MigrateUsersTable",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Get",func_name="GetProperty",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Get",func_name="GetUser",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Get",func_name="ResetIncorrectLoginAttempts",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="NamedExec",func_name="AddRAInfo",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="NamedExec",func_name="InsertCertificate",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="NamedExec",func_name="InsertUser",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Queryx",func_name="GetUserLessThanLevel",le="0.5"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Select",func_name="GetRAInfo",le="0.25"}`))
+	gt.Expect(body).To(ContainSubstring(`db_api_request_duration_bucket{ca_name="ca",dbapi_name="Select",func_name="GetRAInfo",le="0.5"}`))
 }
 
 type DatagramReader struct {

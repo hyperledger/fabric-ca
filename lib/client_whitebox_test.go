@@ -458,7 +458,9 @@ func getTestClient(port int) *Client {
 }
 
 func TestCWBCAConfig(t *testing.T) {
-	ca := &CA{}
+	ca := &CA{
+		server: &Server{},
+	}
 
 	//Error cases
 	err := ca.fillCAInfo(nil)

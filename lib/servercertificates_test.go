@@ -25,6 +25,7 @@ import (
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	dbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -207,8 +208,15 @@ func TestServerGetCertificates(t *testing.T) {
 		Identity:    1,
 		Certificate: 1,
 	}
+	mockOperationsServer := &mocks.OperationsServer{}
+	fakeCounter := &metricsfakes.Counter{}
+	fakeCounter.WithReturns(fakeCounter)
+	mockOperationsServer.NewCounterReturns(fakeCounter)
+	fakeHistogram := &metricsfakes.Histogram{}
+	fakeHistogram.WithReturns(fakeHistogram)
+	mockOperationsServer.NewHistogramReturns(fakeHistogram)
 	srv := &Server{
-		Operations: &mocks.OperationsServer{},
+		Operations: mockOperationsServer,
 		levels:     level,
 	}
 	ca, err := newCA("getCertTest/config.yaml", &CAConfig{}, srv, false)
