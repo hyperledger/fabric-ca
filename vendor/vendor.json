@@ -319,6 +319,18 @@
 			"revisionTime": "2019-01-28T21:06:06Z"
 		},
 		{
+			"checksumSHA1": "LLacoaahjY+gDR2XDiGEsHS+VYE=",
+			"path": "github.com/docker/docker/pkg",
+			"revision": "393838ca5ec5bc4ddf2cc9a8051d36adfd31e6a1",
+			"revisionTime": "2019-01-31T15:59:11Z"
+		},
+		{
+			"checksumSHA1": "w0waeTRJ1sFygI0dZXH6l9E1c60=",
+			"path": "github.com/docker/docker/pkg/stdcopy",
+			"revision": "393838ca5ec5bc4ddf2cc9a8051d36adfd31e6a1",
+			"revisionTime": "2019-01-31T15:59:11Z"
+		},
+		{
 			"checksumSHA1": "1IPGX6/BnX7QN4DjbBk0UafTB2U=",
 			"path": "github.com/docker/go-connections/nat",
 			"revision": "97c2040d34dfae1d1b1275fa3a78dbdd2f41cf7e",
