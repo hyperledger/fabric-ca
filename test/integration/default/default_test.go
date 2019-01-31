@@ -486,7 +486,7 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, srv *lib.Se
 	}
 
 	db := srv.CA.GetDB()
-	res, err := db.NamedExec(`INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level)
+	res, err := db.NamedExec("", `INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level)
 	VALUES (:id, :serial_number, :authority_key_identifier, :ca_label, :status, :reason, :expiry, :revoked_at, :pem, :level);`, record)
 
 	if err != nil {

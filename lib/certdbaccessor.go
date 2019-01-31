@@ -113,7 +113,7 @@ func (d *CertDBAccessor) InsertCertificate(cr certdb.CertificateRecord) error {
 		},
 	}
 
-	res, err := d.db.NamedExec(insertSQL, record)
+	res, err := d.db.NamedExec("InsertCertificate", insertSQL, record)
 	if err != nil {
 		return errors.Wrap(err, "Failed to insert record into database")
 	}
@@ -140,7 +140,7 @@ func (d *CertDBAccessor) GetCertificatesByID(id string) (crs []db.CertRecord, er
 		return nil, err
 	}
 
-	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(selectSQLbyID), sqlstruct.Columns(db.CertRecord{})), id)
+	err = d.db.Select("GetCertificatesByID", &crs, fmt.Sprintf(d.db.Rebind(selectSQLbyID), sqlstruct.Columns(db.CertRecord{})), id)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (d *CertDBAccessor) GetCertificateWithID(serial, aki string) (crs db.CertRe
 		return crs, err
 	}
 
-	err = d.db.Get(&crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(db.CertRecord{})), serial, aki)
+	err = d.db.Get("GetCertificatesByID", &crs, fmt.Sprintf(d.db.Rebind(selectSQL), sqlstruct.Columns(db.CertRecord{})), serial, aki)
 	if err != nil {
 		return crs, dbutil.GetError(err, "Certificate")
 	}
@@ -207,7 +207,7 @@ func (d *CertDBAccessor) GetRevokedCertificates(expiredAfter, expiredBefore, rev
 	}
 	whereClause := strings.Join(whereConds, " AND ")
 	revokedSQL = strings.Replace(revokedSQL, "WHERE_CLAUSE", whereClause, 1)
-	err = d.db.Select(&crs, fmt.Sprintf(d.db.Rebind(revokedSQL),
+	err = d.db.Select("GetRevokedCertificates", &crs, fmt.Sprintf(d.db.Rebind(revokedSQL),
 		sqlstruct.Columns(certdb.CertificateRecord{})), args...)
 	if err != nil {
 		return crs, dbutil.GetError(err, "Certificate")
@@ -246,12 +246,12 @@ func (d *CertDBAccessor) RevokeCertificatesByID(id string, reasonCode int) (crs 
 	record.ID = id
 	record.Reason = reasonCode
 
-	err = d.db.Select(&crs, d.db.Rebind("SELECT * FROM certificates WHERE (id = ? AND status != 'revoked')"), id)
+	err = d.db.Select("RevokeCertificatesByID", &crs, d.db.Rebind("SELECT * FROM certificates WHERE (id = ? AND status != 'revoked')"), id)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = d.db.NamedExec(updateRevokeSQL, record)
+	_, err = d.db.NamedExec("RevokeCertificatesByID", updateRevokeSQL, record)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +389,7 @@ func (d *CertDBAccessor) GetCertificates(req cr.CertificateRequest, callersAffil
 	getCertificateSQL = getCertificateSQL + ";"
 
 	log.Debugf("Executing get certificates query: %s, with args: %s", getCertificateSQL, args)
-	rows, err := d.db.Queryx(d.db.Rebind(getCertificateSQL), args...)
+	rows, err := d.db.Queryx("GetCertificates", d.db.Rebind(getCertificateSQL), args...)
 	if err != nil {
 		return nil, dbutil.GetError(err, "Certificate")
 	}

@@ -43,6 +43,6 @@ func TestDoTransactionNilDB(t *testing.T) {
 	f := func(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
 		return nil, nil
 	}
-	_, err := doTransaction(nil, f)
+	_, err := doTransaction("", nil, f)
 	assert.Error(t, err)
 }

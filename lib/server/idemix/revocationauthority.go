@@ -230,7 +230,7 @@ func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo
 
 func (ra *revocationAuthority) getRAInfoFromDB() (*RevocationAuthorityInfo, error) {
 	rcinfos := []RevocationAuthorityInfo{}
-	err := ra.db.Select(&rcinfos, SelectRAInfo)
+	err := ra.db.Select("GetRAInfo", &rcinfos, SelectRAInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func (ra *revocationAuthority) getRAInfoFromDB() (*RevocationAuthorityInfo, erro
 }
 
 func (ra *revocationAuthority) addRAInfoToDB(rcInfo *RevocationAuthorityInfo) error {
-	res, err := ra.db.NamedExec(InsertRAInfo, rcInfo)
+	res, err := ra.db.NamedExec("AddRAInfo", InsertRAInfo, rcInfo)
 	if err != nil {
 		return errors.New("Failed to insert revocation authority info into database")
 	}
@@ -262,7 +262,7 @@ func (ra *revocationAuthority) addRAInfoToDB(rcInfo *RevocationAuthorityInfo) er
 
 // getNextRevocationHandle returns next revocation handle
 func (ra *revocationAuthority) getNextRevocationHandle() (int, error) {
-	result, err := doTransaction(ra.db, ra.getNextRevocationHandleTx, nil)
+	result, err := doTransaction("GetNextRevocationHandle", ra.db, ra.getNextRevocationHandleTx, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -277,7 +277,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args 
 	// Get the latest revocation authority info from the database
 	rcInfos := []RevocationAuthorityInfo{}
 	query := SelectRAInfo
-	err = tx.Select(&rcInfos, tx.Rebind(query))
+	err = tx.Select("GetRAInfo", &rcInfos, tx.Rebind(query))
 	if err != nil {
 		return nil, errors.New("Failed to get revocation authority info from database")
 	}
@@ -301,7 +301,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args 
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to construct query '%s'", query)
 	}
-	_, err = tx.Exec(tx.Rebind(inQuery), args...)
+	_, err = tx.Exec("GetNextRevocationHandle", tx.Rebind(inQuery), args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to update revocation authority info")
 	}
@@ -309,14 +309,14 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args 
 	return nextHandle, nil
 }
 
-func doTransaction(db db.FabricCADB, doit func(tx db.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
+func doTransaction(funcName string, db db.FabricCADB, doit func(tx db.FabricCATx, args ...interface{}) (interface{}, error), args ...interface{}) (interface{}, error) {
 	if db == nil {
 		return nil, errors.New("Failed to correctly setup database connection")
 	}
 	tx := db.BeginTx()
 	result, err := doit(tx, args...)
 	if err != nil {
-		err2 := tx.Rollback()
+		err2 := tx.Rollback(funcName)
 		if err2 != nil {
 			errMsg := fmt.Sprintf("Error encountered while rolling back transaction: %s, original error: %s", err2.Error(), err.Error())
 			log.Errorf(errMsg)
@@ -325,7 +325,7 @@ func doTransaction(db db.FabricCADB, doit func(tx db.FabricCATx, args ...interfa
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = tx.Commit(funcName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error encountered while committing transaction")
 	}

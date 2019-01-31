@@ -77,7 +77,7 @@ func TestGetNonce(t *testing.T) {
 	numErrorForInsertNonceCalls := 0
 	f2 := getResultForInsertNonceFunc(result, &numResultForInsertNonceCalls)
 	f3 := getErrorForInsertNonceFunc(result, &numErrorForInsertNonceCalls)
-	db.On("NamedExec", InsertNonce, nonceObj).Return(f2, f3)
+	db.On("NamedExec", "InsertNonce", InsertNonce, nonceObj).Return(f2, f3)
 	issuer.On("DB").Return(db)
 
 	opts := &Config{
@@ -130,20 +130,20 @@ func TestCheckNonce(t *testing.T) {
 
 	db := new(dmocks.FabricCADB)
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Commit", "CheckNonce").Return(nil)
+	tx.On("Rollback", "CheckNonce").Return(nil)
 	nonces := []Nonce{}
 	tx.On("Rebind", SelectNonce).Return(SelectNonce)
 	db.On("BeginTx").Return(tx)
 	numTxSelectCalls := 0
 	f := getTxSelectNonceFunc(&nonces, noncestr, &numTxSelectCalls)
-	tx.On("Select", &nonces, SelectNonce, noncestr).Return(f)
+	tx.On("Select", "GetNonce", &nonces, SelectNonce, noncestr).Return(f)
 	numTxRemoveResultCalls := 0
 	numTxRemoveErrorCalls := 0
 	tx.On("Rebind", RemoveNonce).Return(RemoveNonce)
 	f1 := getTxRemoveNonceResultFunc(noncestr, &numTxRemoveResultCalls)
 	f2 := getTxRemoveNonceErrorFunc(&numTxRemoveErrorCalls)
-	tx.On("Exec", RemoveNonce, noncestr).Return(f1, f2)
+	tx.On("Exec", "GetNonce", RemoveNonce, noncestr).Return(f1, f2)
 	issuer.On("DB").Return(db)
 
 	opts := &Config{
@@ -186,7 +186,7 @@ func TestSweepExpiredNonces(t *testing.T) {
 	f := getRemoveExpiredNoncesErrorFunc(&numRemoveExpiredNoncesErrorFuncCalls)
 	db := new(dmocks.FabricCADB)
 	db.On("Rebind", RemoveExpiredNonces).Return(RemoveExpiredNonces)
-	db.On("Exec", RemoveExpiredNonces, now.UTC()).Return(nil, f)
+	db.On("Exec", "RemoveExpiredNonces", RemoveExpiredNonces, now.UTC()).Return(nil, f) // errors.New("error"))
 	issuer.On("DB").Return(db)
 
 	lib := new(mocks.Lib)
@@ -212,8 +212,8 @@ func TestSweepExpiredNonces(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func getResultForInsertNonceFunc(result sql.Result, numResultForInsertNonceCalls *int) func(string, interface{}) sql.Result {
-	return func(query string, args interface{}) sql.Result {
+func getResultForInsertNonceFunc(result sql.Result, numResultForInsertNonceCalls *int) func(string, string, interface{}) sql.Result {
+	return func(funcName string, query string, args interface{}) sql.Result {
 		if *numResultForInsertNonceCalls == 0 {
 			*numResultForInsertNonceCalls = *numResultForInsertNonceCalls + 1
 			return nil
@@ -222,8 +222,8 @@ func getResultForInsertNonceFunc(result sql.Result, numResultForInsertNonceCalls
 
 	}
 }
-func getErrorForInsertNonceFunc(result sql.Result, numErrorForInsertNonceCalls *int) func(string, interface{}) error {
-	return func(query string, args interface{}) error {
+func getErrorForInsertNonceFunc(result sql.Result, numErrorForInsertNonceCalls *int) func(string, string, interface{}) error {
+	return func(funcName string, query string, args interface{}) error {
 		if *numErrorForInsertNonceCalls == 0 {
 			*numErrorForInsertNonceCalls = *numErrorForInsertNonceCalls + 1
 			return errors.New("Error executing insert")
@@ -245,8 +245,8 @@ func getResultForRowsAffectedFunc(numResultForRowsAffectedCalls *int) func() int
 	}
 }
 
-func getTxSelectNonceFunc(nonces *[]Nonce, noncestr string, numTxSelectCalls *int) func(interface{}, string, ...interface{}) error {
-	return func(dest interface{}, query string, args ...interface{}) error {
+func getTxSelectNonceFunc(nonces *[]Nonce, noncestr string, numTxSelectCalls *int) func(string, interface{}, string, ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		if *numTxSelectCalls == 0 {
 			*numTxSelectCalls = *numTxSelectCalls + 1
 			return errors.New("Getting a nonce from DB failed")
@@ -272,8 +272,8 @@ func getTxSelectNonceFunc(nonces *[]Nonce, noncestr string, numTxSelectCalls *in
 	}
 }
 
-func getTxRemoveNonceResultFunc(noncestr string, numTxRemoveResultCalls *int) func(string, ...interface{}) sql.Result {
-	return func(query string, args ...interface{}) sql.Result {
+func getTxRemoveNonceResultFunc(noncestr string, numTxRemoveResultCalls *int) func(string, string, ...interface{}) sql.Result {
+	return func(funcName, query string, args ...interface{}) sql.Result {
 		if *numTxRemoveResultCalls == 0 {
 			*numTxRemoveResultCalls = *numTxRemoveResultCalls + 1
 			return nil
@@ -289,8 +289,8 @@ func getTxRemoveNonceResultFunc(noncestr string, numTxRemoveResultCalls *int) fu
 	}
 }
 
-func getTxRemoveNonceErrorFunc(numTxRemoveErrorCalls *int) func(string, ...interface{}) error {
-	return func(query string, args ...interface{}) error {
+func getTxRemoveNonceErrorFunc(numTxRemoveErrorCalls *int) func(string, string, ...interface{}) error {
+	return func(funcName, query string, args ...interface{}) error {
 		if *numTxRemoveErrorCalls == 0 {
 			*numTxRemoveErrorCalls = *numTxRemoveErrorCalls + 1
 			return errors.New("Removing nonce from DB failed")
@@ -299,8 +299,8 @@ func getTxRemoveNonceErrorFunc(numTxRemoveErrorCalls *int) func(string, ...inter
 	}
 }
 
-func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) func(string, ...interface{}) error {
-	return func(string, ...interface{}) error {
+func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) func(string, string, ...interface{}) error {
+	return func(string, string, ...interface{}) error {
 		if *numRemoveExpiredNoncesErrorFuncCalls == 0 {
 			*numRemoveExpiredNoncesErrorFuncCalls = *numRemoveExpiredNoncesErrorFuncCalls + 1
 			return errors.New("Failed to remove expired nonces from DB")

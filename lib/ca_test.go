@@ -655,9 +655,9 @@ func TestServerMigration(t *testing.T) {
 	assert.NoError(t, err, "failed to create database")
 
 	util.FatalError(t, err, "Failed to create db")
-	_, err = db.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('registrar', '', 'user', 'org2', '[{\"name\":\"hf.Registrar.Roles\",\"value\":\"user,peer,client\"}]', '0', '-1', '0')")
+	_, err = db.Exec("", "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('registrar', '', 'user', 'org2', '[{\"name\":\"hf.Registrar.Roles\",\"value\":\"user,peer,client\"}]', '0', '-1', '0')")
 	assert.NoError(t, err, "Failed to insert user 'registrar' into database")
-	_, err = db.Exec("INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\":\"hf.Revoker\",\"value\":\"true\"}]', '0', '-1', '0')")
+	_, err = db.Exec("", "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments, level) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\":\"hf.Revoker\",\"value\":\"true\"}]', '0', '-1', '0')")
 	assert.NoError(t, err, "Failed to insert user 'notregistrar' into database")
 
 	server := TestGetServer2(false, rootPort, dir, "", -1, t)

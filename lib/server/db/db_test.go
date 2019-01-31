@@ -37,19 +37,18 @@ func TestDB(t *testing.T) {
 
 	// Select
 	mockDB.SelectReturns(nil)
-	err := fabDB.Select(nil, "")
+	err := fabDB.Select("", nil, "")
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	mockDB.SelectReturns(errors.New("Select Error"))
-	err = fabDB.Select(nil, "")
-	gt.Expect(err).To(HaveOccurred())
+	err = fabDB.Select("", nil, "")
 	gt.Expect(err.Error()).To(Equal("Select Error"))
 
 	// Exec
 	mockResult := &mocks.Result{}
 	mockResult.On("RowsAffected").Return(int64(2), nil)
 	mockDB.ExecReturns(mockResult, nil)
-	res, err := fabDB.DB.Exec("")
+	res, err := fabDB.DB.Exec("", "")
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	rows, err := res.RowsAffected()
@@ -57,7 +56,7 @@ func TestDB(t *testing.T) {
 	gt.Expect(rows).To(Equal(int64(2)))
 
 	mockDB.ExecReturns(nil, errors.New("Exec Error"))
-	res, err = fabDB.Exec("")
+	res, err = fabDB.Exec("", "")
 	gt.Expect(err).To(HaveOccurred())
 	gt.Expect(err.Error()).To(Equal("Exec Error"))
 
@@ -65,7 +64,7 @@ func TestDB(t *testing.T) {
 	mockResult = &mocks.Result{}
 	mockResult.On("RowsAffected").Return(int64(3), nil)
 	mockDB.NamedExecReturns(mockResult, nil)
-	res, err = fabDB.NamedExec("", nil)
+	res, err = fabDB.NamedExec("", "", nil)
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	rows, err = res.RowsAffected()
@@ -73,27 +72,27 @@ func TestDB(t *testing.T) {
 	gt.Expect(rows).To(Equal(int64(3)))
 
 	mockDB.NamedExecReturns(nil, errors.New("NamedExec Error"))
-	res, err = fabDB.NamedExec("", nil)
+	res, err = fabDB.NamedExec("", "", nil)
 	gt.Expect(err).To(HaveOccurred())
 	gt.Expect(err.Error()).To(Equal("NamedExec Error"))
 
 	// Get
 	mockDB.GetReturns(nil)
-	err = fabDB.Get(nil, "")
+	err = fabDB.Get("", nil, "")
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	mockDB.GetReturns(errors.New("Get Error"))
-	err = fabDB.Get(nil, "")
+	err = fabDB.Get("", nil, "")
 	gt.Expect(err.Error()).To(Equal("Get Error"))
 
 	// Queryx
 	mockDB.QueryxReturns(&sqlx.Rows{}, nil)
-	r, err := fabDB.Queryx("")
+	r, err := fabDB.Queryx("", "")
 	gt.Expect(err).NotTo(HaveOccurred())
 	gt.Expect(r).NotTo(BeNil())
 
 	mockDB.QueryxReturns(nil, errors.New("Queryx Error"))
-	_, err = fabDB.Queryx("")
+	_, err = fabDB.Queryx("", "")
 	gt.Expect(err.Error()).To(Equal("Queryx Error"))
 
 	// DriverName

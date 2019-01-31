@@ -143,7 +143,7 @@ func (p *Postgres) createDatabase() error {
 	log.Debugf("Creating Postgres Database (%s) if it does not exist...", dbName)
 
 	query := "CREATE DATABASE " + dbName
-	_, err := p.SqlxDB.Exec(query)
+	_, err := p.SqlxDB.Exec("CreateDatabase", query)
 	if err != nil {
 		if !strings.Contains(err.Error(), fmt.Sprintf("database \"%s\" already exists", dbName)) {
 			return errors.Wrap(err, "Failed to execute create database query")
@@ -157,34 +157,34 @@ func (p *Postgres) createDatabase() error {
 func (p *Postgres) createTables() error {
 	db := p.SqlxDB
 	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
+	if _, err := db.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := db.Exec("CreateAffiliationTable", "CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	log.Debug("Creating certificates table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := db.Exec("CreateCertificatesTable", "CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 	log.Debug("Creating credentials table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle bytea NOT NULL, cred bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
+	if _, err := db.Exec("CreateCredentialsTable", "CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle bytea NOT NULL, cred bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
 		return errors.Wrap(err, "Error creating credentials table")
 	}
 	log.Debug("Creating revocation_authority_info table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+	if _, err := db.Exec("CreateRevocationAuthorityTable", "CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	log.Debug("Creating nonces table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
+	if _, err := db.Exec("CreateNoncesTable", "CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(255) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY (val))"); err != nil {
 		return errors.Wrap(err, "Error creating nonces table")
 	}
 	log.Debug("Creating properties table if it does not exist")
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
+	if _, err := db.Exec("CreatePropertiesTable", "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"); err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err := db.Exec(db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
+	_, err := db.Exec("CreatePropertiesTable", db.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "duplicate key") {
 			return err

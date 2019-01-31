@@ -129,7 +129,7 @@ func (d *Accessor) InsertUser(user *cadbuser.Info) error {
 	}
 
 	// Store the user record in the DB
-	res, err := d.db.NamedExec(insertUser, &cadbuser.Record{
+	res, err := d.db.NamedExec("InsertUser", insertUser, &cadbuser.Record{
 		Name:                      user.Name,
 		Pass:                      pwd,
 		Type:                      user.Type,
@@ -234,7 +234,7 @@ func (d *Accessor) UpdateUser(user *cadbuser.Info, updatePass bool) error {
 	}
 
 	// Store the updated user entry
-	res, err := d.db.NamedExec(updateUser, cadbuser.Record{
+	res, err := d.db.NamedExec("UpdateUser", updateUser, cadbuser.Record{
 		Name:                      user.Name,
 		Pass:                      pwd,
 		Type:                      user.Type,
@@ -274,7 +274,7 @@ func (d *Accessor) GetUser(id string, attrs []string) (user.User, error) {
 	}
 
 	var userRec cadbuser.Record
-	err = d.db.Get(&userRec, d.db.Rebind(getUser), id)
+	err = d.db.Get("GetUser", &userRec, d.db.Rebind(getUser), id)
 	if err != nil {
 		return nil, cadbutil.GetError(err, "User")
 	}
@@ -302,7 +302,7 @@ func (d *Accessor) InsertAffiliation(name string, prekey string, level int) erro
 			return nil
 		}
 	}
-	_, err = d.db.Exec(d.db.Rebind(insertAffiliation), name, prekey, level)
+	_, err = d.db.Exec("InsertAffiliation", d.db.Rebind(insertAffiliation), name, prekey, level)
 	if err != nil {
 		if (!strings.Contains(err.Error(), "UNIQUE constraint failed") && dbType == "sqlite3") || (!strings.Contains(err.Error(), "duplicate key value") && dbType == "postgres") {
 			return err
@@ -444,7 +444,7 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 
 	var affiliationRecord db.AffiliationRecord
 
-	err = d.db.Get(&affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
+	err = d.db.Get("GetAffiliation", &affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
 		return nil, cadbutil.GetError(err, "affiliation")
 	}
@@ -511,7 +511,7 @@ func (d *Accessor) GetUserLessThanLevel(level int) ([]user.User, error) {
 		return []user.User{}, nil
 	}
 
-	rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
+	rows, err := d.db.Queryx("GetUserLessThanLevel", d.db.Rebind("SELECT * FROM users WHERE (level < ?) OR (level IS NULL)"), level)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get identities that need to be updated")
 	}
@@ -537,14 +537,14 @@ func (d *Accessor) GetAllAffiliations(name string) (*sqlx.Rows, error) {
 	}
 
 	if name == "" { // Requesting all affiliations
-		rows, err := d.db.Queryx(d.db.Rebind("SELECT * FROM affiliations"))
+		rows, err := d.db.Queryx("GetAllAffiliations", d.db.Rebind("SELECT * FROM affiliations"))
 		if err != nil {
 			return nil, err
 		}
 		return rows, nil
 	}
 
-	rows, err := d.db.Queryx(d.db.Rebind(getAllAffiliationsQuery), name, name+".%")
+	rows, err := d.db.Queryx("GetAllAffiliations", d.db.Rebind(getAllAffiliationsQuery), name, name+".%")
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +569,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 	if affiliation == "" {
 		if util.ListContains(types, "*") { // If type is '*', allowed to get back of all types
 			query := "SELECT * FROM users"
-			rows, err := d.db.Queryx(d.db.Rebind(query))
+			rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(query))
 			if err != nil {
 				return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 			}
@@ -581,7 +581,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to construct query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 		}
-		rows, err := d.db.Queryx(d.db.Rebind(query), args...)
+		rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(query), args...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 		}
@@ -591,7 +591,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 	subAffiliation := affiliation + ".%"
 	if util.ListContains(types, "*") { // If type is '*', allowed to get back of all types for requested affiliation
 		query := "SELECT * FROM users WHERE ((affiliation = ?) OR (affiliation LIKE ?))"
-		rows, err := d.db.Queryx(d.db.Rebind(query))
+		rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(query))
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 		}
@@ -603,7 +603,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to construct query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 	}
-	rows, err := d.db.Queryx(d.db.Rebind(inQuery), args...)
+	rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(inQuery), args...)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 	}

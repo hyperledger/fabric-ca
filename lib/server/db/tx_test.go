@@ -19,19 +19,22 @@ import (
 func TestTX(t *testing.T) {
 	gt := NewGomegaWithT(t)
 
+	mockDB := &mocks.SqlxDB{}
+	fabDB := db.New(mockDB)
 	mockTX := &mocks.SqlxTx{}
 	fabTx := &db.TX{
-		TX: mockTX,
+		TX:     mockTX,
+		Record: fabDB,
 	}
 	gt.Expect(fabTx).NotTo(BeNil())
 
 	// Select
 	mockTX.SelectReturns(nil)
-	err := fabTx.Select(nil, "")
+	err := fabTx.Select("", nil, "")
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	mockTX.SelectReturns(errors.New("Select Error"))
-	err = fabTx.Select(nil, "")
+	err = fabTx.Select("", nil, "")
 	gt.Expect(err).To(HaveOccurred())
 	gt.Expect(err.Error()).To(Equal("Select Error"))
 
@@ -53,11 +56,11 @@ func TestTX(t *testing.T) {
 
 	// Get
 	mockTX.GetReturns(nil)
-	err = fabTx.Get(nil, "")
+	err = fabTx.Get("", nil, "")
 	gt.Expect(err).NotTo(HaveOccurred())
 
 	mockTX.GetReturns(errors.New("Get Error"))
-	err = fabTx.Get(nil, "")
+	err = fabTx.Get("", nil, "")
 	gt.Expect(err.Error()).To(Equal("Get Error"))
 
 	// Queryx
@@ -74,4 +77,24 @@ func TestTX(t *testing.T) {
 	mockTX.RebindReturns("Select * from")
 	query := fabTx.Rebind("")
 	gt.Expect(query).To(Equal("Select * from"))
+
+	// Commit
+	mockTX.CommitReturns(nil)
+	err = fabTx.Commit("")
+	gt.Expect(err).NotTo(HaveOccurred())
+
+	mockTX.CommitReturns(errors.New("commit error"))
+	err = fabTx.Commit("")
+	gt.Expect(err).To(HaveOccurred())
+	gt.Expect(err.Error()).To(Equal("commit error"))
+
+	// Rollback
+	mockTX.RollbackReturns(nil)
+	err = fabTx.Rollback("")
+	gt.Expect(err).NotTo(HaveOccurred())
+
+	mockTX.RollbackReturns(errors.New("rollback error"))
+	err = fabTx.Rollback("")
+	gt.Expect(err).To(HaveOccurred())
+	gt.Expect(err.Error()).To(Equal("rollback error"))
 }
