@@ -17,6 +17,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -115,7 +116,7 @@ func createSQLiteDB(path string, t *testing.T) (*db.DB, *TestAccessor) {
 	sqlxdb, err := sqlx.Open("sqlite3", path)
 	assert.NoError(t, err, "Failed to open SQLite database")
 
-	sqlitedb := db.New(sqlxdb)
+	sqlitedb := db.New(sqlxdb, "", &disabled.Provider{})
 	accessor := NewDBAccessor(sqlitedb)
 
 	ta := &TestAccessor{
@@ -487,7 +488,7 @@ func TestDBErrorMessages(t *testing.T) {
 }
 
 func getSqliteDb(datasource string) (*db.DB, error) {
-	sqliteDB := sqlite.NewDB(datasource)
+	sqliteDB := sqlite.NewDB(datasource, "", &disabled.Provider{})
 	err := sqliteDB.Connect()
 	if err != nil {
 		return nil, err

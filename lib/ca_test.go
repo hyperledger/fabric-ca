@@ -21,6 +21,8 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
+	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +62,15 @@ func TestCABadCACertificates(t *testing.T) {
 		Affiliation: 1,
 		Certificate: 1,
 	}
-	srv.Operations = &mocks.OperationsServer{}
+	mockOperationsServer := &mocks.OperationsServer{}
+	fakeCounter := &metricsfakes.Counter{}
+	fakeCounter.WithReturns(fakeCounter)
+	mockOperationsServer.NewCounterReturns(fakeCounter)
+	fakeHistogram := &metricsfakes.Histogram{}
+	fakeHistogram.WithReturns(fakeHistogram)
+	mockOperationsServer.NewHistogramReturns(fakeHistogram)
+
+	srv.Operations = mockOperationsServer
 	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
@@ -648,7 +658,7 @@ func TestServerMigration(t *testing.T) {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 
-	sqliteDB := sqlite.NewDB(filepath.Join(dir, "fabric-ca-server.db"))
+	sqliteDB := sqlite.NewDB(filepath.Join(dir, "fabric-ca-server.db"), "", &disabled.Provider{})
 	err = sqliteDB.Connect()
 	assert.NoError(t, err, "failed to connect to database")
 	db, err := sqliteDB.Create()

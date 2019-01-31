@@ -13,6 +13,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db/postgres"
 	"github.com/hyperledger/fabric-ca/lib/server/db/postgres/mocks"
 	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -33,18 +34,18 @@ var _ = Describe("Postgres", func() {
 			Enabled:   true,
 			CertFiles: []string{filepath.Join(testdataDir, "root.pem")},
 		}
-		db = postgres.NewDB("host=localhost port=5432 user=root password=rootpw dbname=fabric_ca", tls)
+		db = postgres.NewDB("host=localhost port=5432 user=root password=rootpw dbname=fabric_ca", "", tls, &disabled.Provider{})
 		mockDB = &mocks.FabricCADB{}
 	})
 
 	Context("open connection to database", func() {
 		It("fails to connect if the contains incorrect syntax", func() {
-			db = postgres.NewDB("hos) (t=localhost port=5432 user=root password=rootpw dbname=fabric-ca", nil)
+			db = postgres.NewDB("hos) (t=localhost port=5432 user=root password=rootpw dbname=fabric-ca", "", nil, &disabled.Provider{})
 			err := db.Connect()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal("Database name 'fabric-ca' cannot contain any '-' or end with '.db'"))
 
-			db = postgres.NewDB("host=localhost port=5432 user=root password=rootpw dbname=fabric_ca.db", nil)
+			db = postgres.NewDB("host=localhost port=5432 user=root password=rootpw dbname=fabric_ca.db", "", nil, &disabled.Provider{})
 			err = db.Connect()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal("Database name 'fabric_ca.db' cannot contain any '-' or end with '.db'"))

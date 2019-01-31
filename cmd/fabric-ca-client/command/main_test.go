@@ -37,6 +37,7 @@ import (
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/attrmgr"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -2371,7 +2372,7 @@ func getSerialAKIByID(id string) (serial, aki string, err error) {
 }
 
 func getSqliteDb(datasource string) (*db.DB, error) {
-	sqliteDB := sqlite.NewDB(datasource)
+	sqliteDB := sqlite.NewDB(datasource, "", &disabled.Provider{})
 	err := sqliteDB.Connect()
 	if err != nil {
 		return nil, err
