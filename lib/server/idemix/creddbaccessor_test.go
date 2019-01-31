@@ -33,7 +33,7 @@ func TestInsertCredential(t *testing.T) {
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)
 	db := new(dmocks.FabricCADB)
-	db.On("NamedExec", InsertCredentialSQL, credRecord).Return(result, nil)
+	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(nil, 1)
 	accessor.SetDB(db)
@@ -46,7 +46,7 @@ func TestInsertCredentialNoRowsAffected(t *testing.T) {
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(0), nil)
 	db := new(dmocks.FabricCADB)
-	db.On("NamedExec", InsertCredentialSQL, credRecord).Return(result, nil)
+	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
 	err := accessor.InsertCredential(credRecord)
@@ -59,7 +59,7 @@ func TestInsertCredentialTwoRowsAffected(t *testing.T) {
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(2), nil)
 	db := new(dmocks.FabricCADB)
-	db.On("NamedExec", InsertCredentialSQL, credRecord).Return(result, nil)
+	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
 	err := accessor.InsertCredential(credRecord)
@@ -70,7 +70,7 @@ func TestInsertCredentialTwoRowsAffected(t *testing.T) {
 func TestInsertCredentialExecError(t *testing.T) {
 	credRecord := getCredRecord()
 	db := new(dmocks.FabricCADB)
-	db.On("NamedExec", InsertCredentialSQL, credRecord).Return(nil, errors.New("Exec error"))
+	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(nil, errors.New("Exec error"))
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
 	err := accessor.InsertCredential(credRecord)
@@ -92,7 +92,7 @@ func TestGetCredentialsByIDSelectError(t *testing.T) {
 	crs := []CredRecord{}
 	q := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	f := getCredSelectFunc(t, true)
-	db.On("Select", &crs, q, "foo").Return(f)
+	db.On("Select", "GetCredentialsByID", &crs, q, "foo").Return(f)
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetCredentialsByID("foo")
 	assert.Error(t, err)
@@ -104,7 +104,7 @@ func TestGetCredentialsByID(t *testing.T) {
 	crs := []CredRecord{}
 	q := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	f := getCredSelectFunc(t, false)
-	db.On("Select", &crs, q, "foo").Return(f)
+	db.On("Select", "GetCredentialsByID", &crs, q, "foo").Return(f)
 	accessor := NewCredentialAccessor(db, 1)
 	rcrs, err := accessor.GetCredentialsByID("foo")
 	assert.NoError(t, err)
@@ -124,7 +124,7 @@ func TestGetCredentialSelectError(t *testing.T) {
 	db.On("Rebind", SelectCredentialSQL).Return(SelectCredentialSQL)
 	cr := CredRecord{}
 	q := fmt.Sprintf(SelectCredentialSQL, sqlstruct.Columns(CredRecord{}))
-	db.On("Select", &cr, q, "1").Return(errors.New("Select error"))
+	db.On("Select", "GetCredential", &cr, q, "1").Return(errors.New("Select error"))
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetCredential("1")
 	assert.Error(t, err)
@@ -135,7 +135,7 @@ func TestGetCredential(t *testing.T) {
 	db.On("Rebind", SelectCredentialSQL).Return(SelectCredentialSQL)
 	cr := CredRecord{}
 	q := fmt.Sprintf(SelectCredentialSQL, sqlstruct.Columns(CredRecord{}))
-	db.On("Select", &cr, q, "1").Return(nil)
+	db.On("Select", "GetCredential", &cr, q, "1").Return(nil)
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetCredential("1")
 	assert.NoError(t, err)
@@ -154,7 +154,7 @@ func TestGetRevokedCredentialsSelectError(t *testing.T) {
 	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
 	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
 	cr := []CredRecord{}
-	db.On("Select", &cr, q).Return(errors.New("Failed to get revoked credentials"))
+	db.On("Select", "GetRevokedCredentials", &cr, q).Return(errors.New("Failed to get revoked credentials"))
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetRevokedCredentials()
 	assert.Error(t, err)
@@ -165,14 +165,14 @@ func TestGetRevokedCredentials(t *testing.T) {
 	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
 	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
 	cr := []CredRecord{}
-	db.On("Select", &cr, q).Return(nil)
+	db.On("Select", "GetRevokedCredentials", &cr, q).Return(nil)
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetRevokedCredentials()
 	assert.NoError(t, err)
 }
 
-func getCredSelectFunc(t *testing.T, isError bool) func(interface{}, string, ...interface{}) error {
-	return func(dest interface{}, query string, args ...interface{}) error {
+func getCredSelectFunc(t *testing.T, isError bool) func(string, interface{}, string, ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		crs := dest.(*[]CredRecord)
 		cr := getCredRecord()
 		*crs = append(*crs, cr)

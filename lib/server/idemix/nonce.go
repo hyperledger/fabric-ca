@@ -113,7 +113,7 @@ func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
 func (nm *nonceManager) CheckNonce(nonce *fp256bn.BIG) error {
 	nonceBytes := idemix.BigToBytes(nonce)
 	queryParam := util.B64Encode(nonceBytes)
-	nonceRec, err := doTransaction(nm.issuer.DB(), nm.getNonceFromDB, queryParam)
+	nonceRec, err := doTransaction("CheckNonce", nm.issuer.DB(), nm.getNonceFromDB, queryParam)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (nm *nonceManager) sweep(curTime time.Time) error {
 // Gets the specified nonce from DB and removes it from the DB
 func (nm *nonceManager) getNonceFromDB(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
 	nonces := []Nonce{}
-	err := tx.Select(&nonces, tx.Rebind(SelectNonce), args...)
+	err := tx.Select("GetNonce", &nonces, tx.Rebind(SelectNonce), args...)
 	if err != nil {
 		log.Errorf("Failed to get nonce from DB: %s", err.Error())
 		return nil, errors.New("Failed to retrieve nonce from the datastore")
@@ -162,7 +162,7 @@ func (nm *nonceManager) getNonceFromDB(tx db.FabricCATx, args ...interface{}) (i
 	if len(nonces) == 0 {
 		return nil, errors.New("Nonce not found in the datastore")
 	}
-	result, err := tx.Exec(tx.Rebind(RemoveNonce), args...)
+	result, err := tx.Exec("GetNonce", tx.Rebind(RemoveNonce), args...)
 	if err != nil {
 		log.Errorf("Failed to remove nonce %s from DB: %s", args[0], err.Error())
 		return nonces[0], nil
@@ -175,7 +175,7 @@ func (nm *nonceManager) getNonceFromDB(tx db.FabricCATx, args ...interface{}) (i
 }
 
 func (nm *nonceManager) removeExpiredNoncesFromDB(curTime time.Time) error {
-	_, err := nm.issuer.DB().Exec(nm.issuer.DB().Rebind(RemoveExpiredNonces), curTime)
+	_, err := nm.issuer.DB().Exec("RemoveExpiredNonces", nm.issuer.DB().Rebind(RemoveExpiredNonces), curTime)
 	if err != nil {
 		log.Errorf("Failed to remove expired nonces from DB for CA '%s': %s", nm.issuer.Name(), err.Error())
 		return errors.New("Failed to remove expired nonces from DB")
@@ -184,7 +184,7 @@ func (nm *nonceManager) removeExpiredNoncesFromDB(curTime time.Time) error {
 }
 
 func (nm *nonceManager) insertNonceInDB(nonce *Nonce) error {
-	res, err := nm.issuer.DB().NamedExec(InsertNonce, nonce)
+	res, err := nm.issuer.DB().NamedExec("InsertNonce", InsertNonce, nonce)
 	if err != nil {
 		log.Errorf("Failed to add nonce to DB: %s", err.Error())
 		return errors.New("Failed to add nonce to the datastore")

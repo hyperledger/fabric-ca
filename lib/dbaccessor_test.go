@@ -80,7 +80,7 @@ func Truncate(db *db.DB) {
 		if len(strings.TrimSpace(expr)) == 0 {
 			continue
 		}
-		if _, err := db.Exec(expr); err != nil {
+		if _, err := db.Exec("", expr); err != nil {
 			panic(err)
 		}
 	}
@@ -137,7 +137,7 @@ func testWithExistingDbAndTablesAndUser(t *testing.T) {
 	}
 	db, acc := createSQLiteDB(rootDB, t)
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
+	_, err = db.Exec("", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
 	assert.NoError(t, err, "Error creating users table")
 
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
@@ -178,7 +178,7 @@ func testWithExistingDbAndTable(t *testing.T) {
 	srv := TestGetServer2(false, rootPort, rootDir, "", -1, t)
 	srv.CA.Config.DB.Datasource = "fabric_ca.db"
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
+	_, err = db.Exec("", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0)")
 	assert.NoError(t, err, "Error creating users table")
 
 	err = srv.Start()

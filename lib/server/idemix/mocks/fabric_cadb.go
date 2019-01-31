@@ -56,16 +56,16 @@ func (_m *FabricCADB) DriverName() string {
 	return r0
 }
 
-// Exec provides a mock function with given fields: query, args
-func (_m *FabricCADB) Exec(query string, args ...interface{}) (sql.Result, error) {
+// Exec provides a mock function with given fields: funcName, query, args
+func (_m *FabricCADB) Exec(funcName string, query string, args ...interface{}) (sql.Result, error) {
 	var _ca []interface{}
-	_ca = append(_ca, query)
+	_ca = append(_ca, funcName, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 sql.Result
-	if rf, ok := ret.Get(0).(func(string, ...interface{}) sql.Result); ok {
-		r0 = rf(query, args...)
+	if rf, ok := ret.Get(0).(func(string, string, ...interface{}) sql.Result); ok {
+		r0 = rf(funcName, query, args...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(sql.Result)
@@ -73,8 +73,8 @@ func (_m *FabricCADB) Exec(query string, args ...interface{}) (sql.Result, error
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...interface{}) error); ok {
-		r1 = rf(query, args...)
+	if rf, ok := ret.Get(1).(func(string, string, ...interface{}) error); ok {
+		r1 = rf(funcName, query, args...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -82,16 +82,16 @@ func (_m *FabricCADB) Exec(query string, args ...interface{}) (sql.Result, error
 	return r0, r1
 }
 
-// Get provides a mock function with given fields: dest, query, args
-func (_m *FabricCADB) Get(dest interface{}, query string, args ...interface{}) error {
+// Get provides a mock function with given fields: funcName, dest, query, args
+func (_m *FabricCADB) Get(funcName string, dest interface{}, query string, args ...interface{}) error {
 	var _ca []interface{}
-	_ca = append(_ca, dest, query)
+	_ca = append(_ca, funcName, dest, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(interface{}, string, ...interface{}) error); ok {
-		r0 = rf(dest, query, args...)
+	if rf, ok := ret.Get(0).(func(string, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(funcName, dest, query, args...)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -129,13 +129,13 @@ func (_m *FabricCADB) MustBegin() *sqlx.Tx {
 	return r0
 }
 
-// NamedExec provides a mock function with given fields: query, arg
-func (_m *FabricCADB) NamedExec(query string, arg interface{}) (sql.Result, error) {
-	ret := _m.Called(query, arg)
+// NamedExec provides a mock function with given fields: funcName, query, arg
+func (_m *FabricCADB) NamedExec(funcName string, query string, arg interface{}) (sql.Result, error) {
+	ret := _m.Called(funcName, query, arg)
 
 	var r0 sql.Result
-	if rf, ok := ret.Get(0).(func(string, interface{}) sql.Result); ok {
-		r0 = rf(query, arg)
+	if rf, ok := ret.Get(0).(func(string, string, interface{}) sql.Result); ok {
+		r0 = rf(funcName, query, arg)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(sql.Result)
@@ -143,8 +143,8 @@ func (_m *FabricCADB) NamedExec(query string, arg interface{}) (sql.Result, erro
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, interface{}) error); ok {
-		r1 = rf(query, arg)
+	if rf, ok := ret.Get(1).(func(string, string, interface{}) error); ok {
+		r1 = rf(funcName, query, arg)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -166,16 +166,16 @@ func (_m *FabricCADB) PingContext(ctx context.Context) error {
 	return r0
 }
 
-// Queryx provides a mock function with given fields: query, args
-func (_m *FabricCADB) Queryx(query string, args ...interface{}) (*sqlx.Rows, error) {
+// Queryx provides a mock function with given fields: funcName, query, args
+func (_m *FabricCADB) Queryx(funcName string, query string, args ...interface{}) (*sqlx.Rows, error) {
 	var _ca []interface{}
-	_ca = append(_ca, query)
+	_ca = append(_ca, funcName, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 *sqlx.Rows
-	if rf, ok := ret.Get(0).(func(string, ...interface{}) *sqlx.Rows); ok {
-		r0 = rf(query, args...)
+	if rf, ok := ret.Get(0).(func(string, string, ...interface{}) *sqlx.Rows); ok {
+		r0 = rf(funcName, query, args...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*sqlx.Rows)
@@ -183,8 +183,8 @@ func (_m *FabricCADB) Queryx(query string, args ...interface{}) (*sqlx.Rows, err
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...interface{}) error); ok {
-		r1 = rf(query, args...)
+	if rf, ok := ret.Get(1).(func(string, string, ...interface{}) error); ok {
+		r1 = rf(funcName, query, args...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -206,16 +206,16 @@ func (_m *FabricCADB) Rebind(query string) string {
 	return r0
 }
 
-// Select provides a mock function with given fields: dest, query, args
-func (_m *FabricCADB) Select(dest interface{}, query string, args ...interface{}) error {
+// Select provides a mock function with given fields: funcName, dest, query, args
+func (_m *FabricCADB) Select(funcName string, dest interface{}, query string, args ...interface{}) error {
 	var _ca []interface{}
-	_ca = append(_ca, dest, query)
+	_ca = append(_ca, funcName, dest, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(interface{}, string, ...interface{}) error); ok {
-		r0 = rf(dest, query, args...)
+	if rf, ok := ret.Get(0).(func(string, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(funcName, dest, query, args...)
 	} else {
 		r0 = ret.Error(0)
 	}

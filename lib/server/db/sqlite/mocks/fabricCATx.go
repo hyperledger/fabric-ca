@@ -10,9 +10,10 @@ import (
 )
 
 type FabricCATx struct {
-	CommitStub        func() error
+	CommitStub        func(string) error
 	commitMutex       sync.RWMutex
 	commitArgsForCall []struct {
+		arg1 string
 	}
 	commitReturns struct {
 		result1 error
@@ -20,11 +21,12 @@ type FabricCATx struct {
 	commitReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ExecStub        func(string, ...interface{}) (sql.Result, error)
+	ExecStub        func(string, string, ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 string
+		arg3 []interface{}
 	}
 	execReturns struct {
 		result1 sql.Result
@@ -34,12 +36,13 @@ type FabricCATx struct {
 		result1 sql.Result
 		result2 error
 	}
-	GetStub        func(interface{}, string, ...interface{}) error
+	GetStub        func(string, interface{}, string, ...interface{}) error
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
-		arg1 interface{}
-		arg2 string
-		arg3 []interface{}
+		arg1 string
+		arg2 interface{}
+		arg3 string
+		arg4 []interface{}
 	}
 	getReturns struct {
 		result1 error
@@ -47,11 +50,12 @@ type FabricCATx struct {
 	getReturnsOnCall map[int]struct {
 		result1 error
 	}
-	QueryxStub        func(string, ...interface{}) (*sqlx.Rows, error)
+	QueryxStub        func(string, string, ...interface{}) (*sqlx.Rows, error)
 	queryxMutex       sync.RWMutex
 	queryxArgsForCall []struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 string
+		arg3 []interface{}
 	}
 	queryxReturns struct {
 		result1 *sqlx.Rows
@@ -72,9 +76,10 @@ type FabricCATx struct {
 	rebindReturnsOnCall map[int]struct {
 		result1 string
 	}
-	RollbackStub        func() error
+	RollbackStub        func(string) error
 	rollbackMutex       sync.RWMutex
 	rollbackArgsForCall []struct {
+		arg1 string
 	}
 	rollbackReturns struct {
 		result1 error
@@ -82,12 +87,13 @@ type FabricCATx struct {
 	rollbackReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SelectStub        func(interface{}, string, ...interface{}) error
+	SelectStub        func(string, interface{}, string, ...interface{}) error
 	selectMutex       sync.RWMutex
 	selectArgsForCall []struct {
-		arg1 interface{}
-		arg2 string
-		arg3 []interface{}
+		arg1 string
+		arg2 interface{}
+		arg3 string
+		arg4 []interface{}
 	}
 	selectReturns struct {
 		result1 error
@@ -99,15 +105,16 @@ type FabricCATx struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FabricCATx) Commit() error {
+func (fake *FabricCATx) Commit(arg1 string) error {
 	fake.commitMutex.Lock()
 	ret, specificReturn := fake.commitReturnsOnCall[len(fake.commitArgsForCall)]
 	fake.commitArgsForCall = append(fake.commitArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Commit", []interface{}{})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Commit", []interface{}{arg1})
 	fake.commitMutex.Unlock()
 	if fake.CommitStub != nil {
-		return fake.CommitStub()
+		return fake.CommitStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -122,10 +129,17 @@ func (fake *FabricCATx) CommitCallCount() int {
 	return len(fake.commitArgsForCall)
 }
 
-func (fake *FabricCATx) CommitCalls(stub func() error) {
+func (fake *FabricCATx) CommitCalls(stub func(string) error) {
 	fake.commitMutex.Lock()
 	defer fake.commitMutex.Unlock()
 	fake.CommitStub = stub
+}
+
+func (fake *FabricCATx) CommitArgsForCall(i int) string {
+	fake.commitMutex.RLock()
+	defer fake.commitMutex.RUnlock()
+	argsForCall := fake.commitArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FabricCATx) CommitReturns(result1 error) {
@@ -151,17 +165,18 @@ func (fake *FabricCATx) CommitReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FabricCATx) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error) {
+func (fake *FabricCATx) Exec(arg1 string, arg2 string, arg3 ...interface{}) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		arg1 string
-		arg2 []interface{}
-	}{arg1, arg2})
-	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
+		arg2 string
+		arg3 []interface{}
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Exec", []interface{}{arg1, arg2, arg3})
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
-		return fake.ExecStub(arg1, arg2...)
+		return fake.ExecStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -176,17 +191,17 @@ func (fake *FabricCATx) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
-func (fake *FabricCATx) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+func (fake *FabricCATx) ExecCalls(stub func(string, string, ...interface{}) (sql.Result, error)) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = stub
 }
 
-func (fake *FabricCATx) ExecArgsForCall(i int) (string, []interface{}) {
+func (fake *FabricCATx) ExecArgsForCall(i int) (string, string, []interface{}) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	argsForCall := fake.execArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FabricCATx) ExecReturns(result1 sql.Result, result2 error) {
@@ -215,18 +230,19 @@ func (fake *FabricCATx) ExecReturnsOnCall(i int, result1 sql.Result, result2 err
 	}{result1, result2}
 }
 
-func (fake *FabricCATx) Get(arg1 interface{}, arg2 string, arg3 ...interface{}) error {
+func (fake *FabricCATx) Get(arg1 string, arg2 interface{}, arg3 string, arg4 ...interface{}) error {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 interface{}
-		arg2 string
-		arg3 []interface{}
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3})
+		arg1 string
+		arg2 interface{}
+		arg3 string
+		arg4 []interface{}
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4})
 	fake.getMutex.Unlock()
 	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3...)
+		return fake.GetStub(arg1, arg2, arg3, arg4...)
 	}
 	if specificReturn {
 		return ret.result1
@@ -241,17 +257,17 @@ func (fake *FabricCATx) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FabricCATx) GetCalls(stub func(interface{}, string, ...interface{}) error) {
+func (fake *FabricCATx) GetCalls(stub func(string, interface{}, string, ...interface{}) error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FabricCATx) GetArgsForCall(i int) (interface{}, string, []interface{}) {
+func (fake *FabricCATx) GetArgsForCall(i int) (string, interface{}, string, []interface{}) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FabricCATx) GetReturns(result1 error) {
@@ -277,17 +293,18 @@ func (fake *FabricCATx) GetReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FabricCATx) Queryx(arg1 string, arg2 ...interface{}) (*sqlx.Rows, error) {
+func (fake *FabricCATx) Queryx(arg1 string, arg2 string, arg3 ...interface{}) (*sqlx.Rows, error) {
 	fake.queryxMutex.Lock()
 	ret, specificReturn := fake.queryxReturnsOnCall[len(fake.queryxArgsForCall)]
 	fake.queryxArgsForCall = append(fake.queryxArgsForCall, struct {
 		arg1 string
-		arg2 []interface{}
-	}{arg1, arg2})
-	fake.recordInvocation("Queryx", []interface{}{arg1, arg2})
+		arg2 string
+		arg3 []interface{}
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Queryx", []interface{}{arg1, arg2, arg3})
 	fake.queryxMutex.Unlock()
 	if fake.QueryxStub != nil {
-		return fake.QueryxStub(arg1, arg2...)
+		return fake.QueryxStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -302,17 +319,17 @@ func (fake *FabricCATx) QueryxCallCount() int {
 	return len(fake.queryxArgsForCall)
 }
 
-func (fake *FabricCATx) QueryxCalls(stub func(string, ...interface{}) (*sqlx.Rows, error)) {
+func (fake *FabricCATx) QueryxCalls(stub func(string, string, ...interface{}) (*sqlx.Rows, error)) {
 	fake.queryxMutex.Lock()
 	defer fake.queryxMutex.Unlock()
 	fake.QueryxStub = stub
 }
 
-func (fake *FabricCATx) QueryxArgsForCall(i int) (string, []interface{}) {
+func (fake *FabricCATx) QueryxArgsForCall(i int) (string, string, []interface{}) {
 	fake.queryxMutex.RLock()
 	defer fake.queryxMutex.RUnlock()
 	argsForCall := fake.queryxArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FabricCATx) QueryxReturns(result1 *sqlx.Rows, result2 error) {
@@ -401,15 +418,16 @@ func (fake *FabricCATx) RebindReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FabricCATx) Rollback() error {
+func (fake *FabricCATx) Rollback(arg1 string) error {
 	fake.rollbackMutex.Lock()
 	ret, specificReturn := fake.rollbackReturnsOnCall[len(fake.rollbackArgsForCall)]
 	fake.rollbackArgsForCall = append(fake.rollbackArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Rollback", []interface{}{})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Rollback", []interface{}{arg1})
 	fake.rollbackMutex.Unlock()
 	if fake.RollbackStub != nil {
-		return fake.RollbackStub()
+		return fake.RollbackStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -424,10 +442,17 @@ func (fake *FabricCATx) RollbackCallCount() int {
 	return len(fake.rollbackArgsForCall)
 }
 
-func (fake *FabricCATx) RollbackCalls(stub func() error) {
+func (fake *FabricCATx) RollbackCalls(stub func(string) error) {
 	fake.rollbackMutex.Lock()
 	defer fake.rollbackMutex.Unlock()
 	fake.RollbackStub = stub
+}
+
+func (fake *FabricCATx) RollbackArgsForCall(i int) string {
+	fake.rollbackMutex.RLock()
+	defer fake.rollbackMutex.RUnlock()
+	argsForCall := fake.rollbackArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FabricCATx) RollbackReturns(result1 error) {
@@ -453,18 +478,19 @@ func (fake *FabricCATx) RollbackReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FabricCATx) Select(arg1 interface{}, arg2 string, arg3 ...interface{}) error {
+func (fake *FabricCATx) Select(arg1 string, arg2 interface{}, arg3 string, arg4 ...interface{}) error {
 	fake.selectMutex.Lock()
 	ret, specificReturn := fake.selectReturnsOnCall[len(fake.selectArgsForCall)]
 	fake.selectArgsForCall = append(fake.selectArgsForCall, struct {
-		arg1 interface{}
-		arg2 string
-		arg3 []interface{}
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("Select", []interface{}{arg1, arg2, arg3})
+		arg1 string
+		arg2 interface{}
+		arg3 string
+		arg4 []interface{}
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Select", []interface{}{arg1, arg2, arg3, arg4})
 	fake.selectMutex.Unlock()
 	if fake.SelectStub != nil {
-		return fake.SelectStub(arg1, arg2, arg3...)
+		return fake.SelectStub(arg1, arg2, arg3, arg4...)
 	}
 	if specificReturn {
 		return ret.result1
@@ -479,17 +505,17 @@ func (fake *FabricCATx) SelectCallCount() int {
 	return len(fake.selectArgsForCall)
 }
 
-func (fake *FabricCATx) SelectCalls(stub func(interface{}, string, ...interface{}) error) {
+func (fake *FabricCATx) SelectCalls(stub func(string, interface{}, string, ...interface{}) error) {
 	fake.selectMutex.Lock()
 	defer fake.selectMutex.Unlock()
 	fake.SelectStub = stub
 }
 
-func (fake *FabricCATx) SelectArgsForCall(i int) (interface{}, string, []interface{}) {
+func (fake *FabricCATx) SelectArgsForCall(i int) (string, interface{}, string, []interface{}) {
 	fake.selectMutex.RLock()
 	defer fake.selectMutex.RUnlock()
 	argsForCall := fake.selectArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FabricCATx) SelectReturns(result1 error) {

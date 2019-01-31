@@ -280,7 +280,7 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, ca *CA) err
 	}
 
 	db := ca.GetDB()
-	res, err := db.NamedExec(insertSQL, record)
+	res, err := db.NamedExec("", insertSQL, record)
 	if err != nil {
 		return errors.Wrap(err, "Failed to insert record into database")
 	}

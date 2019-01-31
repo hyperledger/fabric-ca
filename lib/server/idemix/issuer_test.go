@@ -207,7 +207,7 @@ func TestVerifyTokenError(t *testing.T) {
 	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
 	credRecords := []CredRecord{}
 	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
-	db.On("Select", &credRecords, sqlstr, "foo").Return(errors.New("db error getting creds for user"))
+	db.On("Select", "GetCredentialsByID", &credRecords, sqlstr, "foo").Return(errors.New("db error getting creds for user"))
 
 	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if there is error looking up enrollment id in the database")
@@ -243,7 +243,7 @@ func TestVerifyTokenNoCreds(t *testing.T) {
 	credRecords := []CredRecord{}
 	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	f := getCredsSelectFunc(t, &credRecords, false)
-	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
+	db.On("Select", "GetCredentialsByID", &credRecords, sqlstr, "foo").Return(f)
 
 	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the enrollment id does not have creds")
@@ -279,7 +279,7 @@ func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
 	credRecords := []CredRecord{}
 	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	f := getCredsSelectFunc(t, &credRecords, true)
-	db.On("Select", &credRecords, sqlstr, "foo").Return(f)
+	db.On("Select", "GetCredentialsByID", &credRecords, sqlstr, "foo").Return(f)
 
 	_, err = issuer.VerifyToken("idemix.1.foo.sig", "", "", []byte{})
 	assert.Error(t, err, "VerifyToken should fail if the signature is not in base64 format")
@@ -316,7 +316,7 @@ func TestVerifyTokenBadSignature(t *testing.T) {
 	credRecords := []CredRecord{}
 	sqlstr := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
 	f := getCredsSelectFunc(t, &credRecords, true)
-	db.On("Select", &credRecords, sqlstr, "admin").Return(f)
+	db.On("Select", "GetCredentialsByID", &credRecords, sqlstr, "admin").Return(f)
 
 	sig := util.B64Encode([]byte("hello"))
 	_, err = issuer.VerifyToken("idemix.1.admin."+sig, "", "", []byte{})
@@ -427,7 +427,7 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	f := getSelectFunc(t, true, false)
 
 	rcInfosForSelect := []RevocationAuthorityInfo{}
-	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(f)
+	db.On("Select", "GetRAInfo", &rcInfosForSelect, SelectRAInfo).Return(f)
 	rcinfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -436,13 +436,13 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)
-	db.On("NamedExec", InsertRAInfo, &rcinfo).Return(result, nil)
+	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rcinfo).Return(result, nil)
 
 	return db, issuer
 }
 
-func getCredsSelectFunc(t *testing.T, creds *[]CredRecord, isAppend bool) func(interface{}, string, ...interface{}) error {
-	return func(dest interface{}, query string, args ...interface{}) error {
+func getCredsSelectFunc(t *testing.T, creds *[]CredRecord, isAppend bool) func(string, interface{}, string, ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		credRecs := dest.(*[]CredRecord)
 		cred := CredRecord{
 			ID:     "foo",

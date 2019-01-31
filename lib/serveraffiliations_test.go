@@ -49,7 +49,7 @@ func TestGetAllAffiliations(t *testing.T) {
 	assert.NoError(t, err, "Failed to get all affiliations")
 
 	affiliations := []db.AffiliationRecord{}
-	err = srv.CA.db.Select(&affiliations, srv.CA.db.Rebind("SELECT * FROM affiliations"))
+	err = srv.CA.db.Select("", &affiliations, srv.CA.db.Rebind("SELECT * FROM affiliations"))
 	if err != nil {
 		t.Error("Failed to get all affiliations in database")
 	}

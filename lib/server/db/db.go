@@ -9,9 +9,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/hyperledger/fabric-ca/lib/server/db/util"
+	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,13 +22,23 @@ import (
 
 // FabricCADB is the interface that wrapper off SqlxDB
 type FabricCADB interface {
-	SqlxDB
-
 	IsInitialized() bool
 	SetDBInitialized(bool)
 	// BeginTx has same behavior as MustBegin except it returns FabricCATx
 	// instead of *sqlx.Tx
 	BeginTx() FabricCATx
+	DriverName() string
+
+	Select(funcName string, dest interface{}, query string, args ...interface{}) error
+	Exec(funcName, query string, args ...interface{}) (sql.Result, error)
+	NamedExec(funcName, query string, arg interface{}) (sql.Result, error)
+	Get(funcName string, dest interface{}, query string, args ...interface{}) error
+	Queryx(funcName, query string, args ...interface{}) (*sqlx.Rows, error)
+	Rebind(query string) string
+	MustBegin() *sqlx.Tx
+	Close() error
+	SetMaxOpenConns(n int)
+	PingContext(ctx context.Context) error
 }
 
 //go:generate counterfeiter -o mocks/sqlxDB.go -fake-name SqlxDB . SqlxDB
@@ -67,12 +79,21 @@ type DB struct {
 	DB SqlxDB
 	// Indicates if database was successfully initialized
 	IsDBInitialized bool
+
+	CAName string
+
+	Metrics Metrics
 }
 
 // New creates an instance of DB
 func New(db SqlxDB) *DB {
+	metricsProvider := &disabled.Provider{}
 	return &DB{
 		DB: db,
+		Metrics: Metrics{
+			APICounter:  metricsProvider.NewCounter(APICounterOpts),
+			APIDuration: metricsProvider.NewHistogram(APIDurationOpts),
+		},
 	}
 }
 
@@ -89,33 +110,49 @@ func (db *DB) SetDBInitialized(b bool) {
 // BeginTx implements BeginTx method of FabricCADB interface
 func (db *DB) BeginTx() FabricCATx {
 	return &TX{
-		TX: db.DB.MustBegin(),
+		TX:     db.DB.MustBegin(),
+		Record: db,
 	}
 }
 
 // Select performs select sql statement
-func (db *DB) Select(dest interface{}, query string, args ...interface{}) error {
-	return db.DB.Select(dest, query, args...)
+func (db *DB) Select(funcName string, dest interface{}, query string, args ...interface{}) error {
+	startTime := time.Now()
+	err := db.DB.Select(dest, query, args...)
+	db.recordMetric(startTime, funcName, "Select")
+	return err
 }
 
 // Exec executes query
-func (db *DB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return db.DB.Exec(query, args...)
+func (db *DB) Exec(funcName, query string, args ...interface{}) (sql.Result, error) {
+	startTime := time.Now()
+	res, err := db.DB.Exec(query, args...)
+	db.recordMetric(startTime, funcName, "Exec")
+	return res, err
 }
 
 // NamedExec executes query
-func (db *DB) NamedExec(query string, args interface{}) (sql.Result, error) {
-	return db.DB.NamedExec(query, args)
+func (db *DB) NamedExec(funcName, query string, args interface{}) (sql.Result, error) {
+	startTime := time.Now()
+	res, err := db.DB.NamedExec(query, args)
+	db.recordMetric(startTime, funcName, "NamedExec")
+	return res, err
 }
 
 // Get executes query
-func (db *DB) Get(dest interface{}, query string, args ...interface{}) error {
-	return db.DB.Get(dest, query, args...)
+func (db *DB) Get(funcName string, dest interface{}, query string, args ...interface{}) error {
+	startTime := time.Now()
+	err := db.DB.Get(dest, query, args...)
+	db.recordMetric(startTime, funcName, "Get")
+	return err
 }
 
 // Queryx executes query
-func (db *DB) Queryx(query string, args ...interface{}) (*sqlx.Rows, error) {
-	return db.DB.Queryx(query, args...)
+func (db *DB) Queryx(funcName, query string, args ...interface{}) (*sqlx.Rows, error) {
+	startTime := time.Now()
+	rows, err := db.DB.Queryx(query, args...)
+	db.recordMetric(startTime, funcName, "Queryx")
+	return rows, err
 }
 
 // MustBegin starts a transaction
@@ -146,6 +183,11 @@ func (db *DB) SetMaxOpenConns(n int) {
 // PingContext pings the database
 func (db *DB) PingContext(ctx context.Context) error {
 	return db.DB.PingContext(ctx)
+}
+
+func (db *DB) recordMetric(startTime time.Time, funcName, dbapiName string) {
+	db.Metrics.APICounter.With("ca_name", db.CAName, "func_name", funcName, "dbapi_name", dbapiName).Add(1)
+	db.Metrics.APIDuration.With("ca_name", db.CAName, "func_name", funcName, "dbapi_name", dbapiName).Observe(time.Since(startTime).Seconds())
 }
 
 // CurrentDBLevels returns current levels from the database
@@ -188,7 +230,7 @@ func CurrentDBLevels(db FabricCADB) (*util.Levels, error) {
 }
 
 func getProperty(db FabricCADB, propName string, val *int) error {
-	err := db.Get(val, db.Rebind("Select value FROM properties WHERE (property = ?)"), propName)
+	err := db.Get("GetProperty", val, db.Rebind("Select value FROM properties WHERE (property = ?)"), propName)
 	if err != nil && err.Error() == "sql: no rows in result set" {
 		return nil
 	}

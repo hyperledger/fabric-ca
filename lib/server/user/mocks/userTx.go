@@ -8,7 +8,7 @@ import (
 	sqlx "github.com/jmoiron/sqlx"
 )
 
-type UserDB struct {
+type UserTx struct {
 	ExecStub        func(string, string, ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
@@ -23,20 +23,6 @@ type UserDB struct {
 	execReturnsOnCall map[int]struct {
 		result1 sql.Result
 		result2 error
-	}
-	GetStub        func(string, interface{}, string, ...interface{}) error
-	getMutex       sync.RWMutex
-	getArgsForCall []struct {
-		arg1 string
-		arg2 interface{}
-		arg3 string
-		arg4 []interface{}
-	}
-	getReturns struct {
-		result1 error
-	}
-	getReturnsOnCall map[int]struct {
-		result1 error
 	}
 	QueryxStub        func(string, string, ...interface{}) (*sqlx.Rows, error)
 	queryxMutex       sync.RWMutex
@@ -68,7 +54,7 @@ type UserDB struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *UserDB) Exec(arg1 string, arg2 string, arg3 ...interface{}) (sql.Result, error) {
+func (fake *UserTx) Exec(arg1 string, arg2 string, arg3 ...interface{}) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
@@ -88,26 +74,26 @@ func (fake *UserDB) Exec(arg1 string, arg2 string, arg3 ...interface{}) (sql.Res
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *UserDB) ExecCallCount() int {
+func (fake *UserTx) ExecCallCount() int {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	return len(fake.execArgsForCall)
 }
 
-func (fake *UserDB) ExecCalls(stub func(string, string, ...interface{}) (sql.Result, error)) {
+func (fake *UserTx) ExecCalls(stub func(string, string, ...interface{}) (sql.Result, error)) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = stub
 }
 
-func (fake *UserDB) ExecArgsForCall(i int) (string, string, []interface{}) {
+func (fake *UserTx) ExecArgsForCall(i int) (string, string, []interface{}) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	argsForCall := fake.execArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *UserDB) ExecReturns(result1 sql.Result, result2 error) {
+func (fake *UserTx) ExecReturns(result1 sql.Result, result2 error) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
@@ -117,7 +103,7 @@ func (fake *UserDB) ExecReturns(result1 sql.Result, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *UserDB) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
+func (fake *UserTx) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = nil
@@ -133,70 +119,7 @@ func (fake *UserDB) ExecReturnsOnCall(i int, result1 sql.Result, result2 error) 
 	}{result1, result2}
 }
 
-func (fake *UserDB) Get(arg1 string, arg2 interface{}, arg3 string, arg4 ...interface{}) error {
-	fake.getMutex.Lock()
-	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
-	fake.getArgsForCall = append(fake.getArgsForCall, struct {
-		arg1 string
-		arg2 interface{}
-		arg3 string
-		arg4 []interface{}
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Get", []interface{}{arg1, arg2, arg3, arg4})
-	fake.getMutex.Unlock()
-	if fake.GetStub != nil {
-		return fake.GetStub(arg1, arg2, arg3, arg4...)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.getReturns
-	return fakeReturns.result1
-}
-
-func (fake *UserDB) GetCallCount() int {
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
-	return len(fake.getArgsForCall)
-}
-
-func (fake *UserDB) GetCalls(stub func(string, interface{}, string, ...interface{}) error) {
-	fake.getMutex.Lock()
-	defer fake.getMutex.Unlock()
-	fake.GetStub = stub
-}
-
-func (fake *UserDB) GetArgsForCall(i int) (string, interface{}, string, []interface{}) {
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
-	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *UserDB) GetReturns(result1 error) {
-	fake.getMutex.Lock()
-	defer fake.getMutex.Unlock()
-	fake.GetStub = nil
-	fake.getReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *UserDB) GetReturnsOnCall(i int, result1 error) {
-	fake.getMutex.Lock()
-	defer fake.getMutex.Unlock()
-	fake.GetStub = nil
-	if fake.getReturnsOnCall == nil {
-		fake.getReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.getReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *UserDB) Queryx(arg1 string, arg2 string, arg3 ...interface{}) (*sqlx.Rows, error) {
+func (fake *UserTx) Queryx(arg1 string, arg2 string, arg3 ...interface{}) (*sqlx.Rows, error) {
 	fake.queryxMutex.Lock()
 	ret, specificReturn := fake.queryxReturnsOnCall[len(fake.queryxArgsForCall)]
 	fake.queryxArgsForCall = append(fake.queryxArgsForCall, struct {
@@ -216,26 +139,26 @@ func (fake *UserDB) Queryx(arg1 string, arg2 string, arg3 ...interface{}) (*sqlx
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *UserDB) QueryxCallCount() int {
+func (fake *UserTx) QueryxCallCount() int {
 	fake.queryxMutex.RLock()
 	defer fake.queryxMutex.RUnlock()
 	return len(fake.queryxArgsForCall)
 }
 
-func (fake *UserDB) QueryxCalls(stub func(string, string, ...interface{}) (*sqlx.Rows, error)) {
+func (fake *UserTx) QueryxCalls(stub func(string, string, ...interface{}) (*sqlx.Rows, error)) {
 	fake.queryxMutex.Lock()
 	defer fake.queryxMutex.Unlock()
 	fake.QueryxStub = stub
 }
 
-func (fake *UserDB) QueryxArgsForCall(i int) (string, string, []interface{}) {
+func (fake *UserTx) QueryxArgsForCall(i int) (string, string, []interface{}) {
 	fake.queryxMutex.RLock()
 	defer fake.queryxMutex.RUnlock()
 	argsForCall := fake.queryxArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *UserDB) QueryxReturns(result1 *sqlx.Rows, result2 error) {
+func (fake *UserTx) QueryxReturns(result1 *sqlx.Rows, result2 error) {
 	fake.queryxMutex.Lock()
 	defer fake.queryxMutex.Unlock()
 	fake.QueryxStub = nil
@@ -245,7 +168,7 @@ func (fake *UserDB) QueryxReturns(result1 *sqlx.Rows, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *UserDB) QueryxReturnsOnCall(i int, result1 *sqlx.Rows, result2 error) {
+func (fake *UserTx) QueryxReturnsOnCall(i int, result1 *sqlx.Rows, result2 error) {
 	fake.queryxMutex.Lock()
 	defer fake.queryxMutex.Unlock()
 	fake.QueryxStub = nil
@@ -261,7 +184,7 @@ func (fake *UserDB) QueryxReturnsOnCall(i int, result1 *sqlx.Rows, result2 error
 	}{result1, result2}
 }
 
-func (fake *UserDB) Rebind(arg1 string) string {
+func (fake *UserTx) Rebind(arg1 string) string {
 	fake.rebindMutex.Lock()
 	ret, specificReturn := fake.rebindReturnsOnCall[len(fake.rebindArgsForCall)]
 	fake.rebindArgsForCall = append(fake.rebindArgsForCall, struct {
@@ -279,26 +202,26 @@ func (fake *UserDB) Rebind(arg1 string) string {
 	return fakeReturns.result1
 }
 
-func (fake *UserDB) RebindCallCount() int {
+func (fake *UserTx) RebindCallCount() int {
 	fake.rebindMutex.RLock()
 	defer fake.rebindMutex.RUnlock()
 	return len(fake.rebindArgsForCall)
 }
 
-func (fake *UserDB) RebindCalls(stub func(string) string) {
+func (fake *UserTx) RebindCalls(stub func(string) string) {
 	fake.rebindMutex.Lock()
 	defer fake.rebindMutex.Unlock()
 	fake.RebindStub = stub
 }
 
-func (fake *UserDB) RebindArgsForCall(i int) string {
+func (fake *UserTx) RebindArgsForCall(i int) string {
 	fake.rebindMutex.RLock()
 	defer fake.rebindMutex.RUnlock()
 	argsForCall := fake.rebindArgsForCall[i]
 	return argsForCall.arg1
 }
 
-func (fake *UserDB) RebindReturns(result1 string) {
+func (fake *UserTx) RebindReturns(result1 string) {
 	fake.rebindMutex.Lock()
 	defer fake.rebindMutex.Unlock()
 	fake.RebindStub = nil
@@ -307,7 +230,7 @@ func (fake *UserDB) RebindReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *UserDB) RebindReturnsOnCall(i int, result1 string) {
+func (fake *UserTx) RebindReturnsOnCall(i int, result1 string) {
 	fake.rebindMutex.Lock()
 	defer fake.rebindMutex.Unlock()
 	fake.RebindStub = nil
@@ -321,13 +244,11 @@ func (fake *UserDB) RebindReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *UserDB) Invocations() map[string][][]interface{} {
+func (fake *UserTx) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
 	fake.queryxMutex.RLock()
 	defer fake.queryxMutex.RUnlock()
 	fake.rebindMutex.RLock()
@@ -339,7 +260,7 @@ func (fake *UserDB) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *UserDB) recordInvocation(key string, args []interface{}) {
+func (fake *UserTx) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
