@@ -151,16 +151,16 @@ build/image/fabric-ca-fvt/$(DUMMY):
 	@touch $@
 
 
-all-tests: checks docker-thirdparty fabric-ca-server fabric-ca-client
+all-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 	@scripts/run_integration_tests
 
-unit-tests: checks docker-thirdparty fabric-ca-server fabric-ca-client
+unit-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 
 unit-test: unit-tests
 
-int-tests: checks fabric-ca-server fabric-ca-client
+int-tests: checks fabric-ca-server fabric-ca-client docker-thirdparty
 	@scripts/run_integration_tests
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
@@ -254,6 +254,7 @@ release/%/bin/fabric-ca-client: $(GO_SOURCE)
 .PHONY: docker-thirdparty
 docker-thirdparty:
 	docker pull postgres:9.6
+	docker pull mysql:5.7
 
 .PHONY: dist
 dist: dist-clean release
