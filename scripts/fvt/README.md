@@ -18,7 +18,7 @@ To remove build artifacts of the docker fvt test image, issue
 ###Running the fvt tests
 Once the test image is successfully built, from ``${GOPATH}/src/github.com/hyperledger/fabric-ca``, issue  
 &nbsp;&nbsp;&nbsp;``docker run -v $PWD:/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt``  
-By default, the resulting container will run ``make fvt-tests`` in the environment provided by the hyperledger/fabric-ca-fvt docker image. Output will go to the associated terminal.<br>
+By default, the resulting container will run ``scripts/run_fvt_tests`` in the environment provided by the hyperledger/fabric-ca-fvt docker image. Output will go to the associated terminal.<br>
 
 ###Interactively interfacing with the test container
 To start a command-line instance of the test container without automatically running the tests, issue  

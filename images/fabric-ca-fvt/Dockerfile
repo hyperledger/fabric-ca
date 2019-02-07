@@ -70,4 +70,4 @@ COPY --from=fabric-ca-builder /usr/local/bin /usr/local/bin
 WORKDIR ${GOPATH}/src/github.com/hyperledger/fabric-ca
 RUN cp ${FABRIC_CA_DATA}/start.sh /
 ENTRYPOINT [ "/start.sh" ]
-CMD ["make", "fvt-tests"]
+CMD ["scripts/run_fvt_tests"]
