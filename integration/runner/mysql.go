@@ -47,7 +47,6 @@ type MySQL struct {
 	containerID      string
 	hostAddress      string
 	containerAddress string
-	address          string
 
 	mutex   sync.Mutex
 	stopped bool
@@ -158,10 +157,8 @@ func (c *MySQL) Run(sigCh <-chan os.Signal, ready chan<- struct{}) error {
 		return errors.Wrapf(ctx.Err(), "database in container %s did not start", c.containerID)
 	case <-containerExit:
 		return errors.New("container exited before ready")
-	case <-c.ready(ctx, c.hostAddress):
-		c.address = c.hostAddress
-	case <-c.ready(ctx, c.containerAddress):
-		c.address = c.containerAddress
+	case <-c.ready(ctx):
+		break
 	}
 
 	cancel()
@@ -191,11 +188,11 @@ func (c *MySQL) endpointReady(ctx context.Context, db *sqlx.DB) bool {
 	return true
 }
 
-func (c *MySQL) ready(ctx context.Context, addr string) <-chan struct{} {
+func (c *MySQL) ready(ctx context.Context) <-chan struct{} {
 	readyCh := make(chan struct{})
 
-	str := fmt.Sprintf("root:@(%s:%d)/mysql", c.HostIP, c.HostPort)
-	db, err := sqlx.Open("mysql", str)
+	connStr, _ := c.GetConnectionString()
+	db, err := sqlx.Open("mysql", connStr)
 	db.SetConnMaxLifetime(time.Second * 5)
 	if err != nil {
 		ctx.Done()
@@ -258,11 +255,6 @@ func (c *MySQL) streamLogs(ctx context.Context) {
 	stdcopy.StdCopy(c.OutputStream, c.ErrorStream, out)
 }
 
-// Address returns the address successfully used by the readiness check.
-func (c *MySQL) Address() string {
-	return c.address
-}
-
 // HostAddress returns the host address where this MySQL instance is available.
 func (c *MySQL) HostAddress() string {
 	return c.hostAddress
@@ -307,4 +299,12 @@ func (c *MySQL) Stop() error {
 	}
 
 	return nil
+}
+
+// GetConnectionString returns the sql connection string for connecting to the DB
+func (c *MySQL) GetConnectionString() (string, error) {
+	if c.HostIP != "" && c.HostPort != 0 {
+		return fmt.Sprintf("root:@(%s:%d)/mysql", c.HostIP, c.HostPort), nil
+	}
+	return "", fmt.Errorf("mysql db not initialized")
 }

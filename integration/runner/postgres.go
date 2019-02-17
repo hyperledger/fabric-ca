@@ -47,7 +47,6 @@ type PostgresDB struct {
 	containerID      string
 	hostAddress      string
 	containerAddress string
-	address          string
 
 	mutex   sync.Mutex
 	stopped bool
@@ -155,10 +154,8 @@ func (c *PostgresDB) Run(sigCh <-chan os.Signal, ready chan<- struct{}) error {
 		return errors.Wrapf(ctx.Err(), "database in container %s did not start", c.containerID)
 	case <-containerExit:
 		return errors.New("container exited before ready")
-	case <-c.ready(ctx, c.hostAddress):
-		c.address = c.hostAddress
-	case <-c.ready(ctx, c.containerAddress):
-		c.address = c.containerAddress
+	case <-c.ready(ctx):
+		break
 	}
 
 	cancel()
@@ -178,14 +175,8 @@ func (c *PostgresDB) Run(sigCh <-chan os.Signal, ready chan<- struct{}) error {
 	}
 }
 
-func (c *PostgresDB) endpointReady(ctx context.Context, addr string) bool {
-	dataSource := fmt.Sprintf("host=%s port=%d user=postgres dbname=postgres sslmode=disable", c.HostIP, c.HostPort)
-	db, err := sqlx.Open("postgres", dataSource)
-	if err != nil {
-		return false
-	}
-
-	_, err = db.Conn(ctx)
+func (c *PostgresDB) endpointReady(ctx context.Context, db *sqlx.DB) bool {
+	_, err := db.Conn(ctx)
 	if err != nil {
 		return false
 	}
@@ -194,13 +185,20 @@ func (c *PostgresDB) endpointReady(ctx context.Context, addr string) bool {
 	return true
 }
 
-func (c *PostgresDB) ready(ctx context.Context, addr string) <-chan struct{} {
+func (c *PostgresDB) ready(ctx context.Context) <-chan struct{} {
 	readyCh := make(chan struct{})
+
+	connStr, _ := c.GetConnectionString()
+	db, err := sqlx.Open("postgres", connStr)
+	if err != nil {
+		ctx.Done()
+	}
+
 	go func() {
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 		for {
-			if c.endpointReady(ctx, addr) {
+			if c.endpointReady(ctx, db) {
 				close(readyCh)
 				return
 			}
@@ -253,11 +251,6 @@ func (c *PostgresDB) streamLogs(ctx context.Context) {
 	stdcopy.StdCopy(c.OutputStream, c.ErrorStream, out)
 }
 
-// Address returns the address successfully used by the readiness check.
-func (c *PostgresDB) Address() string {
-	return c.address
-}
-
 // HostAddress returns the host address where this PostgresDB instance is available.
 func (c *PostgresDB) HostAddress() string {
 	return c.hostAddress
@@ -302,4 +295,13 @@ func (c *PostgresDB) Stop() error {
 	}
 
 	return nil
+}
+
+// GetConnectionString returns the sql connection string for connecting to the DB
+func (c *PostgresDB) GetConnectionString() (string, error) {
+	if c.HostIP != "" && c.HostPort != 0 {
+		return fmt.Sprintf("host=%s port=%d user=postgres dbname=postgres sslmode=disable",
+			c.HostIP, c.HostPort), nil
+	}
+	return "", fmt.Errorf("DB not initialized")
 }
