@@ -160,7 +160,7 @@ unit-tests: checks fabric-ca-server fabric-ca-client
 
 unit-test: unit-tests
 
-int-tests: checks fabric-ca-server fabric-ca-client docker-thirdparty
+int-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
@@ -250,7 +250,12 @@ release/%/bin/fabric-ca-client: $(GO_SOURCE)
 	mkdir -p $(@D)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(abspath $@) -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.$(@F))
 
-# Pull thirdparty docker images based on the latest baseimage release version
+# Pull thirdparty docker images
+# Currently the target is available but unused. If you are implementing a new
+# test using the ifrit DB runners, you must add the docker-thirdparty target
+# to the test target you are running i.e. (unit-tests, int-tests, all-tests).
+# Note: There is no MySQL image for s390x, so you must take this into account.
+# Integration tests are run on x86, unit tests on s390x and x86.
 .PHONY: docker-thirdparty
 docker-thirdparty:
 	docker pull postgres:9.6
