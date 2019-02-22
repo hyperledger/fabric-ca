@@ -13,14 +13,23 @@ export PATH=$PATH:$GOPATH/bin
 go get github.com/axw/gocov/...
 go get github.com/AlekSi/gocov-xml
 
-# Skipping /lib/common package as there is only one file that contains request/response structs used by both client and server. It needs to be removed from exclude package list
-# when code is added to this package
-# Skipping credential package as there is only one file that contains Credential interface definition. It needs to be removed from exclude package list when code is added to this package
-PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -Ev '/vendor/|/api|/dbutil|integration|/ldap|/mocks|/test/fabric-ca-load-tester|/fabric-ca-client$|/credential$|/lib/common$|/metrics'`
+EXCLUDED_PKGS=(
+    "/api$"
+    "/credential$"
+    "/fabric-ca-client$"
+    "/lib/common$"
+    "/test/fabric-ca-load-tester$"
+    "/mocks$"
+    "integration"
+    "/ldap"
+    "/metrics"
+)
+
+PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -v -f <(printf '%s\n' "${EXCLUDED_PKGS[@]}")`
 
 gocov test -timeout 15m $PKGS | gocov-xml > coverage.xml
-
 } 2>&1 | tee /tmp/test.results
+
 echo "Finished running all tests"
 
 $FCA/scripts/check_test_results /tmp/test.results
