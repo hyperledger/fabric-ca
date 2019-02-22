@@ -14,7 +14,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3" // import to support SQLite3
 	"github.com/pkg/errors"
 )
 
