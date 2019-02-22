@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib"
@@ -25,7 +26,10 @@ func TestHealthCheckEndpoint(t *testing.T) {
 
 	err := server.Start()
 	assert.NoError(t, err)
-	defer server.Stop()
+	defer func() {
+		server.Stop()
+		os.RemoveAll("./rootDir")
+	}()
 
 	_, port, err := net.SplitHostPort(server.Operations.Addr())
 	assert.NoError(t, err)
