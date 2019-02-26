@@ -1604,7 +1604,7 @@ API endpoint to get a nonce and CA's Idemix public key. Second, create a credent
 send another request with the credential request in the body to  the ``/api/v1/idemix/credential`` API endpoint to get an Idemix credential,
 Credential Revocation Information (CRI), and attribute names and values. Currently, only three attributes are supported:
 
-- **OU** - organization unit of the user. The value of this attribute is set to user's affiliation. For example, if user's affiliaton is `dept1.unit1`, then OU attribute is set to `dept1.unit1`
+- **OU** - organization unit of the user. The value of this attribute is set to user's affiliation. For example, if user's affiliation is `dept1.unit1`, then OU attribute is set to `dept1.unit1`
 - **IsAdmin** - if the user is an admin or not. The value of this attribute is set to the value of `isAdmin` registration attribute.
 - **EnrollmentID** - enrollment ID of the user
 
