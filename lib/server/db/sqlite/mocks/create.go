@@ -9,9 +9,10 @@ import (
 )
 
 type Create struct {
-	CommitStub        func() error
+	CommitStub        func(string) error
 	commitMutex       sync.RWMutex
 	commitArgsForCall []struct {
+		arg1 string
 	}
 	commitReturns struct {
 		result1 error
@@ -19,11 +20,12 @@ type Create struct {
 	commitReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ExecStub        func(string, ...interface{}) (sql.Result, error)
+	ExecStub        func(string, string, ...interface{}) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 string
+		arg3 []interface{}
 	}
 	execReturns struct {
 		result1 sql.Result
@@ -44,9 +46,10 @@ type Create struct {
 	rebindReturnsOnCall map[int]struct {
 		result1 string
 	}
-	RollbackStub        func() error
+	RollbackStub        func(string) error
 	rollbackMutex       sync.RWMutex
 	rollbackArgsForCall []struct {
+		arg1 string
 	}
 	rollbackReturns struct {
 		result1 error
@@ -58,15 +61,16 @@ type Create struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *Create) Commit() error {
+func (fake *Create) Commit(arg1 string) error {
 	fake.commitMutex.Lock()
 	ret, specificReturn := fake.commitReturnsOnCall[len(fake.commitArgsForCall)]
 	fake.commitArgsForCall = append(fake.commitArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Commit", []interface{}{})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Commit", []interface{}{arg1})
 	fake.commitMutex.Unlock()
 	if fake.CommitStub != nil {
-		return fake.CommitStub()
+		return fake.CommitStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -81,10 +85,17 @@ func (fake *Create) CommitCallCount() int {
 	return len(fake.commitArgsForCall)
 }
 
-func (fake *Create) CommitCalls(stub func() error) {
+func (fake *Create) CommitCalls(stub func(string) error) {
 	fake.commitMutex.Lock()
 	defer fake.commitMutex.Unlock()
 	fake.CommitStub = stub
+}
+
+func (fake *Create) CommitArgsForCall(i int) string {
+	fake.commitMutex.RLock()
+	defer fake.commitMutex.RUnlock()
+	argsForCall := fake.commitArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *Create) CommitReturns(result1 error) {
@@ -110,17 +121,18 @@ func (fake *Create) CommitReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *Create) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error) {
+func (fake *Create) Exec(arg1 string, arg2 string, arg3 ...interface{}) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		arg1 string
-		arg2 []interface{}
-	}{arg1, arg2})
-	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
+		arg2 string
+		arg3 []interface{}
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Exec", []interface{}{arg1, arg2, arg3})
 	fake.execMutex.Unlock()
 	if fake.ExecStub != nil {
-		return fake.ExecStub(arg1, arg2...)
+		return fake.ExecStub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -135,17 +147,17 @@ func (fake *Create) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
-func (fake *Create) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+func (fake *Create) ExecCalls(stub func(string, string, ...interface{}) (sql.Result, error)) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = stub
 }
 
-func (fake *Create) ExecArgsForCall(i int) (string, []interface{}) {
+func (fake *Create) ExecArgsForCall(i int) (string, string, []interface{}) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	argsForCall := fake.execArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *Create) ExecReturns(result1 sql.Result, result2 error) {
@@ -234,15 +246,16 @@ func (fake *Create) RebindReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *Create) Rollback() error {
+func (fake *Create) Rollback(arg1 string) error {
 	fake.rollbackMutex.Lock()
 	ret, specificReturn := fake.rollbackReturnsOnCall[len(fake.rollbackArgsForCall)]
 	fake.rollbackArgsForCall = append(fake.rollbackArgsForCall, struct {
-	}{})
-	fake.recordInvocation("Rollback", []interface{}{})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Rollback", []interface{}{arg1})
 	fake.rollbackMutex.Unlock()
 	if fake.RollbackStub != nil {
-		return fake.RollbackStub()
+		return fake.RollbackStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -257,10 +270,17 @@ func (fake *Create) RollbackCallCount() int {
 	return len(fake.rollbackArgsForCall)
 }
 
-func (fake *Create) RollbackCalls(stub func() error) {
+func (fake *Create) RollbackCalls(stub func(string) error) {
 	fake.rollbackMutex.Lock()
 	defer fake.rollbackMutex.Unlock()
 	fake.RollbackStub = stub
+}
+
+func (fake *Create) RollbackArgsForCall(i int) string {
+	fake.rollbackMutex.RLock()
+	defer fake.rollbackMutex.RUnlock()
+	argsForCall := fake.rollbackArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *Create) RollbackReturns(result1 error) {

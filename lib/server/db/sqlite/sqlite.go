@@ -21,10 +21,10 @@ import (
 
 // Create is interface that defines functions need to create database transaction
 type Create interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
+	Exec(funcName, query string, args ...interface{}) (sql.Result, error)
 	Rebind(query string) string
-	Rollback() error
-	Commit() error
+	Rollback(funcName string) error
+	Commit(funcName string) error
 }
 
 // Sqlite defines SQLite database
@@ -76,7 +76,7 @@ func (s *Sqlite) Create() (*db.DB, error) {
 
 // CreateTables creates table
 func (s *Sqlite) CreateTables() error {
-	err := s.doTransaction(createAllSQLiteTables)
+	err := s.doTransaction("CreateTable", createAllSQLiteTables)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func createAllSQLiteTables(tx Create, args ...interface{}) error {
 
 func createIdentityTable(tx Create) error {
 	log.Debug("Creating users table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
+	if _, err := tx.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	return nil
@@ -139,7 +139,7 @@ func createIdentityTable(tx Create) error {
 
 func createAffiliationTable(tx Create) error {
 	log.Debug("Creating affiliations table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
+	if _, err := tx.Exec("CreateAffiliationsTable", "CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
 		return errors.Wrap(err, "Error creating affiliations table")
 	}
 	return nil
@@ -147,7 +147,7 @@ func createAffiliationTable(tx Create) error {
 
 func createCertificateTable(tx Create) error {
 	log.Debug("Creating certificates table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
+	if _, err := tx.Exec("CreateCertificatesTable", "CREATE TABLE IF NOT EXISTS certificates (id VARCHAR(255), serial_number blob NOT NULL, authority_key_identifier blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem blob NOT NULL, level INTEGER DEFAULT 0, PRIMARY KEY(serial_number, authority_key_identifier))"); err != nil {
 		return errors.Wrap(err, "Error creating certificates table")
 	}
 	return nil
@@ -155,7 +155,7 @@ func createCertificateTable(tx Create) error {
 
 func createCredentialsTable(tx Create) error {
 	log.Debug("Creating credentials table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle blob NOT NULL, cred blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
+	if _, err := tx.Exec("CreateCredentialsTable", "CREATE TABLE IF NOT EXISTS credentials (id VARCHAR(255), revocation_handle blob NOT NULL, cred blob NOT NULL, ca_label blob, status blob NOT NULL, reason int, expiry timestamp, revoked_at timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(revocation_handle))"); err != nil {
 		return errors.Wrap(err, "Error creating credentials table")
 	}
 	return nil
@@ -163,7 +163,7 @@ func createCredentialsTable(tx Create) error {
 
 func createRevocationComponentTable(tx Create) error {
 	log.Debug("Creating revocation_authority_info table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
+	if _, err := tx.Exec("CreateRevocationAuthorityTable", "CREATE TABLE IF NOT EXISTS revocation_authority_info (epoch INTEGER, next_handle INTEGER, lasthandle_in_pool INTEGER, level INTEGER DEFAULT 0, PRIMARY KEY(epoch))"); err != nil {
 		return errors.Wrap(err, "Error creating revocation_authority_info table")
 	}
 	return nil
@@ -171,7 +171,7 @@ func createRevocationComponentTable(tx Create) error {
 
 func createNoncesTable(tx Create) error {
 	log.Debug("Creating nonces table if it does not exist")
-	if _, err := tx.Exec("CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(1024) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(val))"); err != nil {
+	if _, err := tx.Exec("CreateNoncesTable", "CREATE TABLE IF NOT EXISTS nonces (val VARCHAR(1024) NOT NULL UNIQUE, expiry timestamp, level INTEGER DEFAULT 0, PRIMARY KEY(val))"); err != nil {
 		return errors.Wrap(err, "Error creating nonces table")
 	}
 	return nil
@@ -179,11 +179,11 @@ func createNoncesTable(tx Create) error {
 
 func createPropertiesTable(tx Create) error {
 	log.Debug("Creating properties table if it does not exist")
-	_, err := tx.Exec("CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))")
+	_, err := tx.Exec("CreatePropertiesTable", "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))")
 	if err != nil {
 		return errors.Wrap(err, "Error creating properties table")
 	}
-	_, err = tx.Exec(tx.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
+	_, err = tx.Exec("CreatePropertiesTable", tx.Rebind("INSERT INTO properties (property, value) VALUES ('identity.level', '0'), ('affiliation.level', '0'), ('certificate.level', '0'), ('credential.level', '0'), ('rcinfo.level', '0'), ('nonce.level', '0')"))
 	if err != nil {
 		if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return errors.Wrap(err, "Failed to initialize properties table")
@@ -192,11 +192,11 @@ func createPropertiesTable(tx Create) error {
 	return nil
 }
 
-func (s *Sqlite) doTransaction(doit func(tx Create, args ...interface{}) error, args ...interface{}) error {
+func (s *Sqlite) doTransaction(funcName string, doit func(tx Create, args ...interface{}) error, args ...interface{}) error {
 	tx := s.CreateTx
 	err := doit(tx, args...)
 	if err != nil {
-		err2 := tx.Rollback()
+		err2 := tx.Rollback(funcName)
 		if err2 != nil {
 			log.Errorf("Error encountered while rolling back transaction: %s", err2)
 			return err
@@ -204,7 +204,7 @@ func (s *Sqlite) doTransaction(doit func(tx Create, args ...interface{}) error, 
 		return err
 	}
 
-	err = tx.Commit()
+	err = tx.Commit(funcName)
 	if err != nil {
 		return errors.Wrap(err, "Error encountered while committing transaction")
 	}

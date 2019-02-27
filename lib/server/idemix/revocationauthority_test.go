@@ -100,7 +100,7 @@ func TestGetRAInfoFromDBError(t *testing.T) {
 	issuer.On("IdemixLib").Return(lib)
 	rainfos := []RevocationAuthorityInfo{}
 	db := new(dmocks.FabricCADB)
-	db.On("Select", &rainfos, "SELECT * FROM revocation_authority_info").
+	db.On("Select", "GetRAInfo", &rainfos, "SELECT * FROM revocation_authority_info").
 		Return(errors.New("Failed to execute select query"))
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
@@ -133,7 +133,7 @@ func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
 	db := new(dmocks.FabricCADB)
 	raInfos := []RevocationAuthorityInfo{}
 	f := getSelectFunc(t, true, true)
-	db.On("Select", &raInfos, SelectRAInfo).Return(f)
+	db.On("Select", "GetRAInfo", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
@@ -171,7 +171,7 @@ func TestGetRAInfoFromExistingDB(t *testing.T) {
 	db := new(dmocks.FabricCADB)
 	raInfos := []RevocationAuthorityInfo{}
 	f := getSelectFunc(t, false, false)
-	db.On("Select", &raInfos, SelectRAInfo).Return(f)
+	db.On("Select", "GetRAInfo", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100,
 		RevocationPublicKeyfile:  path.Join(homeDir, DefaultRevocationPublicKeyFile),
@@ -229,7 +229,7 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(0), nil)
-	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
+	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
@@ -260,7 +260,7 @@ func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(2), nil)
-	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
+	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
@@ -285,7 +285,7 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 		LastHandleInPool:     100,
 		Level:                1,
 	}
-	db.On("NamedExec", InsertRAInfo, &rainfo).Return(nil,
+	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(nil,
 		errors.New("Inserting revocation authority info into DB failed"))
 	issuer.On("DB").Return(db)
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
@@ -306,17 +306,18 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetNextRevocationHandle", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	fnc := getTxSelectFunc(t, &rcInfos, 1, true, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(fnc)
+	tx.On("Select", "GetNextRevocationHandle", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
 	_, err = ra.GetNewRevocationHandle()
@@ -334,17 +335,17 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	fnc := getTxSelectFunc(t, &rcInfos, 1, false, false)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
 	_, err = ra.GetNewRevocationHandle()
@@ -362,17 +363,17 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
 	fnc := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(fnc)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, errors.New("Exec error"))
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, errors.New("Exec error"))
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 
 	db.On("BeginTx").Return(tx)
 	_, err = ra.GetNewRevocationHandle()
@@ -390,17 +391,17 @@ func TestGetNewRevocationHandleRollbackError(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
 	fnc := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(fnc)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(fnc)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, errors.New("Exec error"))
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(errors.New("Rollback error"))
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, errors.New("Exec error"))
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(errors.New("Rollback error"))
 
 	db.On("BeginTx").Return(tx)
 	_, err = ra.GetNewRevocationHandle()
@@ -418,17 +419,17 @@ func TestGetNewRevocationHandleCommitError(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(errors.New("Error commiting"))
+	tx.On("Commit", "GetNextRevocationHandle").Return(errors.New("Error commiting"))
 	tx.On("Rollback").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	f1 := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
 	_, err = ra.GetNewRevocationHandle()
@@ -444,17 +445,17 @@ func TestGetNewRevocationHandle(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	rc := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	rc := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextHandle, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	f1 := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
 	rh, err := rc.GetNewRevocationHandle()
@@ -470,17 +471,17 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
+	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
+	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
 	tx.On("Rebind", UpdateNextAndLastHandle).Return(UpdateNextAndLastHandle)
-	tx.On("Exec", UpdateNextAndLastHandle, 101, 200, 2, 1).Return(nil, nil)
+	tx.On("Exec", "GetNextRevocationHandle", UpdateNextAndLastHandle, 101, 200, 2, 1).Return(nil, nil)
 	rcInfos := []RevocationAuthorityInfo{}
 	f1 := getTxSelectFunc(t, &rcInfos, 100, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
+	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
 	rh, err := ra.GetNewRevocationHandle()
@@ -499,10 +500,10 @@ func TestGetEpoch(t *testing.T) {
 	defer os.RemoveAll(homeDir)
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
 
 	rcInfos := []RevocationAuthorityInfo{}
-	db.On("Select", &rcInfos, SelectRAInfo).Return(selectFnc)
+	db.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(selectFnc)
 	epoch, err := ra.Epoch()
 	assert.NoError(t, err)
 	assert.Equal(t, 1, epoch)
@@ -523,7 +524,7 @@ func TestGetEpochRAInfoError(t *testing.T) {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, true)
-	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
 	_, err = ra.Epoch()
 	assert.Error(t, err, "Epoch should fail if there is an error getting revocation info from DB")
 }
@@ -541,7 +542,7 @@ func TestCreateCRIGetRAInfoError(t *testing.T) {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, true)
-	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if there is an error getting revocation info from DB")
 }
@@ -560,7 +561,7 @@ func TestCreateCRIGetRevokeCredsError(t *testing.T) {
 	}
 
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, true, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, true, false, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if there is an error getting revoked credentials")
 }
@@ -580,7 +581,7 @@ func TestIdemixCreateCRIError(t *testing.T) {
 
 	db = new(dmocks.FabricCADB)
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
-	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, true, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, true, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if idemix.CreateCRI returns an error")
 }
@@ -597,7 +598,7 @@ func TestEpochValuesInCRI(t *testing.T) {
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
 	cri, err := ra.CreateCRI()
 	assert.NoError(t, err)
 
@@ -628,12 +629,12 @@ func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks
 	db := new(dmocks.FabricCADB)
 	rcInfos := []RevocationAuthorityInfo{}
 	f := getSelectFunc(t, true, false)
-	db.On("Select", &rcInfos, SelectRAInfo).Return(f)
+	db.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(f)
 	return issuer, db, privateKey
 }
 
-func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB, revocationKey *ecdsa.PrivateKey, revokedCred int,
-	getRevokedCredsError bool, idemixCreateCRIError bool, selectFnc func(interface{}, string, ...interface{}) error) RevocationAuthority {
+func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.FabricCADB, revocationKey *ecdsa.PrivateKey, revokedCred int,
+	getRevokedCredsError bool, idemixCreateCRIError bool, selectFnc func(string, interface{}, string, ...interface{}) error) RevocationAuthority {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 	issuer.On("HomeDir").Return(homeDir)
@@ -654,10 +655,8 @@ func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB,
 	lib.On("GenerateLongTermRevocationKey").Return(revocationKey, nil)
 	issuer.On("IdemixLib").Return(lib)
 
-	//f := getSelectFunc(t, true, false)
-
 	rcInfosForSelect := []RevocationAuthorityInfo{}
-	db.On("Select", &rcInfosForSelect, SelectRAInfo).Return(selectFnc)
+	db.On("Select", "GetRAInfo", &rcInfosForSelect, SelectRAInfo).Return(selectFnc)
 	rcinfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -666,7 +665,7 @@ func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB,
 	}
 	result := new(dmocks.Result)
 	result.On("RowsAffected").Return(int64(1), nil)
-	db.On("NamedExec", InsertRAInfo, &rcinfo).Return(result, nil)
+	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rcinfo).Return(result, nil)
 	issuer.On("DB").Return(db)
 	cfg := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
@@ -720,9 +719,9 @@ func getRevocationAuthority(t *testing.T, homeDir string, db *dmocks.FabricCADB,
 	return ra
 }
 
-func getSelectFunc(t *testing.T, newDB bool, isError bool) func(interface{}, string, ...interface{}) error {
+func getSelectFunc(t *testing.T, newDB bool, isError bool) func(string, interface{}, string, ...interface{}) error {
 	numTimesCalled := 0
-	return func(dest interface{}, query string, args ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		rcInfos, _ := dest.(*[]RevocationAuthorityInfo)
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,
@@ -741,9 +740,9 @@ func getSelectFunc(t *testing.T, newDB bool, isError bool) func(interface{}, str
 	}
 }
 
-func getSelectFuncForCreateCRI(t *testing.T, newDB bool, isError bool) func(interface{}, string, ...interface{}) error {
+func getSelectFuncForCreateCRI(t *testing.T, newDB bool, isError bool) func(string, interface{}, string, ...interface{}) error {
 	numTimesCalled := 0
-	return func(dest interface{}, query string, args ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		rcInfos, _ := dest.(*[]RevocationAuthorityInfo)
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,
@@ -764,8 +763,8 @@ func getSelectFuncForCreateCRI(t *testing.T, newDB bool, isError bool) func(inte
 	}
 }
 
-func getTxSelectFunc(t *testing.T, rcs *[]RevocationAuthorityInfo, nextRH int, isError bool, isAppend bool) func(interface{}, string, ...interface{}) error {
-	return func(dest interface{}, query string, args ...interface{}) error {
+func getTxSelectFunc(t *testing.T, rcs *[]RevocationAuthorityInfo, nextRH int, isError bool, isAppend bool) func(string, interface{}, string, ...interface{}) error {
+	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
 		rcInfos := dest.(*[]RevocationAuthorityInfo)
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,

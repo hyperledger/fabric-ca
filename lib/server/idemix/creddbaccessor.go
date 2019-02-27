@@ -108,7 +108,7 @@ func (ac *CredentialAccessor) InsertCredential(cr CredRecord) error {
 		return err
 	}
 	cr.Level = ac.level
-	res, err := ac.db.NamedExec(InsertCredentialSQL, cr)
+	res, err := ac.db.NamedExec("InsertCredential", InsertCredentialSQL, cr)
 	if err != nil {
 		return errors.Wrap(err, "Failed to insert credential into datastore")
 	}
@@ -135,7 +135,7 @@ func (ac *CredentialAccessor) GetCredentialsByID(id string) ([]CredRecord, error
 		return nil, err
 	}
 	crs := []CredRecord{}
-	err = ac.db.Select(&crs, fmt.Sprintf(ac.db.Rebind(SelectCredentialByIDSQL), sqlstruct.Columns(CredRecord{})), id)
+	err = ac.db.Select("GetCredentialsByID", &crs, fmt.Sprintf(ac.db.Rebind(SelectCredentialByIDSQL), sqlstruct.Columns(CredRecord{})), id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get credentials for identity '%s' from datastore", id)
 	}
@@ -151,7 +151,7 @@ func (ac *CredentialAccessor) GetCredential(revocationHandle string) (*CredRecor
 		return nil, err
 	}
 	cr := &CredRecord{}
-	err = ac.db.Select(cr, fmt.Sprintf(ac.db.Rebind(SelectCredentialSQL), sqlstruct.Columns(CredRecord{})), revocationHandle)
+	err = ac.db.Select("GetCredential", cr, fmt.Sprintf(ac.db.Rebind(SelectCredentialSQL), sqlstruct.Columns(CredRecord{})), revocationHandle)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get credential associated with revocation handle '%s' from datastore", revocationHandle)
 	}
@@ -166,7 +166,7 @@ func (ac *CredentialAccessor) GetRevokedCredentials() ([]CredRecord, error) {
 		return nil, err
 	}
 	crs := []CredRecord{}
-	err = ac.db.Select(&crs, fmt.Sprintf(ac.db.Rebind(SelectRevokedCredentialSQL), sqlstruct.Columns(CredRecord{})))
+	err = ac.db.Select("GetRevokedCredentials", &crs, fmt.Sprintf(ac.db.Rebind(SelectRevokedCredentialSQL), sqlstruct.Columns(CredRecord{})))
 	if err != nil {
 		return crs, errors.Wrap(err, "Failed to get revoked credentials from datastore")
 	}

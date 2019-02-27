@@ -10,13 +10,13 @@ type FabricCATx struct {
 	mock.Mock
 }
 
-// Commit provides a mock function with given fields:
-func (_m *FabricCATx) Commit() error {
-	ret := _m.Called()
+// Commit provides a mock function with given fields: funcName
+func (_m *FabricCATx) Commit(funcName string) error {
+	ret := _m.Called(funcName)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(funcName)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -24,16 +24,16 @@ func (_m *FabricCATx) Commit() error {
 	return r0
 }
 
-// Exec provides a mock function with given fields: query, args
-func (_m *FabricCATx) Exec(query string, args ...interface{}) (sql.Result, error) {
+// Exec provides a mock function with given fields: funcName, query, args
+func (_m *FabricCATx) Exec(funcName string, query string, args ...interface{}) (sql.Result, error) {
 	var _ca []interface{}
-	_ca = append(_ca, query)
+	_ca = append(_ca, funcName, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 sql.Result
-	if rf, ok := ret.Get(0).(func(string, ...interface{}) sql.Result); ok {
-		r0 = rf(query, args...)
+	if rf, ok := ret.Get(0).(func(string, string, ...interface{}) sql.Result); ok {
+		r0 = rf(funcName, query, args...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(sql.Result)
@@ -41,8 +41,8 @@ func (_m *FabricCATx) Exec(query string, args ...interface{}) (sql.Result, error
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...interface{}) error); ok {
-		r1 = rf(query, args...)
+	if rf, ok := ret.Get(1).(func(string, string, ...interface{}) error); ok {
+		r1 = rf(funcName, query, args...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -50,16 +50,16 @@ func (_m *FabricCATx) Exec(query string, args ...interface{}) (sql.Result, error
 	return r0, r1
 }
 
-// Get provides a mock function with given fields: dest, query, args
-func (_m *FabricCATx) Get(dest interface{}, query string, args ...interface{}) error {
+// Get provides a mock function with given fields: funcName, dest, query, args
+func (_m *FabricCATx) Get(funcName string, dest interface{}, query string, args ...interface{}) error {
 	var _ca []interface{}
-	_ca = append(_ca, dest, query)
+	_ca = append(_ca, funcName, dest, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(interface{}, string, ...interface{}) error); ok {
-		r0 = rf(dest, query, args...)
+	if rf, ok := ret.Get(0).(func(string, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(funcName, dest, query, args...)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -67,16 +67,16 @@ func (_m *FabricCATx) Get(dest interface{}, query string, args ...interface{}) e
 	return r0
 }
 
-// Queryx provides a mock function with given fields: query, args
-func (_m *FabricCATx) Queryx(query string, args ...interface{}) (*sqlx.Rows, error) {
+// Queryx provides a mock function with given fields: funcName, query, args
+func (_m *FabricCATx) Queryx(funcName string, query string, args ...interface{}) (*sqlx.Rows, error) {
 	var _ca []interface{}
-	_ca = append(_ca, query)
+	_ca = append(_ca, funcName, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 *sqlx.Rows
-	if rf, ok := ret.Get(0).(func(string, ...interface{}) *sqlx.Rows); ok {
-		r0 = rf(query, args...)
+	if rf, ok := ret.Get(0).(func(string, string, ...interface{}) *sqlx.Rows); ok {
+		r0 = rf(funcName, query, args...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*sqlx.Rows)
@@ -84,8 +84,8 @@ func (_m *FabricCATx) Queryx(query string, args ...interface{}) (*sqlx.Rows, err
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, ...interface{}) error); ok {
-		r1 = rf(query, args...)
+	if rf, ok := ret.Get(1).(func(string, string, ...interface{}) error); ok {
+		r1 = rf(funcName, query, args...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -107,13 +107,13 @@ func (_m *FabricCATx) Rebind(query string) string {
 	return r0
 }
 
-// Rollback provides a mock function with given fields:
-func (_m *FabricCATx) Rollback() error {
-	ret := _m.Called()
+// Rollback provides a mock function with given fields: funcName
+func (_m *FabricCATx) Rollback(funcName string) error {
+	ret := _m.Called(funcName)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(funcName)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -121,16 +121,16 @@ func (_m *FabricCATx) Rollback() error {
 	return r0
 }
 
-// Select provides a mock function with given fields: dest, query, args
-func (_m *FabricCATx) Select(dest interface{}, query string, args ...interface{}) error {
+// Select provides a mock function with given fields: funcName, dest, query, args
+func (_m *FabricCATx) Select(funcName string, dest interface{}, query string, args ...interface{}) error {
 	var _ca []interface{}
-	_ca = append(_ca, dest, query)
+	_ca = append(_ca, funcName, dest, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(interface{}, string, ...interface{}) error); ok {
-		r0 = rf(dest, query, args...)
+	if rf, ok := ret.Get(0).(func(string, interface{}, string, ...interface{}) error); ok {
+		r0 = rf(funcName, dest, query, args...)
 	} else {
 		r0 = ret.Error(0)
 	}
