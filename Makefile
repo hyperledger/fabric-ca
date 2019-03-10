@@ -30,7 +30,7 @@
 #   - docker-thirdparty - pulls thirdparty images (postgres)
 
 PROJECT_NAME = fabric-ca
-ALPINE_VER ?= 3.8
+ALPINE_VER ?= 3.9
 DEBIAN_VER ?= stretch
 BASE_VERSION = 2.0.0
 PREV_VERSION = 1.4.0
