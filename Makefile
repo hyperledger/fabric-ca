@@ -10,7 +10,7 @@
 #   - license - check all go files for license headers
 #   - fabric-ca-server - builds the fabric-ca-server executable
 #   - fabric-ca-client - builds the fabric-ca-client executable
-#   - unit-tests - Performs checks first and runs the go-test based unit tests
+#   - unit-tests - runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - builds/cleans the fabric-ca docker image
 #   - docker-fvt[-clean] - builds/cleans the fabric-ca functional verification testing image
@@ -155,7 +155,7 @@ all-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 	@scripts/run_integration_tests
 
-unit-tests: checks fabric-ca-server fabric-ca-client
+unit-tests: fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 
 unit-test: unit-tests
