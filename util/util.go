@@ -21,7 +21,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -686,21 +685,17 @@ func GetMaskedURL(url string) string {
 func NormalizeStringSlice(slice []string) []string {
 	var normalizedSlice []string
 
-	if len(slice) > 0 {
-		for _, item := range slice {
-			// Remove surrounding brackets "[]" if specified
-			if strings.HasPrefix(item, "[") && strings.HasSuffix(item, "]") {
-				item = item[1 : len(item)-1]
-			}
-			// Split elements based on comma and add to normalized slice
-			if strings.Contains(item, ",") {
-				normalizedSlice = append(normalizedSlice, strings.Split(item, ",")...)
-			} else {
-				normalizedSlice = append(normalizedSlice, item)
-			}
+	for _, item := range slice {
+		// Remove surrounding brackets "[]" if specified
+		if strings.HasPrefix(item, "[") && strings.HasSuffix(item, "]") {
+			item = item[1 : len(item)-1]
+		}
+		// Split elements based on comma and add to normalized slice
+		elems := strings.Split(item, ",")
+		for _, elem := range elems {
+			normalizedSlice = append(normalizedSlice, strings.TrimSpace(elem))
 		}
 	}
-
 	return normalizedSlice
 }
 
@@ -721,8 +716,7 @@ func NormalizeFileList(files []string, homeDir string) ([]string, error) {
 }
 
 // CheckHostsInCert checks to see if host correctly inserted into certificate
-func CheckHostsInCert(certFile string, host string) error {
-	containsHost := false
+func CheckHostsInCert(certFile string, hosts ...string) error {
 	certBytes, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read certificate file at '%s'", certFile)
@@ -732,22 +726,27 @@ func CheckHostsInCert(certFile string, host string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to get certificate")
 	}
-	// Run through the extensions for the certificates
-	for _, ext := range cert.Extensions {
-		// asn1 identifier for 'Subject Alternative Name'
-		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
-			if !strings.Contains(string(ext.Value), host) {
-				return errors.Errorf("Host '%s' was not found in the certificate in file '%s'", host, certFile)
-			}
-			containsHost = true
+
+	// combine DNSNames and IPAddresses from cert
+	sans := cert.DNSNames
+	for _, ip := range cert.IPAddresses {
+		sans = append(sans, ip.String())
+	}
+	for _, host := range hosts {
+		if !containsString(sans, host) {
+			return errors.Errorf("Host '%s' was not found in the certificate in file '%s'", host, certFile)
 		}
 	}
-
-	if !containsHost {
-		return errors.New("Certificate contains no hosts")
-	}
-
 	return nil
+}
+
+func containsString(list []string, item string) bool {
+	for _, elem := range list {
+		if elem == item {
+			return true
+		}
+	}
+	return false
 }
 
 // Read reads from Reader into a byte array
@@ -825,6 +824,25 @@ func ValidateAndReturnAbsConf(configFilePath, homeDir, cmdName string) (string, 
 	return configFile, homeDir, nil
 }
 
+// GetSliceFromList will return a slice from a list
+func GetSliceFromList(split string, delim string) []string {
+	return strings.Split(strings.Replace(split, " ", "", -1), delim)
+}
+
+// ListContains looks through a comma separated list to see if a string exists
+func ListContains(list, find string) bool {
+	items := strings.Split(list, ",")
+	for _, item := range items {
+		item = strings.TrimPrefix(item, " ")
+		if item == find {
+			return true
+		}
+	}
+	return false
+}
+
+//TODO:  move these out of production code
+
 // FatalError will check to see if an error occured if so it will cause the test cases exit
 func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
 	if len(args) > 0 {
@@ -844,21 +862,4 @@ func ErrorContains(t *testing.T, err error, contains, msg string, args ...interf
 	if assert.Error(t, err, msg) {
 		assert.Contains(t, err.Error(), contains)
 	}
-}
-
-// GetSliceFromList will return a slice from a list
-func GetSliceFromList(split string, delim string) []string {
-	return strings.Split(strings.Replace(split, " ", "", -1), delim)
-}
-
-// ListContains looks through a comma separated list to see if a string exists
-func ListContains(list, find string) bool {
-	items := strings.Split(list, ",")
-	for _, item := range items {
-		item = strings.TrimPrefix(item, " ")
-		if item == find {
-			return true
-		}
-	}
-	return false
 }
