@@ -1425,12 +1425,16 @@ func testReenroll(t *testing.T) {
 	t.Log("Testing Reenroll command")
 	defYaml = util.GetDefaultConfigFile("fabric-ca-client")
 
-	err := RunMain([]string{cmdName, "reenroll", "-u", serverURL, "--csr.hosts", "host1"})
+	err := RunMain([]string{cmdName, "reenroll", "-u", serverURL, "--csr.hosts", "host1,host2"})
 	if err != nil {
 		t.Errorf("client reenroll --url -f failed: %s", err)
 	}
 
-	err = util.CheckHostsInCert(filepath.Join(filepath.Dir(defYaml), "msp", "signcerts", "cert.pem"), "host1")
+	err = util.CheckHostsInCert(
+		filepath.Join(filepath.Dir(defYaml), "msp", "signcerts", "cert.pem"),
+		"host1",
+		"host2",
+	)
 	if err != nil {
 		t.Error(err)
 	}

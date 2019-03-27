@@ -594,6 +594,43 @@ func TestStructToString(t *testing.T) {
 	assert.NotContains(t, idStr, "barpwd", "Identity password is not masked in the output")
 }
 
+func TestNormalizeStringSlice(t *testing.T) {
+	var tests = []struct {
+		slice    []string
+		expected []string
+	}{
+		{
+			slice:    []string{"string1"},
+			expected: []string{"string1"},
+		},
+		{
+			slice:    []string{" string1"},
+			expected: []string{"string1"},
+		},
+		{
+			slice:    []string{" string1   "},
+			expected: []string{"string1"},
+		},
+		{
+			slice:    []string{" string1   "},
+			expected: []string{"string1"},
+		},
+		{
+			slice:    []string{"string1", "string2"},
+			expected: []string{"string1", "string2"},
+		},
+		{
+			slice:    []string{"string1", "   string2"},
+			expected: []string{"string1", "string2"},
+		},
+	}
+
+	for _, test := range tests {
+		actual := NormalizeStringSlice(test.slice)
+		assert.Equal(t, test.expected, actual)
+	}
+}
+
 // Test file list with multiple and single entries both with and without brackets
 func TestNormalizeFileList(t *testing.T) {
 	slice := []string{"[file0,file1]", "file2,file3", "file4", "[file5]"}
@@ -717,7 +754,7 @@ func TestCheckHostsInCert(t *testing.T) {
 	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "localhost")
 	assert.NoError(t, err, fmt.Sprintf("Failed to find 'localhost' for host in certificate: %s", err))
 
-	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "fakehost")
+	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "localhost", "fakehost")
 	assert.Error(t, err, "Certificate does not contain 'fakehost', should have failed")
 
 	err = CheckHostsInCert("../testdata/root.pem", "x")

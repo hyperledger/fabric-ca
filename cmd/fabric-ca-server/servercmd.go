@@ -160,7 +160,7 @@ func (s *ServerCmd) registerFlags() {
 	tags := map[string]string{
 		"help.csr.cn":           "The common name field of the certificate signing request to a parent fabric-ca-server",
 		"help.csr.serialnumber": "The serial number in a certificate signing request to a parent fabric-ca-server",
-		"help.csr.hosts":        "A list of space-separated host names in a certificate signing request to a parent fabric-ca-server",
+		"help.csr.hosts":        "A list of comma-separated host names in a certificate signing request to a parent fabric-ca-server",
 	}
 	err := util.RegisterFlags(s.myViper, pflags, s.cfg, nil)
 	if err != nil {
