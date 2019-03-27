@@ -149,6 +149,9 @@ Following are the steps to update cfssl package using version 1.0.8 of govendor 
 
 * Remove the packages that are added to the fabric-ca vendor folder that are not needed by fabric-ca
 
+## Continuous Integration
+
+Please have a look at [Continuous Integration Process](docs/source/ca-ci.md)
 
 ## License <a name="license"></a>
 
