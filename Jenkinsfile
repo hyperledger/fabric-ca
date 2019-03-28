@@ -44,7 +44,7 @@ def buildStages() {
         DOC_CHANGE = sh(returnStdout: true, script: "git diff-tree --no-commit-id --name-only -r HEAD | egrep '.md\$|.rst\$|.txt\$|conf.py\$|.png\$|.pptx\$|.css\$|.html\$|.ini\$' | wc -l").trim()
         println DOC_CHANGE
         CODE_CHANGE = sh(returnStdout: true, script: "git diff-tree --no-commit-id --name-only -r HEAD | egrep -v '.md\$|.rst\$|.txt\$|conf.py\$|.png\$|.pptx\$|.css\$|.html\$|.ini\$' | wc -l").trim()
-        println CODE_CHANGE 
+        println CODE_CHANGE
       }
       // Load properties from ci.properties file
       props = fabBuildLibrary.loadProperties()
@@ -54,18 +54,18 @@ def buildStages() {
       env.PATH = "$GOROOT/bin:$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:${nodeHome}/bin:$PATH"
     }
 
-      if (DOC_CHANGE > 0 && CODE_CHANGE == 0) {
-        println "ONLY DOC BUILD"
+      if (DOC_CHANGE > '0' && CODE_CHANGE == '0') {
+        sh "echo -e \033[1m ONLY DOC BUILD\033[0m"
         docsBuild()
-      } else if (DOC_CHANGE > 0 && CODE_CHANGE > 0) {
-          println "CODE AND DOC BUILD"
+      } else if (DOC_CHANGE > '0' && CODE_CHANGE > '0') {
+          sh "echo -e \033[1m CODE AND DOC BUILD\033[0m"
           basicChecks()
           docsBuild()
           runTests()
       } else {
-          println "CODE BUILD"
+          sh "echo -e \033[1m CODE BUILD\033[0m"
           basicChecks() // basic checks
-          println "CODE TESTS"
+          sh "echo -e \033[1m CODE TESTS\033[0m"
           runTests() // e2e on merge and unit, fvt tests on parallel
       }
     } finally { // post build actions
@@ -332,7 +332,7 @@ def runTests() {
       },
       failFast: true ) // Stop the build flow if one job fails
     stage("Unstash") {
-      if (DOC_CHANGE > 0 && CODE_CHANGE == 0) {
+      if (DOC_CHANGE > '0' && CODE_CHANGE == '0') {
         // unstash not required for doc only builds
         println "Unstash not required"
       } else {
