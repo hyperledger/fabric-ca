@@ -8,6 +8,8 @@ package lib
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -148,7 +150,8 @@ func TestServerMetrics(t *testing.T) {
 			APICounter:  fakeCounter,
 			APIDuration: fakeHist,
 		},
-		mux: router,
+		Config: &ServerConfig{},
+		mux:    router,
 	}
 
 	server.mux.Use(server.middleware)
@@ -190,4 +193,71 @@ func TestServerHealthCheck(t *testing.T) {
 
 	err = srv.HealthCheck(context.Background())
 	assert.EqualError(t, err, "sql: database is closed")
+}
+
+func TestCORS(t *testing.T) {
+	tests := []struct {
+		cors         CORS
+		origin       string
+		expectHeader bool
+	}{
+		{
+			cors: CORS{
+				Enabled: false,
+			},
+			origin:       "badorigin.com",
+			expectHeader: false,
+		},
+		{
+			cors: CORS{
+				Enabled: true,
+				Origins: []string{"goodorigin.com"},
+			},
+			origin:       "goodorigin.com",
+			expectHeader: true,
+		},
+		{
+			cors: CORS{
+				Enabled: true,
+				Origins: []string{"goodorigin.com"},
+			},
+			origin:       "badorigin.com",
+			expectHeader: false,
+		},
+	}
+
+	fakeCounter := &metricsfakes.Counter{}
+	fakeCounter.WithReturns(fakeCounter)
+	fakeHist := &metricsfakes.Histogram{}
+	fakeHist.WithReturns(fakeHist)
+
+	for _, test := range tests {
+		_test := test
+		t.Run("", func(t *testing.T) {
+			lis, err := net.Listen("tcp", "localhost:0")
+			if err != nil {
+				t.Fatalf("Failed to create listener: %s", err)
+			}
+			t.Log(lis.Addr().String())
+			s := &Server{
+				Config: &ServerConfig{
+					CORS: _test.cors,
+				},
+			}
+			handler := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+				rw.WriteHeader(http.StatusOK)
+			})
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://%s", lis.Addr().String()), nil)
+			req.Header.Set("Origin", _test.origin)
+			rw := httptest.NewRecorder()
+			s.cors(handler).ServeHTTP(rw, req)
+			res := rw.Result()
+			for k, v := range res.Header {
+				t.Logf("%s : %s", k, v)
+			}
+			_, ok := res.Header["Access-Control-Allow-Origin"]
+			assert.Equal(t, _test.expectHeader, ok)
+		})
+	}
+
 }

@@ -31,6 +31,8 @@ type ServerConfig struct {
 	Port int `def:"7054" opt:"p" help:"Listening port of fabric-ca-server"`
 	// Bind address for the server
 	Address string `def:"0.0.0.0" help:"Listening address of fabric-ca-server"`
+	// Cross-Origin Resource Sharing settings for the server
+	CORS CORS
 	// Enables debug logging
 	Debug bool `def:"false" opt:"d" help:"Enable debug level logging" hide:"true"`
 	// Sets the logging level on the server
@@ -56,4 +58,10 @@ type ServerConfig struct {
 	Metrics operations.MetricsOptions `hide:"true"`
 	// Operations contains the configuration for the operations servers
 	Operations operations.Options `hide:"true"`
+}
+
+// CORS defines the Cross-Origin Resource Sharing settings for the server.
+type CORS struct {
+	Enabled bool     `help:"Enable CORS for the fabric-ca-server"`
+	Origins []string `help:"Comma-separated list of Access-Control-Allow-Origin domains"`
 }

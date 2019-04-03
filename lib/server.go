@@ -27,6 +27,7 @@ import (
 	"github.com/cloudflare/cfssl/revoke"
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/felixge/httpsnoop"
+	ghandlers "github.com/gorilla/handlers"
 	gmux "github.com/gorilla/mux"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
@@ -530,7 +531,7 @@ func (s *Server) GetCA(name string) (*CA, error) {
 
 // Register all endpoint handlers
 func (s *Server) registerHandlers() {
-	s.mux.Use(s.middleware)
+	s.mux.Use(s.cors, s.middleware)
 	s.registerHandler(newCAInfoEndpoint(s))
 	s.registerHandler(newRegisterEndpoint(s))
 	s.registerHandler(newEnrollEndpoint(s))
@@ -560,6 +561,13 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 		caName := s.getCAName()
 		s.recordMetrics(metrics.Duration, caName, apiName, strconv.Itoa(metrics.Code))
 	})
+}
+
+func (s *Server) cors(next http.Handler) http.Handler {
+	if s.Config.CORS.Enabled {
+		return ghandlers.CORS(ghandlers.AllowedOrigins(s.Config.CORS.Origins))(next)
+	}
+	return next
 }
 
 func (s *Server) getAPIName(r *http.Request) string {
@@ -700,6 +708,7 @@ func (s *Server) serve() error {
 	}
 
 	s.serveError = http.Serve(listener, s.mux)
+
 	log.Errorf("Server has stopped serving: %s", s.serveError)
 	s.closeListener()
 	err := s.closeDB()
