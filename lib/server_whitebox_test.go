@@ -8,8 +8,6 @@ package lib
 
 import (
 	"context"
-	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -226,19 +224,9 @@ func TestCORS(t *testing.T) {
 		},
 	}
 
-	fakeCounter := &metricsfakes.Counter{}
-	fakeCounter.WithReturns(fakeCounter)
-	fakeHist := &metricsfakes.Histogram{}
-	fakeHist.WithReturns(fakeHist)
-
 	for _, test := range tests {
 		_test := test
 		t.Run("", func(t *testing.T) {
-			lis, err := net.Listen("tcp", "localhost:0")
-			if err != nil {
-				t.Fatalf("Failed to create listener: %s", err)
-			}
-			t.Log(lis.Addr().String())
 			s := &Server{
 				Config: &ServerConfig{
 					CORS: _test.cors,
@@ -247,7 +235,7 @@ func TestCORS(t *testing.T) {
 			handler := http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 				rw.WriteHeader(http.StatusOK)
 			})
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://%s", lis.Addr().String()), nil)
+			req := httptest.NewRequest(http.MethodGet, "http://localhost", nil)
 			req.Header.Set("Origin", _test.origin)
 			rw := httptest.NewRecorder()
 			s.cors(handler).ServeHTTP(rw, req)
