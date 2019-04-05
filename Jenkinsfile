@@ -26,6 +26,8 @@ timestamps { // set the timestamps on the jenkins console
 
 def buildStages() {
   try {
+    // LF team has to install the newer version in Jenkins global config
+    // Send an email to helpdesk@hyperledger.org to add newer version
     def nodeHome = tool 'nodejs-8.14.0'
     def ROOTDIR = pwd()
     stage('Clean Environment') {
@@ -54,18 +56,18 @@ def buildStages() {
       env.PATH = "$GOROOT/bin:$GOPATH/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:${nodeHome}/bin:$PATH"
     }
 
-      if (DOC_CHANGE > 0 && CODE_CHANGE == 0) {
-        println "ONLY DOC BUILD"
+      if (DOC_CHANGE > '0' && CODE_CHANGE == '0') {
+        sh "echo -e \033[1m ONLY DOC BUILD\033[0m"
         docsBuild()
-      } else if (DOC_CHANGE > 0 && CODE_CHANGE > 0) {
-          println "CODE AND DOC BUILD"
+      } else if (DOC_CHANGE > '0' && CODE_CHANGE > '0') {
+          sh "echo -e \033[1m CODE AND DOC BUILD\033[0m"
           basicChecks()
           docsBuild()
           runTests()
       } else {
-          println "CODE BUILD"
+          sh "echo -e \033[1m CODE BUILD\033[0m"
           basicChecks() // basic checks
-          println "CODE TESTS"
+          sh "echo -e \033[1m CODE TESTS\033[0m"
           runTests() // e2e on merge and unit, fvt tests on parallel
       }
     } finally { // post build actions
@@ -103,7 +105,6 @@ def buildStages() {
 def docsBuild () {
   def ROOTDIR = pwd()
   stage("Docs Build") {
-	  wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
       try {
         dir("$ROOTDIR/$BASE_DIR") {
           sh ''' set +x -ue
@@ -119,7 +120,6 @@ def docsBuild () {
           currentBuild.result = 'FAILURE'
           throw err
       }
-    }
   }
 }
 
@@ -155,8 +155,7 @@ def fabCar() {
           fabBuildLibrary.deleteContainers()
           // Delete unused docker images (none,dev,test-vp etc..)
           fabBuildLibrary.deleteUnusedImages()
-          sh 'docker ps -a && docker images'
-          dir("$ROOTDIR/gopath/src/github.com/hyperledger/fabric-samples/scripts/Jenkins_Scripts") {
+          dir("$ROOTDIR/gopath/src/github.com/hyperledger/fabric-samples/scripts/ci_scripts") {
             sh './fabcar.sh'
           }
         } catch (err) {
@@ -182,7 +181,6 @@ def e2e_sdk_node() {
         fabBuildLibrary.deleteContainers()
         // Delete unused docker images (none,dev,test-vp etc..)
         fabBuildLibrary.deleteUnusedImages()
-        sh 'docker ps -a && docker images'
         dir("$ROOTDIR/gopath/src/github.com/hyperledger/fabric-sdk-node") {
           sh '''set +x -ue
             npm install
@@ -322,7 +320,7 @@ def runTests() {
       },
       failFast: true ) // Stop the build flow if one job fails
     stage("Unstash") {
-      if (DOC_CHANGE > 0 && CODE_CHANGE == 0) {
+      if (DOC_CHANGE > '0' && CODE_CHANGE == '0') {
         // unstash not required for doc only builds
         println "Unstash not required"
       } else {
