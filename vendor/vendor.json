@@ -672,12 +672,6 @@
 			"tree": true
 		},
 		{
-			"checksumSHA1": "n+ZKx3gMoBi4t0fN84vzz0r2uCM=",
-			"path": "github.com/hyperledger/fabric/common/attrmgr",
-			"revision": "99e0bb867aa1506ab847e8baa5ca54e3a599f806",
-			"revisionTime": "2017-09-19T17:02:51Z"
-		},
-		{
 			"checksumSHA1": "nh/mRF/Q8HaftQ7l6CD/HZ4AdxQ=",
 			"path": "github.com/hyperledger/fabric/common/errors",
 			"revision": "6b6bfcfbd1e798a8a08fa9c3bf4dc0ff766a6b87",
