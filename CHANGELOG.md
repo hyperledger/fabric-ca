@@ -1,3 +1,46 @@
+## v2.0.0-alpha
+Tue Apr  9 15:23:49 EDT 2019
+
+* [785b422](https://github.com/hyperledger/fabric-ca/commit/785b422) FAB-15126 Disable latest multiarch tag
+* [01161fa](https://github.com/hyperledger/fabric-ca/commit/01161fa) [FABC-836] move common/attrmgr implementation
+* [e59884d](https://github.com/hyperledger/fabric-ca/commit/e59884d) FABC-408 Add CORS support
+* [71ce992](https://github.com/hyperledger/fabric-ca/commit/71ce992) FABC-408 Add CORS support
+* [da9a86b](https://github.com/hyperledger/fabric-ca/commit/da9a86b) FABC-833 Update Jenkinsfile
+* [0e5d255](https://github.com/hyperledger/fabric-ca/commit/0e5d255) Fix --csr.hosts flag for client and server
+* [099f0f8](https://github.com/hyperledger/fabric-ca/commit/099f0f8) FAB-14775 Update fabric-ca to baseimage 0.4.15
+* [5608a53](https://github.com/hyperledger/fabric-ca/commit/5608a53) FABCI-311 Add ci pipeline script
+* [6cbaf77](https://github.com/hyperledger/fabric-ca/commit/6cbaf77) FABC-825 Upgrade to Alpine 3.9
+* [dd9c5c5](https://github.com/hyperledger/fabric-ca/commit/dd9c5c5) [FABC-805] Wire DB metrics
+* [7b71097](https://github.com/hyperledger/fabric-ca/commit/7b71097) [FABC-804] Create DB Metric Options
+* [8493ed8](https://github.com/hyperledger/fabric-ca/commit/8493ed8) [FABC-824] SQLiteConn error when building client binary
+* [776f033](https://github.com/hyperledger/fabric-ca/commit/776f033) [FABC-810] Cleanup directory handling in run_unit_tests
+* [db5a654](https://github.com/hyperledger/fabric-ca/commit/db5a654) [FABC-823] Delete artifact left by HealthCheck test
+* [5361589](https://github.com/hyperledger/fabric-ca/commit/5361589) [FABC-803] Refactoring DB code
+* [a0e9ac8](https://github.com/hyperledger/fabric-ca/commit/a0e9ac8) [FABC-795] Create a CA Server Health Check
+* [fc4a993](https://github.com/hyperledger/fabric-ca/commit/fc4a993) [FABC-816] Add connection string to db runners
+* [5ddb94e](https://github.com/hyperledger/fabric-ca/commit/5ddb94e) [FAB-14174](https://jira.hyperledger.org/browse/FAB-14174) Update GOVER to 1.11.5 in CA
+* [a60d006](https://github.com/hyperledger/fabric-ca/commit/a60d006) [FABC-798] Create MySQL Runner
+* [251e1d5](https://github.com/hyperledger/fabric-ca/commit/251e1d5) [FABC-799] Create Postgres Runner
+* [d2ec7ad](https://github.com/hyperledger/fabric-ca/commit/d2ec7ad) Update maintainers for fabric-ca, nominate Saad Karim
+* [9d9d96f](https://github.com/hyperledger/fabric-ca/commit/9d9d96f) Revert "Update maintainers for fabric-ca"
+* [4ac2f26](https://github.com/hyperledger/fabric-ca/commit/4ac2f26) Update maintainers for fabric-ca, nominate Saad Karim
+* [d2fe36b](https://github.com/hyperledger/fabric-ca/commit/d2fe36b) [FABC-813] Revise make fvt-tests target
+* [07aa976](https://github.com/hyperledger/fabric-ca/commit/07aa976) [FABC-809] Update Makefile to pull 3rd-party images
+* [3469c4c](https://github.com/hyperledger/fabric-ca/commit/3469c4c) [FABC-808] Vendor official Go Docker client and ifrit
+* [88dc2ef](https://github.com/hyperledger/fabric-ca/commit/88dc2ef) [FABC-802] Fix misspelling of "affiliaton"
+* [f3df918](https://github.com/hyperledger/fabric-ca/commit/f3df918) [FABC-790] Create an operations server
+* [ac3b2ce](https://github.com/hyperledger/fabric-ca/commit/ac3b2ce) [FABC-787] Wire in metrics for server APIs
+* [79f0e3d](https://github.com/hyperledger/fabric-ca/commit/79f0e3d) Remove tcert from swagger
+* [e852f08](https://github.com/hyperledger/fabric-ca/commit/e852f08) [FABC-786] Vendor go-kit
+* [3e4b58b](https://github.com/hyperledger/fabric-ca/commit/3e4b58b) [FABC-785] Add metrics for server APIs
+* [18c18b8](https://github.com/hyperledger/fabric-ca/commit/18c18b8) [FABC-783] Add middleware to HTTP router
+* [4cc5334](https://github.com/hyperledger/fabric-ca/commit/4cc5334) FABC-735 Move to Alpine
+* [2ef02b9](https://github.com/hyperledger/fabric-ca/commit/2ef02b9) [FABC-542] More accurate HTTP and error codes
+* [d79ba64](https://github.com/hyperledger/fabric-ca/commit/d79ba64) FABC-781 Remove fabric-ca sample
+* [b0b3228](https://github.com/hyperledger/fabric-ca/commit/b0b3228) [FABC-755] Revendor github.com/pkg/errors
+* [bde2d76](https://github.com/hyperledger/fabric-ca/commit/bde2d76) Configure Stale ProBot
+* [7a317af](https://github.com/hyperledger/fabric-ca/commit/7a317af) [FAB-13116](https://jira.hyperledger.org/browse/FAB-13116) Prepare for next release (2.0.0 on master)
+
 ## v1.4.0-rc1
 Mon Dec 10 15:08:08 EST 2018
 
