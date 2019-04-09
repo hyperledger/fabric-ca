@@ -63,9 +63,9 @@ for image in ${IMAGES}; do
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
    --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
    --target "${NS}/${image}:${VERSION}"
-  manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
-   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
-   --target "${NS}/${image}:latest"
+#  manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
+#   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
+#   --target "${NS}/${image}:latest"
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
    --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
    --target "${NS}/${image}:${TWO_DIGIT_VERSION}"
@@ -75,7 +75,7 @@ done
 for image in ${IMAGES}; do
   docker pull ${NS}/${image}:${VERSION} || failed
   docker pull ${NS}/${image}:${TWO_DIGIT_VERSION} || failed
-  docker pull ${NS}/${image}:latest || failed
+#  docker pull ${NS}/${image}:latest || failed
 done
 
 echo "Successfully pushed multiarch manifest"
