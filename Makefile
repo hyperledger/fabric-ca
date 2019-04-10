@@ -32,9 +32,11 @@
 PROJECT_NAME = fabric-ca
 ALPINE_VER ?= 3.9
 DEBIAN_VER ?= stretch
-BASE_VERSION = 2.0.0-alpha
-PREV_VERSION = 1.4.0
-IS_RELEASE = true
+BASE_VERSION = 2.0.0
+PREV_VERSION = 2.0.0-alpha
+IS_RELEASE = false
+
+BASEIMAGE_RELEASE = 0.4.15
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
@@ -55,7 +57,6 @@ else
 PG_VER=9.5
 endif
 
-BASEIMAGE_RELEASE = 0.4.15
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
