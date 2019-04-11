@@ -1,0 +1,60 @@
+v1.4.1 Release Notes - April 11, 2019
+-------------------------------------
+
+What's New in Hyperledger Fabric CA v1.4.1
+------------------------------------------
+
+FABC-408 Add support for CORS
+CORS can be enabled in Fabric CA server using new server flags:
+--cors.enabled   Enable CORS for the fabric-ca-server
+--cors.origins   Comma-separated list of Access-Control-Allow-Origin domains
+
+FABC-782
+Fabric CA API operational metrics
+
+FABC-789
+Fabric CA database operations metrics
+
+FABC-743
+Fabric CA health check
+
+
+Changes, Known Issues, and Workarounds
+--------------------------------------
+
+None.
+
+
+Known Vulnerabilities
+---------------------
+FABC-174 Commands can be manipulated to delete identities or affiliations
+
+This vulnerability can be resolved in one of two ways:
+
+1) Use HTTPS (TLS) so that the authorization header is not in clear text.
+
+2) The token generation/authentication mechanism was improved to optionally prevent
+token reuse. In v1.4 a more secure token can be used by setting environment variable:
+
+FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3=false
+
+However, it cannot be set to false until all clients have
+been updated to generate the more secure token and tolerate
+FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3=false.
+The Fabric CA client has been updated in v1.4 to generate the more secure token.
+The Fabric SDKs will be updated by v2.0 timeframe to generate the more secure token,
+at which time the default for Fabric CA server will change to:
+FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3=false
+
+Resolved Vulnerabilities
+------------------------
+None.
+
+
+Other improvements and fixes
+----------------------------
+Updated to Go version 1.11.15
+Updated baseimage version to 0.4.15
+
+For the full list of improvements and fixes, refer to the release change log:
+https://github.com/hyperledger/fabric-ca/blob/release-1.4/CHANGELOG.md#v141
