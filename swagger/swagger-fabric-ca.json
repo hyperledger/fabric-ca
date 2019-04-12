@@ -254,7 +254,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "request": {
+                "certificate_request": {
                   "type": "string",
                   "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
                 },
