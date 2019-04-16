@@ -470,12 +470,10 @@ Fabric-CA Server's Configuration File
             enabled: false
     
             # path to PEM encoded server certificate for the operations server
-            cert:
-                file:
+            certfile:
     
             # path to PEM encoded server key for the operations server
-            key:
-                file:
+            keyfile:
     
             # require client certificate authentication to access all resources
             clientAuthRequired: false
