@@ -1,31 +1,15 @@
 #!/bin/bash
+
 #
 # Copyright IBM Corp. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-function runvet {
- {
-   for dir in `ls`
-   do
-      if [ -d $dir ]; then
-        case "$dir" in
-          vendor|bin|testdata|scripts)
-          ;;
-        *)
-          go tool vet $dir
-          ;;
-        esac
-      fi
-   done
- } 2>&1
-}
 
-echo "Running go vet ..."
-found=$(runvet)
-if [ "$found" != "" ]; then
-   echo "YOU MUST FIX THE FOLLOWING GO VET PROBLEMS:"
-   echo "$found"
-   exit 1
+PRINTFUNCS="Print,Printf,Info,Infof,Warning,Warningf,Error,Errorf,Critical,Criticalf,Sprint,Sprintf,Log,Logf,Panic,Panicf,Fatal,Fatalf,Notice,Noticef,Wrap,Wrapf,WithMessage"
+OUTPUT="$(go vet -all -printfuncs $PRINTFUNCS ./...)"
+if [ -n "$OUTPUT" ]; then
+    echo "The following files contain go vet errors"
+    echo $OUTPUT
+    exit 1
 fi
-echo "No 'go vet' problems were found"
