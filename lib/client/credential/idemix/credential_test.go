@@ -77,14 +77,14 @@ func TestIdemixCredential(t *testing.T) {
 	assert.Error(t, err, "Store should return an error if credential has not been set")
 
 	err = idemixCred.Load()
-	assert.Error(t, err, "Load should fail as %s is not found", signerConfig)
+	assert.Errorf(t, err, "Load should fail as %s is not found", signerConfig)
 
 	err = ioutil.WriteFile(signerConfig, []byte("hello"), 0744)
 	if err != nil {
 		t.Fatalf("Failed to write to file %s: %s", signerConfig, err.Error())
 	}
 	err = idemixCred.Load()
-	assert.Error(t, err, "Load should fail as %s contains invalid data", signerConfig)
+	assert.Errorf(t, err, "Load should fail as %s contains invalid data", signerConfig)
 
 	err = lib.CopyFile(testSignerConfigFile, signerConfig)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestIdemixCredential(t *testing.T) {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", signerConfig, err)
 	}
 	err = idemixCred.Store()
-	assert.Error(t, err, "Store should fail as %s is not writable", signerConfig)
+	assert.Errorf(t, err, "Store should fail as %s is not writable", signerConfig)
 
 	if err = os.Chmod(signerConfig, 0644); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", signerConfig, err)
@@ -148,7 +148,7 @@ func TestIdemixCredential(t *testing.T) {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", clientPubKeyFile, err)
 	}
 	_, err = idemixCred.CreateToken(req, body)
-	assert.Error(t, err, "CreateToken should fail as %s is not readable", clientPubKeyFile)
+	assert.Errorf(t, err, "CreateToken should fail as %s is not readable", clientPubKeyFile)
 
 	if err = os.Chmod(clientPubKeyFile, 0644); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", clientPubKeyFile, err)
