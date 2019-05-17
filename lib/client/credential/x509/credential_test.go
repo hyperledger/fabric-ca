@@ -127,7 +127,7 @@ func TestX509Credential(t *testing.T) {
 		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}
 	err = x509Cred.Store()
-	assert.Error(t, err, "Store should fail as %s is not writable", certFile)
+	assert.Errorf(t, err, "Store should fail as %s is not writable", certFile)
 	if err = os.Chmod(certFile, 0644); err != nil {
 		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}

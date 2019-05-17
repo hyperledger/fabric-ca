@@ -143,6 +143,6 @@ func storeCRL(config *lib.ClientConfig, crl []byte) error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to write CRL to the file %s", fileName)
 	}
-	log.Info("Successfully stored the CRL in the file %s", fileName)
+	log.Infof("Successfully stored the CRL in the file %s", fileName)
 	return nil
 }
