@@ -1559,36 +1559,6 @@ For example, if an identity is of type `peer` and its affiliation is
 `department1.team1`, the identity's OU hierarchy (from leaf to root) is
 `OU=team1, OU=department1, OU=peer`.
 
-Getting a CA certificate chain from another Fabric CA server
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In general, the cacerts directory of the MSP directory must contain the certificate authority chains
-of other certificate authorities, representing all of the roots of trust for the peer.
-
-The ``fabric-ca-client getcainfo`` command is used to retrieve these certificate chains from other
-Fabric CA server instances.
-
-For example, the following will start a second Fabric CA server on localhost
-listening on port 7055 with a name of "CA2".  This represents a completely separate
-root of trust and would be managed by a different member on the blockchain.
-
-.. code:: bash
-
-    export FABRIC_CA_SERVER_HOME=$HOME/ca2
-    fabric-ca-server start -b admin:ca2pw -p 7055 -n CA2
-
-The following command will install CA2's certificate chain into peer1's MSP directory.
-
-.. code:: bash
-
-    export FABRIC_CA_CLIENT_HOME=$HOME/fabric-ca/clients/peer1
-    fabric-ca-client getcainfo -u http://localhost:7055 -M $FABRIC_CA_CLIENT_HOME/msp
-
-By default, the Fabric CA server returns the CA chain in child-first order. This means that each CA
-certificate in the chain is followed by its issuer's CA certificate. If you need the Fabric CA server
-to return the CA chain in the opposite order, then set the environment variable ``CA_CHAIN_PARENT_FIRST``
-to ``true`` and restart the Fabric CA server. The Fabric CA client will handle either order appropriately.
-
 Getting Identity Mixer credential for a user
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Identity Mixer (Idemix) is a cryptographic protocol suite for privacy-preserving authentication and transfer of certified attributes.
