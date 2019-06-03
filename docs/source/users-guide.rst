@@ -53,8 +53,8 @@ Table of Contents
    1. `Enrolling the bootstrap identity`_
    2. `Registering a new identity`_
    3. `Enrolling a peer identity`_
-   4. `Getting Identity Mixer credential for a user`_
-   5. `Getting Idemix CRI`_
+   4. `Getting Identity Mixer credential`_
+   5. `Getting Idemix CRI (Certificate Revocation Information)`_
    6. `Reenrolling an identity`_
    7. `Revoking a certificate or identity`_
    8. `Generating a CRL (Certificate Revocation List)`_
@@ -759,13 +759,13 @@ server to connect to an LDAP server.
           #    maps:
           #       groups:
           #          - name: dn1
-          #            value: orderer
+          #            value: client
           #          - name: dn2
           #            value: peer
           # The value of the user's 'myAttr' attribute is then computed to be
-          # "orderer,peer,dn3".  This is because the value of 'attr("member")' is
+          # "client,peer,dn3".  This is because the value of 'attr("member")' is
           # "dn1,dn2,dn3", and the call to 'map' with a 2nd argument of
-          # "group" replaces "dn1" with "orderer" and "dn2" with "peer".
+          # "group" replaces "dn1" with "client" and "dn2" with "peer".
           converters:
             - name: <fcaAttrName>
               value: <fcaExpr>
@@ -1329,8 +1329,8 @@ during registration as follows:
 1. The registrar (i.e. the invoker) must have the "hf.Registrar.Roles" attribute with a
    comma-separated list of values where one of the values equals the type of
    identity being registered; for example, if the registrar has the
-   "hf.Registrar.Roles" attribute with a value of "peer,app,user", the registrar
-   can register identities of type peer, app, and user, but not orderer.
+   "hf.Registrar.Roles" attribute with a value of "peer", the registrar
+   can register identities of type peer, but not client.
 
 2. The affiliation of the registrar must be equal to or a prefix of
    the affiliation of the identity being registered.  For example, an registrar
@@ -1341,7 +1341,7 @@ during registration as follows:
    If no affiliation is specified in the registration request, the identity being
    registered will be given the affiliation of the registrar.
 
-3. The registrar can register a user with attributes if all of the following conditions
+3. The registrar can register an identity with attributes if all of the following conditions
    are satisfied:
 
    - Registrar can register Fabric CA reserved attributes that have the prefix 'hf.'
@@ -1393,9 +1393,9 @@ Examples:
          'a.b.*'.
       4. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
          is registering attribute 'x.y', it is invalid because 'x.y' is not contained by 'x.y.z'.
-      5. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
-         the requested attribute value is 'peer,client,orderer', it is invalid because
-         the registrar does not have the orderer role in its value of hf.Registrar.Roles
+      5. If the registrar has the attribute 'hf.Registrar.Roles = peer' and
+         the requested attribute value is 'peer,client', it is invalid because
+         the registrar does not have the client role in its value of hf.Registrar.Roles
          attribute.
       6. If the registrar has the attribute 'hf.Revoker = false' and the requested attribute
          value is 'true', it is invalid because the hf.Revoker attribute is a boolean attribute
@@ -1415,7 +1415,7 @@ The names of attributes are case sensitive.
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | hf.GenCRL                   | Boolean    | Identity is able to generate CRL if attribute value is true                                                |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
-| hf.Revoker                  | Boolean    | Identity is able to revoke a user and/or certificates if attribute value is true                           |
+| hf.Revoker                  | Boolean    | Identity is able to revoke an identity and/or certificates if attribute value is true                           |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | hf.AffiliationMgr           | Boolean    | Identity is able to manage affiliations if attribute value is true                                         |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
@@ -1427,10 +1427,10 @@ specifies multiple array elements with the same name, only the last element is c
 multi-valued attributes are not currently supported.
 
 The following command uses the **admin** identity's credentials to register a new
-user with an enrollment id of "admin2", an affiliation of
+identity with an enrollment id of "admin2", an affiliation of
 "org1.department1", an attribute named "hf.Revoker" with a value of "true", and
 an attribute named "admin" with a value of "true".  The ":ecert" suffix means that
-by default the "admin" attribute and its value will be inserted into the user's
+by default the "admin" attribute and its value will be inserted into the identity's
 enrollment certificate, which can then be used to make access control decisions.
 
 .. code:: bash
@@ -1449,13 +1449,13 @@ the attribute must be encapsulated in double quotes. See example below.
 
 .. code:: bash
 
-    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user",hf.Revoker=true'
+    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,client",hf.Revoker=true'
 
 or
 
 .. code:: bash
 
-    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,user"' --id.attrs hf.Revoker=true
+    fabric-ca-client register -d --id.name admin2 --id.affiliation org1.department1 --id.attrs '"hf.Registrar.Roles=peer,client"' --id.attrs hf.Revoker=true
 
 You may set default values for any of the fields used in the register command
 by editing the client's configuration file.  For example, suppose the configuration
@@ -1465,7 +1465,7 @@ file contains the following:
 
     id:
       name:
-      type: user
+      type: client
       affiliation: org1.department1
       maxenrollments: -1
       attributes:
@@ -1476,7 +1476,7 @@ file contains the following:
 
 The following command would then register a new identity with an enrollment id of
 "admin3" which it takes from the command line, and the remainder is taken from the
-configuration file including the identity type: "user", affiliation: "org1.department1",
+configuration file including the identity type: "client", affiliation: "org1.department1",
 and two attributes: "hf.Revoker" and "anotherAttrName".
 
 .. code:: bash
@@ -1559,10 +1559,10 @@ For example, if an identity is of type `peer` and its affiliation is
 `department1.team1`, the identity's OU hierarchy (from leaf to root) is
 `OU=team1, OU=department1, OU=peer`.
 
-Getting Identity Mixer credential for a user
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Getting Identity Mixer credential
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Identity Mixer (Idemix) is a cryptographic protocol suite for privacy-preserving authentication and transfer of certified attributes.
-Idemix allows users to authenticate with verifiers without the involvement of the issuer (CA) and selectively disclose only those attributes
+Idemix allows clients to authenticate with verifiers without the involvement of the issuer (CA) and selectively disclose only those attributes
 that are required by the verifier and can do so without being linkable across their transactions.
 
 Fabric CA server can issue Idemix credentials in addition to X509 certificates. An Idemix credential can be requested by sending the request to
@@ -1574,22 +1574,22 @@ API endpoint to get a nonce and CA's Idemix public key. Second, create a credent
 send another request with the credential request in the body to  the ``/api/v1/idemix/credential`` API endpoint to get an Idemix credential,
 Credential Revocation Information (CRI), and attribute names and values. Currently, only three attributes are supported:
 
-- **OU** - organization unit of the user. The value of this attribute is set to user's affiliation. For example, if user's affiliaton is `dept1.unit1`, then OU attribute is set to `dept1.unit1`
-- **IsAdmin** - if the user is an admin or not. The value of this attribute is set to the value of `isAdmin` registration attribute.
-- **EnrollmentID** - enrollment ID of the user
+- **OU** - organization unit of the identity. The value of this attribute is set to identity's affiliation. For example, if identity's affiliation is `dept1.unit1`, then OU attribute is set to `dept1.unit1`
+- **IsAdmin** - if the identity is an admin or not. The value of this attribute is set to the value of `isAdmin` registration attribute.
+- **EnrollmentID** - enrollment ID of the identity
 
 You can refer to the `handleIdemixEnroll` function in https://github.com/hyperledger/fabric-ca/blob/master/lib/client.go for reference implementation
 of the two step process for getting Idemix credential.
 
 The ``/api/v1/idemix/credential`` API endpoint accepts both basic and token authorization headers. The basic authorization header should
-contain User's registration ID and password. If the user already has X509 enrollment certificate, it can also be used to create a token authorization header.
+contain User's registration ID and password. If the identity already has X509 enrollment certificate, it can also be used to create a token authorization header.
 
-Note that Hyperledger Fabric will support clients/users to sign transactions with both X509 and Idemix credentials, but will only support X509 credentials
+Note that Hyperledger Fabric will support clients to sign transactions with both X509 and Idemix credentials, but will only support X509 credentials
 for peer and orderer identities. As before, applications can use a Fabric SDK to send requests to the Fabric CA server. SDKs hide the complexity
 associated with creating authorization header and request payload, and with processing the response.
 
 Getting Idemix CRI (Certificate Revocation Information)
------------------------------------------------
+-------------------------------------------------------
 An Idemix CRI (Credential Revocation Information) is similar in purpose to an X509 CRL (Certificate Revocation List):
 to revoke what was previously issued.  However, there are some differences.
 
@@ -1609,7 +1609,7 @@ handles remaining in the revocation handle pool. In this case, the fabric-ca-ser
 handles which increments the epoch of the CRI. The number of revocation handles in the revocation handle pool is configurable
 via the ``idemix.rhpoolsize`` server configuration property.
 
-Reenrolling an Identity
+Reenrolling an identity
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Suppose your enrollment certificate is about to expire or has been compromised.
@@ -1804,7 +1804,7 @@ There are two methods:
 
 .. code:: bash
 
-     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'app1Admin=true:ecert,email=user1@gmail.com'
+     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type client --id.affiliation org1 --id.attrs 'app1Admin=true:ecert,email=user1@gmail.com'
 
 2. When you enroll an identity, you may explicitly request that one or more attributes
    be added to the certificate.
@@ -1840,7 +1840,7 @@ value of the affiliation (which is 'org1') must be the same in both the
 
 .. code:: bash
 
-    fabric-ca-client register --id.name user1 --id.secret user1pw --id.type user --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
+    fabric-ca-client register --id.name user1 --id.secret user1pw --id.type client --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
 
 For information on the chaincode library API for Attribute-Based Access Control,
 see `https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md <https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md>`_
@@ -1863,8 +1863,8 @@ An authorization failure will occur if the client identity does not satisfy all 
 
  - The client identity must possess the "hf.Registrar.Roles" attribute with a comma-separated list of
    values where one of the values equals the type of identity being updated; for example, if the client's
-   identity has the "hf.Registrar.Roles" attribute with a value of "client,peer", the client can update
-   identities of type 'client' and 'peer', but not 'orderer'.
+   identity has the "hf.Registrar.Roles" attribute with a value of "client", the client can update
+   identities of type 'client', but not 'peer'.
 
  - The affiliation of the client's identity must be equal to or a prefix of the affiliation of the identity
    being updated.  For example, a client with an affiliation of "a.b" may update an identity with an affiliation
@@ -1901,19 +1901,19 @@ The first method is via the `--json` flag where you describe the identity in a J
 
 .. code:: bash
 
-    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "client", "affiliation": "org1", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
 
 The following adds a user with root affiliation. Note that an affiliation name of "." means the root affiliation.
 
 .. code:: bash
 
-    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "user", "affiliation": ".", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
+    fabric-ca-client identity add user1 --json '{"secret": "user1pw", "type": "client", "affiliation": ".", "max_enrollments": 1, "attrs": [{"name": "hf.Revoker", "value": "true"}]}'
 
 The second method for adding an identity is to use direct flags. See the example below for adding 'user1'.
 
 .. code:: bash
 
-    fabric-ca-client identity add user1 --secret user1pw --type user --affiliation . --maxenrollments 1 --attrs hf.Revoker=true
+    fabric-ca-client identity add user1 --secret user1pw --type client --affiliation . --maxenrollments 1 --attrs hf.Revoker=true
 
 The table below lists all the fields of an identity and whether they are required or optional, and any default values they might have.
 
