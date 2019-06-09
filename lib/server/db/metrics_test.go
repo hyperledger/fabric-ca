@@ -30,7 +30,7 @@ var _ = Describe("metrics", func() {
 
 		testDB = &db.DB{
 			DB: &mocks.SqlxDB{},
-			Metrics: db.Metrics{
+			Metrics: &db.Metrics{
 				APICounter:  fakeAPICounter,
 				APIDuration: fakeAPIHistogram,
 			},

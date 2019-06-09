@@ -246,7 +246,7 @@ func (ctx *serverRequestContextImpl) GetCA() (*CA, error) {
 		return nil, errors.WithMessage(err, "Failed to get CA instance")
 	}
 	if ctx.ca.db == nil || !ctx.ca.db.IsInitialized() {
-		err := ctx.ca.initDB()
+		err := ctx.ca.initDB(ctx.ca.server.dbMetrics)
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("%s handler failed to initialize DB", strings.TrimLeft(ctx.req.URL.String(), "/")))
 		}
