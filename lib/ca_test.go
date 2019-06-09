@@ -21,7 +21,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
 	"github.com/stretchr/testify/assert"
 )
@@ -658,7 +657,7 @@ func TestServerMigration(t *testing.T) {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 
-	sqliteDB := sqlite.NewDB(filepath.Join(dir, "fabric-ca-server.db"), "", &disabled.Provider{})
+	sqliteDB := sqlite.NewDB(filepath.Join(dir, "fabric-ca-server.db"), "", nil)
 	err = sqliteDB.Connect()
 	assert.NoError(t, err, "failed to connect to database")
 	db, err := sqliteDB.Create()

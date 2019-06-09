@@ -12,7 +12,6 @@ import (
 
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/db/mocks"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/jmoiron/sqlx"
 	. "github.com/onsi/gomega"
 )
@@ -21,7 +20,7 @@ func TestTX(t *testing.T) {
 	gt := NewGomegaWithT(t)
 
 	mockDB := &mocks.SqlxDB{}
-	fabDB := db.New(mockDB, "", &disabled.Provider{})
+	fabDB := db.New(mockDB, "", nil)
 	mockTX := &mocks.SqlxTx{}
 	fabTx := &db.TX{
 		TX:     mockTX,

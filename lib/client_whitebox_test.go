@@ -481,20 +481,20 @@ func TestCWBCAConfig(t *testing.T) {
 		t.Error("getCAChain:2 should have failed but passed")
 	}
 	ca.Config.DB.Type = "postgres"
-	err = ca.initDB()
+	err = ca.initDB(nil)
 	t.Logf("initDB err: %v", err)
 	if err == nil {
 		t.Error("initDB postgres should have failed but passed")
 	}
 	ca.Config.DB.Type = "mysql"
-	err = ca.initDB()
+	err = ca.initDB(nil)
 	t.Logf("initDB err: %v", err)
 	if err == nil {
 		t.Error("initDB mysql should have failed but passed")
 	}
 
 	ca.Config.DB.Type = "unknown"
-	err = ca.initDB()
+	err = ca.initDB(nil)
 	t.Logf("initDB err: %v", err)
 	if err == nil {
 		t.Error("initDB unknown should have failed but passed")
@@ -606,7 +606,7 @@ func TestCWBCAConfigStat(t *testing.T) {
 	}()
 
 	ca.Config.DB.Type = ""
-	err = ca.initDB()
+	err = ca.initDB(nil)
 	t.Logf("initDB err: %v", err)
 	if err == nil {
 		t.Errorf("initDB should have failed (getcwd failure)")
