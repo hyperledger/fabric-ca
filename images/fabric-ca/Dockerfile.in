@@ -13,9 +13,6 @@ COPY payload/fabric-ca-server /usr/local/bin
 RUN chmod +x /usr/local/bin/fabric-ca-server
 RUN apt-get update && apt-get install -y netcat && rm -rf /var/cache/apt
 
-# libraries needed when image is built dynamically
-RUN if [ "$FABRIC_CA_DYNAMIC_LINK" = "true" ]; then apt-get install -y libltdl-dev; fi
-
 # Copy the same certificates that are currently hardcoded into the peers
 ADD payload/fabric-ca.tar.bz2 $FABRIC_CA_HOME
 
