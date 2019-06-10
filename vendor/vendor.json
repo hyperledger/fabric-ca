@@ -665,10 +665,10 @@
 			"revisionTime": "2018-12-30T09:37:25Z"
 		},
 		{
-			"checksumSHA1": "SciKezSPmS5x+LFe2AB2ERbxtF0=",
+			"checksumSHA1": "garq8+tNarWSmmiu97j7khUNAFE=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "5b2b5616d49538ace14aa9e08a482b9089c78df8",
-			"revisionTime": "2018-12-05T11:40:09Z",
+			"revision": "be77befd73395e03eb1d99b7c7fa2ab0826235fa",
+			"revisionTime": "2019-06-10T16:36:39Z",
 			"tree": true
 		},
 		{
