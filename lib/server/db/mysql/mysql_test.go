@@ -14,7 +14,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db/mysql"
 	"github.com/hyperledger/fabric-ca/lib/server/db/mysql/mocks"
 	"github.com/hyperledger/fabric-ca/lib/tls"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -34,7 +33,13 @@ var _ = Describe("Mysql", func() {
 			Enabled:   true,
 			CertFiles: []string{filepath.Join(testdataDir, "root.pem")},
 		}
-		db = mysql.NewDB("root:rootpw@tcp(localhost:3306)/fabric_ca_db", "", tls, nil, &disabled.Provider{})
+		db = mysql.NewDB(
+			"root:rootpw@tcp(localhost:3306)/fabric_ca_db",
+			"",
+			tls,
+			nil,
+			nil,
+		)
 		mockDB = &mocks.FabricCADB{}
 	})
 
@@ -43,7 +48,11 @@ var _ = Describe("Mysql", func() {
 			db.TLS.CertFiles = nil
 			err := db.Connect()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("Failed to get client TLS for MySQL: No trusted root certificates for TLS were provided"))
+			Expect(err.Error()).Should(
+				ContainSubstring(
+					"Failed to get client TLS for MySQL: No trusted root certificates for TLS were provided",
+				),
+			)
 			Expect(db.SqlxDB).To(BeNil())
 		})
 

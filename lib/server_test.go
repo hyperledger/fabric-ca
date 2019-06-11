@@ -37,7 +37,6 @@ import (
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
-	"github.com/hyperledger/fabric/common/metrics/disabled"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/spf13/viper"
@@ -2038,7 +2037,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled: true,
 	}
 	csp := util.GetDefaultBCCSP()
-	_, err := getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
+	_, err := getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, nil))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "No trusted root certificates for TLS were provided")
 
@@ -2047,7 +2046,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"doesnotexit.pem"},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, nil))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no such file or directory")
 
@@ -2056,7 +2055,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{"../testdata/empty.json"},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, nil))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to process certificate from file")
 
@@ -2076,7 +2075,7 @@ func TestSRVNewUserRegistryMySQL(t *testing.T) {
 		Enabled:   true,
 		CertFiles: []string{tmpFile},
 	}
-	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, &disabled.Provider{}))
+	_, err = getMysqlDb(mysql.NewDB(datasource, "", tlsConfig, csp, nil))
 	assert.Error(t, err)
 	if err != nil {
 		t.Logf("%s", err.Error())
