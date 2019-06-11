@@ -811,10 +811,12 @@
 			"revisionTime": "2018-12-31T17:19:20Z"
 		},
 		{
-			"checksumSHA1": "kfyF+aIibLC33Qn2xeuNuiJ+waU=",
+			"checksumSHA1": "Br9LF0xdu7rdEcebFmZVAtedzTs=",
 			"path": "github.com/miekg/pkcs11",
-			"revision": "88ac7c418f89b164432a00c46ec7b7612d686b57",
-			"revisionTime": "2018-02-08T12:37:54Z"
+			"revision": "cb39313ec884f2cd77f4762875fe96aecf68f8e3",
+			"revisionTime": "2019-04-19T07:10:23Z",
+			"version": "v1.0.2",
+			"versionExact": "v1.0.2"
 		},
 		{
 			"checksumSHA1": "UuXgD2dDojfS8AViUEe15gLIWZE=",
