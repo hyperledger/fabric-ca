@@ -13,7 +13,6 @@ ARG GO_TAGS
 RUN apk add --no-cache \
 	gcc \
 	git \
-	libtool \
 	musl-dev;
 
 ADD . $GOPATH/src/github.com/hyperledger/fabric-ca
