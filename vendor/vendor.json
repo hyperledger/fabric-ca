@@ -690,16 +690,16 @@
 			"revisionTime": "2018-08-10T18:42:28Z"
 		},
 		{
-			"checksumSHA1": "WOLMxJCYaKYleZvmGEClhuhM3BE=",
+			"checksumSHA1": "FaDuiEL1h9wdNYBG5uyjvlBDPEY=",
 			"path": "github.com/hyperledger/fabric/common/metrics",
-			"revision": "46a6b0e6b2ffd772e8ddf949af4f685b9fd413ee",
-			"revisionTime": "2019-01-03T18:48:40Z"
+			"revision": "c512c5c90f71b4416ee1cc1026824113b367b3cc",
+			"revisionTime": "2019-06-28T13:29:52Z"
 		},
 		{
 			"checksumSHA1": "XA7iTPuTIO7aWvVfCb1zdSbfYn4=",
 			"path": "github.com/hyperledger/fabric/common/metrics/cmd/gendoc",
-			"revision": "c4ec197b32067c540bf12a7108ffb1500edd4eab",
-			"revisionTime": "2019-06-14T07:37:51Z"
+			"revision": "c512c5c90f71b4416ee1cc1026824113b367b3cc",
+			"revisionTime": "2019-06-28T13:29:52Z"
 		},
 		{
 			"checksumSHA1": "G1kPTyG6AIFY3EE7QnJTMSQe4Yk=",
@@ -708,10 +708,10 @@
 			"revisionTime": "2019-01-03T18:48:40Z"
 		},
 		{
-			"checksumSHA1": "03qbzWZaMfZecizyUhSnoKgh9r0=",
+			"checksumSHA1": "82GkxmeNyc1Gjz7YK2AmRdzBYA4=",
 			"path": "github.com/hyperledger/fabric/common/metrics/gendoc",
-			"revision": "c4ec197b32067c540bf12a7108ffb1500edd4eab",
-			"revisionTime": "2019-06-14T07:37:51Z"
+			"revision": "c512c5c90f71b4416ee1cc1026824113b367b3cc",
+			"revisionTime": "2019-06-28T13:29:52Z"
 		},
 		{
 			"checksumSHA1": "3XYaCppp/6YpdnABcne+HIc0Kfc=",
