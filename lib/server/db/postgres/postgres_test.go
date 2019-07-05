@@ -73,6 +73,29 @@ var _ = Describe("Postgres", func() {
 			Expect(db.SqlxDB).To(BeNil())
 		})
 
+		It("has datasource with TLS connection parameters when TLS is enabled", func() {
+			db.TLS = &tls.ClientTLSConfig{
+				Enabled:   true,
+				CertFiles: []string{"root.pem"},
+				Client: tls.KeyCertFiles{
+					KeyFile:  "key.pem",
+					CertFile: "cert.pem",
+				},
+			}
+			db.Connect()
+			Expect(db.Datasource()).To(
+				ContainSubstring("sslrootcert=root.pem sslcert=cert.pem sslkey=key.pem"),
+			)
+		})
+
+		It("does not have has datasource with TLS connection parameters when TLS is enabled", func() {
+			db.TLS = &tls.ClientTLSConfig{
+				Enabled: false,
+			}
+			db.Connect()
+			Expect(db.Datasource()).ToNot(ContainSubstring("sslrootcert"))
+		})
+
 		It("fail to open database connection if unable to ping database", func() {
 			err := db.Connect()
 			Expect(err).To(HaveOccurred())

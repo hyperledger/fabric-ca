@@ -50,10 +50,9 @@ func NewDB(
 
 // Connect connects to a PostgreSQL server
 func (p *Postgres) Connect() error {
-	datasource := p.datasource
 	clientTLSConfig := p.TLS
 
-	p.dbName = util.GetDBName(datasource)
+	p.dbName = util.GetDBName(p.datasource)
 	dbName := p.dbName
 	log.Debugf("Database Name: %s", dbName)
 
@@ -67,11 +66,11 @@ func (p *Postgres) Connect() error {
 		}
 
 		root := clientTLSConfig.CertFiles[0]
-		datasource = fmt.Sprintf("%s sslrootcert=%s", datasource, root)
+		p.datasource = fmt.Sprintf("%s sslrootcert=%s", p.datasource, root)
 
 		cert := clientTLSConfig.Client.CertFile
 		key := clientTLSConfig.Client.KeyFile
-		datasource = fmt.Sprintf("%s sslcert=%s sslkey=%s", datasource, cert, key)
+		p.datasource = fmt.Sprintf("%s sslcert=%s sslkey=%s", p.datasource, cert, key)
 	}
 
 	dbNames := []string{dbName, "postgres", "template1"}
@@ -79,7 +78,7 @@ func (p *Postgres) Connect() error {
 	var err error
 
 	for _, dbName := range dbNames {
-		connStr := getConnStr(datasource, dbName)
+		connStr := getConnStr(p.datasource, dbName)
 		log.Debugf("Connecting to PostgreSQL server, using connection string: %s", util.MaskDBCred(connStr))
 
 		sqlxdb, err = sqlx.Connect("postgres", connStr)
@@ -122,14 +121,13 @@ func (p *Postgres) Create() (*db.DB, error) {
 // CreateDatabase creates database
 func (p *Postgres) CreateDatabase() (*db.DB, error) {
 	dbName := p.dbName
-	datasource := p.datasource
 	err := p.createDatabase()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create Postgres database")
 	}
 
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, util.MaskDBCred(datasource))
-	sqlxdb, err := sqlx.Open("postgres", datasource)
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, util.MaskDBCred(p.datasource))
+	sqlxdb, err := sqlx.Open("postgres", p.datasource)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open database '%s' in Postgres server", dbName)
 	}
