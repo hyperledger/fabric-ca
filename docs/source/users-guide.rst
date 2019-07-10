@@ -1330,7 +1330,7 @@ during registration as follows:
    comma-separated list of values where one of the values equals the type of
    identity being registered; for example, if the registrar has the
    "hf.Registrar.Roles" attribute with a value of "peer", the registrar
-   can register identities of type peer, but not client.
+   can register identities of type peer, but not client, admin, or orderer.
 
 2. The affiliation of the registrar must be equal to or a prefix of
    the affiliation of the identity being registered.  For example, an registrar
@@ -1376,9 +1376,9 @@ Examples:
       3. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
          the requested attribute value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches
          'a.b.*' and 'x.y.z' matches the registrar's 'x.y.z' value.
-      4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client' and
-         the requested attribute value is 'peer' or 'peer,client', it is valid because
-         the requested value is equal to or a subset of the registrar's value.
+      4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client,admin,orderer' and
+         the requested attribute value is 'peer', 'peer,client,admin,orderer', or 'client,admin',
+         it is valid because the requested value is equal to or a subset of the registrar's value.
 
    Invalid Scenarios:
       1. If the registrar has the attribute 'hf.Registrar.Attributes = a.b.*, x.y.z' and
