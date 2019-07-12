@@ -303,3 +303,7 @@ dist-clean:
 	-@rm -rf release/linux-s390x/hyperledger-fabric-ca-linux-s390x.$(PROJECT_VERSION).tar.gz ||:
 
 .FORCE:
+
+generate-metrics-doc:
+	@echo "Generating metrics reference documentation..."
+	@./scripts/metrics_doc.sh
