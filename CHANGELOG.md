@@ -1,3 +1,17 @@
+## v1.4.2
+Wed Jul 17 14:55:08 EDT 2019
+
+* [396c093](https://github.com/hyperledger/fabric-ca/commit/396c093) FABC-848 Fix TLS issue with PostgreSQL
+* [f88e912](https://github.com/hyperledger/fabric-ca/commit/f88e912) [FABC-853] Adding metrics table LabelHelp support
+* [5bf5d47](https://github.com/hyperledger/fabric-ca/commit/5bf5d47) [FABC-853] import fabric/gendoc for fabric-ca
+* [477f5a2](https://github.com/hyperledger/fabric-ca/commit/477f5a2) FABC-837 Make metrics compatible with multi-root CA
+* [4289522](https://github.com/hyperledger/fabric-ca/commit/4289522) Update fabric/bccsp and miekg/pkcs11 to latest revs
+* [8b56ee8](https://github.com/hyperledger/fabric-ca/commit/8b56ee8) [FABC-850] Fix Fabric CA doc wrt OU types
+* [f32e113](https://github.com/hyperledger/fabric-ca/commit/f32e113) FAB-15465: Update Jinja2
+* [839c46e](https://github.com/hyperledger/fabric-ca/commit/839c46e) [FABC-842] Fabric CA Foc Fix
+* [3004074](https://github.com/hyperledger/fabric-ca/commit/3004074) FABC-839 Update ca mutiarch publish script
+* [3f449b5](https://github.com/hyperledger/fabric-ca/commit/3f449b5) [FAB-14969](https://jira.hyperledger.org/browse/FAB-14969) Prepare for next fabric-ca rel (1.4.2)
+
 ## v1.4.1
 Thu Apr 11 11:08:16 EDT 2019
 
