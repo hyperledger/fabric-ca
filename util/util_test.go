@@ -41,11 +41,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	factory.InitFactories(nil)
-	os.Exit(m.Run())
-}
-
 func TestGetEnrollmentIDFromPEM(t *testing.T) {
 	cert, err := ioutil.ReadFile(getPath("ec.pem"))
 	if err != nil {
