@@ -522,7 +522,7 @@ func TestAffiliationAndTypeCheck(t *testing.T) {
 	assert.NoError(t, err, "Failed to get user")
 
 	assert.Equal(t, "user", user.GetType(), "Failed to set correct default type for a registering user")
-	assert.Equal(t, "org2", cadbuser.GetAffiliation(user), "Failed to set correct default affiliation for a registering userr")
+	assert.Equal(t, "org2", cadbuser.GetAffiliation(user), "Failed to set correct default affiliation for a registering user")
 
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to start server")
