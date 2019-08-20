@@ -83,7 +83,7 @@ func registerUser(req *api.RegistrationRequest, registrar string, ca *CA, ctx Se
 	err = canRegister(registrarUser, req, ca, ctx)
 	if err != nil {
 		log.Debugf("Registrar is not allowed to register user '%s': %s", req.Name, err)
-		return "", caerrors.NewAuthorizationErr(caerrors.ErrRegistrarRegAuth, "Registraton of '%s' failed", req.Name)
+		return "", caerrors.NewAuthorizationErr(caerrors.ErrRegistrarRegAuth, "Registration of '%s' failed", req.Name)
 	}
 
 	secret, err := registerUserID(req, ca)
