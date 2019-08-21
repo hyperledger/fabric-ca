@@ -31,6 +31,7 @@ function filterExcludedFiles {
 		| grep -v "\.pb\.go$" \
 		| grep -v ".gitignore" \
 		| grep -v "ci.properties" \
+        | grep -v "\.xml$" \
 		| sort -u`
 
   CHECK=$(filterGeneratedFiles "$CHECK")
