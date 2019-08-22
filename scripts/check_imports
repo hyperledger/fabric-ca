@@ -5,23 +5,33 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+# shellcheck source=/dev/null
+source "$(cd "$(dirname "$0")" && pwd)/functions.sh"
+
 GOIMPORTS="$GOPATH/bin/goimports"
 
-if [ ! -f $GOIMPORTS ]; then
-   echo "Installing goimports ..."
-   go get golang.org/x/tools/cmd/goimports
-   if [ $? -ne 0 ]; then
-      echo "Failed to install goimports"
-      exit 1
-   fi
+if [[ ! -f $GOIMPORTS ]]; then
+    echo "Installing goimports ..."
+    go get golang.org/x/tools/cmd/goimports
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to install goimports"
+        exit 1
+    fi
 fi
 
+fabric_ca_dir="$(cd "$(dirname "$0")/.." && pwd)"
+source_dirs=()
+while IFS=$'\n' read -r source_dir; do
+    source_dirs+=("$source_dir")
+done < <(go list -f '{{.Dir}}' ./... | sed s,"${fabric_ca_dir}".,,g | cut -f 1 -d / | sort -u)
+
 echo "Checking imports ..."
-found=`$GOIMPORTS -l \`find . -name "*.go" |grep -v "./vendor"\` 2>&1`
-if [ "$found" != "" ]; then
-   echo "The following files have import problems:"
-   echo "$found"
-   echo "You may run 'goimports -w <file>' to fix each file."
-   exit 1
+OUTPUT="$(goimports -l "${source_dirs[@]}")"
+OUTPUT="$(filterExcludedAndGeneratedFiles "$OUTPUT")"
+if [[ $OUTPUT != "" ]]; then
+    echo "The following files have import problems:"
+    echo "$OUTPUT"
+    echo "You may run 'goimports -w <file>' to fix each file."
+    exit 1
 fi
 echo "All files are properly formatted"
