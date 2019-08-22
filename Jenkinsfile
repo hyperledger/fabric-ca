@@ -103,7 +103,7 @@ def buildStages() {
 def docsBuild () {
   def ROOTDIR = pwd()
   stage("Docs Build") {
-	  wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+	  // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
       try {
         dir("$ROOTDIR/$BASE_DIR") {
           sh ''' set +x -ue
@@ -119,14 +119,14 @@ def docsBuild () {
           currentBuild.result = 'FAILURE'
           throw err
       }
-    }
+    // }
   }
 }
 
 def basicChecks() {
   def ROOTDIR = pwd()
   stage("Basic Checks") {
-    wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+    // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
       try {
         dir("$ROOTDIR/$BASE_DIR") {
           // runs all check conditions (license, format, imports, lint and vet)
@@ -137,7 +137,7 @@ def basicChecks() {
           currentBuild.result = 'FAILURE'
           throw err
       }
-    }
+    // }
   }
 }
 
@@ -145,7 +145,7 @@ def fabCar() {
   def ROOTDIR = pwd()
   stage("Fab Car Tests") {
     withEnv(["BASE_FOLDER=${WORKSPACE}/gopath/src/github.com/hyperledger"]) {
-      wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+      // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
         try {
           // Clone fabric-samples repository
           fabBuildLibrary.cloneScm('fabric-samples', '$GERRIT_BRANCH')
@@ -163,7 +163,7 @@ def fabCar() {
             currentBuild.result = 'FAILURE'
             throw err
         }
-      }
+      // }
     }
   }
 }
@@ -171,7 +171,7 @@ def fabCar() {
 def e2e_sdk_node() {
   def ROOTDIR = pwd()
   stage("e2e_sdk_node") {
-    wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+    // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
       try {
         // Clone fabric-sdk-node repository
         fabBuildLibrary.cloneScm('fabric-sdk-node', '$GERRIT_BRANCH')
@@ -193,15 +193,15 @@ def e2e_sdk_node() {
           failure_stage = "e2e_sdk_node"
           currentBuild.result = 'FAILURE'
           throw err
-			}
-    }
+      }
+    // }
   }
 }
 
 def e2e_sdk_java() {
   def ROOTDIR = pwd()
   stage("e2e_sdk_java") {
-    wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+    // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
       try {
         // Clone fabric-sdk-java repository
         fabBuildLibrary.cloneScm('fabric-sdk-java', '$GERRIT_BRANCH')
@@ -223,7 +223,7 @@ def e2e_sdk_java() {
           currentBuild.result = 'FAILURE'
           throw err
       }
-    }
+    // }
   }
 }
 
@@ -235,7 +235,7 @@ def runTests() {
          // Run e2e tests only on Merge job
           if (env.JOB_TYPE == "merge") {
             stage("e2e-Tests") {
-              wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+              // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
                 try {
                   println " ==== Build fabric-ca Images ==== "
                   // Build fabri-ca docker images and binaries
@@ -267,7 +267,7 @@ def runTests() {
                     currentBuild.result = 'FAILURE'
                     throw err
                 }
-              }
+             //  }
             }
           }
       },
@@ -275,7 +275,7 @@ def runTests() {
       "Unit Tests" : {
         node('hyp-x') {
           stage("UnitTests") {
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+            // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
               try {
                 // delete working directory
                 deleteDir()
@@ -296,14 +296,14 @@ def runTests() {
                 currentBuild.result = 'FAILURE'
                 throw err
               }
-            }
+            // }
           }
         }
       },
       "FVT Tests" : {
         node('hyp-x') {
           stage("FVT Tests") {
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
+            // wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'xterm']) {
               try {
                 // delete working directory
                 deleteDir()
@@ -326,7 +326,7 @@ def runTests() {
                 currentBuild.result = 'FAILURE'
                 throw err
               }
-            }
+            // }
           }
         }
       },
