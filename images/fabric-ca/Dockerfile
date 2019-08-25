@@ -24,8 +24,7 @@ RUN go install -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 
 FROM alpine:${ALPINE_VER}
 RUN apk add --no-cache \
-	tzdata \
-	libltdl;
+	tzdata;
 ENV FABRIC_CA_HOME /etc/hyperledger/fabric-ca-server
 COPY --from=builder /go/bin /usr/local/bin
 EXPOSE 7054
