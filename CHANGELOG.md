@@ -1,3 +1,12 @@
+## v1.4.3
+Mon Aug 26 15:40:49 EDT 2019
+
+* [3e29f1a](https://github.com/hyperledger/fabric-ca/commit/3e29f1a) Remove hardcoded ver on multiarch script
+* [c49e7d3](https://github.com/hyperledger/fabric-ca/commit/c49e7d3) [FABCI-401] Disable AnsiColor Wrapper
+* [64bdb20](https://github.com/hyperledger/fabric-ca/commit/64bdb20) [FABC-867] Fix GoImports
+* [017cea8](https://github.com/hyperledger/fabric-ca/commit/017cea8) FABC-862 Update mysql driver
+* [c66adbe](https://github.com/hyperledger/fabric-ca/commit/c66adbe) [FAB-16000](https://jira.hyperledger.org/browse/FAB-16000) Prepare for next fabric-ca rel (1.4.3)
+
 ## v1.4.2
 Wed Jul 17 14:55:08 EDT 2019
 
