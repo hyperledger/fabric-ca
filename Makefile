@@ -29,9 +29,9 @@
 #   - clean-all - cleans the build area and release packages
 
 PROJECT_NAME = fabric-ca
-BASE_VERSION = 1.4.3
-PREV_VERSION = 1.4.2
-IS_RELEASE = true
+BASE_VERSION = 1.4.4
+PREV_VERSION = 1.4.3
+IS_RELEASE = false
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
