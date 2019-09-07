@@ -317,7 +317,7 @@ signing certificate through an out-of-band process.
     fabric-ca-client enroll -d -u https://rca-org1-admin:rca-org1-adminpw@0.0.0.0:7054
     fabric-ca-client register -d --id.name peer1-org1 --id.secret peer1PW --id.type peer -u https://0.0.0.0:7054
     fabric-ca-client register -d --id.name peer2-org1 --id.secret peer2PW --id.type peer -u https://0.0.0.0:7054
-    fabric-ca-client register -d --id.name admin-org1 --id.secret org1AdminPW --id.type user -u https://0.0.0.0:7054
+    fabric-ca-client register -d --id.name admin-org1 --id.secret org1AdminPW --id.type client -u https://0.0.0.0:7054
     fabric-ca-client register -d --id.name user-org1 --id.secret org1UserPW --id.type user -u https://0.0.0.0:7054
 
 Setup Org2's CA
@@ -373,7 +373,7 @@ root certificate of CA's TLS certificate has been copied to
     fabric-ca-client enroll -d -u https://rca-org2-admin:rca-org2-adminpw@0.0.0.0:7055
     fabric-ca-client register -d --id.name peer1-org2 --id.secret peer1PW --id.type peer -u https://0.0.0.0:7055
     fabric-ca-client register -d --id.name peer2-org2 --id.secret peer2PW --id.type peer -u https://0.0.0.0:7055
-    fabric-ca-client register -d --id.name admin-org2 --id.secret org2AdminPW --id.type user -u https://0.0.0.0:7055
+    fabric-ca-client register -d --id.name admin-org2 --id.secret org2AdminPW --id.type client -u https://0.0.0.0:7055
     fabric-ca-client register -d --id.name user-org2 --id.secret org2UserPW --id.type user -u https://0.0.0.0:7055
 
 Setup Peers
@@ -774,7 +774,7 @@ host machine.
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/orderer
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/ca/org0-ca-cert.pem
-    fabric-ca-client enroll -d -u https://orderer-org0:ordererPW@0.0.0.0:7056
+    fabric-ca-client enroll -d -u https://orderer-org0:ordererpw@0.0.0.0:7053
 
 Next, you will get the TLS certificate. In the command below, we will assume the
 certificate of the TLS CA has been copied to ``/tmp/hyperledger/org0/orderer/assets/tls-ca/tls-ca-cert.pem``
@@ -904,6 +904,22 @@ The MSP folder structure for Org2 would like:
    ├── tlscacerts
    │   └── tls-ca-cert.pem
    └── users
+   
+
+Put a file name config.yml in Org1 MSP directory
+config.yml: 
+NodeOUs:
+  Enable: true
+  ClientOUIdentifier:
+    Certificate: cacerts/org1-ca-cert.pem
+    OrganizationalUnitIdentifier: client
+  PeerOUIdentifier:
+    Certificate: cacerts/org1-ca-cert.pem
+    OrganizationalUnitIdentifier: peer
+
+simalary also put a config.yml in Org2 with relevant changes
+
+
 
 Once all these MSPs are present on the orderer's host machine you will execute the
 following commands from the directory in which ``configtx.yaml`` is present:
