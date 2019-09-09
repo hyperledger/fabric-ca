@@ -1842,7 +1842,7 @@ value of the affiliation (which is 'org1') must be the same in both the
     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type client --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
 
 For information on the chaincode library API for Attribute-Based Access Control,
-see `https://github.com/hyperledger/fabric/blob/master/core/chaincode/lib/cid/README.md <https://github.com/hyperledger/fabric/blob/master/core/chaincode/lib/cid/README.md>`_
+see `https://github.com/hyperledger/fabric-chaincode-go/blob/master/pkg/cid/README.md <https://github.com/hyperledger/fabric-chaincode-go/blob/master/pkg/cid/README.md>`_
 
 Dynamic Server Configuration Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
