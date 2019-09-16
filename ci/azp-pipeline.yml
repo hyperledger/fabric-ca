@@ -1,0 +1,62 @@
+# Copyright the Hyperledger Fabric contributors. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: $(SourceBranchName)-$(Date:yyyyMMdd)$(Rev:.rrr)
+trigger:
+- master
+- release-2.*
+- release-1.4
+pr:
+- master
+- release-2.*
+- release-1.4
+
+variables:
+  GOPATH: $(Agent.BuildDirectory)/go
+  PATH: /bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+  GOVER: 1.12.5
+
+jobs:
+- job: VerifyBuild
+  pool:
+    vmImage: ubuntu-16.04
+  dependsOn: []
+  timeoutInMinutes: 60
+  steps:
+  - template: install_deps.yml
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: make dist-all unit-test int-tests docs
+    displayName: Run Unit and Integration Tests
+
+- job: FVTTests
+  pool:
+    vmImage: ubuntu-16.04
+  dependsOn: []
+  timeoutInMinutes: 60
+  steps:
+  - template: install_deps.yml
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: make docker-fvt
+    displayName: Build FVT Test Image
+  - script: docker run -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+    displayName: Run FVT Tests
+
+- job: DocBuild
+  pool:
+    vmImage: ubuntu-16.04
+  dependsOn: []
+  timeoutInMinutes: 60
+  steps:
+  - template: install_deps.yml
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: tox -edocs
+    displayName: Build Documentation
+  - script: '$(GOPATH)/go/src/github.com/hyperledger/fabric-ca/docs/_build/html'
+    displayName: Publish Documentation
