@@ -14,8 +14,8 @@ pr:
 
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
-  PATH: /bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-  GOVER: 1.12.5
+  PATH: $(Agent.BuildDirectory)/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+  GOVER: 1.11.5
 
 jobs:
 - job: VerifyBuild
@@ -25,6 +25,8 @@ jobs:
   timeoutInMinutes: 60
   steps:
   - template: install_deps.yml
+  - script: go get golang.org/x/tools/cmd/goimports
+    displayName: Download goimports
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
@@ -52,11 +54,12 @@ jobs:
   dependsOn: []
   timeoutInMinutes: 60
   steps:
-  - template: install_deps.yml
+  - script: sudo apt-get clean && sudo apt-get update && sudo apt-get install -y python-minimal tox
+    displayName: Install Tox
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
   - script: tox -edocs
     displayName: Build Documentation
-  - script: '$(GOPATH)/go/src/github.com/hyperledger/fabric-ca/docs/_build/html'
+  - publish: 'docs/_build/html'
     displayName: Publish Documentation
