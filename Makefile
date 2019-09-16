@@ -30,7 +30,7 @@
 #   - docker-thirdparty - pulls thirdparty images (postgres)
 
 PROJECT_NAME = fabric-ca
-ALPINE_VER ?= 3.9
+ALPINE_VER ?= 3.10
 DEBIAN_VER ?= stretch
 BASE_VERSION = 2.0.0
 PREV_VERSION = 2.0.0-alpha
@@ -61,7 +61,9 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
-GO_VER = $(shell grep "GO_VER" ci.properties |cut -d'=' -f2-)
+# hard-code GO_VER until CI supports Go 1.12.9
+#GO_VER = $(shell grep "GO_VER" ci.properties |cut -d'=' -f2-)
+GO_VER ?= 1.12.9
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
