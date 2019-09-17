@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 steps:
-  - script: apt-get clean
+  - script: sudo apt-get clean
     displayName: Run APT Clean
   - script: sudo apt-get update
     displayName: Run APT Update
