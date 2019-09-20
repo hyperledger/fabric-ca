@@ -41,7 +41,7 @@ Fabric-CA Client's CLI
           --id.name string                 Unique name of the identity
           --id.secret string               The enrollment secret for the identity being registered
           --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "client")
-          --loglevel string                Set logging level (info, warning, debug, error, fatal, critical)
+          --loglevel string                Set loggi ng level (info, warning, debug, error, fatal, critical)
       -M, --mspdir string                  Membership Service Provider directory (default "msp")
       -m, --myhost string                  Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
       -a, --revoke.aki string              AKI (Authority Key Identifier) of the certificate to be revoked
