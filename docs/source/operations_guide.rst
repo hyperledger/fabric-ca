@@ -1,4 +1,4 @@
-Fabric CA Operation's Guide
+Fabric CA Operations Guide
 ============================
 
 This guide will illustrate how to use Fabric CA to setup
@@ -644,13 +644,14 @@ Enroll Org2's Admin
 At this point, you will have two MSP directories. One MSP contains your enrollment
 certificate and the other has your TLS certificate. However, there needs be one
 additional folder added in the enrollment MSP directory, and this is the ``admincerts``
-folder. This folder will contain certificates for the administrator of org2.
-You will enroll the org2 admin's identity by issuing the commands below.
+folder. This folder will contain certificates for the administrator of Org2.
+The steps below will enroll the admin. The commands below assumes that this is being
+executed on Peer1’s host machine.
 
 .. code:: bash
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org2/admin
-    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org1/peer1/tls/org1-ca-cert.pem
+    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org2/peer1/assets/ca/org2-ca-cert.pem
     export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://admin-org2:org2AdminPW@0.0.0.0:7055
 
