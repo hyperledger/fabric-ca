@@ -10,9 +10,6 @@ echo "Running integration tests ..."
 
 export PATH=$PATH:$GOPATH/bin
 
-go get github.com/axw/gocov/...
-go get github.com/AlekSi/gocov-xml
-
 PKGS=`go list github.com/hyperledger/fabric-ca/test/integration/...`
 
 go test $PKGS
