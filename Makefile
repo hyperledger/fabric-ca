@@ -28,6 +28,7 @@
 #   - dist-clean - cleans release packages for all target platforms
 #   - clean-all - cleans the build area and release packages
 #   - docker-thirdparty - pulls thirdparty images (postgres)
+#   - gotools - Installs go tools, such as: golint, goimports, gocov
 
 PROJECT_NAME = fabric-ca
 ALPINE_VER ?= 3.10
@@ -61,9 +62,7 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
-# hard-code GO_VER until CI supports Go 1.12.9
-#GO_VER = $(shell grep "GO_VER" ci.properties |cut -d'=' -f2-)
-GO_VER ?= 1.12.9
+GO_VER = $(shell grep "GO_VER" ci.properties | cut -d '=' -f2-)
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
@@ -74,10 +73,13 @@ FVTIMAGE = $(PROJECT_NAME)-fvt
 RELEASE_PLATFORMS = linux-amd64 darwin-amd64 linux-ppc64le linux-s390x windows-amd64
 RELEASE_PKGS = fabric-ca-client
 
+TOOLS = build/tools
+
 path-map.fabric-ca-client := cmd/fabric-ca-client
 path-map.fabric-ca-server := cmd/fabric-ca-server
 
 include docker-env.mk
+include gotools.mk
 
 all: rename docker unit-tests
 
@@ -105,10 +107,10 @@ license: .FORCE
 format: .FORCE
 	@scripts/check_format
 
-imports: .FORCE
+imports: $(TOOLS)/goimports
 	@scripts/check_imports
 
-lint: .FORCE
+lint: $(TOOLS)/golint
 	@scripts/check_lint
 
 vet: .FORCE
@@ -154,34 +156,34 @@ build/image/fabric-ca-fvt/$(DUMMY):
 	@touch $@
 
 
-all-tests: checks fabric-ca-server fabric-ca-client
+all-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 	@scripts/run_integration_tests
 
-unit-tests: fabric-ca-server fabric-ca-client
+unit-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 
 unit-test: unit-tests
 
-int-tests: checks fabric-ca-server fabric-ca-client
+int-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
-bench: checks fabric-ca-server fabric-ca-client
+bench: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks
 
 # Runs benchmarks in the specified package with cpu profiling
 # e.g. make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib
-bench-cpu: checks fabric-ca-server fabric-ca-client
+bench-cpu: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks -C -P $(pkg)
 
 # Runs benchmarks in the specified package with memory profiling
 # e.g. make bench-mem pkg=github.com/hyperledger/fabric-ca/lib
-bench-mem: checks fabric-ca-server fabric-ca-client
+bench-mem: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks -M -P $(pkg)
 
 # e.g. make benchcmp prev_rel=v1.0.0
-benchcmp: guard-prev_rel bench
+benchcmp: $(TOOLS)/benchcmp guard-prev_rel bench
 	@scripts/compare_benchmarks $(prev_rel)
 
 guard-%:
@@ -192,7 +194,7 @@ guard-%:
 
 
 # Removes all benchmark related files (bench, bench-cpu, bench-mem and *.test)
-bench-clean:
+bench-clean: $(TOOLS)/benchcmp
 	@scripts/run_benchmarks -R
 
 container-tests: docker
@@ -257,8 +259,6 @@ release/%/bin/fabric-ca-client: $(GO_SOURCE)
 # Currently the target is available but unused. If you are implementing a new
 # test using the ifrit DB runners, you must add the docker-thirdparty target
 # to the test target you are running i.e. (unit-tests, int-tests, all-tests).
-# Note: There is no MySQL image for s390x, so you must take this into account.
-# Integration tests are run on x86, unit tests on s390x and x86.
 .PHONY: docker-thirdparty
 docker-thirdparty:
 	docker pull postgres:9.6

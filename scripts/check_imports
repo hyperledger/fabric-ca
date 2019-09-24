@@ -8,17 +8,6 @@
 # shellcheck source=/dev/null
 source "$(cd "$(dirname "$0")" && pwd)/functions.sh"
 
-GOIMPORTS="$GOPATH/bin/goimports"
-
-if [[ ! -f $GOIMPORTS ]]; then
-    echo "Installing goimports ..."
-    go get golang.org/x/tools/cmd/goimports
-    if [[ $? -ne 0 ]]; then
-        echo "Failed to install goimports"
-        exit 1
-    fi
-fi
-
 fabric_ca_dir="$(cd "$(dirname "$0")/.." && pwd)"
 source_dirs=()
 while IFS=$'\n' read -r source_dir; do

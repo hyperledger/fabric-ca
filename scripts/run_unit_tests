@@ -10,9 +10,6 @@ echo "Running unit tests ..."
 {
 export PATH=$PATH:$GOPATH/bin
 
-go get github.com/axw/gocov/...
-go get github.com/AlekSi/gocov-xml
-
 EXCLUDED_PKGS=(
     "/api$"
     "/credential$"
