@@ -2310,28 +2310,37 @@ section of the server’s or client’s configuration file.
 Configuring Fabric CA server to use softhsm2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This section shows how to configure the Fabric CA server or client to use a software version
-of PKCS11 called softhsm (see https://github.com/opendnssec/SoftHSMv2).
+To use an HSM with the Fabric CA, you need to update the BCCSP (Crypto Service
+Provider) section of the node configuration file. In BCCSP section, you need to select PKCS11 as the provider and
+provide the path to the PKCS11 library that you would like to use. You also need
+to provide the label and pin of the token that you created for your cryptographic
+operations. You can use one token to generate and store multiple keys.
 
-After installing softhsm, make sure to set your SOFTHSM2_CONF environment variable to
-point to the location where the softhsm2 configuration file is stored. The config file looks like
+The prebuilt Hyperledger Fabric CA Docker images are not enabled to use PKCS11. If
+you are deploying Fabric using docker, you need to build your own images and
+enable PKCS11 using the following command:
 
-.. code::
+.. code:: bash
 
-  directories.tokendir = /tmp/
-  objectstore.backend = file
-  log.level = INFO
+  make docker GO_TAGS=pkcs11
 
-You can find example configuration file named softhsm2.conf under testdata directory.
+You also need to ensure that the PKCS11 library is available to be used by the
+CA by installing it or mounting it inside the container.
 
-Create a token, label it “ForFabric”, set the pin to ‘98765432’
-(refer to softhsm documentation).
+The following example demonstrates how you would configure a Fabric node to use
+an HSM.
 
+First, you will need to install an implementation of the PKCS11 interface. This
+example uses the `softhsm <https://github.com/opendnssec/SoftHSMv2`_ open source
+implementation. After downloading and configuring softhsm, you will need to set
+the ``SOFTHSM2_CONF`` environment variable to point to the softhsm2 configuration
+file.
 
-
-You can use both the config file and environment variables to configure BCCSP
-For example, set the bccsp section of Fabric CA server configuration file as follows.
-Note that the default field’s value is PKCS11.
+You can then use softhsm to create the token that will handle the cryptographic
+operations of your Fabric node inside an HSM slot. In this example, we create a
+token labelled "fabric" and set the pin to "71811222". After you have created
+the token, update the configuration file to use PKCS11 and your token as the
+crypto service provider. You can find an example BCCSP section below:
 
 .. code:: yaml
 
@@ -2342,23 +2351,40 @@ Note that the default field’s value is PKCS11.
   bccsp:
     default: PKCS11
     pkcs11:
-      Library: /usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
-      Pin: 98765432
-      Label: ForFabric
+      Library: /etc/hyperledger/fabric/libsofthsm2.so
+      Pin: 71811222
+      Label: fabric
       hash: SHA2
       security: 256
       filekeystore:
         # The directory used for the software file-based keystore
         keystore: msp/keystore
 
-And you can override relevant fields via environment variables as follows:
+
+You can also use environment variables to override the relevant fields of the
+configuration file. If you are connecting to an HSM using the Fabric CA server,
+you would set the following environment variables:
+
+.. code: bash
+
+  FABRIC_CA_SERVER_BCCSP_DEFAULT=PKCS11
+  FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/etc/hyperledger/fabric/libsofthsm2.so
+  FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=71811222
+  FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=fabric
+
+If you are deploying your CA using docker compose, after building your own
+images, you can update your docker compose files to mount the softhsm library
+and configuration file inside the container using volumes. As an example, you
+would add the following environment and volumes variables to your docker compose
+file:
 
 .. code:: bash
 
-  FABRIC_CA_SERVER_BCCSP_DEFAULT=PKCS11
-  FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
-  FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
-  FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
+  environment:
+     - SOFTHSM2_CONF=/etc/hyperledger/fabric/config.file
+  volumes:
+     - /home/softhsm/config.file:/etc/hyperledger/fabric/config.file
+     - /usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so:/etc/hyperledger/fabric/libsofthsm2.so
 
 `Back to Top`_
 
