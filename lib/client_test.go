@@ -1311,12 +1311,6 @@ func TestNormalizeUrl(t *testing.T) {
 	} else {
 		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
 	}
-	u, err = NormalizeURL("http://host:7054:x/path")
-	if err != nil {
-		t.Errorf("normalizeURL colons: %s", err)
-	} else {
-		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
-	}
 	u, err = NormalizeURL("http://host:7054/path")
 	if err != nil {
 		t.Errorf("normalizeURL failed: %s", err)
