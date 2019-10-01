@@ -2304,9 +2304,10 @@ filter as follows:
 HSM
 ---
 By default, the Fabric CA server and client store private keys in a PEM-encoded file,
-but they can also be configured to store private keys in an HSM (Hardware Security Module)
+but they can also be configured to store private keys in an HSM (Hardware Security Module),
 via PKCS11 APIs. This behavior is configured in the BCCSP (BlockChain Crypto Service Provider)
-section of the server’s or client’s configuration file.
+section of the server’s or client’s configuration file. Currently, Fabric only
+supports the PKCS11 standard to communicate with an HSM.
 
 Configuring Fabric CA server to use softhsm2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2327,8 +2328,6 @@ You can find example configuration file named softhsm2.conf under testdata direc
 
 Create a token, label it “ForFabric”, set the pin to ‘98765432’
 (refer to softhsm documentation).
-
-
 
 You can use both the config file and environment variables to configure BCCSP
 For example, set the bccsp section of Fabric CA server configuration file as follows.
@@ -2360,6 +2359,31 @@ And you can override relevant fields via environment variables as follows:
   FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
   FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
   FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
+
+
+The prebuilt Hyperledger Fabric Docker images are not enabled to use PKCS11. If
+you are deploying the Fabric CA using docker, you need to build your own image
+and enable PKCS11 using the following command:
+
+.. code:: bash
+
+  make docker GO_TAGS=pkcs11
+
+You also need to ensure that the PKCS11 library is available to be used by the
+CA by installing it or mounting it inside the container. If you are deploying
+your Fabric CA using docker compose, you can update your compose files to mount
+the softhsm library and configuration file inside the container using volumes.
+As an example, you would add the following environment and volumes variables to
+your docker compose file:
+
+.. code::
+
+  environment:
+     - SOFTHSM2_CONF=/etc/hyperledger/fabric/config.file
+  volumes:
+     - /home/softhsm/config.file:/etc/hyperledger/fabric/config.file
+     - /usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so:/etc/hyperledger/fabric/libsofthsm2.so
+
 
 `Back to Top`_
 
