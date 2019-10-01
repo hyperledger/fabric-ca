@@ -15,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
@@ -22,6 +23,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -469,5 +471,57 @@ func getTestClient(port int, homeDir string) *lib.Client {
 	return &lib.Client{
 		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
 		HomeDir: homeDir,
+	}
+}
+
+func TestConfigInit(t *testing.T) {
+	cases := []struct {
+		enabled string
+		cert    string
+		key     string
+		err     bool
+	}{
+		{
+			enabled: "true",
+			cert:    "../../testdata/tls_server-cert.pem",
+			key:     "../../testdata/tls_server-key.pem",
+			err:     true,
+		},
+		{
+			enabled: "true",
+			cert:    "noexit.pem",
+			key:     "../../testdata/tls_server-key.pem",
+			err:     false,
+		},
+		{
+			enabled: "true",
+			cert:    "../../testdata/tls_server-cert.pem",
+			key:     "noexit.pem",
+			err:     false,
+		},
+		{
+			enabled: "false",
+			cert:    "../../testdata/tls_server-cert.pem",
+			key:     "../../testdata/tls_server-key.pem",
+			err:     true,
+		},
+	}
+
+	for _, tt := range cases {
+		os.Setenv("FABRIC_CA_SERVER_OPERATIONS_TLS_ENABLED", tt.enabled)
+		os.Setenv("FABRIC_CA_SERVER_OPERATIONS_TLS_CERT_FILE", tt.cert)
+		os.Setenv("FABRIC_CA_SERVER_OPERATIONS_TLS_KEY_FILE", tt.key)
+		os.Setenv("FABRIC_CA_SERVER_BOOT", "user:pass")
+		var s ServerCmd
+		s.cfg = &lib.ServerConfig{}
+		s.myViper = viper.New()
+		s.myViper.SetEnvPrefix(envVarPrefix)
+		s.myViper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		err := s.configInit()
+		if err != nil && tt.err {
+			t.Error(err)
+		}
+		defYaml := util.GetDefaultConfigFile(cmdName)
+		os.Remove(defYaml)
 	}
 }
