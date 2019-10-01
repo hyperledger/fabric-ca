@@ -2304,7 +2304,7 @@ filter as follows:
 HSM
 ---
 By default, the Fabric CA server and client store private keys in a PEM-encoded file,
-but they can also be configured to store private keys in an HSM (Hardware Security Module),
+but they can also be configured to store private keys in an HSM (Hardware Security Module)
 via PKCS11 APIs. This behavior is configured in the BCCSP (BlockChain Crypto Service Provider)
 section of the server’s or client’s configuration file. Currently, Fabric only
 supports the PKCS11 standard to communicate with an HSM.
