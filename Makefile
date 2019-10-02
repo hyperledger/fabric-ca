@@ -62,7 +62,9 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
-GO_VER = $(shell grep "GO_VER" ci.properties | cut -d '=' -f2-)
+# hardcode until release jobs migrate to new CI
+# GO_VER = $(shell grep "GO_VER" ci.properties | cut -d '=' -f2-)
+GO_VER = 1.12.9
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
