@@ -26,8 +26,15 @@ func TestHealthCheckEndpoint(t *testing.T) {
 
 	err := server.Start()
 	assert.NoError(t, err)
+<<<<<<< HEAD
 	defer server.Stop()
 	defer os.RemoveAll("rootDir")
+=======
+	defer func() {
+		server.Stop()
+		os.RemoveAll("./rootDir")
+	}()
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 
 	_, port, err := net.SplitHostPort(server.Operations.Addr())
 	assert.NoError(t, err)

@@ -12,8 +12,8 @@
 #   - fabric-ca-client - builds the fabric-ca-client executable
 #   - unit-tests - runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
-#   - docker[-clean] - ensures all docker images are available[/cleaned]
-#   - docker-fabric-ca - build the fabric-ca docker image
+#   - docker[-clean] - builds/cleans the fabric-ca docker image
+#   - docker-fvt[-clean] - builds/cleans the fabric-ca functional verification testing image
 #   - bench - Runs benchmarks in all the packages and stores the results in /tmp/bench.results
 #   - bench-cpu - Runs the benchmarks in the specified package with cpu profiling
 #   - bench-mem - Runs the benchmarks in the specified package with memory profiling
@@ -27,11 +27,23 @@
 #   - release-clean - cleans the binaries for all target platforms
 #   - dist-clean - cleans release packages for all target platforms
 #   - clean-all - cleans the build area and release packages
+#   - docker-thirdparty - pulls thirdparty images (postgres)
+#   - gotools - Installs go tools, such as: golint, goimports, gocov
 
 PROJECT_NAME = fabric-ca
+<<<<<<< HEAD
 BASE_VERSION = 1.4.4
 PREV_VERSION = 1.4.3
 IS_RELEASE = false
+=======
+ALPINE_VER ?= 3.10
+DEBIAN_VER ?= stretch
+BASE_VERSION = 2.0.0
+PREV_VERSION = 2.0.0-alpha
+IS_RELEASE = false
+
+BASEIMAGE_RELEASE = 0.4.15
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
@@ -47,16 +59,20 @@ FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
 ifeq ($(ARCH),s390x)
-PGVER=9.6
+PG_VER=9.6
 else
-PGVER=9.5
+PG_VER=9.5
 endif
 
+<<<<<<< HEAD
 BASEIMAGE_RELEASE = 0.4.15
+=======
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
+GO_VER = $(shell grep "GO_VER" ci.properties | cut -d '=' -f2-)
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
@@ -67,10 +83,13 @@ FVTIMAGE = $(PROJECT_NAME)-fvt
 RELEASE_PLATFORMS = linux-amd64 darwin-amd64 linux-ppc64le linux-s390x windows-amd64
 RELEASE_PKGS = fabric-ca-client
 
+TOOLS = build/tools
+
 path-map.fabric-ca-client := cmd/fabric-ca-client
 path-map.fabric-ca-server := cmd/fabric-ca-server
 
 include docker-env.mk
+include gotools.mk
 
 all: rename docker unit-tests
 
@@ -79,11 +98,19 @@ rename: .FORCE
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
+<<<<<<< HEAD
 docker-all: docker
 
 docker-fabric-ca: docker
-
+=======
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
+
+# should be removed once CI scripts are updated
+docker-all: docker
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
+
+# should be removed once CI scripts are updated
+docker-fabric-ca: docker
 
 changelog:
 	./scripts/changelog.sh v$(PREV_VERSION) HEAD v$(BASE_VERSION)
@@ -96,10 +123,10 @@ license: .FORCE
 format: .FORCE
 	@scripts/check_format
 
-imports: .FORCE
+imports: $(TOOLS)/goimports
 	@scripts/check_imports
 
-lint: .FORCE
+lint: $(TOOLS)/golint
 	@scripts/check_lint
 
 vet: .FORCE
@@ -116,36 +143,35 @@ bin/%: $(GO_SOURCE)
 	@mkdir -p bin && go build -o bin/${@F} -tags "pkcs11" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@echo "Built bin/${@F}"
 
-# We (re)build a package within a docker context but persist the $GOPATH/pkg
-# directory so that subsequent builds are faster
-build/docker/bin/%:
-	@echo "Building $@"
-	@mkdir -p $(@D) build/docker/$(@F)/pkg
-	@$(DRUN) \
-		-v $(abspath build/docker/bin):/opt/gopath/bin \
-		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
-		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
-		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
-	@touch $@
-
-build/image/%/$(DUMMY): Makefile build/image/%/payload
+build/image/fabric-ca/$(DUMMY):
+	@mkdir -p $(@D)
 	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
-	$(eval DOCKER_NAME = $(DOCKER_NS)/$(TARGET))
-	@echo "Building docker $(TARGET) image"
-	@cat images/$(TARGET)/Dockerfile.in \
-		| sed -e 's|_BASE_NS_|$(BASE_DOCKER_NS)|g' \
-		| sed -e 's|_NS_|$(DOCKER_NS)|g' \
-		| sed -e 's|_NEXUS_REPO_|$(NEXUS_URL)|g' \
-		| sed -e 's|_BASE_TAG_|$(BASE_DOCKER_TAG)|g' \
-		| sed -e 's|_FABRIC_TAG_|$(FABRIC_TAG)|g' \
-		| sed -e 's|_STABLE_TAG_|$(STABLE_TAG)|g' \
-		| sed -e 's|_TAG_|$(DOCKER_TAG)|g' \
-		| sed -e 's|_PGVER_|$(PGVER)|g' \
-		> $(@D)/Dockerfile
-	$(DBUILD) -t $(DOCKER_NAME) --build-arg FABRIC_CA_DYNAMIC_LINK=$(FABRIC_CA_DYNAMIC_LINK) $(@D)
-	docker tag $(DOCKER_NAME) $(DOCKER_NAME):$(DOCKER_TAG)
+	@echo "Docker:  building $(TARGET) image"
+	$(DBUILD) -f images/$(TARGET)/Dockerfile \
+		--build-arg GO_VER=${GO_VER} \
+		--build-arg GO_TAGS=pkcs11 \
+		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
+		--build-arg ALPINE_VER=${ALPINE_VER} \
+		-t $(BASE_DOCKER_NS)/$(TARGET) .
+	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
+		$(DOCKER_NS)/$(TARGET):$(BASE_VERSION)
+	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
+		$(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
 	@touch $@
 
+build/image/fabric-ca-fvt/$(DUMMY):
+	@mkdir -p $(@D)
+	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
+	@echo "Docker:  building $(TARGET) image"
+	$(DBUILD) -f images/$(TARGET)/Dockerfile \
+		--build-arg BASEIMAGE_RELEASE=${BASEIMAGE_RELEASE} \
+		--build-arg GO_TAGS=pkcs11 \
+		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
+		--build-arg PG_VER=${PG_VER} \
+		-t $(BASE_DOCKER_NS)/$(TARGET) .
+	@touch $@
+
+<<<<<<< HEAD
 build/image/fabric-ca/payload: \
 	build/docker/bin/fabric-ca-client \
 	build/docker/bin/fabric-ca-server \
@@ -172,29 +198,37 @@ all-tests: checks fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
 
 unit-tests: fabric-ca-server fabric-ca-client
+=======
+
+all-tests: gotools fabric-ca-server fabric-ca-client
+	@scripts/run_unit_tests
+	@scripts/run_integration_tests
+
+unit-tests: gotools fabric-ca-server fabric-ca-client
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 	@scripts/run_unit_tests
 
 unit-test: unit-tests
 
-int-tests: checks fabric-ca-server fabric-ca-client
+int-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
-bench: checks fabric-ca-server fabric-ca-client
+bench: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks
 
 # Runs benchmarks in the specified package with cpu profiling
 # e.g. make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib
-bench-cpu: checks fabric-ca-server fabric-ca-client
+bench-cpu: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks -C -P $(pkg)
 
 # Runs benchmarks in the specified package with memory profiling
 # e.g. make bench-mem pkg=github.com/hyperledger/fabric-ca/lib
-bench-mem: checks fabric-ca-server fabric-ca-client
+bench-mem: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
 	@scripts/run_benchmarks -M -P $(pkg)
 
 # e.g. make benchcmp prev_rel=v1.0.0
-benchcmp: guard-prev_rel bench
+benchcmp: $(TOOLS)/benchcmp guard-prev_rel bench
 	@scripts/compare_benchmarks $(prev_rel)
 
 guard-%:
@@ -205,7 +239,7 @@ guard-%:
 
 
 # Removes all benchmark related files (bench, bench-cpu, bench-mem and *.test)
-bench-clean:
+bench-clean: $(TOOLS)/benchcmp
 	@scripts/run_benchmarks -R
 
 container-tests: docker
@@ -215,10 +249,9 @@ load-test: docker-clean docker-fvt
 	@test/fabric-ca-load-tester/runLoad.sh -B
 	@docker kill loadTest
 
-fvt-tests:
-	@scripts/run_fvt_tests
+ci-tests: all-tests docs fvt-tests
 
-ci-tests: docker-clean all-tests docker-fvt docs
+fvt-tests: docker-clean docker-fvt
 	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
 
 %-docker-clean:
@@ -266,6 +299,15 @@ release/%/bin/fabric-ca-client: $(GO_SOURCE)
 	@echo "Building $@ for $(GOOS)-$(GOARCH)"
 	mkdir -p $(@D)
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(abspath $@) -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.$(@F))
+
+# Pull thirdparty docker images
+# Currently the target is available but unused. If you are implementing a new
+# test using the ifrit DB runners, you must add the docker-thirdparty target
+# to the test target you are running i.e. (unit-tests, int-tests, all-tests).
+.PHONY: docker-thirdparty
+docker-thirdparty:
+	docker pull postgres:9.6
+	docker pull mysql:5.7
 
 .PHONY: dist
 dist: dist-clean release

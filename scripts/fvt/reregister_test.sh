@@ -70,7 +70,7 @@ for driver in sqlite3 postgres mysql; do
       nums=$((NUM_SERVERS-1))
       for s in $(eval echo {0..$nums}); do
          curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
-         verifyServerTraffic $HOST server${s} 0 0 "HTTP 5xx" gt
+         verifyServerTraffic $HOST server${s} 0 0 "HTTP 4xx" gt
          test $? -eq 0 || ErrorMsg "verifyServerTraffic failed"
          sleep .1
       done

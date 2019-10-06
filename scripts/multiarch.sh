@@ -70,11 +70,19 @@ done
 # push the multiarch manifest and tag with $VERSION,$TWO_DIGIT_VERSION and latest tag
 for image in ${IMAGES}; do
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
+<<<<<<< HEAD
    --platforms linux/amd64,linux/s390x --template "${NS_PULL}/${image}:ARCH-${VERSION}"\
    --target "${NS_PUSH}/${image}:${VERSION}"
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
    --platforms linux/amd64,linux/s390x --template "${NS_PULL}/${image}:ARCH-${VERSION}"\
    --target "${NS_PUSH}/${image}:latest"
+=======
+   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
+   --target "${NS}/${image}:${VERSION}"
+#  manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
+#   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
+#   --target "${NS}/${image}:latest"
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
    --platforms linux/amd64,linux/s390x --template "${NS_PULL}/${image}:ARCH-${VERSION}"\
    --target "${NS_PUSH}/${image}:${TWO_DIGIT_VERSION}"
@@ -82,9 +90,15 @@ done
 
 # test that manifest is working as expected
 for image in ${IMAGES}; do
+<<<<<<< HEAD
   docker pull ${NS_PULL}/${image}:${VERSION} || failed
   docker pull ${NS_PULL}/${image}:${TWO_DIGIT_VERSION} || failed
   docker pull ${NS_PULL}/${image}:latest || failed
+=======
+  docker pull ${NS}/${image}:${VERSION} || failed
+  docker pull ${NS}/${image}:${TWO_DIGIT_VERSION} || failed
+#  docker pull ${NS}/${image}:latest || failed
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 done
 
 echo "Successfully pushed multiarch manifest"

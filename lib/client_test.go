@@ -21,9 +21,9 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
+	"github.com/hyperledger/fabric-ca/lib/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1308,12 +1308,6 @@ func TestNormalizeUrl(t *testing.T) {
 	u, err := NormalizeURL("")
 	if err != nil {
 		t.Errorf("normalizeURL empty: %s", err)
-	} else {
-		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
-	}
-	u, err = NormalizeURL("http://host:7054:x/path")
-	if err != nil {
-		t.Errorf("normalizeURL colons: %s", err)
 	} else {
 		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
 	}

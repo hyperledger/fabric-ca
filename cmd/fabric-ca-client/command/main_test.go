@@ -31,12 +31,15 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+<<<<<<< HEAD
+=======
+	"github.com/hyperledger/fabric-ca/lib/attrmgr"
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1736,10 +1739,10 @@ func testAffiliation(t *testing.T) {
 		t.Errorf("client enroll -u failed: %s", err)
 	}
 
-	// Registering with affiliation of "", should result in error. Registrar does not have absolute root affiliaton
+	// Registering with affiliation of "", should result in error. Registrar does not have absolute root affiliation
 	err = RunMain([]string{cmdName, "register", "-d", "--id.name", "testRegister5", "--id.type", "client", "--id.affiliation", "."})
 	if err == nil {
-		t.Error("Registering with affiliation of '', should result in error. Registrar does not have absolute root affiliaton")
+		t.Error("Registering with affiliation of '', should result in error. Registrar does not have absolute root affiliation")
 	}
 
 	// admin has affiliation of ""

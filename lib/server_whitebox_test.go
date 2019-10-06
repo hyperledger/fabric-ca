@@ -148,7 +148,12 @@ func TestServerMetrics(t *testing.T) {
 			APICounter:  fakeCounter,
 			APIDuration: fakeHist,
 		},
+<<<<<<< HEAD
 		mux: router,
+=======
+		Config: &ServerConfig{},
+		mux:    router,
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 	}
 
 	server.mux.Use(server.middleware)

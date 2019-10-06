@@ -31,6 +31,7 @@ import (
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/attr"
+	"github.com/hyperledger/fabric-ca/lib/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
@@ -49,7 +50,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/common/attrmgr"
 	"github.com/pkg/errors"
 )
 
@@ -885,7 +885,7 @@ func (ca *CA) GetDB() db.FabricCADB {
 func (ca *CA) GetCertificate(serial, aki string) (*certdb.CertificateRecord, error) {
 	certs, err := ca.CertDBAccessor().GetCertificate(serial, aki)
 	if err != nil {
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrCertNotFound, "Failed searching certificates: %s", err)
+		return nil, err
 	}
 	if len(certs) == 0 {
 		return nil, caerrors.NewAuthenticationErr(caerrors.ErrCertNotFound, "Certificate not found with AKI '%s' and serial '%s'", aki, serial)

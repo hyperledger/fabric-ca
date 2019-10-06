@@ -112,5 +112,9 @@ func GetError(err error, getType string) error {
 
 // IsGetError returns true of if the error is for is a database get error (not found)
 func IsGetError(err error) bool {
+<<<<<<< HEAD
 	return strings.Contains(err.Error(), strconv.Itoa(caerrors.ErrDBGet))
+=======
+	return strings.Contains(caerrors.Print(err), strconv.Itoa(caerrors.ErrDBGet))
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 }

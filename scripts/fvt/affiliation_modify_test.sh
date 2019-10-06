@@ -182,7 +182,7 @@ function testAffiliationMgr() {
    # Ensure affiliations can only be updated by authorized users
    enroll admin2 adminpw2
    $FABRIC_CA_CLIENTEXEC affiliation remove org2 $URI -H $TESTDIR/admin2 2>&1 |
-      grep "User does not have attribute 'hf.AffiliationMgr'" ||
+      grep "Authorization failure" ||
          ErrorMsg  "Should not be able to delete attributes, or wrong error msg"
 
    # Ensure admin cannot add affiliations higher in it's affiliation tree

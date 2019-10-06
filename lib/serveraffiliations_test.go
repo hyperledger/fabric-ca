@@ -74,9 +74,7 @@ func TestGetAllAffiliations(t *testing.T) {
 	util.FatalError(t, err, "Failed to register a user that is not affiliation manager")
 
 	_, err = notAffMgr.GetAllAffiliations("")
-	if assert.Error(t, err, "Should have failed, as the caller does not have the attribute 'hf.AffiliationMgr'") {
-		assert.Contains(t, err.Error(), "User does not have attribute 'hf.AffiliationMgr'")
-	}
+	util.ErrorContains(t, err, "71", "Invalid remote code returned") // Check if remote authorization failure code is returned
 
 	err = srv.Stop()
 	util.FatalError(t, err, "Failed to stop server")

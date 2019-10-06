@@ -21,6 +21,10 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/grantae/certinfo"
 	"github.com/hyperledger/fabric-ca/api"
+<<<<<<< HEAD
+=======
+	"github.com/hyperledger/fabric-ca/lib/caerrors"
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -107,7 +111,7 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, configFile string,
 func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error) {
 	log.Debugf("Max enrollment value verification - User specified max enrollment: %d, CA max enrollment: %d", userMaxEnrollments, caMaxEnrollments)
 	if userMaxEnrollments < -1 {
-		return 0, errors.Errorf("Max enrollment in registration request may not be less than -1, but was %d", userMaxEnrollments)
+		return 0, caerrors.NewHTTPErr(400, caerrors.ErrInvalidMaxEnroll, "Max enrollment in registration request may not be less than -1, but was %d", userMaxEnrollments)
 	}
 	switch caMaxEnrollments {
 	case -1:
@@ -119,20 +123,19 @@ func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error
 		return userMaxEnrollments, nil
 	case 0:
 		// The CA max enrollment is 0, so registration is disabled.
-		return 0, errors.New("Registration is disabled")
+		return 0, caerrors.NewHTTPErr(400, caerrors.ErrInvalidMaxEnroll, "Registration is disabled")
 	default:
 		switch userMaxEnrollments {
 		case -1:
 			// User requested infinite enrollments is not allowed
-			return 0, errors.New("Registration for infinite enrollments is not allowed")
+			return 0, caerrors.NewHTTPErr(400, caerrors.ErrInvalidMaxEnroll, "Registration for infinite enrollments is not allowed")
 		case 0:
 			// User is requesting the current CA maximum
 			return caMaxEnrollments, nil
 		default:
 			// User is requesting a specific positive value; make sure it doesn't exceed the CA maximum.
 			if userMaxEnrollments > caMaxEnrollments {
-				return 0, errors.Errorf("Requested enrollments (%d) exceeds maximum allowable enrollments (%d)",
-					userMaxEnrollments, caMaxEnrollments)
+				return 0, caerrors.NewHTTPErr(400, caerrors.ErrInvalidMaxEnroll, "Requested enrollments (%d) exceeds maximum allowable enrollments (%d)", userMaxEnrollments, caMaxEnrollments)
 			}
 			// otherwise, use the requested maximum
 			return userMaxEnrollments, nil

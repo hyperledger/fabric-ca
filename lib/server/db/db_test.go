@@ -119,5 +119,9 @@ func TestCurrentDBLevels(t *testing.T) {
 	mockFabricCADB = &mocks.FabricCADB{}
 	levels, err := db.CurrentDBLevels(mockFabricCADB)
 	gt.Expect(err).NotTo(HaveOccurred())
+<<<<<<< HEAD
 	gt.Expect(levels).To(Equal(&util.Levels{0, 0, 0, 0, 0, 0}))
+=======
+	gt.Expect(levels).To(Equal(&util.Levels{}))
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 }

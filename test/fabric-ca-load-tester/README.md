@@ -1,5 +1,5 @@
 # Simple load driver for Fabric CA
-This is a simple load driver for Fabric CA. The driver can be configured using a JSON configuration file. Things like URL of the Fabric CA server, number of clients, number of requests per client, requests per second, test sequence, Fabric CA Client config, etc can be specified in the configuration file. You can look at the default configuraton file **testConfig.yml** located in this directory.
+This is a simple load driver for Fabric CA. The driver can be configured using a JSON configuration file. Things like URL of the Fabric CA server, number of clients, number of requests per client, requests per second, test sequence, Fabric CA Client config, etc can be specified in the configuration file. You can look at the default configuration file **testConfig.yml** located in this directory.
 
 ## Steps
 1. Set `registry.maxEnrollments` to at least 2 in the server configuration file

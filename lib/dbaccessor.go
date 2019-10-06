@@ -446,7 +446,11 @@ func (d *Accessor) GetAffiliation(name string) (spi.Affiliation, error) {
 
 	err = d.db.Get("GetAffiliation", &affiliationRecord, d.db.Rebind(getAffiliationQuery), name)
 	if err != nil {
+<<<<<<< HEAD
 		return nil, cadbutil.GetError(err, "Affiliation")
+=======
+		return nil, cadbutil.GetError(err, "affiliation")
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 	}
 
 	affiliation := spi.NewAffiliation(affiliationRecord.Name, affiliationRecord.Prekey, affiliationRecord.Level)
@@ -467,7 +471,7 @@ func (d *Accessor) GetAffiliationTree(name string) (*user.DbTxResult, error) {
 
 	result, err := d.doTransaction(d.getAffiliationTreeTx, name)
 	if err != nil {
-		return nil, err
+		return nil, caerrors.NewHTTPErr(409, caerrors.ErrGettingAffiliation, "Failed to complete database transaction: %s", err)
 	}
 
 	getResult := result.(*user.DbTxResult)
@@ -630,7 +634,7 @@ func (d *Accessor) ModifyAffiliation(oldAffiliation, newAffiliation string, forc
 	// Check to see if the new affiliation being requested exists in the affiliation table
 	_, err = d.GetAffiliation(newAffiliation)
 	if err == nil {
-		return nil, caerrors.NewHTTPErr(400, caerrors.ErrUpdateConfigModifyAff, "Affiliation '%s' already exists", newAffiliation)
+		return nil, errors.WithMessagef(err, "Affiliation '%s' already exists", newAffiliation)
 	}
 
 	result, err := d.doTransaction(d.modifyAffiliationTx, oldAffiliation, newAffiliation, force, isRegistrar)

@@ -74,7 +74,6 @@ Table of Contents
 
 8. `Troubleshooting`_
 
-
 Overview
 --------
 
@@ -1377,7 +1376,11 @@ Examples:
          the requested attribute value is 'a.b.c, x.y.z', it is valid because 'a.b.c' matches
          'a.b.*' and 'x.y.z' matches the registrar's 'x.y.z' value.
       4. If the registrar has the attribute 'hf.Registrar.Roles = peer,client,admin,orderer' and
+<<<<<<< HEAD
          the requested attribute value is 'peer', 'peer,client,admin,orderer', or 'client,admin',
+=======
+         the requested attribute value is 'peer', 'peer,client,admin,orderer', or 'client,admin'
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
          it is valid because the requested value is equal to or a subset of the registrar's value.
 
    Invalid Scenarios:
@@ -1843,7 +1846,11 @@ value of the affiliation (which is 'org1') must be the same in both the
     fabric-ca-client register --id.name user1 --id.secret user1pw --id.type client --id.affiliation org1 --id.attrs 'hf.Affiliation=org1:ecert'
 
 For information on the chaincode library API for Attribute-Based Access Control,
+<<<<<<< HEAD
 see `https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md <https://github.com/hyperledger/fabric/blob/release-1.4/core/chaincode/lib/cid/README.md>`_
+=======
+see `https://github.com/hyperledger/fabric-chaincode-go/blob/master/pkg/cid/README.md <https://github.com/hyperledger/fabric-chaincode-go/blob/master/pkg/cid/README.md>`_
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 
 Dynamic Server Configuration Update
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2456,4 +2463,3 @@ Troubleshooting
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
-ƒ

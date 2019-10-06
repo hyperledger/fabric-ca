@@ -506,9 +506,7 @@ func TestSRVIntermediateServerWithFalseAttr(t *testing.T) {
 	}
 
 	err = intermediateServer.Init(false)
-	if assert.Error(t, err, "Should have failed, the attribute 'hf.IntermediateCA' is not set to true. Cannot register as Intermediate CA") {
-		assert.Contains(t, err.Error(), "is not set to true")
-	}
+	util.ErrorContains(t, err, "Authorization failure", "Should have failed, the attribute 'hf.IntermediateCA' is not set to true. Cannot register as Intermediate CA")
 
 	// deferred cleanup
 }
@@ -715,7 +713,12 @@ func TestSRVRunningTLSServer(t *testing.T) {
 		})
 		t.Logf("Attempting TLS version [%d]", tlsVersion)
 		assert.Error(t, err, "Should not have been able to connect with TLS version < 1.2")
-		assert.Contains(t, err.Error(), "protocol version not supported")
+		if tlsVersion == tls.VersionSSL30 {
+			assert.Contains(t, err.Error(), "no supported versions satisfy MinVersion and MaxVersion")
+		} else {
+			assert.Contains(t, err.Error(), "protocol version not supported")
+		}
+
 	}
 }
 

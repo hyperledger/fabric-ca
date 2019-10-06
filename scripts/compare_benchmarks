@@ -18,7 +18,6 @@ else
 fi
 
 function compareBenchmarks() {
-   go get golang.org/x/tools/cmd/benchcmp
    benchcmp $BENCHMARK_FILE_NAME $NEW_BENCH_FILE_NAME | tee /tmp/bench-cmp.out
    vals=`cat /tmp/bench-cmp.out | while read line; do echo $line | grep -e "^Benchmark" | tr -s " " | cut -d " " -f 4 | grep -e "^+"| awk '{print substr($0,2,length($0)-5)}'; done`
    for val in $vals

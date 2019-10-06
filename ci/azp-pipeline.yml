@@ -14,13 +14,19 @@ pr:
 
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
+<<<<<<< HEAD
   PATH: $(Agent.BuildDirectory)/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
   GOVER: 1.11.5
+=======
+  PATH: $(Agent.BuildDirectory)/go/bin:$(Agent.BuildDirectory)/go/src/github.com/hyperledger/fabric-ca/build/tools:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+  GOVER: 1.12.9
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
 
 jobs:
 - job: VerifyBuild
   pool:
     vmImage: ubuntu-16.04
+<<<<<<< HEAD
   dependsOn: []
   timeoutInMinutes: 60
   steps:
@@ -31,13 +37,24 @@ jobs:
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
   - script: make dist-all unit-test int-tests docs
+=======
+  steps:
+  - template: install_deps.yml
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: make dist-all checks all-tests docs
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
     displayName: Run Unit and Integration Tests
 
 - job: FVTTests
   pool:
     vmImage: ubuntu-16.04
+<<<<<<< HEAD
   dependsOn: []
   timeoutInMinutes: 60
+=======
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
   steps:
   - template: install_deps.yml
   - checkout: self
@@ -51,8 +68,11 @@ jobs:
 - job: DocBuild
   pool:
     vmImage: ubuntu-16.04
+<<<<<<< HEAD
   dependsOn: []
   timeoutInMinutes: 60
+=======
+>>>>>>> eab527aad7b440fd106259f55612f4cfb20cd3cd
   steps:
   - script: sudo apt-get clean && sudo apt-get update && sudo apt-get install -y python-minimal tox
     displayName: Install Tox
