@@ -64,18 +64,6 @@ for driver in sqlite3 postgres mysql; do
       test $? -eq 0 && ErrorMsg "Duplicate registration of $USERNAME"
    done
 
-   # all servers should register = number of successful requests
-   # but...it's only available when tls is disabled
-   if ! $(${FABRIC_TLS:-false}); then
-      nums=$((NUM_SERVERS-1))
-      for s in $(eval echo {0..$nums}); do
-         curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
-         verifyServerTraffic $HOST server${s} 0 0 "HTTP 5xx" gt
-         test $? -eq 0 || ErrorMsg "verifyServerTraffic failed"
-         sleep .1
-      done
-   fi
-
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver
 done
 $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver

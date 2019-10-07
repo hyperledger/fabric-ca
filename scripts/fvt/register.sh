@@ -11,7 +11,7 @@ TESTDATA="$FABRIC_CA/testdata"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 HOST="http://localhost:$PROXY_PORT"
 RC=0
-$($FABRIC_TLS) && HOST="https://localhost:$PROXY_PORT"
+HOST="https://localhost:$PROXY_PORT"
 . $SCRIPTDIR/fabric-ca_utils
 
 while getopts "u:t:g:a:x:" option; do
