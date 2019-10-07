@@ -17,22 +17,32 @@ export CA_CFG_PATH="/tmp/$TESTCASE"
 TESTCONFIG="$FABRIC_CA_SERVER_HOME/testconfig.yaml"
 DBNAME=fabric_ca
 
-function genConfig {
+function genConfig() {
   local version=$1
   : ${version:=""}
-    postgresTls='sslmode=disable'
-   case "$FABRIC_TLS" in
-      true) postgresTls='sslmode=require'; mysqlTls='?tls=custom' ;;
-   esac
+  postgresTls='sslmode=disable'
+  case "$FABRIC_TLS" in
+  true)
+    postgresTls='sslmode=require'
+    mysqlTls='?tls=custom'
+    ;;
+  esac
 
-   mkdir -p $FABRIC_CA_SERVER_HOME
-   # Create base configuration using mysql
-   cat > $TESTCONFIG <<EOF
+  mkdir -p $FABRIC_CA_SERVER_HOME
+
+  if [[ ${driver} == "mysql" ]]; then
+    TLS_ROOTCERT=${FABRIC_CA}/${MYSQL_CERTS}/ca.pem
+    TLS_CLIENTCERT=${FABRIC_CA}/${MYSQL_CERTS}/client-cert.pem
+    TLS_CLIENTKEY=${FABRIC_CA}/${MYSQL_CERTS}/client-key.pem
+  fi
+
+  # Create base configuration using mysql
+  cat >$TESTCONFIG <<EOF
 debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME$mysqlTls
+  datasource: root:mysql@tcp($MYSQL_HOST:$MYSQL_PORT)/$DBNAME$mysqlTls
   tls:
      enabled: $FABRIC_TLS
      certfiles:
@@ -71,134 +81,140 @@ EOF
     sed -i "1s/^/version: \"$version\"\n/" $TESTCONFIG
   fi
 
-  if [[ $driver = "sqlite3" ]]; then
+  if [[ $driver == "sqlite3" ]]; then
     sed -i "s/type: mysql/type: sqlite3/
         s/datasource:.*/datasource: $DBNAME/" $TESTCONFIG
   fi
 
-  if [[ $driver = "postgres" ]]; then
+  if [[ $driver == "postgres" ]]; then
     sed -i "s/type: mysql/type: postgres/
         s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME $postgresTls/" $TESTCONFIG
   fi
 
 }
 
-function resetDB {
+function resetDB() {
   case "$driver" in
-    sqlite3)
-      rm -rf $FABRIC_CA_SERVER_HOME/$DBNAME ;;
-    postgres)
-      psql -d postgres -c "DROP DATABASE $DBNAME" ;;
-    mysql)
-      mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE $DBNAME" ;;
-    *)
-      echo "Invalid database type"
-      exit 1
-      ;;
+  sqlite3)
+    rm -rf $FABRIC_CA_SERVER_HOME/$DBNAME
+    ;;
+  postgres)
+    psql -d postgres -c "DROP DATABASE $DBNAME"
+    ;;
+  mysql)
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql -e "DROP DATABASE $DBNAME"
+    ;;
+  *)
+    echo "Invalid database type"
+    exit 1
+    ;;
   esac
 }
 
-function createDB {
+function createDB() {
   case "$driver" in
-    sqlite3)
-      mkdir -p $FABRIC_CA_SERVER_HOME ;;
-    postgres)
-      psql -d postgres -c "CREATE DATABASE $DBNAME" ;;
-    mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME" ;;
-    *)
-      echo "Invalid database type"
-      exit 1
-      ;;
+  sqlite3)
+    mkdir -p $FABRIC_CA_SERVER_HOME
+    ;;
+  postgres)
+    psql -d postgres -c "CREATE DATABASE $DBNAME"
+    ;;
+  mysql)
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
+    ;;
+  *)
+    echo "Invalid database type"
+    exit 1
+    ;;
   esac
 }
 
 # loadUsers creates table using old schema and populates the users table with users
-function loadUsers {
+function loadUsers() {
   case "$driver" in
-    sqlite3)
-      mkdir -p $FABRIC_CA_SERVER_HOME
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER);'
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
+  sqlite3)
+    mkdir -p $FABRIC_CA_SERVER_HOME
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER);'
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
     VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1');"
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments)
     VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1');"
 
-      sed -i "s/type: mysql/type: sqlite3/
+    sed -i "s/type: mysql/type: sqlite3/
           s/datasource:.*/datasource: $DBNAME/" $TESTCONFIG
-      ;;
-    postgres)
-      psql -d postgres -c "CREATE DATABASE $DBNAME"
-      psql -d $DBNAME -c "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"
-      psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
-      psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+    ;;
+  postgres)
+    psql -d postgres -c "CREATE DATABASE $DBNAME"
+    psql -d $DBNAME -c "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"
+    psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+    psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
 
-      sed -i "s/type: mysql/type: postgres/
+    sed -i "s/type: mysql/type: postgres/
           s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME $postgresTls/" $TESTCONFIG
-      ;;
-    mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
-      ;;
-    *)
-      echo "Invalid database type"
-      exit 1
-      ;;
+    ;;
+  mysql)
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+    ;;
+  *)
+    echo "Invalid database type"
+    exit 1
+    ;;
   esac
 }
 
-function validateUsers {
+function validateUsers() {
   local result=$1
   : ${result:= 0}
   case "$driver" in
-    sqlite3)
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'registrar');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 1; then
-        ErrorMsg "Failed to correctly migrate user 'registar' on sqlite"
-      fi
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'notregistrar');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 0; then
-        ErrorMsg "Failed to correctly migrate user 'notregistar' on sqlite"
-      fi
-      sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'a');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq $result; then
-        ErrorMsg "Failed to correctly migrate user 'a' on sqlite"
-      fi
-      ;;
-    postgres)
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 1; then
-        ErrorMsg "Failed to correctly migrate user 'registrar' on postgres"
-      fi
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 0; then
-        ErrorMsg "Failed to correctly migrate user 'notregistrar' on postgres"
-      fi
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq $result; then
-        ErrorMsg "Failed to correctly migrate user 'a' on postgres"
-      fi
-      ;;
-    mysql)
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 1; then
-        ErrorMsg "Failed to correctly migrate user 'registrar' on mysql"
-      fi
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq 0; then
-        ErrorMsg "Failed to correctly migrate user 'notregistrar' on mysql"
-      fi
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
-      if test $? -eq $result; then
-        ErrorMsg "Failed to correctly migrate user 'a' on mysql"
-      fi
-      ;;
-    *)
-      echo "Invalid database type"
-      exit 1
-      ;;
+  sqlite3)
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'registrar');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 1; then
+      ErrorMsg "Failed to correctly migrate user 'registar' on sqlite"
+    fi
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'notregistrar');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 0; then
+      ErrorMsg "Failed to correctly migrate user 'notregistar' on sqlite"
+    fi
+    sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME "SELECT attributes FROM users WHERE (id = 'a');" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq $result; then
+      ErrorMsg "Failed to correctly migrate user 'a' on sqlite"
+    fi
+    ;;
+  postgres)
+    psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 1; then
+      ErrorMsg "Failed to correctly migrate user 'registrar' on postgres"
+    fi
+    psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 0; then
+      ErrorMsg "Failed to correctly migrate user 'notregistrar' on postgres"
+    fi
+    psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq $result; then
+      ErrorMsg "Failed to correctly migrate user 'a' on postgres"
+    fi
+    ;;
+  mysql)
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 1; then
+      ErrorMsg "Failed to correctly migrate user 'registrar' on mysql"
+    fi
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq 0; then
+      ErrorMsg "Failed to correctly migrate user 'notregistrar' on mysql"
+    fi
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+    if test $? -eq $result; then
+      ErrorMsg "Failed to correctly migrate user 'a' on mysql"
+    fi
+    ;;
+  *)
+    echo "Invalid database type"
+    exit 1
+    ;;
   esac
 }
 
@@ -206,13 +222,13 @@ function validateUsers {
 genConfig "9.9.9.9"
 fabric-ca-server start -b a:b -c $TESTCONFIG -d
 if test $? -ne 1; then
-    ErrorMsg "Should have failed to start server, configuration file version is higher than the server executable version"
+  ErrorMsg "Should have failed to start server, configuration file version is higher than the server executable version"
 fi
 
 # Test that the server should fail to initialize if the database level is higher than the server executable level
 for driver in sqlite3 postgres mysql; do
 
-   # Initializing a server with a database that has a higher level than the server executable
+  # Initializing a server with a database that has a higher level than the server executable
   resetDB
   createDB
 
@@ -230,10 +246,10 @@ for driver in sqlite3 postgres mysql; do
     psql -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   mysql)
-    mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE fabric_ca"
-    mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
-    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
-    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql -e "DROP DATABASE fabric_ca"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
+    mysql --host=${MYSQL_HOST} --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   *)
     echo "Invalid database type"

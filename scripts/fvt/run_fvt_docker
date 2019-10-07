@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+export MYSQL_DOCKER_HOST=MySQL_Server_5.7.27_Auto_Generated_Server_Certificate
+export MYSQL_DOCKER_CERTS=.mysql_data/mysql
+
+function cleanup() {
+  rm -rf .mysql_data
+  printf "\nCleaning up FVT Docker artifacts...\n"
+  if [[ "$(docker ps -a -q -f name=${MYSQL_DOCKER_HOST})" ]]; then
+    docker rm -f ${MYSQL_DOCKER_HOST}
+  fi
+  if [[ "$(docker ps -a -q -f name=fabric-fvt)" ]]; then
+    docker rm -f fabric-fvt
+  fi
+  if [[ "$(docker network ls -q -f name=fvt)" ]]; then
+    docker network rm fvt
+  fi
+}
+
+cleanup
+docker network create fvt
+docker run -d --network fvt --name ${MYSQL_DOCKER_HOST} -v $(pwd)/${MYSQL_DOCKER_CERTS}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=mysql mysql:5.7
+docker run --network fvt --name fabric-fvt -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+
+trap cleanup EXIT

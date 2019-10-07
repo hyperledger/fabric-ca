@@ -39,7 +39,9 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_SERVER_KEY=FabricTlsServerEEkey.pem \
     TLS_CLIENT_CERT=FabricTlsClientEEcert.pem \
     TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
-    MYSQLDATA=/var/lib/mysql
+    MYSQLDATA=/var/lib/mysql \
+    MYSQL_HOST="MySQL_Server_5.7.27_Auto_Generated_Server_Certificate" \
+    MYSQL_CERTS=".mysql_data/mysql"
 
 # setup scripts for slapd, postgres, mysql, and openssl
 COPY --from=fabric-ca-builder \
