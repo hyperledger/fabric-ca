@@ -11,27 +11,28 @@ export RESULTLOG="/tmp/fvt-test.results"
 export STARTIME=$SECONDS
 export PATH=$PATH:$GOPATH/bin
 export RC=0
-export FABRIC_TLS
-> $RESULTLOG
+>$RESULTLOG
 
 function runTests() {
-   echo "Running fvt tests ..."
-   echo ""
-   tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh"| sort)"
+  echo "Running fvt tests ..."
+  echo ""
 
-   for FABRIC_TLS in "true" "false"; do
-      for cmd in $tests; do
-        export TESTCASE="${cmd##*/}-TLS-${FABRIC_TLS}"
-        echo "*******************"  | tee -a $RESULTLOG 2>&1
-        printf " Running $TESTCASE " |tee -a $RESULTLOG 2>&1
-        ${cmd} >> $RESULTLOG 2>&1
-        rc=$?
-        test $rc -eq 0 && echo PASSED || echo FAILED
-        test $rc -ne 0 && awk -v b=$TESTCASE -v e="test ended." '$0~b,$0~e' $RESULTLOG
-        RC=$((RC+$rc))
-        $SCRIPTDIR/fabric-ca_setup.sh -R >/dev/null 2>&1
-      done
-   done
+  tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh"| sort)"
+  for cmd in $tests; do
+    runTest "${cmd}"
+  done
+}
+
+function runTest() {
+  export TESTCASE="${1##*/}"
+  echo "*******************" | tee -a $RESULTLOG 2>&1
+  printf " Running $TESTCASE " | tee -a $RESULTLOG 2>&1
+  ${1} >>$RESULTLOG 2>&1
+  rc=$?
+  test $rc -eq 0 && echo PASSED || echo FAILED
+  test $rc -ne 0 && awk -v b=$TESTCASE -v e="test ended." '$0~b,$0~e' $RESULTLOG
+  RC=$((RC + $rc))
+  $SCRIPTDIR/fabric-ca_setup.sh -R >/dev/null 2>&1
 }
 
 TimeStamp | tee $RESULTLOG

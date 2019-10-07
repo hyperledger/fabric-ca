@@ -41,28 +41,16 @@ function resetDB {
 }
 
 function genConfig {
-    postgresTls='sslmode=disable'
-   case "$FABRIC_TLS" in
-      true) postgresTls='sslmode=require' ;;
-   esac
-
    mkdir -p $FABRIC_CA_SERVER_HOME
    cat > $PGSQLSERVERCONFIG <<EOF
 debug: true
 
 db:
   type: postgres
-  datasource: host=localhost port=$POSTGRES_PORT user=testuser password=testuserpw dbname=fabric_ca $postgresTls
-  tls:
-     enabled: $FABRIC_TLS
-     certfiles:
-       - $TLS_ROOTCERT
-     client:
-       certfile: $TLS_CLIENTCERT
-       keyfile: $TLS_CLIENTKEY
+  datasource: host=localhost port=$POSTGRES_PORT user=testuser password=testuserpw dbname=fabric_ca
 
 tls:
-  enabled: $FABRIC_TLS
+  enabled: true
   certfile: $TLS_SERVERCERT
   keyfile: $TLS_SERVERKEY
 
