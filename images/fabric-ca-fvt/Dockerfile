@@ -60,7 +60,6 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
 RUN ${FABRIC_CA_DATA}/system_update.sh
 RUN ${FABRIC_CA_DATA}/postgres_setup.sh
 RUN ${FABRIC_CA_DATA}/slapd_setup.sh
-RUN ${FABRIC_CA_DATA}/mysql_setup.sh
 
 # Install fabric-ca dependencies
 RUN go get github.com/go-sql-driver/mysql

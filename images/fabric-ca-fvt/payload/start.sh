@@ -8,12 +8,10 @@
 POSTGRES_PORT=5432
 MYSQL_PORT=3306
 LDAP_PORT=389
-PORTS=($POSTGRES_PORT $MYSQL_PORT $LDAP_PORT)
+PORTS=($POSTGRES_PORT $LDAP_PORT)
 
 timeout=30
 su postgres -c 'postgres -D /usr/local/pgsql/data' &
-chown -R mysql.mysql $MYSQLDATA
-/usr/bin/mysqld_safe --sql-mode=STRICT_TRANS_TABLES &
 /etc/init.d/slapd start &
 
 for port in ${PORTS[*]}; do
