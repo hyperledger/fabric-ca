@@ -29,14 +29,8 @@ debug: true
 db:
   type: $DRIVER
   datasource: $DATASRC
-  tls:
-    certfiles:
-      - $TLS_ROOTCERT
-    client:
-      certfile: $TLS_CLIENTCERT
-      keyfile: $TLS_CLIENTKEY
 tls:
-  enabled: $FABRIC_TLS
+  enabled: true
   certfile: $TLS_SERVERCERT
   keyfile: $TLS_SERVERKEY
 ca:
@@ -97,14 +91,9 @@ debug: true
 db:
   type: $DRIVER
   datasource: $DATASRC
-  tls:
-    certfiles:
-      - $TLS_ROOTCERT
-    client:
-      certfile: $TLS_CLIENTCERT
-      keyfile: $TLS_CLIENTKEY
+
 tls:
-  enabled: $FABRIC_TLS
+  enabled: true
   certfile: $TLS_SERVERCERT
   keyfile: $TLS_SERVERKEY
 ca:
