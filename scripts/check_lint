@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-GOLINT="$GOPATH/bin/golint"
-
 function runlint {
    for dir in `ls`
    do
@@ -15,7 +13,7 @@ function runlint {
          vendor|bin|testdata|scripts)
            ;;
         *)
-           $GOLINT $dir/...
+           golint $dir/...
            ;;
         esac
       fi
