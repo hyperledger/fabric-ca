@@ -113,7 +113,7 @@ function resetDB() {
 
   if [ $driver = "postgres" ]; then
     i=0;while test $((i++)) -lt $NUMINTCAS; do
-      psql -c "drop database fabric_ca_ca$i"
+      psql -h postgres -U postgres -c "drop database fabric_ca_ca$i"
     done
   fi
 

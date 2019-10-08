@@ -127,7 +127,7 @@ EOF
    cp $MYSQLSERVERCONFIG $PGSQLSERVERCONFIG
    cp $MYSQLSERVERCONFIG2 $PGSQLSERVERCONFIG2
    sed -i "s/type: mysql/type: postgres/
-          s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=fabric_ca/" \
+          s/datasource:.*/datasource: host=postgres port=$POSTGRES_PORT user=postgres password=postgres dbname=fabric_ca sslmode=disable/" \
    $PGSQLSERVERCONFIG $PGSQLSERVERCONFIG2
 }
 
@@ -206,9 +206,9 @@ echo "############## Test 1 ##############"
 SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test1b.txt"
 echo "Test1: Database and tables exist, plus an already bootstrapped user is present in the users table"
 echo "Test1: Fabric-ca should bootstap a newly added identity to the config to the user table"
-psql -c "drop database $DBNAME"
-psql -c "create database $DBNAME"
-psql -d fabric_ca -c "CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"
+psql -h postgres -U postgres -c "drop database $DBNAME"
+psql -h postgres -U postgres -c "create database $DBNAME"
+psql -h postgres -U postgres -d fabric_ca -c "CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"
 
 # Starting server first time with one bootstrap user
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
@@ -234,8 +234,8 @@ SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test2b.txt"
 echo "############## Test 2 ##############"
 echo "Test2: Database exist but tables do not exist"
 echo "Test2: Fabric-ca should create the tables and bootstrap"
-psql -c "drop database $DBNAME"
-psql -c "create database $DBNAME"
+psql -h postgres -U postgres -c "drop database $DBNAME"
+psql -h postgres -U postgres -c "create database $DBNAME"
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
@@ -251,7 +251,7 @@ SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test3b.txt"
 echo "############## Test 3 ##############"
 echo "Test3: Database does not exist"
 echo "Test3: Fabric-ca should create the database and tables, and bootstrap"
-psql -c "drop database $DBNAME"
+psql -h postgres -U postgres -c "drop database $DBNAME"
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 sleep 6 # Need to allow for Postgres to complete database and table creation
@@ -261,35 +261,6 @@ killserver $pid || ErrorExit "Failed to stop CA"
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
-
-echo "############################ PostgresSQL Test with Client ############################"
-
-kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid` # Shutdown postgres server
-pollPostgres "" "" "" stop 2>&1 # Wait for postgres to stop
-
-# Start fabric-ca server connecting to postgres, this will fail
-SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test1c.txt"
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG2 | tee $SERVERLOG 2>&1 &
-pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
-
-# Enroll with a server that does not have a DB initialized, should expect to get back error
-enroll a b 2>&1 | grep "Failed to connect to Postgres database"
-if [ $? != 0 ]; then
-    ErrorMsg "Enroll request should have failed due to uninitialized postgres database"
-fi
-
-# Start postgres server
-su postgres -c 'postgres -D /usr/local/pgsql/data' &
-pollPostgres # Wait for postgres to start
-sleep 5 # Postgres port is available but sometimes get back 'pq: the database system is starting up' error. Putting in sleep to allow for start up to complete
-
-# Enroll again, this time the server should try to reinitialize the DB before processing enroll request and this should succeed
-enroll a b 2>&1 | grep "Stored client certificate"
-if [ $? != 0 ]; then
-    ErrorMsg "Enroll request should have passed"
-fi
-
-$SCRIPTDIR/fabric-ca_setup.sh -K
 
 echo "############################ MySQL Test with Client ############################"
 

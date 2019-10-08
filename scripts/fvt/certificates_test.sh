@@ -19,7 +19,7 @@ USERPSWD="adminpw"
 DBNAME=fabric_ca
 
 function postgresDBCleanup() {
-    psql -d $DBNAME -c "TRUNCATE TABLE certificates" &> /dev/null
+    psql -h postgres -U postgres -d $DBNAME -c "TRUNCATE TABLE certificates" &> /dev/null
 }
 
 function populatePostgresCertsTable() {
@@ -56,7 +56,7 @@ function insertCertsTable() {
     pem=`cat cert.pem`
 
     # Store the generated certificate in the certificates table
-    psql -d $DBNAME -c "INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level) VALUES ('$id', '$serial', '$aki', 'ca', 'active', '0', '$expiry', '$revokedAt', '$pem', '1')"
+    psql -h postgres -U postgres -d $DBNAME -c "INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level) VALUES ('$id', '$serial', '$aki', 'ca', 'active', '0', '$expiry', '$revokedAt', '$pem', '1')"
 }
 
 function assertContainsUserCert() {

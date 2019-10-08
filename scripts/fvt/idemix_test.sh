@@ -18,7 +18,7 @@ USERPSWD="adminpw"
 
 function idemixCleanUp() {
     if [ "$1" = "postgres" ]; then
-        psql -d postgres -c "DROP DATABASE fabric_ca"
+        psql -h postgres -U postgres -d postgres -c "DROP DATABASE fabric_ca"
     else
         mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca;"
     fi

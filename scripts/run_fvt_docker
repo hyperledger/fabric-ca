@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+export POSTGRES_DOCKER_HOST=postgres
+export FABRIC_FVT_HOST=fabric-fvt
+export PG_VER=9.5
+
+function cleanup() {
+  printf "\nCleaning up FVT Docker artifacts...\n"
+  if [[ "$(docker ps -a -q -f name=${POSTGRES_DOCKER_HOST})" ]]; then
+    docker rm -f ${POSTGRES_DOCKER_HOST}
+  fi
+  if [[ "$(docker ps -a -q -f name=${FABRIC_FVT_HOST})" ]]; then
+    docker rm -f ${FABRIC_FVT_HOST}
+  fi
+  if [[ "$(docker network ls -q -f name=fvt)" ]]; then
+    docker network rm fvtnet
+  fi
+}
+
+cleanup
+docker network create fvtnet
+docker run --network fvtnet -d --name ${POSTGRES_DOCKER_HOST} -e POSTGRES_PASSWORD=postgres postgres:${PG_VER}
+docker run --network fvtnet --name ${FABRIC_FVT_HOST} -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+
+trap cleanup EXIT
