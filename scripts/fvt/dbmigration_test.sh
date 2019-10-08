@@ -115,12 +115,12 @@ $SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
 
 # Create the database tables using the old schema
 echo "Creating '$DBNAME' MySQL database and tables before starting up server"
-mysql --host=localhost --user=root --password=mysql -e "drop database $DBNAME;"
-mysql --host=localhost --user=root --password=mysql -e "create database $DBNAME;"
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64));"
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'id';" | grep "64"
+mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database $DBNAME;"
+mysql --host=${MYSQLHOST} --user=root --password=mysql -e "create database $DBNAME;"
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64));"
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'id';" | grep "64"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 64"
 fi
@@ -150,7 +150,7 @@ fi
 $SCRIPTDIR/fabric-ca_setup.sh -K
 
 # Check that the new schema took affect
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users';" > $TESTDIR/text.txt
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users';" > $TESTDIR/text.txt
 grep 'id'$'\t''255' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
@@ -172,7 +172,7 @@ if [ $? != 0 ]; then
     ErrorMsg "Failed to create column 'incorrect_password_attempts' in MySQL"
 fi
 
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length, data_type, extra FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'affiliations';" > $TESTDIR/text.txt
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length, data_type, extra FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'affiliations';" > $TESTDIR/text.txt
 grep 'id'$'\t''NULL'$'\t''int'$'\t''auto_increment' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Integer auto_increment column 'id' should be present in the affiliations table"
@@ -185,7 +185,7 @@ grep 'prekey'$'\t''1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'prekey' should have character limit of 1024"
 fi
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'certificates' AND COLUMN_NAME = 'id';" | grep "255"
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'certificates' AND COLUMN_NAME = 'id';" | grep "255"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
 fi

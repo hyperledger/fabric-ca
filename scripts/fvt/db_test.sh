@@ -75,7 +75,7 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca
+  datasource: root:mysql@tcp($MYSQLHOST:$MYSQL_PORT)/fabric_ca
 
 tls:
   enabled: true
@@ -143,8 +143,8 @@ echo "############## Test 1 ##############"
 echo "Test1: Database and tables exist, plus an already bootstrapped user is present in the users table"
 echo "Test1: Fabric-ca should bootstap a newly added identity to the config to the user table"
 echo "Creating '$DBNAME' MySQL database and tables before starting up server"
-mysql --host=localhost --user=root --password=mysql -e "drop database $DBNAME;" -e "create database $DBNAME;" &> /dev/null
-mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"  &> /dev/null
+mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database $DBNAME;" -e "create database $DBNAME;" &> /dev/null
+mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"  &> /dev/null
 
 # Starting server first time with one bootstrap user
 SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test1a.txt"
@@ -170,7 +170,7 @@ echo "############## Test 2 ##############"
 echo "Test2: Database exist but tables do not exist"
 echo "Test2: Fabric-ca should create the tables and bootstrap"
 echo "Dropping and creating an empty '$DBNAME' database"
-mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca;" -e "create database fabric_ca;" &> /dev/null
+mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca;" -e "create database fabric_ca;" &> /dev/null
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
@@ -186,7 +186,7 @@ echo "############## Test 3 ##############"
 echo "Test3: Database does not exist"
 echo "Test3: Fabric-ca should create the database and tables, and bootstrap"
 echo "Dropping '$DBNAME' database"
-mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca;" &> /dev/null
+mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca;" &> /dev/null
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
@@ -261,34 +261,3 @@ killserver $pid || ErrorExit "Failed to stop CA"
 
 checkIdentity "a" $SERVERLOG # Check to see that a new identity properly got registered
 checkIdentity "c" $SERVERLOG # Check to see that a new identity properly got registered
-
-echo "############################ MySQL Test with Client ############################"
-
-/etc/init.d/mysql stop >/dev/null 2>&1
-pollMySql "" "" "" stop # Wait for MySQL to stop
-
-# Start fabric-ca server connecting to MySQL, this will fail
-SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test2c.txt"
-$SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 | tee $SERVERLOG 2>&1 &
-pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
-
-# Enroll with a server that does not have a DB initialized, should expect to get back error
-enroll a b 2>&1 | grep "Failed to connect to MySQL database"
-if [ $? != 0 ]; then
-    ErrorMsg "Enroll request should have failed due to uninitialized mysql database"
-fi
-
-# Start mysql server
-/usr/bin/mysqld_safe --sql-mode=STRICT_TRANS_TABLES &
-pollMySql # Wait for MySQL to start
-
-# Enroll again, this time the server should try to reinitialize the DB before processing enroll request and this should succeed
-enroll a b 2>&1 | grep "Stored client certificate"
-if [ $? != 0 ]; then
-    ErrorMsg "Enroll request should have passed"
-fi
-
-$SCRIPTDIR/fabric-ca_setup.sh -R -x $FABRIC_CA_SERVER_HOME
-
-CleanUp $RC
-exit $RC

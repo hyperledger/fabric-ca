@@ -107,7 +107,7 @@ function resetDB() {
   local driver=$1
   if [ $driver = "mysql" ]; then
     i=0;while test $((i++)) -lt $NUMINTCAS; do
-      mysql --host=localhost --user=root --password=mysql -e "drop database fabric_ca_ca$i;"
+      mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca_ca$i;"
     done
   fi
 
