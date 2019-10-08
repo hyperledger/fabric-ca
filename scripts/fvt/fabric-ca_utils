@@ -10,8 +10,8 @@ export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"
 export SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 export MYSQL_PORT="3306"
-export LDAP_PORT="389"
-export LDAP_PROTO="ldap://"
+export LDAP_PORT="636"
+export LDAP_PROTO="ldaps://"
 export LDAP_TLS_PROTO="ldaps://"
 export POSTGRES_PORT="5432"
 export PGPASSWORD='postgres'
@@ -25,6 +25,8 @@ export TLS_SERVERCERT="$FABRIC_CA_DATA/FabricTlsServerEEcert.pem"
 export TLS_SERVERKEY="$FABRIC_CA_DATA/FabricTlsServerEEkey.pem"
 export TLS_CLIENTCERT="$FABRIC_CA_DATA/FabricTlsClientEEcert.pem"
 export TLS_CLIENTKEY="$FABRIC_CA_DATA/FabricTlsClientEEkey.pem"
+export TLSOPT="--tls.certfiles $TLS_ROOTCERT"
+export INTTLSOPT="--intermediate.tls.certfiles $TLS_ROOTCERT"
 export CA_HOST_ADDRESS="localhost"
 export PROXY_PORT="7054"
 export CA_DEFAULT_PORT="1${PROXY_PORT}"
@@ -41,7 +43,7 @@ export LDAPAUTH="-D "cn=$LDAPUSER,dc=example,dc=com" -w $LDAPPASWD"
 export LDAPBASE="-b "dc=example,dc=com""
 export LDAPUSERBASE="-b ou=users,ou=fabric,dc=hyperledeger,dc=example,dc=com"
 export DEFAULT_RUN_CONFIG_FILE_NAME="runFabricCaFvt.yaml"
-
+export PROTO="https://"
 DATE='date +%Y-%m-%d'
 TIME='date +%I:%M:%S%p'
 
@@ -146,22 +148,6 @@ runPSQL() {
    local rc=$?
    cd $wrk_dir
    return $rc
-}
-
-setTLS() {
-   PROTO="http://"
-   TLSOPT=""
-   # if not set, default to OFF
-   if test -n "$FABRIC_TLS"; then
-     # otherwise, set TLS-related stuff
-     if $($FABRIC_TLS); then
-        PROTO="https://"
-        LDAP_PROTO="ldaps://"
-        LDAP_PORT=636
-        TLSOPT="--tls.certfiles $TLS_ROOTCERT"
-        INTTLSOPT="--intermediate.tls.certfiles $TLS_ROOTCERT"
-     fi
-   fi
 }
 
 ErrorMsg() {
@@ -451,8 +437,6 @@ enroll() {
    test -d "$FABRIC_CA_ENROLLMENT_DIR" || mkdir -p "$FABRIC_CA_ENROLLMENT_DIR"
    ENROLLCONFIG="$FABRIC_CA_ENROLLMENT_DIR/enroll.yaml"
 
-   # Determines the PROTO and TLSOPT values based on FABRIC_TLS setting
-   setTLS
    $FABRIC_CA_CLIENTEXEC enroll -u "${PROTO}${username}:${userpswd}@${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
                          -c $ENROLLCONFIG $ATTRS \
                          --csr.hosts "$username@fab-client.raleigh.ibm.com" \
@@ -486,7 +470,6 @@ reenroll() {
    test -d "$FABRIC_CA_CLIENT_HOME" || mkdir -p "$FABRIC_CA_CLIENT_HOME"
    ENROLLCONFIG="$FABRIC_CA_CLIENT_HOME/enroll.yaml"
    export FABRIC_CA_CLIENT_HOME
-   setTLS
    $FABRIC_CA_CLIENTEXEC reenroll -u $PROTO${CA_HOST_ADDRESS}:$PROXY_PORT $TLSOPT -c $ENROLLCONFIG
    RC=$?
    $($FABRIC_CA_DEBUG) && printAuth $FABRIC_CA_CERT_FILE $FABRIC_CA_KEY_FILE
@@ -512,7 +495,6 @@ register() {
    : ${FABRIC_CA_CLIENT_HOME:="$CA_CFG_PATH/$REGISTRAR"}
 
    export FABRIC_CA_ENROLLMENT_DIR
-   setTLS
    $FABRIC_CA_CLIENTEXEC register -d -u "$PROTO${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
                            --id.name "$USERNAME" \
                            --id.type "$USERTYPE" \
@@ -532,11 +514,9 @@ function genRunconfig() {
    local serverKey="$5"
    local maxEnroll="$6"
    local version="$7"
-   : ${FABRIC_TLS:='false'}
    : ${FABRIC_CA_DEBUG:='false'}
    local registry=""
    local converters=""
-   setTLS
 
    case ${version:-"yaml"} in
       json) if ! $($LDAP_ENABLE); then registry="
@@ -656,18 +636,10 @@ cat > $runconfig <<EOF
    "debug": "$FABRIC_CA_DEBUG",
    "db": {
       "type": "$driver",
-      "datasource": "$datasrc",
-       "tls": {
-          "enabled": "$TLS_ON",
-          "certfiles": [ "$TLS_ROOTCERT", $TLS_RACERT, $TLS_SUBCACERT ],
-          "client": {
-             "certfile": "$TLS_CLIENTCERT",
-             "keyfile": "$TLS_CLIENTKEY"
-          }
-       }
+      "datasource": "$datasrc"
    },
    "tls": {
-      "enabled": "$TLS_ON",
+      "enabled": true,
       "certfile": "$TLS_SERVERCERT",
       "keyfile": "$TLS_SERVERKEY"
    },
@@ -886,15 +858,8 @@ debug: $FABRIC_CA_DEBUG
 db:
   type: $driver
   datasource: $datasrc
-  tls:
-     enabled: $TLS_ON
-     certfiles:
-       - $TLS_ROOTCERT
-     client:
-       certfile: $TLS_CLIENTCERT
-       keyfile: $TLS_CLIENTKEY
 tls:
-  enabled: $TLS_ON
+  enabled: true
   certfile: $TLS_SERVERCERT
   keyfile: $TLS_SERVERKEY
 ca:

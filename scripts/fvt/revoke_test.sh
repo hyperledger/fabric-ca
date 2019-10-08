@@ -18,7 +18,6 @@ PSWDS=("adminpw" "adminpw2" "pass" "user1" "user2" "user3" )
 HTTP_PORT="3755"
 
 . $SCRIPTDIR/fabric-ca_utils
-setTLS
 # FIXME should not require user:pass
 URI="${PROTO}user:pass@localhost:$PROXY_PORT"
 

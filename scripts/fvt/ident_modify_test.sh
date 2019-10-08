@@ -456,7 +456,6 @@ sed -i '/name: admin$/,/hf.Registrar.DelegateRoles:/s/hf.Registrar.Roles:.*/hf.R
 $SCRIPTDIR/fabric-ca_setup.sh -d mysql -S -X -n1 -D -x $TESTDIR -- \
                  --cfg.identities.allowremove > $TESTDIR/server.log 2>&1
 
-setTLS
 URI="-u ${PROTO}@$CA_HOST_ADDRESS:$PROXY_PORT $TLSOPT"
 
 enroll

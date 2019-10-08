@@ -114,7 +114,6 @@ for driver in postgres mysql; do
     $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d $driver 2>&1 | tee /tmp/serverlog.txt &
     pollFabricCa "" "" $CA_DEFAULT_PORT
 
-    setTLS
     ###### Get Idemix Public Key ######
     getCAInfo
 
