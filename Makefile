@@ -209,7 +209,7 @@ load-test: docker-clean docker-fvt
 ci-tests: all-tests docs fvt-tests
 
 fvt-tests: docker-clean docker-fvt
-	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
+	@scripts/run_fvt_docker
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})

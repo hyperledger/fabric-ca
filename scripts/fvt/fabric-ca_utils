@@ -144,7 +144,7 @@ runPSQL() {
    local opts="$2"
    local wrk_dir="$(pwd)"
    cd /tmp
-   /usr/bin/psql "$opts" -U postgres -h localhost -c "$cmd"
+   /usr/bin/psql "$opts" -U postgres -h postgres -c "$cmd"
    local rc=$?
    cd $wrk_dir
    return $rc
@@ -1015,8 +1015,8 @@ function testStatus() {
          cert_status_code=$(mysql --host=localhost --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\") order by revoked_at;" $dbname| awk -F'\t' -v u=$user '$1==u {print $5}')
       ;;
       postgres)
-         user_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,state FROM users WHERE id='$user';" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
-         cert_status_code=$(/usr/bin/psql -U postgres -h localhost -c "SELECT id,encode(status,'escape') FROM certificates WHERE id='$user' order by revoked_at;" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
+         user_status_code=$(/usr/bin/psql -U postgres -h postgres -c "SELECT id,state FROM users WHERE id='$user';" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
+         cert_status_code=$(/usr/bin/psql -U postgres -h postgres -c "SELECT id,encode(status,'escape') FROM certificates WHERE id='$user' order by revoked_at;" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')
       ;;
     esac
     echo "$user_status_code $cert_status_code"

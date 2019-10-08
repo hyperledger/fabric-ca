@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+export PGPASSWORD=postgres
+
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
@@ -40,7 +42,7 @@ runPSQL() {
   local opts="$2"
   local wrk_dir="$(pwd)"
   cd /tmp
-  /usr/bin/psql "$opts" -U postgres -h localhost -c "$cmd"
+  /usr/bin/psql "$opts" -U postgres -h postgres -c "$cmd"
   local rc=$?
   cd $wrk_dir
   return $rc
@@ -57,7 +59,7 @@ resetFabricCa() {
     test -z $i && dbSuffix="" || dbSuffix="_ca$i"
     mysql --host=localhost --user=root --password=mysql -e 'show tables' ${DBNAME}${dbSuffix} >/dev/null 2>&1
     mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE IF EXISTS ${DBNAME}${dbSuffix}" >/dev/null 2>&1
-    /usr/bin/dropdb "${DBNAME}${dbSuffix}" -U postgres -h localhost -w --if-exists 2>/dev/null
+    /usr/bin/dropdb "${DBNAME}${dbSuffix}" -U postgres -h postgres -w --if-exists 2>/dev/null
   done
 }
 
@@ -330,7 +332,7 @@ test -n "$SRC_KEY" && cp "$SRC_KEY" $DATADIR/$DST_KEY
 RUNCONFIG="$DATADIR/$DEFAULT_RUN_CONFIG_FILE_NAME"
 
 case $DRIVER in
-postgres) DATASRC="dbname=$DBNAME host=127.0.0.1 port=$POSTGRES_PORT user=postgres password=postgres" ;;
+postgres) DATASRC="dbname=$DBNAME host=postgres port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
 sqlite3) DATASRC="$DBNAME" ;;
 mysql) DATASRC="root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME?parseTime=true" ;;
 esac
