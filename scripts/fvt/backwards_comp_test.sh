@@ -67,7 +67,7 @@ EOF
 
   if [[ $driver = "postgres" ]]; then
     sed -i "s/type: mysql/type: postgres/
-        s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME/" $TESTCONFIG
+        s/datasource:.*/datasource: host=postgres port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME sslmode=disable/" $TESTCONFIG
   fi
 
 }
@@ -77,7 +77,7 @@ function resetDB {
     sqlite3)
       rm -rf $FABRIC_CA_SERVER_HOME/$DBNAME ;;
     postgres)
-      psql -d postgres -c "DROP DATABASE $DBNAME" ;;
+      psql -h postgres -U postgres -d postgres -c "DROP DATABASE $DBNAME" ;;
     mysql)
       mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE $DBNAME" ;;
     *)
@@ -92,7 +92,7 @@ function createDB {
     sqlite3)
       mkdir -p $FABRIC_CA_SERVER_HOME ;;
     postgres)
-      psql -d postgres -c "CREATE DATABASE $DBNAME" ;;
+      psql -h postgres -U postgres -d postgres -c "CREATE DATABASE $DBNAME" ;;
     mysql)
       mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME" ;;
     *)
@@ -117,13 +117,13 @@ function loadUsers {
           s/datasource:.*/datasource: $DBNAME/" $TESTCONFIG
       ;;
     postgres)
-      psql -d postgres -c "CREATE DATABASE $DBNAME"
-      psql -d $DBNAME -c "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"
-      psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
-      psql -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+      psql -h postgres -U postgres -d postgres -c "CREATE DATABASE $DBNAME"
+      psql -h postgres -U postgres -d $DBNAME -c "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER)"
+      psql -h postgres -U postgres -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+      psql -h postgres -U postgres -d $DBNAME -c "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
 
       sed -i "s/type: mysql/type: postgres/
-          s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME $postgresTls/" $TESTCONFIG
+          s/datasource:.*/datasource: host=postgres port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME sslmode=disable/" $TESTCONFIG
       ;;
     mysql)
       mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
@@ -157,15 +157,15 @@ function validateUsers {
       fi
       ;;
     postgres)
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      psql -h postgres -U postgres -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq 1; then
         ErrorMsg "Failed to correctly migrate user 'registrar' on postgres"
       fi
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      psql -h postgres -U postgres -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq 0; then
         ErrorMsg "Failed to correctly migrate user 'notregistrar' on postgres"
       fi
-      psql -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      psql -h postgres -U postgres -d $DBNAME -c "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq $result; then
         ErrorMsg "Failed to correctly migrate user 'a' on postgres"
       fi
@@ -213,10 +213,10 @@ for driver in sqlite3 postgres mysql; do
     sqlite3 $FABRIC_CA_SERVER_HOME/fabric_ca 'INSERT INTO properties (property, value) Values ("identity.level", "9");'
     ;;
   postgres)
-    psql -d postgres -c "DROP DATABASE fabric_ca"
-    psql -d postgres -c "CREATE DATABASE fabric_ca"
-    psql -d fabric_ca -c "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
-    psql -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity.level', '9')"
+    psql -h postgres -U postgres -d postgres -c "DROP DATABASE fabric_ca"
+    psql -h postgres -U postgres -d postgres -c "CREATE DATABASE fabric_ca"
+    psql -h postgres -U postgres -d fabric_ca -c "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
+    psql -h postgres -U postgres -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   mysql)
     mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE fabric_ca"

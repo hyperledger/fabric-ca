@@ -23,11 +23,6 @@ ARG PG_VER
 ENV PATH="/usr/local/go/bin/:${PATH}" \
     DEBIAN_FRONTEND="noninteractive" \
     GOPATH="/opt/gopath" \
-    PGDATA="/usr/local/pgsql/data/" \
-    PGUSER="postgres" \
-    PGPASSWORD="postgres" \
-    PGSSLCERT="/etc/hyperledger/fabric-ca/FabricTlsClientEEcert.pem" \
-    PGSSLKEY="/etc/hyperledger/fabric-ca/FabricTlsClientEEkey.pem" \
     PGVER=${PG_VER} \
     HOSTADDR="127.0.0.1" \
     LDAPPORT="389" \
@@ -56,7 +51,6 @@ RUN chmod 600 ${FABRIC_CA_DATA}/${TLS_CLIENT_KEY}
 RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
 
 RUN ${FABRIC_CA_DATA}/system_update.sh
-RUN ${FABRIC_CA_DATA}/postgres_setup.sh
 RUN ${FABRIC_CA_DATA}/slapd_setup.sh
 RUN ${FABRIC_CA_DATA}/mysql_setup.sh
 

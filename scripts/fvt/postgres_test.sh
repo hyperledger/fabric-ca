@@ -27,17 +27,17 @@ function cleanup {
 }
 
 function configureDB {
-    psql -c "CREATE USER testuser WITH PASSWORD 'testuserpw' LOGIN"
-    psql -c "CREATE DATABASE testdb"
-    psql -d testdb -c "DROP DATABASE $DBNAME"
-    psql -d testdb -c "DROP DATABASE postgres"
+    psql -h postgres -U postgres -c "CREATE USER testuser WITH PASSWORD 'testuserpw' LOGIN"
+    psql -h postgres -U postgres -c "CREATE DATABASE testdb"
+    psql -h postgres -U postgres -d testdb -c "DROP DATABASE $DBNAME"
+    psql -h postgres -U postgres -d testdb -c "DROP DATABASE postgres"
 }
 
 function resetDB {
-    psql -d testdb -c "ALTER DATABASE template1_temp RENAME TO template1"
-    psql -d testdb -c "CREATE DATABASE $DBNAME"
-    psql -d testdb -c "CREATE DATABASE postgres"
-    psql -d testdb -c "ALTER USER testuser WITH NOCREATEDB"
+    psql -h postgres -U postgres -d testdb -c "ALTER DATABASE template1_temp RENAME TO template1"
+    psql -h postgres -U postgres -d testdb -c "CREATE DATABASE $DBNAME"
+    psql -h postgres -U postgres -d testdb -c "CREATE DATABASE postgres"
+    psql -h postgres -U postgres -d testdb -c "ALTER USER testuser WITH NOCREATEDB"
 }
 
 function genConfig {
@@ -47,7 +47,7 @@ debug: true
 
 db:
   type: postgres
-  datasource: host=localhost port=$POSTGRES_PORT user=testuser password=testuserpw dbname=fabric_ca
+  datasource: host=postgres port=$POSTGRES_PORT user=testuser password=testuserpw dbname=fabric_ca sslmode=disable
 
 tls:
   enabled: true
@@ -98,7 +98,7 @@ fi
 # TEST 2: There are no database to establish a connection, an error is expected
 # Three database are tried, the database specified in connection string, postgres,
 # and template1
-psql -d testdb -c "ALTER DATABASE template1 RENAME TO template1_temp"
+psql -h postgres -U postgres -d testdb -c "ALTER DATABASE template1 RENAME TO template1_temp"
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $PGSQLSERVERCONFIG 2>&1 | tee $SERVERLOG &
 pollFabricCa "" "" $CA_DEFAULT_PORT
 grep "Please create one of these database before continuing" $SERVERLOG &> /dev/null
@@ -108,8 +108,8 @@ fi
 
 # TEST 3: User has permissions to create DB and at least of the expected database
 # exists, should successfully initialize database now
-psql -d testdb -c "ALTER DATABASE template1_temp RENAME TO template1"
-psql -d testdb -c "ALTER USER testuser WITH CREATEDB"
+psql -h postgres -U postgres -d testdb -c "ALTER DATABASE template1_temp RENAME TO template1"
+psql -h postgres -U postgres -d testdb -c "ALTER USER testuser WITH CREATEDB"
 
 # Enroll should try to reinitialize the DB before processing enroll request and should succeed
 enroll a b 2>&1 | grep "Stored client certificate"

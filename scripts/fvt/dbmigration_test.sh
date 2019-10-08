@@ -202,12 +202,12 @@ $SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
 
 # Create the database tables using the old schema
 echo "Creating '$DBNAME' Postgres database and tables before starting up server"
-psql -c "drop database $DBNAME"
-psql -c "create database $DBNAME"
-psql -d $DBNAME -c "CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"
-psql -d $DBNAME -c "CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"
-psql -d $DBNAME -c "CREATE TABLE certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"
-psql -d $DBNAME -c "SELECT character_maximum_length FROM information_schema.columns where table_name = 'users' AND column_name = 'id';" | grep "64"
+psql -h postgres -U postgres -c "drop database $DBNAME"
+psql -h postgres -U postgres -c "create database $DBNAME"
+psql -h postgres -U postgres -d $DBNAME -c "CREATE TABLE users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER,  max_enrollments INTEGER)"
+psql -h postgres -U postgres -d $DBNAME -c "CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64))"
+psql -h postgres -U postgres -d $DBNAME -c "CREATE TABLE certificates (id VARCHAR(64), serial_number bytea NOT NULL, authority_key_identifier bytea NOT NULL, ca_label bytea, status bytea NOT NULL, reason int, expiry timestamp, revoked_at timestamp, pem bytea NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier))"
+psql -h postgres -U postgres -d $DBNAME -c "SELECT character_maximum_length FROM information_schema.columns where table_name = 'users' AND column_name = 'id';" | grep "64"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 64"
 fi
@@ -237,7 +237,7 @@ fi
 $SCRIPTDIR/fabric-ca_setup.sh -K
 
 # Check that the new schema took affect
-psql -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'users';" > $TESTDIR/text.txt
+psql -h postgres -U postgres -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'users';" > $TESTDIR/text.txt
 grep -E 'id|255' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
@@ -250,7 +250,7 @@ grep -E 'affiliation|1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should have character limit of 1024"
 fi
-psql -d $DBNAME -c "SELECT data_type FROM information_schema.columns where table_name = 'users' AND column_name = 'attributes';" | grep "text"
+psql -h postgres -U postgres -d $DBNAME -c "SELECT data_type FROM information_schema.columns where table_name = 'users' AND column_name = 'attributes';" | grep "text"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'affiliation' should be type 'text'"
 fi
@@ -259,7 +259,7 @@ if [ $? != 0 ]; then
     ErrorMsg "Database column 'incorrect_passwords_attempts' failed to be created"
 fi
 
-psql -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'affiliations';" > $TESTDIR/text.txt
+psql -h postgres -U postgres -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'affiliations';" > $TESTDIR/text.txt
 grep -E 'name|1024' $TESTDIR/text.txt
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'name' should have character limit of 1024"
@@ -269,7 +269,7 @@ if [ $? != 0 ]; then
     ErrorMsg "Database column 'prekey' should have character limit of 1024"
 fi
 
-psql -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'certificates' AND column_name = 'id';" | grep "255"
+psql -h postgres -U postgres -d $DBNAME -c "SELECT column_name, character_maximum_length FROM information_schema.columns where table_name = 'certificates' AND column_name = 'id';" | grep "255"
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
 fi
