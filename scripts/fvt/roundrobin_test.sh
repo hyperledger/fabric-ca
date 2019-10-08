@@ -35,17 +35,6 @@ for driver in sqlite3 mysql postgres ; do
    $SCRIPTDIR/registerAndEnroll.sh -u "${USERS[*]}"
    test $? -ne 0 && ErrorMsg "registerAndEnroll failed"
    reenroll admin
-   if ! $(${FABRIC_TLS:-false}); then
-      nums=$((NUM_SERVERS-1))
-      for s in $(eval echo {0..$nums}); do
-         curl -s http://$HOST/ |
-            awk -v s="server${s}\"" '$0~s'|
-               html2text |
-                  egrep "HTTP|server${s}"
-         verifyServerTraffic $HOST server${s} $EXPECTED_DISTRIBUTION
-         test $? -ne 0 && ErrorMsg "verifyServerTraffic failed"
-      done
-   fi
    $SCRIPTDIR/fabric-ca_setup.sh -L
 done
 $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH

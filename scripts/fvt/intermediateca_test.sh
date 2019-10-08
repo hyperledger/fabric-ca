@@ -11,14 +11,12 @@ FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
-PROTO="http://"
 ROOT_CA_ADDR=localhost
 TLSDIR="$TDIR/tls"
 NUMINTCAS=8
 MAXENROLL=$((2*NUMINTCAS))
 RC=0
 TDIR=/tmp/intermediateca-tests
-PROTO="http://"
 ROOT_CA_ADDR=localhost
 CA_PORT=7054
 TLSDIR="$TDIR/tls"
@@ -59,12 +57,10 @@ EOF
 
 function createRootCA() {
    # Start RootCA
-   $($FABRIC_TLS) && tlsopts="--tls.enabled \
-                              --tls.certfile $TLSDIR/rootTlsCa-cert.pem \
-                              --tls.keyfile $TLSDIR/rootTlsCa-key.pem \
-                              --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
-                              --db.tls.client.certfile $PGSSLCERT \
-                              --db.tls.client.keyfile $PGSSLKEY"
+   tlsopts="--tls.enabled \
+            --tls.certfile $TLSDIR/rootTlsCa-cert.pem \
+            --tls.keyfile $TLSDIR/rootTlsCa-key.pem"
+
    mkdir -p "$TDIR/root"
    $SCRIPTDIR/fabric-ca_setup.sh -I -x "$TDIR/root" -d $driver -m $MAXENROLL -a
    FABRIC_CA_SERVER_HOME="$TDIR/root" fabric-ca-server start \
@@ -79,14 +75,11 @@ function createIntCA() {
    i=0;while test $((i++)) -lt $NUMINTCAS; do
       mkdir -p "$TDIR/int${i}"
       cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${i}/runFabricCaFvt.yaml"
-      $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
-                                 --tls.keyfile $TLSDIR/intFabCaTls${i}-key.pem \
-                                 --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
-                                 --db.tls.client.certfile $PGSSLCERT \
-                                 --db.tls.client.keyfile $PGSSLKEY \
-                                 --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
-                                 --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
-                                 --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${i}-key.pem"
+      tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
+                             --tls.keyfile $TLSDIR/intFabCaTls${i}-key.pem \
+                             --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
+                             --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${i}-cert.pem \
+                             --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${i}-key.pem"
       ADDR=127.0.${i}.1
       FABRIC_CA_SERVER_HOME="$TDIR/int${i}" fabric-ca-server start --csr.hosts $ADDR -c $TDIR/int${i}/runFabricCaFvt.yaml \
                                            --address $ADDR $tlsopts -b admin:adminpw \
@@ -103,14 +96,11 @@ function createFailingCA {
    last=$((NUMINTCAS+1))
    mkdir -p "$TDIR/int${last}"
    cp "$TDIR/intFabricCaFvt.yaml" "$TDIR/int${last}/runFabricCaFvt.yaml"
-   $($FABRIC_TLS) && tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
-                              --tls.keyfile $TLSDIR/intFabCaTls${last}-key.pem \
-                              --db.tls.certfiles $FABRIC_CA_DATA/$TLS_BUNDLE \
-                              --db.tls.client.certfile $PGSSLCERT \
-                              --db.tls.client.keyfile $PGSSLKEY \
-                              --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
-                              --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
-                              --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${last}-key.pem"
+   tlsopts="--tls.enabled --tls.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
+                          --tls.keyfile $TLSDIR/intFabCaTls${last}-key.pem \
+                          --intermediate.tls.certfiles $TLSDIR/tlsroots.pem \
+                          --intermediate.tls.client.certfile $TLSDIR/intFabCaTls${last}-cert.pem \
+                          --intermediate.tls.client.keyfile $TLSDIR/intFabCaTls${last}-key.pem"
    FABRIC_CA_SERVER_HOME="$TDIR/int${last}" fabric-ca-server init --csr.hosts 127.0.${last}.1 -c "$TDIR/int${last}/runFabricCaFvt.yaml" \
                                            --address 127.0.${last}.1 $tlsopts -b admin:adminpw \
                                            -u ${PROTO}intermediateCa${last}:intermediateCa${last}pw@$ADDR:$CA_DEFAULT_PORT -d 2>&1 | tee $TDIR/int${last}/server.log
@@ -222,14 +212,6 @@ function reenrollUser() {
    return $rc
 }
 
-function setTLS() {
-: ${FABRIC_TLS:="false"}
-if $($FABRIC_TLS); then
-   setupTLScerts
-   PROTO="https://"
-fi
-}
-
 function genIntCAConfig() {
    cp $TDIR/root/runFabricCaFvt.yaml "$TDIR/intFabricCaFvt.yaml"
    sed -i "s@\(^[[:blank:]]*maxpathlen: \).*@\1 0@
@@ -243,8 +225,7 @@ for driver in postgres mysql; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $TDIR/root -D -d $driver
    rm -rf $TDIR
 
-   # if ENV FABRIC_TLS=true, use TLS
-   setTLS
+   setupTLScerts
 
    createRootCA || ErrorExit "Failed to create root CA"
 

@@ -41,8 +41,7 @@ INTUSER="intermediateCa16"
 INTPSWD="intermediateCa16pw"
 SHELL=/bin/bash
 
-setTLS
-export SHELL PROXY_PORT ROOTDIR ITERATIONS USERNAME PROTO TLSOPT FABRIC_CA_CLIENTEXEC ENROLLCERT
+export SHELL PROXY_PORT ROOTDIR ITERATIONS USERNAME PROTO FABRIC_CA_CLIENTEXEC ENROLLCERT
 
 function enrollAdmin() {
    local port="$1"
@@ -151,24 +150,6 @@ function showUsers() {
    $SCRIPTDIR/fabric-ca_setup.sh -L -d $DRIVER  \
         -n $NUMSERVER -u $NUMCAS 2>/dev/null |
    awk -v u="$USERNAME" '$1~u'
-}
-
-function verifyDistribution() {
-   case "$FABRIC_TLS" in
-      1|y|yes|true) return 0 ;;
-   esac
-
-   local numCluster="$1"
-   local backendName="$2"
-   local expectedCount="$3"
-   local percentage="$4"
-
-   for s in $(seq $numCluster); do
-      verifyServerTraffic "" "/$backendName$((s-1))""" $expectedCount $percentage
-      test $? -eq 0 &&
-         echo     "         >>>>>>>>>>  VerifyServerTraffic for $backendName$s...PASSED" ||
-         ErrorMsg "         >>>>>>>>>>  VerifyServerTraffic for $backendName$s...FAILED"
-   done
 }
 
 export -f enrollAdmin register enrollUsers revokeUsers reenrollUsers
@@ -294,9 +275,6 @@ EOF
       fi
 
       count=0
-      # for each block of requests, we will validate round-robin
-      # distribution to all participating CAs
-      verifyDistribution $NUMSERVER $backend $count 0
 
       echo -e "      >>>>>>>>>>  Testing $stype CA using DB name $dbname"
 
@@ -309,7 +287,6 @@ EOF
       checkStatus $userdir/adminEnroll.log $((numReq*NUMCAS)) || ErrorExit "Enroll of admins failed"
       # Register $NUMUSERS users and validate their status in the DB
       test $NUMCAS -lt $NUMSERVER && count=1 || count=$((NUMCAS/NUMSERVER))
-      verifyDistribution $NUMSERVER $backend $count
 
       # Register $NUMUSERS users and validate their status in the DB
       printf "         >>>>>>>>>>  Registering $NUMUSERS users (${NUMCAS}x${ITERATIONS})..."
@@ -320,7 +297,6 @@ EOF
           echo -e "         >>>>>>>>>>  Validating user status in DB...PASSED" ||
           ErrorMsg "         >>>>>>>>>>  Validating user status in DB...FAILED"
       count=$((count+$((ITERATIONS*NUMCAS/NUMSERVER)) ))
-      verifyDistribution $NUMSERVER $backend $count
 
       # Enroll $NUMUSERS users and validate their status in the DB
       printf "         >>>>>>>>>>  Enrolling $NUMUSERS users (${NUMCAS}x${ITERATIONS})..."
@@ -331,7 +307,6 @@ EOF
           echo -e "         >>>>>>>>>>  Validating user status in DB...PASSED" ||
           ErrorMsg "         >>>>>>>>>>  Validating user status in DB...FAILED"
       count=$((count+$((ITERATIONS*NUMCAS/NUMSERVER)) ))
-      verifyDistribution $NUMSERVER $backend $count
 
       # Do all of the following simultaneously
       #  enroll      Enroll an identity
@@ -385,8 +360,6 @@ EOF
       parallel --no-notice --jobs $NUMJOBS --joblog $userdir/cmd.log < $userdir/cmd.lst
       checkStatus $userdir/cmd.log $((ITERATIONS*3*NUMCAS))
       count=$((count+$((ITERATIONS*3*NUMCAS/NUMSERVER))))
-      sleep 1
-      verifyDistribution $NUMSERVER $backend $count
 
       sleep 1
       # Lastly, 1/4 of user certs should be revoked
