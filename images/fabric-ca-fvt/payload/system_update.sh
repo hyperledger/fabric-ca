@@ -16,13 +16,10 @@ sed -i -e 's/^[[:blank:]]*#[[:blank:]]*en_US.UTF-8[[:blank:]]*UTF-8/en_US.UTF-8 
 printf "LANG=en_US.UTF-8\nLANGUAGE=en_US.UTF-8\n" > /etc/default/locale
 dpkg-reconfigure locales && update-locale LANG=en_US.UTF-8 || let RC+=1
 
-# Install more test depedencies
-echo "mysql-server mysql-server/root_password password mysql" | debconf-set-selections
-echo "mysql-server mysql-server/root_password_again password mysql" | debconf-set-selections
 apt-get -y install --no-install-recommends rsyslog bc vim lsof sqlite3 haproxy \
            postgresql-client-9.5 isag jq git html2text \
            debconf-utils zsh htop python2.7-minimal libpython2.7-stdlib \
-           mysql-client  mysql-common mysql-server parallel || let RC+=1
+           mysql-client parallel || let RC+=1
 apt-get -y install ssl-cert || let RC+=1
 apt-get -y autoremove
 

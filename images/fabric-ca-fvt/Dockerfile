@@ -34,7 +34,7 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_SERVER_KEY=FabricTlsServerEEkey.pem \
     TLS_CLIENT_CERT=FabricTlsClientEEcert.pem \
     TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
-    MYSQLDATA=/var/lib/mysql
+    MYSQLHOST="MySQL_Server_5.7.27_Auto_Generated_Server_Certificate"
 
 # setup scripts for slapd, postgres, mysql, and openssl
 COPY --from=fabric-ca-builder \
@@ -52,7 +52,6 @@ RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
 
 RUN ${FABRIC_CA_DATA}/system_update.sh
 RUN ${FABRIC_CA_DATA}/slapd_setup.sh
-RUN ${FABRIC_CA_DATA}/mysql_setup.sh
 
 # Install fabric-ca dependencies
 RUN go get github.com/go-sql-driver/mysql

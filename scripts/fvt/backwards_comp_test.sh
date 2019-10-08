@@ -28,7 +28,7 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME
+  datasource: root:mysql@tcp(${MYSQLHOST}:$MYSQL_PORT)/$DBNAME
 
 registry:
   # Maximum number of times a password/secret can be reused for enrollment
@@ -79,7 +79,7 @@ function resetDB {
     postgres)
       psql -h postgres -U postgres -d postgres -c "DROP DATABASE $DBNAME" ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE $DBNAME" ;;
+      mysql --host=${MYSQLHOST} --user=root --password=mysql -e "DROP DATABASE $DBNAME" ;;
     *)
       echo "Invalid database type"
       exit 1
@@ -94,7 +94,7 @@ function createDB {
     postgres)
       psql -h postgres -U postgres -d postgres -c "CREATE DATABASE $DBNAME" ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME" ;;
+      mysql --host=${MYSQLHOST} --user=root --password=mysql -e "CREATE DATABASE $DBNAME" ;;
     *)
       echo "Invalid database type"
       exit 1
@@ -126,10 +126,10 @@ function loadUsers {
           s/datasource:.*/datasource: host=postgres port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME sslmode=disable/" $TESTCONFIG
       ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+      mysql --host=${MYSQLHOST} --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
       ;;
     *)
       echo "Invalid database type"
@@ -171,15 +171,15 @@ function validateUsers {
       fi
       ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'registrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq 1; then
         ErrorMsg "Failed to correctly migrate user 'registrar' on mysql"
       fi
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'notregistrar')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq 0; then
         ErrorMsg "Failed to correctly migrate user 'notregistrar' on mysql"
       fi
-      mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
+      mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "SELECT attributes FROM users WHERE (id = 'a')" | grep '"name":"hf.Registrar.Attributes","value":"*"'
       if test $? -eq $result; then
         ErrorMsg "Failed to correctly migrate user 'a' on mysql"
       fi
@@ -219,10 +219,10 @@ for driver in sqlite3 postgres mysql; do
     psql -h postgres -U postgres -d fabric_ca -c "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   mysql)
-    mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE fabric_ca"
-    mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
-    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
-    mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
+    mysql --host=${MYSQLHOST} --user=root --password=mysql -e "DROP DATABASE fabric_ca"
+    mysql --host=${MYSQLHOST} --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
+    mysql --host=${MYSQLHOST} --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
+    mysql --host=${MYSQLHOST} --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
   *)
     echo "Invalid database type"

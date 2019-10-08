@@ -15,7 +15,7 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca?tls=custom
+  datasource: root:mysql@tcp($MYSQLHOST:$MYSQL_PORT)/fabric_ca?tls=custom
   tls:
      enabled: true
      certfiles:
