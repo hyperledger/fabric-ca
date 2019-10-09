@@ -28,7 +28,7 @@ function verifyResult() {
    artifact="$1"
    expected_subject="$2"
    case $artifact in
-      cert)  actual_subject="$(openssl x509 -in $ADMINCERT -noout -subject -nameopt rfc2253 |sed 's/subject= //')"
+      cert)  actual_subject="$(openssl x509 -in $ADMINCERT -noout -subject -nameopt rfc2253 |sed 's/subject=//')"
       ;;
       csr) actual_subject="$(openssl req -in $CSR -noout -subject -nameopt rfc2253 |sed 's/subject=//')"
       ;;
