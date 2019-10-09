@@ -122,21 +122,6 @@ function initFabricCa() {
     return $rc1
   fi
   echo "FABRIC_CA server initialized"
-  if $($FABRIC_CA_DEBUG); then
-    openssl x509 -in $DATADIR/$DST_CERT -noout -issuer -subject -serial \
-      -dates -nameopt RFC2253 | sed 's/^/   /'
-    openssl x509 -in $DATADIR/$DST_CERT -noout -text |
-      awk '
-            /Subject Alternative Name:/ {
-               gsub(/^ */,"")
-               printf $0"= "
-               getline; gsub(/^ */,"")
-               print
-            }' | sed 's/^/   /'
-    openssl x509 -in $DATADIR/$DST_CERT -noout -pubkey |
-      openssl $KEYTYPE -pubin -noout -text 2>/dev/null | sed 's/Private/Public/'
-    openssl $KEYTYPE -in $DATADIR/$DST_KEY -text 2>/dev/null
-  fi
 }
 
 function startHaproxy() {
