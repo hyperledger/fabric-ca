@@ -10,6 +10,10 @@ EOF
 chmod +x /usr/sbin/policy-rc.d
 dpkg-divert --local --rename --add /sbin/initctl
 
+# Add postgres repo so we can install any version of Postgres Client
+echo 'deb http://apt.postgresql.org/pub/repos/apt/ stretch-pgdg main' >  /etc/apt/sources.list.d/pgdg.list
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
 # Update system
 apt-get -y update && apt-get -y install --no-install-recommends locales
 sed -i -e 's/^[[:blank:]]*#[[:blank:]]*en_US.UTF-8[[:blank:]]*UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
