@@ -63,9 +63,9 @@ Table of Contents
    11. `Enabling TLS`_
    12. `Contact specific CA instance`_
 
-6. `HSM`_
+6. `Configuring an HSM`_
 
-   1. `Configuring Fabric CA server to use softhsm2`_
+   1. `Example`_
 
 7. `File Formats`_
 
@@ -214,14 +214,14 @@ and execute the following:
 
     # docker-compose up -d
 
-This will pull down the specified fabric-ca image in the compose file
+This will pull down the specified fabric-ca image in the Compose file
 if it does not already exist, and start an instance of the fabric-ca
 server.
 
 Building Your Own Docker image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can build and start the server via docker-compose as shown below.
+You can build and start the server via Docker Compose as shown below.
 
 .. code:: bash
 
@@ -230,7 +230,7 @@ You can build and start the server via docker-compose as shown below.
     cd docker/server
     docker-compose up -d
 
-The hyperledger/fabric-ca docker image contains both the fabric-ca-server and
+The hyperledger/fabric-ca Docker image contains both the fabric-ca-server and
 the fabric-ca-client.
 
 .. code:: bash
@@ -846,7 +846,7 @@ to return an equivalent result:
      value: attr("gidNumber") =~ "1000[0-5]$" || attr("mail") == "root@example.com"
 
 The following is a sample configuration section for the default setting
-for the OpenLDAP server whose docker image is at
+for the OpenLDAP server whose Docker image is at
 ``https://github.com/osixia/docker-openldap``.
 
 .. code:: yaml
@@ -857,7 +857,7 @@ for the OpenLDAP server whose docker image is at
        userfilter: (uid=%s)
 
 See ``FABRIC_CA/scripts/run-ldap-tests`` for a script which starts an
-OpenLDAP docker image, configures it, runs the LDAP tests in
+OpenLDAP Docker image, configures it, runs the LDAP tests in
 ``FABRIC_CA/cli/server/ldap/ldap_test.go``, and stops the OpenLDAP
 server.
 
@@ -2301,21 +2301,22 @@ filter as follows:
 
 `Back to Top`_
 
-HSM
----
+Configuring an HSM
+------------------
 By default, the Fabric CA server and client store private keys in a PEM-encoded file,
 but they can also be configured to store private keys in an HSM (Hardware Security Module)
 via PKCS11 APIs. This behavior is configured in the BCCSP (BlockChain Crypto Service Provider)
-section of the server’s or client’s configuration file.
+section of the server’s or client’s configuration file. Currently, Fabric only
+supports the PKCS11 standard to communicate with an HSM.
 
-Configuring Fabric CA server to use softhsm2
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example
+~~~~~~~
 
-This section shows how to configure the Fabric CA server or client to use a software version
-of PKCS11 called softhsm (see https://github.com/opendnssec/SoftHSMv2).
+The following example demonstrates how to configure the Fabric CA server or
+client to use a software version of PKCS11 called SoftHSM (see https://github.com/opendnssec/SoftHSMv2).
 
-After installing softhsm, make sure to set your SOFTHSM2_CONF environment variable to
-point to the location where the softhsm2 configuration file is stored. The config file looks like
+After installing SoftHSM, make sure to set your SOFTHSM2_CONF environment variable to
+point to the location where the SoftHSM2 configuration file is stored. The config file looks like
 
 .. code::
 
@@ -2323,14 +2324,12 @@ point to the location where the softhsm2 configuration file is stored. The confi
   objectstore.backend = file
   log.level = INFO
 
-You can find example configuration file named softhsm2.conf under testdata directory.
+You can find example configuration file named SoftHSM2.conf under testdata directory.
 
 Create a token, label it “ForFabric”, set the pin to ‘98765432’
-(refer to softhsm documentation).
+(refer to SoftHSM documentation).
 
-
-
-You can use both the config file and environment variables to configure BCCSP
+You can use both the config file and environment variables to configure BCCSP.
 For example, set the bccsp section of Fabric CA server configuration file as follows.
 Note that the default field’s value is PKCS11.
 
@@ -2360,6 +2359,31 @@ And you can override relevant fields via environment variables as follows:
   FABRIC_CA_SERVER_BCCSP_PKCS11_LIBRARY=/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so
   FABRIC_CA_SERVER_BCCSP_PKCS11_PIN=98765432
   FABRIC_CA_SERVER_BCCSP_PKCS11_LABEL=ForFabric
+
+
+The prebuilt Hyperledger Fabric Docker images are not enabled to use PKCS11. If
+you are deploying the Fabric CA using Docker, you need to build your own image
+and enable PKCS11 using the following command:
+
+.. code:: bash
+
+  make docker GO_TAGS=pkcs11
+
+You also need to ensure that the PKCS11 library is available to be used by the
+CA by installing it or mounting it inside the container. If you are deploying
+your Fabric CA using Docker Compose, you can update your Compose files to mount
+the SoftHSM library and configuration file inside the container using volumes.
+As an example, you would add the following environment and volumes variables to
+your Docker Compose file:
+
+.. code::
+
+  environment:
+     - SOFTHSM2_CONF=/etc/hyperledger/fabric/config.file
+  volumes:
+     - /home/softhsm/config.file:/etc/hyperledger/fabric/config.file
+     - /usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so:/etc/hyperledger/fabric/libsofthsm2.so
+
 
 `Back to Top`_
 
@@ -2399,7 +2423,7 @@ Troubleshooting
    a. You issue a `fabric-ca-client enroll` command, creating an enrollment certificate (i.e. an ECert).
       This stores a copy of the ECert in the fabric-ca-server's database.
    b. The fabric-ca-server's database is deleted and recreated, thus losing the ECert from step 'a'.
-      For example, this may happen if you stop and restart a docker container hosting the fabric-ca-server,
+      For example, this may happen if you stop and restart a Docker container hosting the fabric-ca-server,
       but your fabric-ca-server is using the default sqlite database and the database file is not stored
       on a volume and is therefore not persistent.
    c. You issue a `fabric-ca-client register` command or any other command which tries to use the ECert from
@@ -2448,7 +2472,7 @@ Troubleshooting
       5. Delete any previously issued enrollment certificates and get new certificates by enrolling again.
 
    b. You deleted and recreated the CA signing key and certificate used by the Fabric CA Server after generating the genesis block.
-      This can happen if the Fabric CA Server is running in a docker container, the container was restarted, and its home directory
+      This can happen if the Fabric CA Server is running in a Docker container, the container was restarted, and its home directory
       is not on a volume mount.  In this case, the Fabric CA Server will create a new CA signing key and certificate.
 
       Assuming that you can not recover the original CA signing key, the only way to recover from this scenario is to update the
@@ -2456,4 +2480,3 @@ Troubleshooting
 
 .. Licensed under Creative Commons Attribution 4.0 International License
    https://creativecommons.org/licenses/by/4.0/
-ƒ
