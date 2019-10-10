@@ -68,11 +68,6 @@ function checkAff {
 }
 
 function genConfig {
-    postgresTls='sslmode=disable'
-   case "$FABRIC_TLS" in
-      true) postgresTls='sslmode=require'; mysqlTls='?tls=custom' ;;
-   esac
-
    mkdir -p $FABRIC_CA_SERVER_HOME
    # Create base configuration using mysql
    cat > $MYSQLSERVERCONFIG <<EOF
@@ -80,17 +75,10 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca$mysqlTls
-  tls:
-     enabled: $FABRIC_TLS
-     certfiles:
-       - $TLS_ROOTCERT
-     client:
-       certfile: $TLS_CLIENTCERT
-       keyfile: $TLS_CLIENTKEY
+  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/fabric_ca
 
 tls:
-  enabled: $FABRIC_TLS
+  enabled: true
   certfile: $TLS_SERVERCERT
   keyfile: $TLS_SERVERKEY
 
@@ -139,7 +127,7 @@ EOF
    cp $MYSQLSERVERCONFIG $PGSQLSERVERCONFIG
    cp $MYSQLSERVERCONFIG2 $PGSQLSERVERCONFIG2
    sed -i "s/type: mysql/type: postgres/
-          s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=fabric_ca $postgresTls/" \
+          s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=fabric_ca/" \
    $PGSQLSERVERCONFIG $PGSQLSERVERCONFIG2
 }
 

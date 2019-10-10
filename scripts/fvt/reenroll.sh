@@ -14,7 +14,7 @@ HOST="http://localhost:$PROXY_PORT"
 RUNCONFIG="$TESTDATA/postgres.json"
 INITCONFIG="$TESTDATA/csr_ecdsa256.json"
 RC=0
-$($FABRIC_TLS) && HOST="https://localhost:$PROXY_PORT"
+HOST="https://localhost:$PROXY_PORT"
 
 . $SCRIPTDIR/fabric-ca_utils
 

@@ -103,16 +103,6 @@ for driver in sqlite3 postgres mysql; do
       test $? -ne 0 && ErrorMsg "Failed to reenroll user${i}"
    done
 
-   if ! $(${FABRIC_TLS:-false}); then
-      nums=$((NUM_SERVERS-1))
-      for s in $(eval echo {0..$nums}); do
-         curl -s http://${HOST}/ | awk -v s="server${s}" '$0~s'|html2text|grep HTTP
-         verifyServerTraffic $HOST server${s} $EXPECTED_DISTRIBUTION
-         test $? -ne 0 && ErrorMsg "Distributed traffic to server FAILED"
-         sleep .1
-      done
-   fi
-
    keyStore="$CA_CFG_PATH/user1/$MSP_KEY_DIR"
    certStore="$CA_CFG_PATH/user1/$MSP_CERT_DIR"
    for cert in EXPIRED UNRIPE UNSUPPORTED; do

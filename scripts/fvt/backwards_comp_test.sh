@@ -20,10 +20,6 @@ DBNAME=fabric_ca
 function genConfig {
   local version=$1
   : ${version:=""}
-    postgresTls='sslmode=disable'
-   case "$FABRIC_TLS" in
-      true) postgresTls='sslmode=require'; mysqlTls='?tls=custom' ;;
-   esac
 
    mkdir -p $FABRIC_CA_SERVER_HOME
    # Create base configuration using mysql
@@ -32,14 +28,7 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME$mysqlTls
-  tls:
-     enabled: $FABRIC_TLS
-     certfiles:
-       - $TLS_ROOTCERT
-     client:
-       certfile: $TLS_CLIENTCERT
-       keyfile: $TLS_CLIENTKEY
+  datasource: root:mysql@tcp(localhost:$MYSQL_PORT)/$DBNAME
 
 registry:
   # Maximum number of times a password/secret can be reused for enrollment
@@ -78,7 +67,7 @@ EOF
 
   if [[ $driver = "postgres" ]]; then
     sed -i "s/type: mysql/type: postgres/
-        s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME $postgresTls/" $TESTCONFIG
+        s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME/" $TESTCONFIG
   fi
 
 }

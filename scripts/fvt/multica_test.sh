@@ -12,7 +12,6 @@ FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 TESTDATA="$FABRIC_CA/testdata"
 . $SCRIPTDIR/fabric-ca_utils
-PROTO="http://"
 TLSDIR="$TESTDATA"
 NUMINTCAS=4
 MAXENROLL=$((2*NUMINTCAS))
@@ -123,13 +122,6 @@ function resetDB() {
   fi
 }
 
-#function setTLS() {
-#: ${FABRIC_TLS:="false"}
-#if $($FABRIC_TLS); then
-#   PROTO="https://"
-#fi
-#}
-
 ### Start Test ###
 for driver in postgres mysql; do
 
@@ -147,8 +139,6 @@ for driver in postgres mysql; do
    $SCRIPTDIR/fabric-ca_setup.sh -R -x $TDIR/ca0 -D -d $driver
    rm -rf $TDIR
 
-   # if ENV FABRIC_TLS=true, use TLS
-   setTLS
    resetDB $driver
 
    createRootCA || ErrorExit "Failed to create root CA"

@@ -314,7 +314,6 @@ export -f register
 export CA_CFG_PATH=$TESTDIR
 $SCRIPTDIR/fabric-ca_setup.sh -D -R -x $TESTDIR
 mkdir -p $TESTDIR
-setTLS
 URI="-u ${PROTO}@$CA_HOST_ADDRESS:$PROXY_PORT $TLSOPT"
 
 echo -e "\n\n\n =============> Setting up Server"

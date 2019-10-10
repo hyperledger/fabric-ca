@@ -127,7 +127,6 @@ PSWD=thisIs_aLongUniquePasswordWith_aMinisculePossibilityOfBeingDuplicated
 
 $SCRIPTDIR/fabric-ca_setup.sh -R
 mkdir -p $TESTDIR
-setTLS
 testBootstrap
 testCaRegistry
 testExternalServers
