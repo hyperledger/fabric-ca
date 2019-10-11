@@ -75,7 +75,7 @@ debug: true
 
 db:
   type: mysql
-  datasource: root:mysql@tcp($MYSQLHOST:$MYSQL_PORT)/fabric_ca
+  datasource: root:mysql@tcp(mysql:$MYSQL_PORT)/fabric_ca
 
 tls:
   enabled: true
@@ -143,8 +143,8 @@ echo "############## Test 1 ##############"
 echo "Test1: Database and tables exist, plus an already bootstrapped user is present in the users table"
 echo "Test1: Fabric-ca should bootstap a newly added identity to the config to the user table"
 echo "Creating '$DBNAME' MySQL database and tables before starting up server"
-mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database $DBNAME;" -e "create database $DBNAME;" &> /dev/null
-mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"  &> /dev/null
+mysql --host=mysql --user=root --password=mysql -e "drop database $DBNAME;" -e "create database $DBNAME;" &> /dev/null
+mysql --host=mysql --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"  &> /dev/null
 
 # Starting server first time with one bootstrap user
 SERVERLOG="$FABRIC_CA_SERVER_HOME/serverlog.test1a.txt"
@@ -170,7 +170,7 @@ echo "############## Test 2 ##############"
 echo "Test2: Database exist but tables do not exist"
 echo "Test2: Fabric-ca should create the tables and bootstrap"
 echo "Dropping and creating an empty '$DBNAME' database"
-mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca;" -e "create database fabric_ca;" &> /dev/null
+mysql --host=mysql --user=root --password=mysql -e "drop database fabric_ca;" -e "create database fabric_ca;" &> /dev/null
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"
@@ -186,7 +186,7 @@ echo "############## Test 3 ##############"
 echo "Test3: Database does not exist"
 echo "Test3: Fabric-ca should create the database and tables, and bootstrap"
 echo "Dropping '$DBNAME' database"
-mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca;" &> /dev/null
+mysql --host=mysql --user=root --password=mysql -e "drop database fabric_ca;" &> /dev/null
 
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -g $MYSQLSERVERCONFIG2 2>&1 | tee $SERVERLOG &
 pollLogForMsg "Listening on https*://0.0.0.0:$CA_DEFAULT_PORT" $SERVERLOG || ErrorExit "Failed to log CA startup message"

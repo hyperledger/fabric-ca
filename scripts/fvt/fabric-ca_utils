@@ -14,7 +14,6 @@ export LDAP_PORT="636"
 export LDAP_PROTO="ldaps://"
 export LDAP_TLS_PROTO="ldaps://"
 export POSTGRES_PORT="5432"
-export PGPASSWORD='postgres'
 export MSP_KEY_DIR='msp/keystore'
 export MSP_CERT_DIR='msp/signcerts'
 export FABRIC_CA_DATA="/etc/hyperledger/fabric-ca"
@@ -979,8 +978,8 @@ function testStatus() {
          cert_status_code="$(printf "$cert_status" | awk -F'|' -v s=$user '$1~s {print $5}')"
       ;;
       mysql)
-         user_status_code=$(mysql --host=${MYSQLHOST} --user=root --password=mysql -e "SELECT * FROM users WHERE (id=\"$user\");" $dbname| awk -F'\t' -v u=$user '$1==u {print $6}')
-         cert_status_code=$(mysql --host=${MYSQLHOST} --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\") order by revoked_at;" $dbname| awk -F'\t' -v u=$user '$1==u {print $5}')
+         user_status_code=$(mysql --host=mysql --user=root --password=mysql -e "SELECT * FROM users WHERE (id=\"$user\");" $dbname| awk -F'\t' -v u=$user '$1==u {print $6}')
+         cert_status_code=$(mysql --host=mysql --user=root --password=mysql -e "SELECT * FROM certificates WHERE (id=\"$user\") order by revoked_at;" $dbname| awk -F'\t' -v u=$user '$1==u {print $5}')
       ;;
       postgres)
          user_status_code=$(/usr/bin/psql -U postgres -h postgres -c "SELECT id,state FROM users WHERE id='$user';" --dbname=$dbname | awk -v u=$user -F'|' '$1~u {gsub(/ /,"");print $2}')

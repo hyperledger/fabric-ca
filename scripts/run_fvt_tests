@@ -18,9 +18,10 @@ function runTests() {
   echo ""
 
   tests="$(find $SCRIPTDIR -maxdepth 1 -name "*test.*sh"| sort)"
-  for cmd in $tests; do
+#  for cmd in $tests; do
+    cmd=$SCRIPTDIR/db_smoke_test.sh
     runTest "${cmd}"
-  done
+#  done
 }
 
 function runTest() {

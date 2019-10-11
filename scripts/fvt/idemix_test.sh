@@ -20,7 +20,7 @@ function idemixCleanUp() {
     if [ "$1" = "postgres" ]; then
         psql -h postgres -U postgres -d postgres -c "DROP DATABASE fabric_ca"
     else
-        mysql --host=${MYSQLHOST} --user=root --password=mysql -e "drop database fabric_ca;"
+        mysql --host=mysql --user=root --password=mysql -e "drop database fabric_ca;"
     fi
     rm -rf $CA_CFG_PATH
 }

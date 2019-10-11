@@ -52,12 +52,6 @@ PROJECT_VERSION=$(BASE_VERSION)
 FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
-ifeq ($(ARCH),s390x)
-PG_VER=10
-else
-PG_VER=10
-endif
-
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
@@ -150,10 +144,9 @@ build/image/fabric-ca-fvt/$(DUMMY):
 	$(eval TARGET = ${patsubst build/image/%/$(DUMMY),%,${@}})
 	@echo "Docker:  building $(TARGET) image"
 	$(DBUILD) -f images/$(TARGET)/Dockerfile \
-		--build-arg BASEIMAGE_RELEASE=${BASEIMAGE_RELEASE} \
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
-		--build-arg PG_VER=${PG_VER} \
+		--build-arg GO_VER=${GO_VER} \
 		-t $(BASE_DOCKER_NS)/$(TARGET) .
 	@touch $@
 
@@ -210,6 +203,9 @@ ci-tests: all-tests docs fvt-tests
 
 fvt-tests: docker-clean docker-fvt
 	@scripts/run_fvt_docker
+
+fvt-tests-ci:
+	@ci/setup_fvt "${DOCKER_GO_LDFLAGS}"
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})

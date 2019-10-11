@@ -5,37 +5,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-POSTGRES_PORT=5432
-MYSQL_PORT=3306
-LDAP_PORT=389
-PORTS=($LDAP_PORT)
+function testConnection() {
+  timeout=5
+  i=0
+  while ! nc -zvt -w 5 "${1}" "${2}"; do
+    sleep 5
+    test $i -gt $timeout && break
+    i=$((i + 1))
+  done
+}
 
-timeout=30
 /etc/init.d/slapd start &
 
-for port in ${PORTS[*]}; do
-  i=0
-  while ! nc -zvnt -w 5 $HOSTADDR $port; do
-    sleep 1
-    test $i -gt $timeout && break
-    let i++
-  done
-done
+testConnection mysql 3306  # Test MySQL container is ready
+testConnection localhost 389        # Test LDAP is running
+testConnection postgres 5432        # Test Postgres container is ready
 
-i=0
-while ! nc -zvt -w 5 postgres $POSTGRES_PORT; do
-  sleep 1
-  test $i -gt $timeout && break
-  let i++
-done
-
-i=0
-while ! nc -zvt -w 5 "${MYSQLHOST}" $MYSQL_PORT; do
-  sleep 1
-  test $i -gt $timeout && break
-  let i++
-done
-
-mysql -h ${MYSQLHOST} -u root --password=mysql -e "SET @@global.sql_mode=\"STRICT_TRANS_TABLES\""
+mysql -h mysql -u root --password=mysql -e "SET @@global.sql_mode=\"STRICT_TRANS_TABLES\""
 
 exec "$@"

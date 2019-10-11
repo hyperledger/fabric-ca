@@ -8,8 +8,9 @@ slapd slapd/internal/adminpw password $LDAPPASWD\n\
 slapd slapd/password1 password $LDAPPASWD\n\
 slapd slapd/domain string example.com\n\
 slapd shared/organization string example.com" | debconf-set-selections
-apt-get -y update
-apt-get -y install --no-install-recommends slapd ldap-utils
+
+sudo apt-get install -y slapd ldap-utils ssl-cert
+
 adduser openldap ssl-cert
 cp $FABRIC_CA_DATA/$TLS_BUNDLE /etc/ssl/certs/
 cp $FABRIC_CA_DATA/$TLS_SERVER_CERT /etc/ssl/certs/
@@ -26,7 +27,8 @@ sed -i \
 
 /etc/init.d/slapd start || let RC+=1
 
-i=0;while ! nc -znvt $HOSTADDR $LDAPPORT; do
+i=0;
+while ! nc -znvt $HOSTADDR $LDAPPORT; do
     sleep .5
     let i+
     if test $((i/2)) -gt $timeout; then

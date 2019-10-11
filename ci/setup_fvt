@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+set -eu -o pipefail
+set -x
+
+export DEBIAN_FRONTEND="noninteractive"
+export PGPASSWORD="postgres"
+export HOSTADDR="127.0.0.1"
+export LDAPPORT="389"
+export LDAPUSER="admin"
+export LDAPPASWD="adminpw"
+export FABRIC_CA_DATA=/etc/hyperledger/fabric-ca
+export TLS_BUNDLE=FabricTlsPkiBundle.pem
+export TLS_SERVER_CERT=FabricTlsServerEEcert.pem
+export TLS_SERVER_KEY=FabricTlsServerEEkey.pem
+export TLS_CLIENT_CERT=FabricTlsClientEEcert.pem
+export TLS_CLIENT_KEY=FabricTlsClientEEkey.pem
+
+cd "${GOPATH}/src/github.com/hyperledger/fabric-ca"
+
+go build -tags pkcs11 -ldflags "${1}" github.com/hyperledger/fabric-ca/cmd/fabric-ca-server
+go build -tags pkcs11 -ldflags "${1}" github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
+sudo mv fabric-ca* /usr/local/bin
+
+sudo apt-get update
+sudo apt-get install -y openssl \
+                        rsyslog \
+                        bc \
+                        lsof \
+                        sqlite3 \
+                        haproxy \
+                        postgresql-client \
+                        jq \
+                        git \
+                        html2text \
+                        debconf-utils \
+                        python2.7-minimal \
+                        libpython2.7-stdlib \
+                        default-mysql-client \
+                        parallel \
+                        netcat \
+                        wget \
+                        ca-certificates \
+                        locales
+
+sudo mkdir -p ${FABRIC_CA_DATA}
+sudo chmod -R 777 ${FABRIC_CA_DATA}
+cp -r ./images/fabric-ca-fvt/payload/* ${FABRIC_CA_DATA}
+ls ${FABRIC_CA_DATA}
+chmod +x ${FABRIC_CA_DATA}/*sh
+cd ${FABRIC_CA_DATA}
+$FABRIC_CA_DATA/tls_pki.sh
+chmod 600 ${FABRIC_CA_DATA}/${TLS_SERVER_KEY}
+chmod 600 ${FABRIC_CA_DATA}/${TLS_CLIENT_KEY}
+
+# Avoid ERROR:
+#   invoke-rc.d: policy-rc.d denied execution of start.
+echo "#!/bin/sh\nexit 0" | sudo tee /usr/sbin/policy-rc.d
+
+${FABRIC_CA_DATA}/system_update.sh
+${FABRIC_CA_DATA}/slapd_setup.sh
+
+go get github.com/go-sql-driver/mysql
+go get github.com/lib/pq
+
+./images/fabric-ca-fvt/payload/start.sh
+./scripts/run_fvt_tests
