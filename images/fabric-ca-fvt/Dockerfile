@@ -22,18 +22,17 @@ ARG PG_VER
 ENV PATH="/usr/local/go/bin/:${PATH}" \
     DEBIAN_FRONTEND="noninteractive" \
     GOPATH="/opt/gopath" \
-    PGVER=${PG_VER} \
     HOSTADDR="127.0.0.1" \
     LDAPPORT="389" \
     LDAPUSER="admin" \
     LDAPPASWD="adminpw" \
+    PGPASSWORD="postgres" \
     FABRIC_CA_DATA=/etc/hyperledger/fabric-ca \
     TLS_BUNDLE=FabricTlsPkiBundle.pem \
     TLS_SERVER_CERT=FabricTlsServerEEcert.pem \
     TLS_SERVER_KEY=FabricTlsServerEEkey.pem \
     TLS_CLIENT_CERT=FabricTlsClientEEcert.pem \
-    TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
-    MYSQLHOST="MySQL_Server_5.7.27_Auto_Generated_Server_Certificate"
+    TLS_CLIENT_KEY=FabricTlsClientEEkey.pem
 
 RUN apt-get clean && apt-get update && apt-get install openssl -y
 

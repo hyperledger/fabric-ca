@@ -207,7 +207,7 @@ postgresDBCleanup
 #####################################################################
 
 function mysqlDBCleanup() {
-    mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "TRUNCATE TABLE certificates" &> /dev/null
+    mysql --host=mysql --user=root --password=mysql --database=$DBNAME -e "TRUNCATE TABLE certificates" &> /dev/null
 }
 
 function populateMySQLCertsTable() {
@@ -244,7 +244,7 @@ function insertMySQLCertsTable() {
     pem=`cat cert.pem`
 
     # Store the generated certificate in the certificates table
-    mysql --host=${MYSQLHOST} --user=root --password=mysql --database=$DBNAME -e "INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level) VALUES ('$id', '$serial', '$aki', 'ca', 'active', '0', '$expiry', '$revokedAt', '$pem', '1')"
+    mysql --host=mysql --user=root --password=mysql --database=$DBNAME -e "INSERT INTO certificates (id, serial_number, authority_key_identifier, ca_label, status, reason, expiry, revoked_at, pem, level) VALUES ('$id', '$serial', '$aki', 'ca', 'active', '0', '$expiry', '$revokedAt', '$pem', '1')"
 }
 
 #####################################################################

@@ -5,12 +5,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-export FABRIC_FVT_HOST=fabric-fvt
-export MYSQL_DOCKER_CERTS=.mysql_data/mysql
-export MYSQL_DOCKER_HOST=MySQL_Server_5.7.27_Auto_Generated_Server_Certificate
-export MYSQL_VER=5.7
-export PG_VER=9.5
-export POSTGRES_DOCKER_HOST=postgres
 
 function killAndRemove() {
   if [[ "$(docker ps -a -q -f name="${1}")" ]]; then
@@ -20,19 +14,18 @@ function killAndRemove() {
 
 function cleanup() {
   printf "\nCleaning up FVT Docker artifacts...\n"
-  killAndRemove ${MYSQL_DOCKER_HOST}
-  killAndRemove ${POSTGRES_DOCKER_HOST}
-  killAndRemove ${FABRIC_FVT_HOST}
-  if [[ "$(docker network ls -q -f name=fvt)" ]]; then
+  killAndRemove mysql
+  killAndRemove postgres
+  killAndRemove fabric-fvt
+  if [[ "$(docker network ls -q -f name=fvtnet)" ]]; then
     docker network rm fvtnet
   fi
-  rm -rf .mysql_data
 }
 
 cleanup
 docker network create fvtnet
-docker run --network fvtnet -d --name ${POSTGRES_DOCKER_HOST} -e POSTGRES_PASSWORD=postgres postgres:${PG_VER}
-docker run --network fvtnet -d --name ${MYSQL_DOCKER_HOST} -v $(pwd)/${MYSQL_DOCKER_CERTS}:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=mysql mysql:${MYSQL_VER}
-docker run --network fvtnet --name ${FABRIC_FVT_HOST} -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+docker run --network fvtnet -d --name postgres -e POSTGRES_PASSWORD=postgres postgres:11
+docker run --network fvtnet -d --name mysql -v $(pwd)/.mysql_data/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=mysql mysql:5.7 mysqld --sql-mode=STRICT_TRANS_TABLES
+docker run --network fvtnet --name fabric-fvt -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
 
 trap cleanup EXIT

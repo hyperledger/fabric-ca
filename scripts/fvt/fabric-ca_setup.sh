@@ -5,8 +5,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-export PGPASSWORD=postgres
-
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
@@ -57,8 +55,8 @@ resetFabricCa() {
   # Base server and cluster servers
   for i in "" $(seq ${CACOUNT:-0}); do
     test -z $i && dbSuffix="" || dbSuffix="_ca$i"
-    mysql --host=${MYSQLHOST} --user=root --password=mysql -e 'show tables' ${DBNAME}${dbSuffix} >/dev/null 2>&1
-    mysql --host=${MYSQLHOST} --user=root --password=mysql -e "DROP DATABASE IF EXISTS ${DBNAME}${dbSuffix}" >/dev/null 2>&1
+    mysql --host=mysql --user=root --password=mysql -e 'show tables' ${DBNAME}${dbSuffix} >/dev/null 2>&1
+    mysql --host=mysql --user=root --password=mysql -e "DROP DATABASE IF EXISTS ${DBNAME}${dbSuffix}" >/dev/null 2>&1
     /usr/bin/dropdb "${DBNAME}${dbSuffix}" -U postgres -h postgres -w --if-exists 2>/dev/null
   done
 }
@@ -83,12 +81,12 @@ listFabricCa() {
     mysql)
       echo ""
       echo "Users:"
-      mysql --host=${MYSQLHOST} --user=root --password=mysql -e 'SELECT * FROM users;' ${DBNAME}${dbSuffix}
+      mysql --host=mysql --user=root --password=mysql -e 'SELECT * FROM users;' ${DBNAME}${dbSuffix}
       if $($FABRIC_CA_DEBUG); then
         echo "Certificates:"
-        mysql --host=${MYSQLHOST} --user=root --password=mysql -e 'SELECT * FROM certificates;' ${DBNAME}${dbSuffix}
+        mysql --host=mysql --user=root --password=mysql -e 'SELECT * FROM certificates;' ${DBNAME}${dbSuffix}
         echo "Affiliations:"
-        mysql --host=${MYSQLHOST} --user=root --password=mysql -e 'SELECT * FROM affiliations;' ${DBNAME}${dbSuffix}
+        mysql --host=mysql --user=root --password=mysql -e 'SELECT * FROM affiliations;' ${DBNAME}${dbSuffix}
       fi
       ;;
     postgres)
@@ -319,7 +317,7 @@ RUNCONFIG="$DATADIR/$DEFAULT_RUN_CONFIG_FILE_NAME"
 case $DRIVER in
 postgres) DATASRC="dbname=$DBNAME host=postgres port=$POSTGRES_PORT user=postgres password=postgres sslmode=disable" ;;
 sqlite3) DATASRC="$DBNAME" ;;
-mysql) DATASRC="root:mysql@tcp($MYSQLHOST:$MYSQL_PORT)/$DBNAME?parseTime=true" ;;
+mysql) DATASRC="root:mysql@tcp(mysql:$MYSQL_PORT)/$DBNAME?parseTime=true" ;;
 esac
 
 $($LIST) && listFabricCa
