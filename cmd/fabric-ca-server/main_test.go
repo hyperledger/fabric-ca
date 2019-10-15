@@ -22,6 +22,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -469,5 +470,73 @@ func getTestClient(port int, homeDir string) *lib.Client {
 	return &lib.Client{
 		Config:  &lib.ClientConfig{URL: fmt.Sprintf("http://localhost:%d", port)},
 		HomeDir: homeDir,
+	}
+}
+
+func TestConfigInit(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %s", err)
+	}
+	certFile := "testdata/tls_server-cert.pem"
+	keyFile := "testdata/tls_server-key.pem"
+	homeDir := filepath.Join(cwd, "../../")
+	absCertFile := filepath.Join(homeDir, certFile)
+	absKeyFile := filepath.Join(homeDir, keyFile)
+
+	cases := []struct {
+		enabled bool
+		cert    string
+		key     string
+		err     bool
+	}{
+		{
+			enabled: true,
+			cert:    certFile,
+			key:     keyFile,
+			err:     true,
+		},
+		{
+			enabled: true,
+			cert:    "noexit.pem",
+			key:     keyFile,
+			err:     false,
+		},
+		{
+			enabled: true,
+			cert:    certFile,
+			key:     "noexit.pem",
+			err:     false,
+		},
+		{
+			enabled: false,
+			cert:    certFile,
+			key:     keyFile,
+			err:     true,
+		},
+		{
+			enabled: true,
+			cert:    absCertFile,
+			key:     absKeyFile,
+			err:     true,
+		},
+	}
+
+	for _, tt := range cases {
+		var s ServerCmd
+		s.cfg = &lib.ServerConfig{}
+		s.homeDirectory = homeDir
+		s.myViper = viper.New()
+		s.myViper.SetEnvPrefix(envVarPrefix)
+		s.myViper.Set("operations.tls.enabled", tt.enabled)
+		s.myViper.Set("operations.tls.cert.file", tt.cert)
+		s.myViper.Set("operations.tls.key.file", tt.key)
+		s.myViper.Set("boot", "user:pass")
+		err := s.configInit()
+		if err != nil && tt.err {
+			t.Error(err)
+		}
+		defYaml := util.GetDefaultConfigFile(cmdName)
+		os.Remove(defYaml)
 	}
 }

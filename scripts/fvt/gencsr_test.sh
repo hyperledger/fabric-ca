@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
 
 : ${TESTCASE:=gencsr}
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
@@ -28,7 +33,7 @@ function verifyResult() {
    artifact="$1"
    expected_subject="$2"
    case $artifact in
-      cert)  actual_subject="$(openssl x509 -in $ADMINCERT -noout -subject -nameopt rfc2253 |sed 's/subject= //')"
+      cert)  actual_subject="$(openssl x509 -in $ADMINCERT -noout -subject -nameopt rfc2253 |sed 's/subject=//')"
       ;;
       csr) actual_subject="$(openssl req -in $CSR -noout -subject -nameopt rfc2253 |sed 's/subject=//')"
       ;;

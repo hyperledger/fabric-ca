@@ -37,7 +37,7 @@ BASE_VERSION = 2.0.0
 PREV_VERSION = 2.0.0-alpha
 IS_RELEASE = false
 
-BASEIMAGE_RELEASE = 0.4.15
+BASEIMAGE_RELEASE = 0.4.16
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
@@ -53,9 +53,9 @@ FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
 ifeq ($(ARCH),s390x)
-PG_VER=9.6
+PG_VER=10
 else
-PG_VER=9.5
+PG_VER=10
 endif
 
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
