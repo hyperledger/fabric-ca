@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-ARG BASEIMAGE_RELEASE
-FROM hyperledger/fabric-baseimage:${BASEIMAGE_RELEASE} as fabric-ca-builder
+ARG GO_VER
+FROM golang:${GO_VER}-buster as fabric-ca-builder
 ARG GO_LDFLAGS
 ARG GO_TAGS
 
@@ -16,8 +16,7 @@ RUN go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 	-o /usr/local/bin/fabric-ca-client \
 	github.com/hyperledger/fabric-ca/cmd/fabric-ca-client;
 
-
-FROM hyperledger/fabric-baseimage:${BASEIMAGE_RELEASE}
+FROM debian:buster-20190910-slim
 ARG PG_VER
 
 ENV PATH="/usr/local/go/bin/:${PATH}" \
@@ -41,10 +40,10 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
     MYSQLDATA=/var/lib/mysql
 
+RUN apt-get clean && apt-get update && apt-get install openssl -y
+
 # setup scripts for slapd, postgres, mysql, and openssl
-COPY --from=fabric-ca-builder \
-	${GOPATH}/src/github.com/hyperledger/fabric-ca/images/fabric-ca-fvt/payload \
-	${FABRIC_CA_DATA}
+COPY ./images/fabric-ca-fvt/payload ${FABRIC_CA_DATA}
 RUN chmod +x ${FABRIC_CA_DATA}/*sh
 RUN cd ${FABRIC_CA_DATA}
 RUN $FABRIC_CA_DATA/tls_pki.sh
@@ -59,6 +58,8 @@ RUN ${FABRIC_CA_DATA}/system_update.sh
 RUN ${FABRIC_CA_DATA}/postgres_setup.sh
 RUN ${FABRIC_CA_DATA}/slapd_setup.sh
 RUN ${FABRIC_CA_DATA}/mysql_setup.sh
+
+COPY --from=fabric-ca-builder /usr/local/go /usr/local
 
 # Install fabric-ca dependencies
 RUN go get github.com/go-sql-driver/mysql

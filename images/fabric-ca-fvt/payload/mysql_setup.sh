@@ -2,6 +2,15 @@
 RC=0
 arch=$(uname -m)
 
+export DEBIAN_FRONTEND=noninteractive
+echo mysql-apt-config mysql-apt-config/select-server select mysql-5.7 | debconf-set-selections
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.13-1_all.deb
+dpkg -i mysql-apt-config_0.8.13-1_all.deb
+apt-get update
+apt-get install mysql-server -y
+service mysql start
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mysql'"
+
 mkdir -p /var/run/mysqld
 chown mysql:mysql /var/run/mysqld
 
