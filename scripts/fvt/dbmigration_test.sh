@@ -134,14 +134,14 @@ if test $? -ne 0; then
 fi
 
 # Register a user with a username of 128 character. This should pass with the updated schema
-USERNAME=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 128 | head -n 1)
+USERNAME=$(openssl rand -base64 128 | tr -d '\n')
 register "" $USERNAME
 if test $? -ne 0; then
     ErrorMsg "Failed to register $USERNAME"
 fi
 
 # Register a user with a username of 300 character. This should result in an error
-USERNAME=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 300 | head -n 1)
+USERNAME=$(openssl rand -base64 300 | tr -d '\n')
 register "" $USERNAME
 if test $? -ne 1; then
     ErrorMsg "Should have failed to register $USERNAME"
@@ -221,14 +221,14 @@ if test $? -ne 0; then
 fi
 
 # Register a user with a username of 128 character. This should pass with the updated schema
-USERNAME=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 128 | head -n 1)
+USERNAME=$(openssl rand -base64 128 | tr -d '\n')
 register "" $USERNAME
 if test $? -ne 0; then
     ErrorMsg "Failed to register $USERNAME"
 fi
 
 # Register a user with a username of 300 character. This should result in an error
-USERNAME=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 300 | head -n 1)
+USERNAME=$(openssl rand -base64 300 | tr -d '\n')
 register "" $USERNAME
 if test $? -ne 1; then
     ErrorMsg "Should have failed to register $USERNAME"

@@ -12,9 +12,20 @@ pr:
 - release-2.*
 - release-1.4
 
+resources:
+  containers:
+  - container: mysql
+    image: mysql:5.7
+    env:
+      MYSQL_ROOT_PASSWORD: mysql
+  - container: postgres
+    image: postgres:11
+    env:
+      POSTGRES_PASSWORD: postgres
+
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
-  PATH: $(Agent.BuildDirectory)/go/bin:$(Agent.BuildDirectory)/go/src/github.com/hyperledger/fabric-ca/build/tools:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+  PATH: $(Agent.BuildDirectory)/go/bin:$(Agent.BuildDirectory)/go/src/github.com/hyperledger/fabric-ca/build/tools:/usr/local/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
   GOVER: 1.12.9
 
 jobs:
@@ -32,12 +43,18 @@ jobs:
 - job: FVTTests
   pool:
     vmImage: ubuntu-16.04
+  container:
+    image: hlfdev/fabric-ca-fvt:0.0.1
+  services:
+    mysql: mysql
+    postgres: postgres
   steps:
-  - template: install_deps.yml
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
-  - script: make fvt-tests
+  - script: sudo -E ./images/fabric-ca-fvt/payload/start.sh
+    displayName: Check Service State
+  - script: sudo -E ./scripts/run_fvt_tests
     displayName: Run FVT Tests
 
 - job: DocBuild

@@ -19,7 +19,7 @@ dpkg-reconfigure locales && update-locale LANG=en_US.UTF-8 || let RC+=1
 apt-get -y install --no-install-recommends rsyslog bc vim lsof sqlite3 haproxy \
            default-mysql-client  postgresql-client isag jq git html2text \
            debconf-utils zsh htop python2.7-minimal libpython2.7-stdlib \
-           parallel netcat wget lsb-release gnupg ca-certificates || let RC+=1
+           parallel netcat wget sudo lsb-release gnupg ca-certificates || let RC+=1
 apt-get -y install ssl-cert || let RC+=1
 apt-get -y autoremove
 

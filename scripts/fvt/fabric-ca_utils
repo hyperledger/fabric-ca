@@ -996,7 +996,3 @@ function killserver {
     pollFabricCa "" "" "$CA_DEFAULT_PORT" stop 30
     return $?
 }
-
-function grepPrint() {
-   tee /dev/stderr| egrep "$1"
-}
