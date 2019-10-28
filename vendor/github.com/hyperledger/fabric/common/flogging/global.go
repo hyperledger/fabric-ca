@@ -7,8 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package flogging
 
 import (
-	"regexp"
-	"strings"
+	"io"
 
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/grpclog"
@@ -34,60 +33,54 @@ func init() {
 	grpclog.SetLogger(NewGRPCLogger(grpcLogger))
 }
 
-// Init initializes the logging logging with the provided config.
+// Init initializes logging with the provided config.
 func Init(config Config) {
-	err := Global.Reset(config)
+	err := Global.Apply(config)
 	if err != nil {
 		panic(err)
 	}
 }
 
-// Reset sets to logging to the defaults defined in this package.
+// Reset sets logging to the defaults defined in this package.
 //
 // Used in tests and in the package init
 func Reset() {
-	Global.Reset(Config{})
+	Global.Apply(Config{})
 }
 
-// GetModuleLevel gets the current logging level for the specified module.
-func GetModuleLevel(module string) string {
-	return strings.ToUpper(Global.Level(module).String())
+// LoggerLevel gets the current logging level for the logger with the
+// provided name.
+func LoggerLevel(loggerName string) string {
+	return Global.Level(loggerName).String()
 }
 
-// SetModuleLevels sets the logging level for the modules that match the
-// supplied regular expression. Can be used to dynamically change the log level
-// for the module.
-func SetModuleLevels(moduleRegexp, level string) error {
-	re, err := regexp.Compile(moduleRegexp)
+// MustGetLogger creates a logger with the specified name. If an invalid name
+// is provided, the operation will panic.
+func MustGetLogger(loggerName string) *FabricLogger {
+	return Global.Logger(loggerName)
+}
+
+// ActivateSpec is used to activate a logging specification.
+func ActivateSpec(spec string) {
+	err := Global.ActivateSpec(spec)
 	if err != nil {
-		return err
+		panic(err)
 	}
-
-	Global.SetLevels(re, NameToLevel(level))
-	return nil
 }
 
-// SetModuleLevel sets the logging level for a single module.
-func SetModuleLevel(module string, level string) error {
-	Global.SetLevel(module, NameToLevel(level))
-	return nil
+// DefaultLevel returns the default log level.
+func DefaultLevel() string {
+	return defaultLevel.String()
 }
 
-// MustGetLogger is used in place of `logging.MustGetLogger` to allow us to
-// store a map of all modules and submodules that have loggers in the logging.
-func MustGetLogger(module string) *FabricLogger {
-	return Global.Logger(module)
+// SetWriter calls SetWriter returning the previous value
+// of the writer.
+func SetWriter(w io.Writer) io.Writer {
+	return Global.SetWriter(w)
 }
 
-// GetModuleLevels takes a snapshot of the global module level information and
-// returns it as a map. The map can then be used to restore logging levels to
-// values in the snapshot.
-func GetModuleLevels() map[string]zapcore.Level {
-	return Global.Levels()
-}
-
-// RestoreLevels sets the global module level information to the contents of the
-// provided map.
-func RestoreLevels(levels map[string]zapcore.Level) {
-	Global.RestoreLevels(levels)
+// SetObserver calls SetObserver returning the previous value
+// of the observer.
+func SetObserver(observer Observer) Observer {
+	return Global.SetObserver(observer)
 }
