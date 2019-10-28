@@ -8,7 +8,9 @@ package fabenc
 
 import (
 	"io"
+	"time"
 
+	zaplogfmt "github.com/sykesm/zap-logfmt"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,9 +19,8 @@ import (
 // go-logging based format specifier.
 type FormatEncoder struct {
 	zapcore.Encoder
-	formatters     []Formatter
-	pool           buffer.Pool
-	consoleEncoder zapcore.Encoder
+	formatters []Formatter
+	pool       buffer.Pool
 }
 
 // A Formatter is used to format and write data from a zap log entry.
@@ -29,7 +30,19 @@ type Formatter interface {
 
 func NewFormatEncoder(formatters ...Formatter) *FormatEncoder {
 	return &FormatEncoder{
-		Encoder:    zapcore.NewConsoleEncoder(zapcore.EncoderConfig{LineEnding: "\n"}),
+		Encoder: zaplogfmt.NewEncoder(zapcore.EncoderConfig{
+			MessageKey:     "", // disable
+			LevelKey:       "", // disable
+			TimeKey:        "", // disable
+			NameKey:        "", // disable
+			CallerKey:      "", // disable
+			StacktraceKey:  "", // disable
+			LineEnding:     "\n",
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+				enc.AppendString(t.Format("2006-01-02T15:04:05.999Z07:00"))
+			},
+		}),
 		formatters: formatters,
 		pool:       buffer.NewPool(),
 	}
