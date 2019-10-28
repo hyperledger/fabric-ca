@@ -45,9 +45,9 @@ jobs:
 - job: DocBuild
   pool:
     vmImage: ubuntu-16.04
+  container:
+    image: n42org/tox:3.4.0
   steps:
-  - script: sudo apt-get clean && sudo apt-get update && sudo apt-get install -y python-minimal tox
-    displayName: Install Tox
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
