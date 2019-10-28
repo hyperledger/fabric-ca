@@ -15,10 +15,11 @@ type Encoding int8
 const (
 	CONSOLE = iota
 	JSON
+	LOGFMT
 )
 
 // EncodingSelector is used to determine whether log records are
-// encoded as JSON or in a human readable CONSOLE format.
+// encoded as JSON or in human readable CONSOLE or LOGFMT formats.
 type EncodingSelector interface {
 	Encoding() Encoding
 }
@@ -38,17 +39,6 @@ type EncodingSelector interface {
 // from the zapcore.ObjectEncoder would need to be implemented to delegate to
 // the correct backend.
 //
-// Finally, fabric logging can go through initialization multiple times. The
-// first is via package initialization where hard-coded defaults are used for
-// configuration. The second init is typically after any process configuration
-// has been processed. This configuration can come from environment variables,
-// command line flags, or config documents.
-//
-// Since logging can be initialized multiple times, we need to be able to
-// handle modification of the type of encoders we are using. While, for legacy
-// reasons, a console based encoder is the default, a JSON logger is more likely
-// to be desired in production.
-//
 // This implementation works by associating multiple encoders with a core. When
 // fields are added to the core, the fields are added to all of the encoder
 // implementations. The core also references the logging configuration to
@@ -56,9 +46,18 @@ type EncodingSelector interface {
 // enabled levels.
 type Core struct {
 	zapcore.LevelEnabler
+	Levels   *LoggerLevels
 	Encoders map[Encoding]zapcore.Encoder
 	Selector EncodingSelector
 	Output   zapcore.WriteSyncer
+	Observer Observer
+}
+
+//go:generate counterfeiter -o mock/observer.go -fake-name Observer . Observer
+
+type Observer interface {
+	Check(e zapcore.Entry, ce *zapcore.CheckedEntry)
+	WriteEntry(e zapcore.Entry, fields []zapcore.Field)
 }
 
 func (c *Core) With(fields []zapcore.Field) zapcore.Core {
@@ -71,14 +70,20 @@ func (c *Core) With(fields []zapcore.Field) zapcore.Core {
 
 	return &Core{
 		LevelEnabler: c.LevelEnabler,
+		Levels:       c.Levels,
 		Encoders:     clones,
 		Selector:     c.Selector,
 		Output:       c.Output,
+		Observer:     c.Observer,
 	}
 }
 
 func (c *Core) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
-	if c.Enabled(e.Level) {
+	if c.Observer != nil {
+		c.Observer.Check(e, ce)
+	}
+
+	if c.Enabled(e.Level) && c.Levels.Level(e.LoggerName).Enabled(e.Level) {
 		return ce.AddCore(e, c)
 	}
 	return ce
@@ -100,6 +105,10 @@ func (c *Core) Write(e zapcore.Entry, fields []zapcore.Field) error {
 
 	if e.Level >= zapcore.PanicLevel {
 		c.Sync()
+	}
+
+	if c.Observer != nil {
+		c.Observer.WriteEntry(e, fields)
 	}
 
 	return nil
