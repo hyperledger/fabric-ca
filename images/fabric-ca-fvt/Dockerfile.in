@@ -24,7 +24,8 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_SERVER_KEY=FabricTlsServerEEkey.pem \
     TLS_CLIENT_CERT=FabricTlsClientEEcert.pem \
     TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
-    MYSQLDATA=/var/lib/mysql
+    MYSQLDATA=/var/lib/mysql \
+    GOCACHE=/tmp/.gocache
 
 # setup scripts for slapd, postgres, mysql, and openssl
 ADD payload/fabric-ca-fvt.tar.bz2 $FABRIC_CA_DATA

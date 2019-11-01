@@ -15,7 +15,7 @@ pr:
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
   PATH: $(Agent.BuildDirectory)/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-  GOVER: 1.11.5
+  GOVER: 1.12.12
 
 jobs:
 - job: VerifyBuild
@@ -43,6 +43,8 @@ jobs:
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
+  - script: echo $HOME
+  - script: go env
   - script: make docker-fvt
     displayName: Build FVT Test Image
   - script: docker run -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
