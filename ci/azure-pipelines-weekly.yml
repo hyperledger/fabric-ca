@@ -1,0 +1,58 @@
+# Copyright the Hyperledger Fabric contributors. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: GoSec_GoSafeSQL-$(Date:yyyyMMdd)
+
+schedules:
+- cron: "0 0 * * 0"
+  displayName: Weekly Security Report
+  branches:
+    include:
+      - master
+      - release-1.4
+  always: true
+
+trigger: none
+pr: none
+
+variables:
+  GOPATH: $(Agent.BuildDirectory)/go
+  PATH: $(Agent.BuildDirectory)/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/go/bin
+
+jobs:
+- job: GoSec
+  pool:
+    vmImage: ubuntu-16.04
+  container:
+    image: golang:1.12.9-buster
+  steps:
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: go get github.com/securego/gosec/cmd/gosec
+    displayName: Download GoSec
+  - script: gosec -vendor ./... > gosec.txt || true
+    displayName: Run GoSec
+  - script: cat gosec.txt | grep "MEDIUM)\|HIGH)"
+    displayName: List Medium and High Vulnerabilities
+  - publish: 'gosec.txt'
+    displayName: Publish GoSec Report
+
+- job: GoSafeSQL
+  pool:
+    vmImage: ubuntu-16.04
+  container:
+    image: golang:1.12.9-buster
+  steps:
+  - checkout: self
+    path: 'go/src/github.com/hyperledger/fabric-ca'
+    displayName: Checkout Fabric CA Code
+  - script: go get github.com/stripe/safesql
+    displayName: Download GoSafeSQL
+  - script: safesql -v $(go list ./...) > gosql.txt || true
+    displayName: Run GoSafeSQL
+  - script: cat gosql.txt | grep "^-"
+    displayName: List Unsafe SQL Operations
+  - publish: 'gosql.txt'
+    displayName: Publish GoSafeSQL Report
