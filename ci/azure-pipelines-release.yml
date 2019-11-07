@@ -1,0 +1,105 @@
+# Copyright the Hyperledger Fabric contributors. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: RELEASE-$(Date:yyyyMMdd)$(Rev:.rrr)
+trigger:
+  tags:
+    include:
+      - v*
+pr: none
+
+variables:
+  GOPATH: $(Agent.BuildDirectory)/go
+  GOVER: 1.13.4
+
+stages:
+  - stage: BuildBinaries
+    dependsOn: []
+    displayName: "Build Fabric CA Binaries"
+    jobs:
+      - job: Build
+        pool:
+          vmImage: ubuntu-16.04
+        container: golang:$(GOVER)
+        strategy:
+          matrix:
+            Linux-amd64:
+              TARGET: linux-amd64
+            MacOS-amd64:
+              TARGET: darwin-amd64
+            Windows-amd64:
+              TARGET: windows-amd64
+        steps:
+          - checkout: self
+            path: 'go/src/github.com/hyperledger/fabric-ca'
+            displayName: Checkout Fabric CA Code
+          - script: make release/$(TARGET)
+            displayName: Compile Fabric CA Client
+          - script: cd release/$(TARGET) && tar -czvf hyperledger-fabric-ca-$(TARGET).$(RELEASE).tar.gz bin/
+            displayName: Create Tarball
+          - publish: release/$(TARGET)/hyperledger-fabric-ca-$(TARGET).$(RELEASE).tar.gz
+            artifact: $(TARGET)
+            displayName: Publish Release Artifact
+
+  - stage: BuildAndPushDockerImages
+    dependsOn: []
+    displayName: "Build and Push Fabric CA Docker Images"
+    jobs:
+      - job: Docker
+        pool:
+          vmImage: ubuntu-16.04
+        steps:
+          - template: install_deps.yml
+          - checkout: self
+            path: 'go/src/github.com/hyperledger/fabric-ca'
+            displayName: Checkout Fabric CA Code
+          - script: echo $(GITHUB_REGISTRY_PASSWORD) | docker login docker.pkg.github.com --username $(GITHUB_REGISTRY_USERNAME) --password-stdin
+            displayName: Login to Github Package Registry
+          - script: |
+              make docker
+              docker tag hyperledger/fabric-ca docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:$(RELEASE)
+              docker tag hyperledger/fabric-ca docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:latest
+            displayName: Build and Tag Fabric CA Docker Image
+          - script: |
+              docker push docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:$(RELEASE)
+              docker push docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:latest
+            displayName: Push Docker Images
+          - script: docker logout
+            displayName: Logout of Github Package Registry
+
+  - stage: DraftRelease
+    displayName: "Draft GitHub Release"
+    dependsOn:
+      - BuildBinaries
+      - BuildAndPushDockerImages
+    jobs:
+      - job: Release
+        pool:
+          vmImage: ubuntu-16.04
+        steps:
+          - download: current
+            artifact: linux-amd64
+            displayName: Download Linux Tarball
+          - download: current
+            artifact: darwin-amd64
+            displayName: Download MacOS Tarball
+          - download: current
+            artifact: windows-amd64
+            displayName: Download Windows Tarball
+          - checkout: self
+          - task: GitHubRelease@0
+            inputs:
+              actions: create
+              addChangeLog: true
+              assets: $(Pipeline.Workspace)/*amd64/*
+              compareWith: lastFullRelease
+              gitHubConnection: fabric-ca-release
+              isDraft: true
+              releaseNotesFile: release_notes/v1.4.0.txt
+              repositoryName: $(Build.Repository.Name)
+              releaseNotesSource: file
+              tag: v$(RELEASE)
+              tagSource: manual
+              title: v$(RELEASE)
+            displayName: Release Fabric CA
