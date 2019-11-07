@@ -4,18 +4,14 @@
 
 name: $(SourceBranchName)-$(Date:yyyyMMdd)$(Rev:.rrr)
 trigger:
-- master
-- release-2.*
 - release-1.4
 pr:
-- master
-- release-2.*
 - release-1.4
 
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
   PATH: $(Agent.BuildDirectory)/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-  GOVER: 1.11.5
+  GOVER: 1.12.12
 
 jobs:
 - job: VerifyBuild
