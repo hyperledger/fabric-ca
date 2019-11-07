@@ -52,7 +52,7 @@ else
 PGVER=10
 endif
 
-BASEIMAGE_RELEASE = 0.4.16
+BASEIMAGE_RELEASE = 0.4.18
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
@@ -120,10 +120,12 @@ bin/%: $(GO_SOURCE)
 # directory so that subsequent builds are faster
 build/docker/bin/%:
 	@echo "Building $@"
-	@mkdir -p $(@D) build/docker/$(@F)/pkg
+	@mkdir -p $(@D) build/docker/$(@F)/pkg build/docker/cache
 	@$(DRUN) \
 		-v $(abspath build/docker/bin):/opt/gopath/bin \
 		-v $(abspath build/docker/$(@F)/pkg):/opt/gopath/pkg \
+		-v $(abspath build/docker/cache):/opt/gopath/cache \
+		-e GOCACHE=/opt/gopath/cache \
 		$(BASE_DOCKER_NS)/fabric-baseimage:$(BASE_DOCKER_TAG) \
 		go install -ldflags "$(DOCKER_GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@touch $@

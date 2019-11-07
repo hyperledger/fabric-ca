@@ -96,7 +96,7 @@ func TestLDAPTLS(t *testing.T) {
 		t.Errorf("ldap.NewClient failure: %s", err)
 		return
 	}
-	testdata := "../../../../testdata"
+	testdata := "../../../testdata"
 	c.TLS.CertFiles = []string{filepath.Join(testdata, "root.pem")}
 	c.TLS.Client.CertFile = filepath.Join(testdata, "tls_client-cert.pem")
 	c.TLS.Client.KeyFile = filepath.Join(testdata, "tls_client-key.pem")
