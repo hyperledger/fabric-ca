@@ -10,8 +10,13 @@ trigger:
 pr: none
 
 variables:
-  GOPATH: $(Agent.BuildDirectory)/go
-  GOVER: 1.13.4
+  - group: GitHubPackageRegistry
+  - name: GOPATH
+    value: $(Agent.BuildDirectory)/go
+  - name: GOVER
+    value: 1.13.4
+  - name: RELEASE
+    value: 2.0.0
 
 stages:
   - stage: BuildBinaries
@@ -36,10 +41,10 @@ stages:
             displayName: Checkout Fabric CA Code
           - script: make release/$(TARGET)
             displayName: Compile Fabric CA Client
-          - script: cd release/$(TARGET) && tar -czvf hyperledger-fabric-ca-$(TARGET).$(RELEASE).tar.gz bin/
+          - script: cd release/$(TARGET) && tar -czvf $(TARGET)-$(RELEASE).tar.gz bin/
             displayName: Create Tarball
-          - publish: release/$(TARGET)/hyperledger-fabric-ca-$(TARGET).$(RELEASE).tar.gz
-            artifact: $(TARGET)
+          - publish: release/$(TARGET)/$(TARGET)-$(RELEASE).tar.gz
+            artifact: $(TARGET).tar.gz
             displayName: Publish Release Artifact
 
   - stage: BuildAndPushDockerImages
@@ -54,16 +59,16 @@ stages:
           - checkout: self
             path: 'go/src/github.com/hyperledger/fabric-ca'
             displayName: Checkout Fabric CA Code
-          - script: echo $(GITHUB_REGISTRY_PASSWORD) | docker login docker.pkg.github.com --username $(GITHUB_REGISTRY_USERNAME) --password-stdin
+          - script: docker login --username $(GITHUB_REGISTRY_USERNAME) --password $(GITHUB_REGISTRY_PASSWORD)
             displayName: Login to Github Package Registry
           - script: |
               make docker
-              docker tag hyperledger/fabric-ca docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:$(RELEASE)
-              docker tag hyperledger/fabric-ca docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:latest
+              docker tag hyperledger/fabric-ca btl5037/fabric-ca:amd64-$(RELEASE)
+              docker tag hyperledger/fabric-ca btl5037/fabric-ca:latest
             displayName: Build and Tag Fabric CA Docker Image
           - script: |
-              docker push docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:$(RELEASE)
-              docker push docker.pkg.github.com/btl5037/fabric-ca/fabric-ca:latest
+              docker push btl5037/fabric-ca:amd64-$(RELEASE)
+              docker push btl5037/fabric-ca:latest
             displayName: Push Docker Images
           - script: docker logout
             displayName: Logout of Github Package Registry
@@ -96,7 +101,7 @@ stages:
               compareWith: lastFullRelease
               gitHubConnection: fabric-ca-release
               isDraft: true
-              releaseNotesFile: release_notes/v1.4.0.txt
+              releaseNotesFile: release_notes/v1.4.4.txt
               repositoryName: $(Build.Repository.Name)
               releaseNotesSource: file
               tag: v$(RELEASE)
