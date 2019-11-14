@@ -1,3 +1,24 @@
+## v1.4.4
+Thu Nov 14 14:40:24 EST 2019
+
+* [5675315](https://github.com/hyperledger/fabric-ca/commit/5675315) Add fabric-ca release notes v1.4.4
+* [7302172](https://github.com/hyperledger/fabric-ca/commit/7302172) [FABC-884] Upgrade to go 1.12
+* [5ffb381](https://github.com/hyperledger/fabric-ca/commit/5ffb381) FABC-873 remove invalid test
+* [e9b3492](https://github.com/hyperledger/fabric-ca/commit/e9b3492) [FABC-844] address vet issues
+* [1559aa3](https://github.com/hyperledger/fabric-ca/commit/1559aa3) FABC-881 Use earlier revision of bccsp
+* [3b8a5c7](https://github.com/hyperledger/fabric-ca/commit/3b8a5c7) FABC-881 Update vendored dependencies
+* [64c7d52](https://github.com/hyperledger/fabric-ca/commit/64c7d52) [FABC-874] Add HSM changes to Fabric CA docs (#47)
+* [c45a0f6](https://github.com/hyperledger/fabric-ca/commit/c45a0f6) [FABC-865] Fix setting TLS files by cert/key.file (#42)
+* [cc34360](https://github.com/hyperledger/fabric-ca/commit/cc34360) [FABC-880] Add license header to gencst_test.sh
+* [63692a0](https://github.com/hyperledger/fabric-ca/commit/63692a0) Update to baseimage 0.4.16
+* [5b1faaa](https://github.com/hyperledger/fabric-ca/commit/5b1faaa) Fix URL to contribution guide
+* [3db5423](https://github.com/hyperledger/fabric-ca/commit/3db5423) [FABC-877] Reduce scope of tests with ssl off
+* [eff05c9](https://github.com/hyperledger/fabric-ca/commit/eff05c9) [FABCI-420] Add sudo to apt-clean command
+* [8a3698b](https://github.com/hyperledger/fabric-ca/commit/8a3698b) [FAB-16489](https://jira.hyperledger.org/browse/FAB-16489) Add CODEOWNERS
+* [d84b685](https://github.com/hyperledger/fabric-ca/commit/d84b685) [FABCI-420] Add AZP yaml for release-1.4
+* [040d68d](https://github.com/hyperledger/fabric-ca/commit/040d68d) [FABC-863] Test fail with open pipe in temp dir
+* [b7fd4e8](https://github.com/hyperledger/fabric-ca/commit/b7fd4e8) FAB-16415 Prepare for next fabric-ca rel (1.4.4)
+
 ## v1.4.3
 Mon Aug 26 15:40:49 EDT 2019
 
