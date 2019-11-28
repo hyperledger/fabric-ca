@@ -775,7 +775,7 @@ host machine.
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/orderer
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/ca/org0-ca-cert.pem
-    fabric-ca-client enroll -d -u https://orderer-org0:ordererPW@0.0.0.0:7053
+    fabric-ca-client enroll -d -u https://orderer1-org0:ordererPW@0.0.0.0:7053
 
 Next, you will get the TLS certificate. In the command below, we will assume the
 certificate of the TLS CA has been copied to ``/tmp/hyperledger/org0/orderer/assets/tls-ca/tls-ca-cert.pem``
@@ -785,7 +785,7 @@ on Orderer's host machine.
 
     export FABRIC_CA_CLIENT_MSPDIR=tls-msp
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/tls-ca/tls-ca-cert.pem
-    fabric-ca-client enroll -d -u https://orderer-org0:ordererPW@0.0.0.0:7052 --enrollment.profile tls --csr.hosts orderer1-org0
+    fabric-ca-client enroll -d -u https://orderer1-org0:ordererPW@0.0.0.0:7052 --enrollment.profile tls --csr.hosts orderer1-org0
 
 Go to path ``/tmp/hyperledger/org0/orderer/tls-msp/keystore`` and change the name
 of the key to ``key.pem``.
@@ -805,7 +805,7 @@ The command below assumes that this is being executed on the orderer's host mach
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/admin
     export FABRIC_CA_CLIENT_MSPDIR=msp
-    fabric-ca-client enroll -d -u https://orderer-org0-admin:ordererAdminPW@0.0.0.0:7053
+    fabric-ca-client enroll -d -u https://admin-org0:org0adminpw@0.0.0.0:7053
 
 After enrollment, you should have an msp folder at ``/tmp/hyperledger/org0/admin``.
 You will copy the certificate from this MSP and move it to the orderer's MSP under the
