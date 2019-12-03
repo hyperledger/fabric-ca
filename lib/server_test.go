@@ -681,16 +681,18 @@ func TestSRVRunningTLSServer(t *testing.T) {
 		t.Errorf("Failed to enroll over TLS: %s", err)
 	}
 
-	// make sure only TLS 1.2 is supported
+	// make sure only TLSv1.2 and TLSv1.3 are supported
 	rootPool := x509.NewCertPool()
 	rootBytes, _ := ioutil.ReadFile("../testdata/root.pem")
 	rootPool.AppendCertsFromPEM(rootBytes)
-	_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
-		RootCAs:    rootPool,
-		MinVersion: tls.VersionTLS12,
-		MaxVersion: tls.VersionTLS12,
-	})
-	assert.NoError(t, err, "Should have connected using TLS 1.2")
+	for _, tlsVersion := range []uint16{tls.VersionTLS12, tls.VersionTLS13} {
+		_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
+			RootCAs:    rootPool,
+			MinVersion: tlsVersion,
+			MaxVersion: tlsVersion,
+		})
+		assert.NoError(t, err, "Should have connected using a valid TLS version [TLSv1.2, TLSv1.3]")
+	}
 	for _, tlsVersion := range []uint16{tls.VersionSSL30, tls.VersionTLS10, tls.VersionTLS11} {
 		_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
 			MinVersion: tlsVersion,
@@ -703,7 +705,6 @@ func TestSRVRunningTLSServer(t *testing.T) {
 		} else {
 			assert.Contains(t, err.Error(), "protocol version not supported")
 		}
-
 	}
 }
 
