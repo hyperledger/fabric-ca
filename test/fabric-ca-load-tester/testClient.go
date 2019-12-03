@@ -118,11 +118,6 @@ func (c *testClient) runTest(test Test, eid *enrollmentID, enrRes *lib.Enrollmen
 		if err != nil {
 			log.Printf("Failed to reenroll identity %s: %v", *eid.ID, err)
 		}
-	case "get-tcerts":
-		err = c.getTCerts(test.Req, enrRes.Identity)
-		if err != nil {
-			log.Printf("Failed to get TCert batch for identity %s: %v", *eid.ID, err)
-		}
 	case "revoke":
 		err = c.revoke(test.Req, enrRes.Identity, "")
 		if err != nil {
@@ -202,29 +197,6 @@ func (c *testClient) registerAndEnroll(eid *enrollmentID, afl string) (enrRes *l
 		}
 	}
 	return
-}
-
-// Returns TCert batch for the specified identity
-func (c *testClient) getTCerts(req TestRequest, id *lib.Identity) error {
-	var tcertReq *api.GetTCertBatchRequest
-	if req != nil {
-		tcertReq = req.getTCertsReq()
-	} else {
-		tcertReq = &api.GetTCertBatchRequest{
-			Count:                1,
-			DisableKeyDerivation: true,
-			EncryptAttrs:         true,
-		}
-	}
-	if tcertReq.PreKey == "" {
-		tcertReq.PreKey = id.GetName()
-	}
-	_, err := id.GetTCertBatch(tcertReq)
-	if err == nil {
-		log.Printf("Successfully retrieved TCert batch %d for the idenity: %s",
-			tcertReq.Count, id.GetName())
-	}
-	return err
 }
 
 // Re-enrolls the specified identity

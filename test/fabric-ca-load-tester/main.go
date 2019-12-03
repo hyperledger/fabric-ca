@@ -200,19 +200,6 @@ func getIdentityType(i int) IdentityType {
 	}
 }
 
-func (tr TestRequest) getTCertsReq() *api.GetTCertBatchRequest {
-	count := tr["count"].(int)
-	prekey := tr["prekey"].(string)
-	disableKdf := tr["disable_kdf"].(bool)
-	encryptAttrs := tr["encrypt_attrs"].(bool)
-	return &api.GetTCertBatchRequest{
-		Count:                count,
-		PreKey:               prekey,
-		DisableKeyDerivation: disableKdf,
-		EncryptAttrs:         encryptAttrs,
-	}
-}
-
 func (tr TestRequest) getEnrollmentReq() *api.EnrollmentRequest {
 	name := tr["name"].(string)
 	pass := tr["pass"].(string)

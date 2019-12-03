@@ -32,7 +32,7 @@ func NewSigner(key bccsp.Key, cert []byte) (*Signer, error) {
 }
 
 // Signer represents a signer
-// Each identity may have multiple signers, currently one ecert and multiple tcerts
+// Each identity may have multiple signers and currently one ecert
 type Signer struct {
 	// Private key
 	key bccsp.Key

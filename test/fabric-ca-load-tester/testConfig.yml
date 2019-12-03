@@ -35,15 +35,7 @@ numReqsPerClient: 250
 #############################################################################
 testSeq:
 - name: register-enroll
-- name: get-tcerts
 - name: re-enroll
-- name: get-tcerts
-  repeat: 1
-  req:
-    count: 10
-    prekey: ''
-    disable_kdf: true
-    encrypt_attrs: true
 - name: revoke
   repeat: 1
   req:
