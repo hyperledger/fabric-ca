@@ -29,9 +29,7 @@ ca:
 #  The registry section controls how the fabric-ca-server does two things:
 #  1) authenticates enrollment requests which contain a username and password
 #     (also known as an enrollment ID and secret).
-#  2) once authenticated, retrieves the identity's attribute names and
-#     values which the fabric-ca-server optionally puts into TCerts
-#     which it issues for transacting on the Hyperledger Fabric blockchain.
+#  2) once authenticated, retrieves the identity's attribute names and values.
 #     These attributes are useful for making access control decisions in
 #     chaincode.
 #  There are two main configuration options:

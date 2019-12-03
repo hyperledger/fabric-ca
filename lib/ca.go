@@ -46,7 +46,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/ldap"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
-	"github.com/hyperledger/fabric-ca/lib/tcert"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
@@ -95,10 +94,6 @@ type CA struct {
 	verifyOptions *x509.VerifyOptions
 	// The attribute manager
 	attrMgr *attrmgr.Mgr
-	// The tcert manager for this CA
-	tcertMgr *tcert.Mgr
-	// The key tree
-	keyTree *tcert.KeyTree
 	// The server hosting this CA
 	server *Server
 	// DB levels
@@ -185,19 +180,6 @@ func (ca *CA) init(renew bool) (err error) {
 	}
 	// Create the attribute manager
 	ca.attrMgr = attrmgr.New()
-	// Initialize TCert handling
-	keyfile := ca.Config.CA.Keyfile
-	certfile := ca.Config.CA.Certfile
-	ca.tcertMgr, err = tcert.LoadMgr(keyfile, certfile, ca.csp)
-	if err != nil {
-		return err
-	}
-	// FIXME: The root prekey must be stored persistently in DB and retrieved here if not found
-	rootKey, err := genRootKey(ca.csp)
-	if err != nil {
-		return err
-	}
-	ca.keyTree = tcert.NewKeyTree(ca.csp, rootKey)
 	log.Debug("CA initialization successful")
 	// Successful initialization
 	return nil

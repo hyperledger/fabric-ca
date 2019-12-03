@@ -527,11 +527,6 @@ func testRegister(c *Client, t *testing.T) {
 		t.Fatal("No ECert was returned")
 	}
 
-	_, err = id.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
-	if err != nil {
-		t.Fatal("Failed to get batch of TCerts")
-	}
-
 	// Test registration and enrollment of an identity with attributes
 	userName := "MyTestUserWithAttrs"
 	registerReq = &api.RegistrationRequest{
@@ -1730,9 +1725,5 @@ func testWhenServerIsDown(c *Client, t *testing.T) {
 	_, err = id.Register(registration)
 	if err == nil {
 		t.Error("Register while server is down should have failed")
-	}
-	_, err = id.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
-	if err == nil {
-		t.Error("GetTCertBatch while server is down should have failed")
 	}
 }

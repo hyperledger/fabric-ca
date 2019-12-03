@@ -545,7 +545,6 @@ func (s *Server) registerHandlers() {
 	s.registerHandler(newIdemixCRIEndpoint(s))
 	s.registerHandler(newReenrollEndpoint(s))
 	s.registerHandler(newRevokeEndpoint(s))
-	s.registerHandler(newTCertEndpoint(s))
 	s.registerHandler(newGenCRLEndpoint(s))
 	s.registerHandler(newIdentitiesStreamingEndpoint(s))
 	s.registerHandler(newIdentitiesEndpoint(s))

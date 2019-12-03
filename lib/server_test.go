@@ -282,16 +282,6 @@ func TestSRVRootServer(t *testing.T) {
 	if err == nil {
 		t.Error("User1 should not be allowed to revoke user2 because of affiliation")
 	}
-	// User1 get's batch of tcerts
-	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1, AttrNames: []string{"attr1"}})
-	if err != nil {
-		t.Fatalf("Failed to get tcerts for user1: %s", err)
-	}
-	// User1 get's batch of tcerts with attributes
-	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
-	if err != nil {
-		t.Fatalf("Failed to get tcerts for user1: %s", err)
-	}
 	// Admin should not be allowed to revoke an invalid cert
 	_, err = admin.Revoke(&api.RevocationRequest{AKI: "foo", Serial: "bar"})
 	if err == nil {
@@ -301,11 +291,6 @@ func TestSRVRootServer(t *testing.T) {
 	_, err = admin.Revoke(&api.RevocationRequest{Name: "user1"})
 	if err != nil {
 		t.Fatalf("Failed to revoke user1's identity: %s", err)
-	}
-	// User1 should not be allowed to get tcerts now that it is revoked
-	_, err = user1.GetTCertBatch(&api.GetTCertBatchRequest{Count: 1})
-	if err == nil {
-		t.Errorf("User1 should have failed to get tcerts since it is revoked")
 	}
 
 	// Test to make sure that if an identity registered with an
@@ -851,7 +836,6 @@ func TestSRVBadAuthHeader(t *testing.T) {
 	perEndpointNegativeTests("enroll", "basic", t)
 	perEndpointNegativeTests("reenroll", "token", t)
 	perEndpointNegativeTests("register", "token", t)
-	perEndpointNegativeTests("tcert", "token", t)
 }
 
 func invalidTokenAuthorization(t *testing.T) {
