@@ -666,7 +666,7 @@ func (s *Server) listenAndServe() (err error) {
 			ClientAuth:   clientAuth,
 			ClientCAs:    certPool,
 			MinVersion:   tls.VersionTLS12,
-			MaxVersion:   tls.VersionTLS12,
+			MaxVersion:   tls.VersionTLS13,
 			CipherSuites: stls.DefaultCipherSuites,
 		}
 
