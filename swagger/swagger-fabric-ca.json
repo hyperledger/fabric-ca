@@ -143,11 +143,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful"
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "CAName": {
@@ -172,7 +172,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "A array of error messages (i.e. code and string messages).",
                   "items": {
@@ -193,7 +193,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "A array of informational messages (i.e. code and string messages).",
                   "items": {
@@ -216,10 +216,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -301,7 +301,7 @@
                 }
               },
               "required": [
-                "request"
+                "certificate_request"
               ]
             }
           }
@@ -312,11 +312,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "Cert": {
@@ -357,7 +357,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "A array of error messages (i.e. code and string messages).",
                   "items": {
@@ -378,7 +378,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "A array of informational messages (i.e. code and string messages).",
                   "items": {
@@ -401,10 +401,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -460,11 +460,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful"
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "Credential": {
@@ -535,7 +535,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "A array of error messages (i.e. code and string messages).",
                   "items": {
@@ -556,7 +556,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "A array of informational messages (i.e. code and string messages).",
                   "items": {
@@ -579,10 +579,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -634,11 +634,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "cri": {
@@ -650,7 +650,7 @@
                     "cri"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -671,7 +671,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -694,10 +694,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -790,11 +790,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "Cert": {
@@ -835,7 +835,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "A array of error messages (i.e. code and string messages).",
                   "items": {
@@ -856,7 +856,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "A array of informational messages (i.e. code and string messages).",
                   "items": {
@@ -879,10 +879,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -989,11 +989,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "secret": {
@@ -1005,7 +1005,7 @@
                     "secret"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1026,7 +1026,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1049,10 +1049,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1139,11 +1139,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "RevokedCerts": {
@@ -1170,7 +1170,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1191,7 +1191,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1214,10 +1214,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1297,11 +1297,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "CRL": {
@@ -1313,7 +1313,7 @@
                     "CRL"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1334,7 +1334,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1357,10 +1357,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1394,14 +1394,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "$ref": "#/definitions/affiliationResponse"
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1422,7 +1422,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1445,10 +1445,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1511,11 +1511,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "name": {
@@ -1532,7 +1532,7 @@
                     "caname"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1553,7 +1553,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1576,10 +1576,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1620,14 +1620,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "$ref": "#/definitions/affiliationResponse"
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1648,7 +1648,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1671,10 +1671,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1744,14 +1744,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "$ref": "#/definitions/affiliationResponse"
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1772,7 +1772,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1795,10 +1795,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1844,14 +1844,14 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "$ref": "#/definitions/affiliationResponse"
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -1872,7 +1872,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -1895,10 +1895,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -1932,11 +1932,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "identities": {
@@ -2001,7 +2001,7 @@
                     "caname"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2022,7 +2022,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2045,10 +2045,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -2154,11 +2154,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -2218,7 +2218,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2239,7 +2239,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2262,10 +2262,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -2306,11 +2306,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -2363,7 +2363,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2384,7 +2384,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2407,10 +2407,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -2516,11 +2516,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -2580,7 +2580,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2601,7 +2601,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2624,10 +2624,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -2672,11 +2672,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "description": "The identity that was deleted.",
                   "type": "object",
                   "properties": {
@@ -2735,7 +2735,7 @@
                     "attrs"
                   ]
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2756,7 +2756,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2779,9 +2779,9 @@
                 }
               },
               "required": [
-                "Success",
-                "Errors",
-                "Messages"
+                "success",
+                "errors",
+                "messages"
               ]
             }
           }
@@ -2869,11 +2869,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Success": {
+                "success": {
                   "type": "boolean",
                   "description": "Boolean indicating if the request was successful."
                 },
-                "Result": {
+                "result": {
                   "type": "object",
                   "properties": {
                     "certs": {
@@ -2890,7 +2890,7 @@
                     }
                   }
                 },
-                "Errors": {
+                "errors": {
                   "type": "array",
                   "description": "An array of error messages (code and message)",
                   "items": {
@@ -2911,7 +2911,7 @@
                     ]
                   }
                 },
-                "Messages": {
+                "messages": {
                   "type": "array",
                   "description": "An array of information messages (code and message)",
                   "items": {
@@ -2934,10 +2934,10 @@
                 }
               },
               "required": [
-                "Success",
-                "Result",
-                "Errors",
-                "Messages"
+                "success",
+                "result",
+                "errors",
+                "messages"
               ]
             }
           }
