@@ -106,16 +106,15 @@ func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error)
 	if err != nil {
 		return nil, err
 	}
-	// If NotAfter is not set in the request, then set it to the expiry in the
-	// specified profile
-	if req.NotAfter.IsZero() {
-		profile := ca.Config.Signing.Default
-		if req.Profile != "" && ca.Config.Signing != nil &&
-			ca.Config.Signing.Profiles != nil && ca.Config.Signing.Profiles[req.Profile] != nil {
-			profile = ca.Config.Signing.Profiles[req.Profile]
-		}
-		req.NotAfter = time.Now().Round(time.Minute).Add(profile.Expiry).UTC()
+	// Set expiry based on the requested CA profile else use expiry from the default
+	// profile
+	profile := ca.Config.Signing.Default
+	if req.Profile != "" && ca.Config.Signing != nil &&
+		ca.Config.Signing.Profiles != nil && ca.Config.Signing.Profiles[req.Profile] != nil {
+		profile = ca.Config.Signing.Profiles[req.Profile]
 	}
+	req.NotAfter = time.Now().Round(time.Minute).Add(profile.Expiry).UTC()
+
 	caexpiry, err := ca.getCACertExpiry()
 	if err != nil {
 		return nil, errors.New("Failed to get CA certificate information")
