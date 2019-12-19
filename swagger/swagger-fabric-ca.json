@@ -594,7 +594,7 @@
         "tags": [
           "fabric-ca-server"
         ],
-        "description": "Gats an Idemix Credential Revocation Information (CRI)",
+        "description": "Gets an Idemix Credential Revocation Information (CRI)",
         "parameters": [
           {
             "name": "ca",
