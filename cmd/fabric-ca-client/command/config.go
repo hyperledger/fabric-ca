@@ -186,7 +186,8 @@ caname:
 
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section allows to select which
-# crypto implementation library to use
+# crypto implementation library to use. Change "default:" value to match the
+# provider (SW or PKCS11).
 #############################################################################
 bccsp:
     default: SW
@@ -196,6 +197,16 @@ bccsp:
         filekeystore:
             # The directory used for the software file-based keystore
             keystore: msp/keystore
+
+    # PKCS11 provider definitions, for use with an HSM
+    pkcs11:
+        Library:
+        Pin:
+        Label:
+        hash: SHA2
+        security: 256
+        filekeystore:
+            keystore:	
 `
 )
 
