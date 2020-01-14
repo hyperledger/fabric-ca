@@ -66,7 +66,7 @@ func NewCertificateRequest(ctx RequestContext) (*Impl, error) {
 		return nil, err
 	}
 
-	// Parse the query paramaters
+	// Parse the query parameters
 	req, err := getReq(ctx)
 	if err != nil {
 		return nil, err

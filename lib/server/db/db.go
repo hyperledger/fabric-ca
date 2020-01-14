@@ -91,7 +91,7 @@ func New(db SqlxDB, caName string, metrics *Metrics) *DB {
 	}
 }
 
-// IsInitialized returns true if db is intialized, else false
+// IsInitialized returns true if db is initialized, else false
 func (db *DB) IsInitialized() bool {
 	return db.IsDBInitialized
 }
