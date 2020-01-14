@@ -153,8 +153,17 @@ var _ = Describe("Postgres", func() {
 			Expect(err.Error()).Should(ContainSubstring("Failed to create Postgres tables: Error creating users table: unable to create table"))
 		})
 
-		It("returns an error if unable to create affiliations table", func() {
+		It("returns an error if unable to create users index", func() {
 			mockDB.ExecReturnsOnCall(1, nil, errors.New("unable to create table"))
+
+			db.SqlxDB = mockDB
+			err := db.CreateTables()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).Should(ContainSubstring("Failed to create Postgres tables: Error creating users id index: unable to create table"))
+		})
+
+		It("returns an error if unable to create affiliations table", func() {
+			mockDB.ExecReturnsOnCall(2, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -163,7 +172,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to create certificates table", func() {
-			mockDB.ExecReturnsOnCall(2, nil, errors.New("unable to create table"))
+			mockDB.ExecReturnsOnCall(3, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -172,7 +181,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to create credentails table", func() {
-			mockDB.ExecReturnsOnCall(3, nil, errors.New("unable to create table"))
+			mockDB.ExecReturnsOnCall(4, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -181,7 +190,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to create revocation_authority_info table", func() {
-			mockDB.ExecReturnsOnCall(4, nil, errors.New("unable to create table"))
+			mockDB.ExecReturnsOnCall(5, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -190,7 +199,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to create nonces table", func() {
-			mockDB.ExecReturnsOnCall(5, nil, errors.New("unable to create table"))
+			mockDB.ExecReturnsOnCall(6, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -199,7 +208,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to create properties table", func() {
-			mockDB.ExecReturnsOnCall(6, nil, errors.New("unable to create table"))
+			mockDB.ExecReturnsOnCall(7, nil, errors.New("unable to create table"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
@@ -208,7 +217,7 @@ var _ = Describe("Postgres", func() {
 		})
 
 		It("returns an error if unable to insert default value in properties table", func() {
-			mockDB.ExecReturnsOnCall(7, nil, errors.New("unable to insert default values"))
+			mockDB.ExecReturnsOnCall(8, nil, errors.New("unable to insert default values"))
 
 			db.SqlxDB = mockDB
 			err := db.CreateTables()
