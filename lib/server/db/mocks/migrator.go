@@ -2,7 +2,7 @@
 package mocks
 
 import (
-	sync "sync"
+	"sync"
 
 	db "github.com/hyperledger/fabric-ca/lib/server/db"
 )
