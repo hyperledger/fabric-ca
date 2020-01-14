@@ -164,8 +164,12 @@ func (p *Postgres) createDatabase() error {
 func (p *Postgres) createTables() error {
 	db := p.SqlxDB
 	log.Debug("Creating users table if it does not exist")
-	if _, err := db.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
+	if _, err := db.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0, PRIMARY KEY (id))"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
+	}
+	log.Debug("Creating users id index if it does not exist")
+	if _, err := db.Exec("UsersIdIndexPatch", "CREATE INDEX IF NOT EXISTS users_pkey ON users(id)"); err != nil {
+		return errors.Wrap(err, "Error creating users id index")
 	}
 	log.Debug("Creating affiliations table if it does not exist")
 	if _, err := db.Exec("CreateAffiliationTable", "CREATE TABLE IF NOT EXISTS affiliations (name VARCHAR(1024) NOT NULL UNIQUE, prekey VARCHAR(1024), level INTEGER DEFAULT 0)"); err != nil {
