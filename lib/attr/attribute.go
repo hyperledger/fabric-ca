@@ -232,7 +232,7 @@ func (ac *attributeControl) validateListAttribute(requestedAttr *api.Attribute, 
 	if err != nil {
 		return err
 	}
-	// If requested attribute is 'hf.Registrar.DeletegateRoles', make sure it is equal or a subset of the user's hf.Registrar.Roles attribute
+	// If requested attribute is 'hf.Registrar.DelegateRoles', make sure it is equal or a subset of the user's hf.Registrar.Roles attribute
 	if ac.getName() == DelegateRoles {
 		err := checkDelegateRoleValues(allRequestedAttrs, user)
 		if err != nil {
