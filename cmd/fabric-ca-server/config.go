@@ -579,23 +579,28 @@ func (s *ServerCmd) configInit() (err error) {
 	// Read operations tls files
 	if s.myViper.GetBool("operations.tls.enabled") {
 		cf := s.myViper.GetString("operations.tls.cert.file")
+		if cf == "" {
+			cf = s.cfg.Operations.TLS.CertFile
+		}
 		if !filepath.IsAbs(cf) {
 			cf = filepath.Join(s.homeDirectory, cf)
 		}
-		if util.FileExists(cf) {
-			s.cfg.Operations.TLS.CertFile = cf
-		} else {
+		if !util.FileExists(cf) {
 			return errors.Errorf("failed to read certificate file: %s", cf)
 		}
+		s.cfg.Operations.TLS.CertFile = cf
+
 		kf := s.myViper.GetString("operations.tls.key.file")
+		if kf == "" {
+			kf = s.cfg.Operations.TLS.KeyFile
+		}
 		if !filepath.IsAbs(kf) {
 			kf = filepath.Join(s.homeDirectory, kf)
 		}
-		if util.FileExists(kf) {
-			s.cfg.Operations.TLS.KeyFile = kf
-		} else {
+		if !util.FileExists(kf) {
 			return errors.Errorf("failed to read key file: %s", kf)
 		}
+		s.cfg.Operations.TLS.KeyFile = kf
 	}
 
 	// The pathlength field controls how deep the CA hierarchy when requesting
