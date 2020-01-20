@@ -540,3 +540,29 @@ func TestConfigInit(t *testing.T) {
 		os.Remove(defYaml)
 	}
 }
+
+func TestOperationsTLSCertKeyConfig(t *testing.T) {
+	certFile := "tls_server-cert.pem"
+	keyFile := "tls_server-key.pem"
+
+	cmd := &ServerCmd{
+		myViper:     viper.New(),
+		cfgFileName: "../../testdata/testviperunmarshal.yaml",
+		cfg:         &lib.ServerConfig{},
+	}
+	cmd.myViper.Set("boot", "user:pass")
+
+	err := cmd.configInit()
+	if err != nil {
+		t.Error(err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %s", err)
+	}
+	homeDir := filepath.Join(cwd, "../../testdata")
+
+	assert.Equal(t, cmd.cfg.Operations.TLS.CertFile, filepath.Join(homeDir, certFile))
+	assert.Equal(t, cmd.cfg.Operations.TLS.KeyFile, filepath.Join(homeDir, keyFile))
+}
