@@ -692,68 +692,54 @@
 			"versionExact": "master"
 		},
 		{
-			"checksumSHA1": "FaDuiEL1h9wdNYBG5uyjvlBDPEY=",
+			"checksumSHA1": "WOLMxJCYaKYleZvmGEClhuhM3BE=",
 			"path": "github.com/hyperledger/fabric/common/metrics",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z",
 			"version": "master",
 			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "XA7iTPuTIO7aWvVfCb1zdSbfYn4=",
 			"path": "github.com/hyperledger/fabric/common/metrics/cmd/gendoc",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
 			"checksumSHA1": "G1kPTyG6AIFY3EE7QnJTMSQe4Yk=",
 			"path": "github.com/hyperledger/fabric/common/metrics/disabled",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
-			"checksumSHA1": "ufI7b9WXqFhq8cHo/tUfZrmVakg=",
+			"checksumSHA1": "03qbzWZaMfZecizyUhSnoKgh9r0=",
 			"path": "github.com/hyperledger/fabric/common/metrics/gendoc",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
 			"checksumSHA1": "3XYaCppp/6YpdnABcne+HIc0Kfc=",
 			"path": "github.com/hyperledger/fabric/common/metrics/internal/namer",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
-			"checksumSHA1": "hPiA/69FJKDd0vhdmvz01STuKHQ=",
+			"checksumSHA1": "sxoQ5f6L9yyicIDIvLNM0BGldSE=",
 			"path": "github.com/hyperledger/fabric/common/metrics/metricsfakes",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
 			"checksumSHA1": "i7w2T4KSGTN74hpSaJUo9Zja2bk=",
 			"path": "github.com/hyperledger/fabric/common/metrics/prometheus",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
 			"checksumSHA1": "5m31wTymzsdutw8YeX9+smWx+Dc=",
 			"path": "github.com/hyperledger/fabric/common/metrics/statsd",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
-			"version": "master",
-			"versionExact": "master"
+			"revision": "7917a40ff6f694b34c971b1f8285de8b1ac39777",
+			"revisionTime": "2019-11-13T12:45:15Z"
 		},
 		{
 			"checksumSHA1": "PqH9vrWA6RXpEtpESGLuoC2O3jU=",
