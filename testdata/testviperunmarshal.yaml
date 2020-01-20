@@ -9,3 +9,9 @@ ca:
 db:
   tls:
       enabled: false
+
+operations:
+  tls:
+    enabled: true
+    certfile: "tls_server-cert.pem"
+    keyfile: "tls_server-key.pem"
