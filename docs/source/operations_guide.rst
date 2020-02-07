@@ -101,7 +101,7 @@ the CA container's log.
 
    [INFO] Listening on https://0.0.0.0:7052
 
-At this point the TLA CA server is on a listening on a secure socket, and can start
+At this point the TLS CA server is on a listening on a secure socket, and can start
 issuing TLS certificates.
 
 Enroll TLS CA's Admin
