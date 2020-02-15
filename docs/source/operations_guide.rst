@@ -47,7 +47,7 @@ For each host that needs to acquire cryptographic material, you will need to hav
 fabric-ca-client binary available on the host machine. The client will be used to
 connect to the Fabric CA server container.
 
-To download the fabric-ca-client binary, browse to this  `repository <https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric-ca/hyperledger-fabric-ca/>`_ and
+To download the fabric-ca-client binary, browse to this  `repository <https://github.com/hyperledger/fabric-ca/releases>`_ and
 select the latest binary for your machine.
 
 
