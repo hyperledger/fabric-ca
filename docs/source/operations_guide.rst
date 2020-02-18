@@ -47,7 +47,7 @@ For each host that needs to acquire cryptographic material, you will need to hav
 fabric-ca-client binary available on the host machine. The client will be used to
 connect to the Fabric CA server container.
 
-To download the fabric-ca-client binary, browse to this  `repository <https://nexus.hyperledger.org/content/repositories/releases/org/hyperledger/fabric-ca/hyperledger-fabric-ca/>`_ and
+To download the fabric-ca-client binary, browse to this  `repository <https://github.com/hyperledger/fabric-ca/releases>`_ and
 select the latest binary for your machine.
 
 
@@ -111,7 +111,7 @@ Before you can start using the CA client, you must acquire the signing
 certificate for the CA's TLS certificate. This is a required step before you
 can connect using TLS.
 
-In our example, you would need to acquire the file located at ``/tmp/hyperledger/tls/ca/crypto/ca-cert.pem``
+In our example, you would need to acquire the file located at ``/tmp/hyperledger/tls-ca/crypto/ca-cert.pem``
 on the machine running the TLS CA server and copy this file over to the host where
 you will be running the CA client binary. This certificate, also known as the TLS
 CA's signing certificate is going to be used to validate the TLS certificate of
@@ -404,6 +404,7 @@ band process.
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org1/peer1
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org1/peer1/assets/ca/org1-ca-cert.pem
+    export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://peer1-org1:peer1PW@0.0.0.0:7054
 
 Next step is to get the TLS cryptographic material for the peer. This requires another enrollment,
@@ -442,6 +443,7 @@ machine.
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org1/peer2
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org1/peer2/assets/ca/org1-ca-cert.pem
+    export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://peer2-org1:peer2PW@0.0.0.0:7054
 
 Next step is to get the TLS cryptographic material for the peer. This requires another enrollment,
@@ -597,6 +599,7 @@ we will assume the trusted root certificate of Org2 is available at
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org2/peer1
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org2/peer1/assets/ca/org2-ca-cert.pem
+    export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://peer1-org2:peer1PW@0.0.0.0:7055
 
 Next, you will get the TLS certificate. In the command below, we will assume the
@@ -623,6 +626,7 @@ we will assume the trusted root certificate of Org2 is available at
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org2/peer2
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org2/peer2/assets/ca/org2-ca-cert.pem
+    export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://peer2-org2:peer2PW@0.0.0.0:7055
 
 Next, you will get the TLS certificate. In the command below, we will assume the
@@ -774,7 +778,7 @@ host machine.
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/orderer
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/ca/org0-ca-cert.pem
-    fabric-ca-client enroll -d -u https://orderer-org0:ordererPW@0.0.0.0:7053
+    fabric-ca-client enroll -d -u https://orderer1-org0:ordererpw@0.0.0.0:7053
 
 Next, you will get the TLS certificate. In the command below, we will assume the
 certificate of the TLS CA has been copied to ``/tmp/hyperledger/org0/orderer/assets/tls-ca/tls-ca-cert.pem``
@@ -784,7 +788,7 @@ on Orderer's host machine.
 
     export FABRIC_CA_CLIENT_MSPDIR=tls-msp
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/tls-ca/tls-ca-cert.pem
-    fabric-ca-client enroll -d -u https://orderer-org0:ordererPW@0.0.0.0:7052 --enrollment.profile tls --csr.hosts orderer1-org0
+    fabric-ca-client enroll -d -u https://orderer1-org0:ordererPW@0.0.0.0:7052 --enrollment.profile tls --csr.hosts orderer1-org0
 
 Go to path ``/tmp/hyperledger/org0/orderer/tls-msp/keystore`` and change the name
 of the key to ``key.pem``.
@@ -803,6 +807,7 @@ The command below assumes that this is being executed on the orderer's host mach
 .. code:: bash
 
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/admin
+    export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/ca/org0-ca-cert.pem
     export FABRIC_CA_CLIENT_MSPDIR=msp
     fabric-ca-client enroll -d -u https://orderer-org0-admin:ordererAdminPW@0.0.0.0:7053
 
@@ -910,7 +915,7 @@ following commands from the directory in which ``configtx.yaml`` is present:
 
 .. code:: bash
 
-   configtxgen -profile OrgsOrdererGenesis -outputBlock /tmp/hyperledger/org0/orderer/genesis.block
+   configtxgen -profile OrgsOrdererGenesis -outputBlock /tmp/hyperledger/org0/orderer/genesis.block -channelID syschannel
    configtxgen -profile OrgsChannel -outputCreateChannelTx /tmp/hyperledger/org0/orderer/channel.tx -channelID mychannel
 
 This will generate two artifacts, ``genesis.block`` and ``channel.tx``, which will
