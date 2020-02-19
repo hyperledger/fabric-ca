@@ -1,3 +1,12 @@
+## v1.4.5
+Wed Feb 19 13:13:12 EST 2020
+
+* [93f6863](https://github.com/hyperledger/fabric-ca/commit/93f6863) Support reading Operations TLS settings from file
+* [a891cd1](https://github.com/hyperledger/fabric-ca/commit/a891cd1) [FABC-891] Create missing index on postgres db
+* [e3fd520](https://github.com/hyperledger/fabric-ca/commit/e3fd520) [FABC-890] Fix responses in swagger.json
+* [292781e](https://github.com/hyperledger/fabric-ca/commit/292781e) FABC-806 Do not honor client expiry request
+* [a3c0171](https://github.com/hyperledger/fabric-ca/commit/a3c0171) [FAB-17074](https://jira.hyperledger.org/browse/FAB-17074) Prepare for next fabric-ca rel v1.4.5
+
 ## v1.4.4
 Thu Nov 14 14:40:24 EST 2019
 
