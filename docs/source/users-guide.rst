@@ -1414,7 +1414,7 @@ The names of attributes are case sensitive.
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | hf.GenCRL                   | Boolean    | Identity is able to generate CRL if attribute value is true                                                |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
-| hf.Revoker                  | Boolean    | Identity is able to revoke an identity and/or certificates if attribute value is true                           |
+| hf.Revoker                  | Boolean    | Identity is able to revoke an identity and/or certificates if attribute value is true                      |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
 | hf.AffiliationMgr           | Boolean    | Identity is able to manage affiliations if attribute value is true                                         |
 +-----------------------------+------------+------------------------------------------------------------------------------------------------------------+
