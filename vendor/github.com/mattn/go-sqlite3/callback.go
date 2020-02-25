@@ -1,4 +1,4 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -40,8 +40,8 @@ func callbackTrampoline(ctx *C.sqlite3_context, argc int, argv **C.sqlite3_value
 }
 
 //export stepTrampoline
-func stepTrampoline(ctx *C.sqlite3_context, argc int, argv **C.sqlite3_value) {
-	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:argc:argc]
+func stepTrampoline(ctx *C.sqlite3_context, argc C.int, argv **C.sqlite3_value) {
+	args := (*[(math.MaxInt32 - 1) / unsafe.Sizeof((*C.sqlite3_value)(nil))]*C.sqlite3_value)(unsafe.Pointer(argv))[:int(argc):int(argc)]
 	ai := lookupHandle(uintptr(C.sqlite3_user_data(ctx))).(*aggInfo)
 	ai.Step(ctx, args)
 }
@@ -53,8 +53,52 @@ func doneTrampoline(ctx *C.sqlite3_context) {
 	ai.Done(ctx)
 }
 
-// Use handles to avoid passing Go pointers to C.
+//export compareTrampoline
+func compareTrampoline(handlePtr uintptr, la C.int, a *C.char, lb C.int, b *C.char) C.int {
+	cmp := lookupHandle(handlePtr).(func(string, string) int)
+	return C.int(cmp(C.GoStringN(a, la), C.GoStringN(b, lb)))
+}
 
+//export commitHookTrampoline
+func commitHookTrampoline(handle uintptr) int {
+	callback := lookupHandle(handle).(func() int)
+	return callback()
+}
+
+//export rollbackHookTrampoline
+func rollbackHookTrampoline(handle uintptr) {
+	callback := lookupHandle(handle).(func())
+	callback()
+}
+
+//export updateHookTrampoline
+func updateHookTrampoline(handle uintptr, op int, db *C.char, table *C.char, rowid int64) {
+	callback := lookupHandle(handle).(func(int, string, string, int64))
+	callback(op, C.GoString(db), C.GoString(table), rowid)
+}
+
+//export authorizerTrampoline
+func authorizerTrampoline(handle uintptr, op int, arg1 *C.char, arg2 *C.char, arg3 *C.char) int {
+	callback := lookupHandle(handle).(func(int, string, string, string) int)
+	return callback(op, C.GoString(arg1), C.GoString(arg2), C.GoString(arg3))
+}
+
+//export preUpdateHookTrampoline
+func preUpdateHookTrampoline(handle uintptr, dbHandle uintptr, op int, db *C.char, table *C.char, oldrowid int64, newrowid int64) {
+	hval := lookupHandleVal(handle)
+	data := SQLitePreUpdateData{
+		Conn:         hval.db,
+		Op:           op,
+		DatabaseName: C.GoString(db),
+		TableName:    C.GoString(table),
+		OldRowID:     oldrowid,
+		NewRowID:     newrowid,
+	}
+	callback := hval.val.(func(SQLitePreUpdateData))
+	callback(data)
+}
+
+// Use handles to avoid passing Go pointers to C.
 type handleVal struct {
 	db  *SQLiteConn
 	val interface{}
@@ -73,7 +117,7 @@ func newHandle(db *SQLiteConn, v interface{}) uintptr {
 	return i
 }
 
-func lookupHandle(handle uintptr) interface{} {
+func lookupHandleVal(handle uintptr) handleVal {
 	handleLock.Lock()
 	defer handleLock.Unlock()
 	r, ok := handleVals[handle]
@@ -84,7 +128,11 @@ func lookupHandle(handle uintptr) interface{} {
 			panic("invalid handle")
 		}
 	}
-	return r.val
+	return r
+}
+
+func lookupHandle(handle uintptr) interface{} {
+	return lookupHandleVal(handle).val
 }
 
 func deleteHandles(db *SQLiteConn) {
@@ -307,8 +355,18 @@ func callbackRetText(ctx *C.sqlite3_context, v reflect.Value) error {
 	return nil
 }
 
+func callbackRetNil(ctx *C.sqlite3_context, v reflect.Value) error {
+	return nil
+}
+
 func callbackRet(typ reflect.Type) (callbackRetConverter, error) {
 	switch typ.Kind() {
+	case reflect.Interface:
+		errorInterface := reflect.TypeOf((*error)(nil)).Elem()
+		if typ.Implements(errorInterface) {
+			return callbackRetNil, nil
+		}
+		fallthrough
 	case reflect.Slice:
 		if typ.Elem().Kind() != reflect.Uint8 {
 			return nil, errors.New("the only supported slice type is []byte")
@@ -328,7 +386,7 @@ func callbackRet(typ reflect.Type) (callbackRetConverter, error) {
 func callbackError(ctx *C.sqlite3_context, err error) {
 	cstr := C.CString(err.Error())
 	defer C.free(unsafe.Pointer(cstr))
-	C.sqlite3_result_error(ctx, cstr, -1)
+	C.sqlite3_result_error(ctx, cstr, C.int(-1))
 }
 
 // Test support code. Tests are not allowed to import "C", so we can't
