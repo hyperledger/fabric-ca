@@ -31,7 +31,7 @@
 PROJECT_NAME = fabric-ca
 BASE_VERSION = 1.4.6
 PREV_VERSION = 1.4.5
-IS_RELEASE = false
+IS_RELEASE = true
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
