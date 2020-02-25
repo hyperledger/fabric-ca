@@ -272,18 +272,18 @@ release/%/bin/fabric-ca-server: $(GO_SOURCE)
 
 .PHONY: dist
 dist: dist-clean release
-	cd release/$(MARCH) && tar -czvf hyperledger-fabric-ca-$(MARCH).$(PROJECT_VERSION).tar.gz *
+	cd release/$(MARCH) && tar -czvf hyperledger-fabric-ca-$(MARCH)-$(PROJECT_VERSION).tar.gz *
 dist-all: dist-clean release-all $(patsubst %,dist/%, $(RELEASE_PLATFORMS))
-dist/windows-amd64:
-	cd release/windows-amd64 && tar -czvf hyperledger-fabric-ca-windows-amd64.$(PROJECT_VERSION).tar.gz *
-dist/darwin-amd64:
-	cd release/darwin-amd64 && tar -czvf hyperledger-fabric-ca-darwin-amd64.$(PROJECT_VERSION).tar.gz *
-dist/linux-amd64:
-	cd release/linux-amd64 && tar -czvf hyperledger-fabric-ca-linux-amd64.$(PROJECT_VERSION).tar.gz *
-dist/linux-ppc64le:
-	cd release/linux-ppc64le && tar -czvf hyperledger-fabric-ca-linux-ppc64le.$(PROJECT_VERSION).tar.gz *
-dist/linux-s390x:
-	cd release/linux-s390x && tar -czvf hyperledger-fabric-ca-linux-s390x.$(PROJECT_VERSION).tar.gz *
+dist/windows-amd64: release/windows-amd64
+	cd release/windows-amd64 && tar -czvf hyperledger-fabric-ca-windows-amd64-$(PROJECT_VERSION).tar.gz *
+dist/darwin-amd64: release/darwin-amd64
+	cd release/darwin-amd64 && tar -czvf hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz *
+dist/linux-amd64: release/linux-amd64
+	cd release/linux-amd64 && tar -czvf hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz *
+dist/linux-ppc64le: release/linux-ppc64le
+	cd release/linux-ppc64le && tar -czvf hyperledger-fabric-ca-linux-ppc64le-$(PROJECT_VERSION).tar.gz *
+dist/linux-s390x: release/linux-s390x
+	cd release/linux-s390x && tar -czvf hyperledger-fabric-ca-linux-s390x-$(PROJECT_VERSION).tar.gz *
 
 .PHONY: clean
 clean: docker-clean release-clean
@@ -299,11 +299,11 @@ release-clean: $(patsubst %,%-release-clean, $(RELEASE_PLATFORMS))
 
 .PHONY: dist-clean
 dist-clean:
-	-@rm -rf release/windows-amd64/hyperledger-fabric-ca-windows-amd64.$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/darwin-amd64/hyperledger-fabric-ca-darwin-amd64.$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64.$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-ppc64le/hyperledger-fabric-ca-linux-ppc64le.$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-s390x/hyperledger-fabric-ca-linux-s390x.$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/windows-amd64/hyperledger-fabric-ca-windows-amd64-$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/darwin-amd64/hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/linux-ppc64le/hyperledger-fabric-ca-linux-ppc64le-$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/linux-s390x/hyperledger-fabric-ca-linux-s390x-$(PROJECT_VERSION).tar.gz ||:
 
 .FORCE:
 

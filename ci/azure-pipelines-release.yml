@@ -34,10 +34,10 @@ stages:
           - checkout: self
             path: 'go/src/github.com/hyperledger/fabric-ca'
             displayName: Checkout Fabric CA Code
-          - script: ./ci/create_binary_package.sh
+          - script: make dist/$(TARGET)
             displayName: Compile Binary and Create Tarball
-          - publish: release/$(TARGET)/bin/$(TARGET)-$(RELEASE).tar.gz
-            artifact: $(TARGET).tar.gz
+          - publish: release/$(TARGET)/bin/hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
+            artifact: hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
             displayName: Publish Release Artifact
 
   - stage: BuildAndPushDockerImages
@@ -52,7 +52,7 @@ stages:
           - checkout: self
             path: 'go/src/github.com/hyperledger/fabric-ca'
             displayName: Checkout Fabric CA Code
-          - script: ./ci/publish_docker.sh
+          - script: ./ci/scripts/publish_docker.sh
             env:
               DOCKER_PASSWORD: $(DockerHub-Password)
               DOCKER_USERNAME: $(DockerHub-Username)
