@@ -1,21 +1,34 @@
-// Copyright (C) 2014 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
 package sqlite3
 
+/*
+#ifndef USE_LIBSQLITE3
+#include <sqlite3-binding.h>
+#else
+#include <sqlite3.h>
+#endif
+*/
 import "C"
+import "syscall"
 
+// ErrNo inherit errno.
 type ErrNo int
 
+// ErrNoMask is mask code.
 const ErrNoMask C.int = 0xff
 
+// ErrNoExtended is extended errno.
 type ErrNoExtended int
 
+// Error implement sqlite error code.
 type Error struct {
 	Code         ErrNo         /* The error code returned by SQLite */
 	ExtendedCode ErrNoExtended /* The extended error code returned by SQLite */
+	SystemErrno  syscall.Errno /* The system errno returned by the OS through SQLite, if applicable */
 	err          string        /* The error string returned by sqlite3_errmsg(),
 	this usually contains more specific details. */
 }
@@ -52,23 +65,32 @@ var (
 	ErrWarning    = ErrNo(28) /* Warnings from sqlite3_log() */
 )
 
+// Error return error message from errno.
 func (err ErrNo) Error() string {
 	return Error{Code: err}.Error()
 }
 
+// Extend return extended errno.
 func (err ErrNo) Extend(by int) ErrNoExtended {
 	return ErrNoExtended(int(err) | (by << 8))
 }
 
+// Error return error message that is extended code.
 func (err ErrNoExtended) Error() string {
 	return Error{Code: ErrNo(C.int(err) & ErrNoMask), ExtendedCode: err}.Error()
 }
 
 func (err Error) Error() string {
+	var str string
 	if err.err != "" {
-		return err.err
+		str = err.err
+	} else {
+		str = C.GoString(C.sqlite3_errstr(C.int(err.Code)))
 	}
-	return errorString(err)
+	if err.SystemErrno != 0 {
+		str += ": " + err.SystemErrno.Error()
+	}
+	return str
 }
 
 // result codes from http://www.sqlite.org/c3ref/c_abort_rollback.html
@@ -121,7 +143,7 @@ var (
 	ErrConstraintTrigger      = ErrConstraint.Extend(7)
 	ErrConstraintUnique       = ErrConstraint.Extend(8)
 	ErrConstraintVTab         = ErrConstraint.Extend(9)
-	ErrConstraintRowId        = ErrConstraint.Extend(10)
+	ErrConstraintRowID        = ErrConstraint.Extend(10)
 	ErrNoticeRecoverWAL       = ErrNotice.Extend(1)
 	ErrNoticeRecoverRollback  = ErrNotice.Extend(2)
 	ErrWarningAutoIndex       = ErrWarning.Extend(1)

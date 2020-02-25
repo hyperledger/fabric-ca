@@ -69,7 +69,7 @@ IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
 RELEASE_PLATFORMS = linux-amd64 darwin-amd64 linux-ppc64le linux-s390x windows-amd64
-RELEASE_PKGS = fabric-ca-client
+RELEASE_PKGS = fabric-ca-client fabric-ca-server
 
 TOOLS = build/tools
 
@@ -230,7 +230,7 @@ release/darwin-amd64: CC=/usr/bin/clang
 release/darwin-amd64: $(patsubst %,release/darwin-amd64/bin/%, $(RELEASE_PKGS))
 
 release/linux-amd64: GOOS=linux
-release/linux-amd64: $(patsubst %,release/linux-amd64/bin/%, $(if $(filter $(shell arch), x86_64),$(RELEASE_PKGS) fabric-ca-server,$(RELEASE_PKGS)))
+release/linux-amd64: $(patsubst %,release/linux-amd64/bin/%, $(RELEASE_PKGS))
 
 release/%-amd64: GOARCH=amd64
 
