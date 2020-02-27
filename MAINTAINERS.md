@@ -1,15 +1,27 @@
 Maintainers
 ===========
 
-| Name                      | GitHub           | Chat           | email                               |
-|---------------------------|------------------|----------------|-------------------------------------|
-| Chris Ferris              | christo4ferris   | cbf            | chris.ferris@gmail.com              |
-| Dave Enyeart              | denyeart         | dave.enyeart   | enyeart@us.ibm.com                  |
-| Gari Singh                | mastersingh24    | mastersingh24  | gari.r.singh@gmail.com              |
-| Jonathan Levi             | hacera           | JonathanLevi   | jonathan@hacera.com                 |
-| Keith Smith               | smithbk          | smithbk        | bksmith@us.ibm.com                  |
-| Matthew Sykes             | sykesm           | sykesm         | sykesmat@us.ibm.com                 |
-| Saad Karim                | saad-karim       | skarim         | skarim@us.ibm.com                   |
+| Name | GitHub | Chat | email |
+|------|--------|------|-------|
+| Chris Ferris | christo4ferris | cbf | <chris.ferris@gmail.com> |
+| Dave Enyeart | denyeart | dave.enyeart | <enyeart@us.ibm.com> |
+| Gari Singh | mastersingh24 | mastersingh24 | <gari.r.singh@gmail.com> |
+| Jonathan Levi | hacera | JonathanLevi | <jonathan@hacera.com> |
+| Keith Smith | smithbk | smithbk | <bksmith@us.ibm.com> |
+| Matthew Sykes | sykesm | sykesm | <sykesmat@us.ibm.com> |
+| Saad Karim | saad-karim | skarim | <skarim@us.ibm.com> |
+
+
+Documentation Maintainers
+=========================
+
+| Name | GitHub | Chat | email |
+|------|--------|------|-------|
+| Anthony O'Dowd | odowdaibm  | odowdaibm | <a_o-dowd@uk.ibm.com> |
+| Chris Gabriel  | denali49   | cmgabriel | <alaskadd@gmail.com> |
+| Joe Alewine | joealewine | joe-alewine | <joe.alewine@ibm.com> |
+| Nikhil Gupta | nikhil550 | nikhilgupta | <negupta@us.ibm.com> |
+| Pam Andrejko | pamandrejko | pandrejko | <pama@ibm.com> |
 
 Also: Please see the [Release Manager section](https://github.com/hyperledger/fabric/blob/master/MAINTAINERS.md)
 
