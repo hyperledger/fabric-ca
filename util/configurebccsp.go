@@ -61,11 +61,6 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) error
 	if opts.Pkcs11Opts != nil {
 		log.Debugf("Initializing BCCSP with PKCS11 options %+v", opts.Pkcs11Opts)
 	}
-	// Init the BCCSP factories
-	err = factory.InitFactories(opts)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to initialize BCCSP Factories")
-	}
 	*optsPtr = opts
 	return nil
 }

@@ -58,11 +58,6 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) error
 	if opts.SwOpts != nil {
 		log.Debugf("Initializing BCCSP with software options %+v", opts.SwOpts)
 	}
-	// Init the BCCSP factories
-	err = factory.InitFactories(opts)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to initialize BCCSP Factories")
-	}
 	*optsPtr = opts
 	return nil
 }

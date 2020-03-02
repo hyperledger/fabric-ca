@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/hyperledger/fabric/bccsp/pkcs11"
 )
@@ -39,7 +40,14 @@ func TestCAInit(t *testing.T) {
 	t.Log("Working dir", wd)
 	defer cleanupTmpfiles(t, wd)
 	cfgFile := serverCfgFile(".")
-	ca, err := newCA(cfgFile, &cfg, &srv, false)
+	server := &Server{
+		levels: &dbutil.Levels{
+			Identity:    1,
+			Affiliation: 1,
+			Certificate: 1,
+		},
+	}
+	ca, err := newCA(cfgFile, &CAConfig{}, server, false)
 	if err != nil {
 		t.Fatal("newCA FAILED")
 	}
@@ -71,7 +79,7 @@ func TestCAInit(t *testing.T) {
 	defer cleanupTmpfiles(t, wd2)
 
 	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
-	ca, err = newCA(cfgFile, &cfg, &srv, true)
+	ca, err = newCA(cfgFile, &CAConfig{}, server, true)
 	if err != nil {
 		t.Fatal("newCA FAILED", err)
 	}
@@ -102,7 +110,7 @@ func TestCAInit(t *testing.T) {
 	ca.Config.CA.Keyfile = ""
 	ca.Config.CA.Certfile = ""
 	ca.Config.DB.Datasource = ""
-	ca, err = newCA(cfgFile, &cfg, &srv, false)
+	ca, err = newCA(cfgFile, &CAConfig{}, server, false)
 	if err != nil {
 		t.Fatal("newCA FAILED: ", err)
 	}
@@ -122,7 +130,7 @@ func TestCAInit(t *testing.T) {
 
 	// initEnrollmentSigner error
 	ca.Config.LDAP.Enabled = false
-	ca, err = newCA(cfgFile, &cfg, &srv, false)
+	ca, err = newCA(cfgFile, &CAConfig{}, server, false)
 	if err != nil {
 		t.Fatal("newCA FAILED")
 	}
