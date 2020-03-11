@@ -111,7 +111,7 @@ Before you can start using the CA client, you must acquire the signing
 certificate for the CA's TLS certificate. This is a required step before you
 can connect using TLS.
 
-In our example, you would need to acquire the file located at ``/tmp/hyperledger/tls-ca/crypto/ca-cert.pem``
+In our example, you would need to acquire the file located at ``/tmp/hyperledger/tls-ca/crypto/tls-cert.pem``
 on the machine running the TLS CA server and copy this file over to the host where
 you will be running the CA client binary. This certificate, also known as the TLS
 CA's signing certificate is going to be used to validate the TLS certificate of
