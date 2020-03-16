@@ -202,6 +202,7 @@ type GetIDResponse struct {
 	Attributes     []Attribute `json:"attrs" mapstructure:"attrs" `
 	MaxEnrollments int         `json:"max_enrollments" mapstructure:"max_enrollments"`
 	CAName         string      `json:"caname,omitempty"`
+	IsRevoked      bool        `json:"is_revoked,omitempty"`
 }
 
 // GetAllIDsResponse is the response from the GetAllIdentities call

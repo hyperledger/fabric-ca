@@ -257,6 +257,7 @@ func getID(ctx *serverRequestContextImpl, caller user.User, id, caname string) (
 		Attributes:     allAttributes,
 		MaxEnrollments: caUser.GetMaxEnrollments(),
 		CAName:         caname,
+		IsRevoked:      caUser.IsRevoked(),
 	}
 
 	return resp, nil
