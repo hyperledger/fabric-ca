@@ -124,13 +124,13 @@ func (csp *impl) getECKey(ski []byte) (pubKey *ecdsa.PublicKey, isPriv bool, err
 	session := csp.getSession()
 	defer csp.returnSession(session)
 	isPriv = true
-	_, err = findKeyPairFromSKI(p11lib, session, ski, privateKeyType)
+	_, err = findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
 		isPriv = false
 		logger.Debugf("Private key not found [%s] for SKI [%s], looking for Public key", err, hex.EncodeToString(ski))
 	}
 
-	publicKey, err := findKeyPairFromSKI(p11lib, session, ski, publicKeyType)
+	publicKey, err := findKeyPairFromSKI(p11lib, session, ski, publicKeyFlag)
 	if err != nil {
 		return nil, false, fmt.Errorf("Public key not found [%s] for SKI [%s]", err, hex.EncodeToString(ski))
 	}
@@ -193,6 +193,21 @@ func namedCurveFromOID(oid asn1.ObjectIdentifier) elliptic.Curve {
 		return elliptic.P521()
 	}
 	return nil
+}
+
+func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
+	switch curve {
+	case elliptic.P224():
+		return oidNamedCurveP224, true
+	case elliptic.P256():
+		return oidNamedCurveP256, true
+	case elliptic.P384():
+		return oidNamedCurveP384, true
+	case elliptic.P521():
+		return oidNamedCurveP521, true
+	}
+
+	return nil, false
 }
 
 func (csp *impl) generateECKey(curve asn1.ObjectIdentifier, ephemeral bool) (ski []byte, pubKey *ecdsa.PublicKey, err error) {
@@ -317,7 +332,7 @@ func (csp *impl) signP11ECDSA(ski []byte, msg []byte) (R, S *big.Int, err error)
 	session := csp.getSession()
 	defer csp.returnSession(session)
 
-	privateKey, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyType)
+	privateKey, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Private key not found [%s]", err)
 	}
@@ -349,7 +364,7 @@ func (csp *impl) verifyP11ECDSA(ski []byte, msg []byte, R, S *big.Int, byteSize 
 
 	logger.Debugf("Verify ECDSA\n")
 
-	publicKey, err := findKeyPairFromSKI(p11lib, session, ski, publicKeyType)
+	publicKey, err := findKeyPairFromSKI(p11lib, session, ski, publicKeyFlag)
 	if err != nil {
 		return false, fmt.Errorf("Public key not found [%s]", err)
 	}
@@ -378,16 +393,14 @@ func (csp *impl) verifyP11ECDSA(ski []byte, msg []byte, R, S *big.Int, byteSize 
 	return true, nil
 }
 
-type keyType int8
-
 const (
-	publicKeyType keyType = iota
-	privateKeyType
+	privateKeyFlag = true
+	publicKeyFlag  = false
 )
 
-func findKeyPairFromSKI(mod *pkcs11.Ctx, session pkcs11.SessionHandle, ski []byte, keyType keyType) (*pkcs11.ObjectHandle, error) {
+func findKeyPairFromSKI(mod *pkcs11.Ctx, session pkcs11.SessionHandle, ski []byte, keyType bool) (*pkcs11.ObjectHandle, error) {
 	ktype := pkcs11.CKO_PUBLIC_KEY
-	if keyType == privateKeyType {
+	if keyType == privateKeyFlag {
 		ktype = pkcs11.CKO_PRIVATE_KEY
 	}
 
@@ -472,7 +485,7 @@ func ecPoint(p11lib *pkcs11.Ctx, session pkcs11.SessionHandle, key pkcs11.Object
 			logger.Debugf("EC point: attr type %d/0x%x, len %d\n%s\n", a.Type, a.Type, len(a.Value), hex.Dump(a.Value))
 
 			// workarounds, see above
-			if ((len(a.Value) % 2) == 0) &&
+			if (0 == (len(a.Value) % 2)) &&
 				(byte(0x04) == a.Value[0]) &&
 				(byte(0x04) == a.Value[len(a.Value)-1]) {
 				logger.Debugf("Detected opencryptoki bug, trimming trailing 0x04")
@@ -521,6 +534,35 @@ func listAttrs(p11lib *pkcs11.Ctx, session pkcs11.SessionHandle, obj pkcs11.Obje
 		// Would be friendlier if the bindings provided a way convert Attribute hex to string
 		logger.Debugf("ListAttr: type %d/0x%x, length %d\n%s", a.Type, a.Type, len(a.Value), hex.Dump(a.Value))
 	}
+}
+
+func (csp *impl) getSecretValue(ski []byte) []byte {
+	p11lib := csp.ctx
+	session := csp.getSession()
+	defer csp.returnSession(session)
+
+	keyHandle, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
+	if err != nil {
+		logger.Warningf("P11: findKeyPairFromSKI [%s]\n", err)
+	}
+	var privKey []byte
+	template := []*pkcs11.Attribute{
+		pkcs11.NewAttribute(pkcs11.CKA_VALUE, privKey),
+	}
+
+	// certain errors are tolerated, if value is missing
+	attr, err := p11lib.GetAttributeValue(session, *keyHandle, template)
+	if err != nil {
+		logger.Warningf("P11: get(attrlist) [%s]\n", err)
+	}
+
+	for _, a := range attr {
+		// Would be friendlier if the bindings provided a way convert Attribute hex to string
+		logger.Debugf("ListAttr: type %d/0x%x, length %d\n%s", a.Type, a.Type, len(a.Value), hex.Dump(a.Value))
+		return a.Value
+	}
+	logger.Warningf("No Key Value found: %v", err)
+	return nil
 }
 
 var (

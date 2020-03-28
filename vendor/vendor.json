@@ -501,10 +501,10 @@
 			"revisionTime": "2018-12-30T09:37:25Z"
 		},
 		{
-			"checksumSHA1": "GxaWcYIyCMkDHbpBIxtnV0s8Dd8=",
+			"checksumSHA1": "ZNqI4YSH6q5of5U7G6jJmgEy4oY=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "e37aa35178fdb83228f63ef4670c1a67896f081b",
-			"revisionTime": "2019-10-16T01:19:04Z",
+			"revision": "ca93be5566ca62cbc14586b8898fc417c1e46fc7",
+			"revisionTime": "2020-03-11T13:23:40Z",
 			"tree": true
 		},
 		{
