@@ -238,6 +238,7 @@ func testEverything(ta TestAccessor, t *testing.T) {
 	testUpdateUser(ta, t)
 	testInsertAndGetAffiliation(ta, t)
 	testDeleteAffiliation(ta, t)
+	testInsertAndGetFilteredUsers(ta, t)
 }
 
 func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
@@ -280,6 +281,69 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 
 	if user.GetName() != insert.Name {
 		t.Error("Incorrect ID retrieved")
+	}
+}
+
+func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
+	t.Log("TestInsertAndGetFilteredUsers")
+	ta.Truncate()
+	// test type=* and affiliation is not nil
+	// insert affiliation
+	err := ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
+	if err != nil {
+		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
+	}
+	// create user
+	insert := cadbuser.Info{
+		Name:        "testTypes",
+		Pass:        "123456",
+		Type:        "*",
+		Affiliation: "Bank1",
+		Attributes: []api.Attribute{
+			api.Attribute{
+				Name:  "hf.Registrar.Roles",
+				Value: "peer,client,orderer,user",
+			},
+			api.Attribute{
+				Name:  "hf.Revoker",
+				Value: "false",
+			},
+			api.Attribute{
+				Name:  "hf.Registrar.Attributes",
+				Value: "*",
+			},
+			api.Attribute{
+				Name:  "xyz",
+				Value: "xyz",
+			},
+		},
+	}
+	// insert user
+	err = ta.Accessor.InsertUser(&insert)
+	if err != nil {
+		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+	}
+	// test get the user
+	rows, err := ta.Accessor.GetFilteredUsers(insert.Affiliation, "*")
+	if err != nil {
+		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
+	}
+	// use the success flag to tag success
+	successFlag := false
+	for rows.Next() {
+		var id cadbuser.Record
+		err := rows.StructScan(&id)
+		if err != nil {
+			t.Errorf("Error occured during parser the rows data: %s, error: %s", insert.Name, err)
+		}
+		// get the target user
+		if id.Affiliation == "Bank1" && id.Name == insert.Name {
+			successFlag = true
+		}
+	}
+	// not success
+	if !successFlag {
+		t.Errorf("Test InsertAndGetFilteredUsers Failed!")
 	}
 }
 
