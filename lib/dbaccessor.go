@@ -591,7 +591,7 @@ func (d *Accessor) GetFilteredUsers(affiliation, types string) (*sqlx.Rows, erro
 	subAffiliation := affiliation + ".%"
 	if util.ListContains(types, "*") { // If type is '*', allowed to get back of all types for requested affiliation
 		query := "SELECT * FROM users WHERE ((affiliation = ?) OR (affiliation LIKE ?))"
-		rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(query))
+		rows, err := d.db.Queryx("GetFilteredUsers", d.db.Rebind(query), affiliation, subAffiliation)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to execute query '%s' for affiliation '%s' and types '%s'", query, affiliation, types)
 		}
