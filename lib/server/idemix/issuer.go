@@ -25,7 +25,7 @@ import (
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )

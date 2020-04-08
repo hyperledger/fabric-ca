@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package mocks
 
-import bccsp "github.com/hyperledger/fabric/bccsp"
+import bccsp "github.com/hyperledger/fabric-ca/internal/pkg/bccsp"
 import credential "github.com/hyperledger/fabric-ca/lib/client/credential"
 import mock "github.com/stretchr/testify/mock"
 import x509 "github.com/hyperledger/fabric-ca/lib/client/credential/x509"

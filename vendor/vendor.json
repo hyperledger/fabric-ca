@@ -501,13 +501,6 @@
 			"revisionTime": "2018-12-30T09:37:25Z"
 		},
 		{
-			"checksumSHA1": "GxaWcYIyCMkDHbpBIxtnV0s8Dd8=",
-			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "e37aa35178fdb83228f63ef4670c1a67896f081b",
-			"revisionTime": "2019-10-16T01:19:04Z",
-			"tree": true
-		},
-		{
 			"checksumSHA1": "n+ZKx3gMoBi4t0fN84vzz0r2uCM=",
 			"path": "github.com/hyperledger/fabric/common/attrmgr",
 			"revision": "0c221f49da2667c9298ce36fdcd1a606f35927cf",
@@ -534,8 +527,8 @@
 		{
 			"checksumSHA1": "FaDuiEL1h9wdNYBG5uyjvlBDPEY=",
 			"path": "github.com/hyperledger/fabric/common/metrics",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -550,8 +543,8 @@
 		{
 			"checksumSHA1": "G1kPTyG6AIFY3EE7QnJTMSQe4Yk=",
 			"path": "github.com/hyperledger/fabric/common/metrics/disabled",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -566,32 +559,32 @@
 		{
 			"checksumSHA1": "3XYaCppp/6YpdnABcne+HIc0Kfc=",
 			"path": "github.com/hyperledger/fabric/common/metrics/internal/namer",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "hPiA/69FJKDd0vhdmvz01STuKHQ=",
 			"path": "github.com/hyperledger/fabric/common/metrics/metricsfakes",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "i7w2T4KSGTN74hpSaJUo9Zja2bk=",
 			"path": "github.com/hyperledger/fabric/common/metrics/prometheus",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
 		{
 			"checksumSHA1": "5m31wTymzsdutw8YeX9+smWx+Dc=",
 			"path": "github.com/hyperledger/fabric/common/metrics/statsd",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "599a41bf7b7e0ce3c5e049d687e6d69c82e25d10",
+			"revisionTime": "2020-04-08T10:55:02Z",
 			"version": "master",
 			"versionExact": "master"
 		},
@@ -885,17 +878,29 @@
 			"revisionTime": "2013-08-12T19:02:56Z"
 		},
 		{
-			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
+			"checksumSHA1": "cIbx/lKONK5Bz/DROB9K51qbkAk=",
 			"path": "github.com/stretchr/testify/assert",
-			"revision": "890a5c3458b43e6104ff5da8dfa139d013d77544",
-			"revisionTime": "2017-07-05T02:17:15Z"
+			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
+			"revisionTime": "2018-12-05T02:12:43Z",
+			"version": "v1.3.0",
+			"versionExact": "v1.3.0"
 		},
 		{
-			"checksumSHA1": "o+jsS/rxceTym4M3reSPfrPxaio=",
+			"checksumSHA1": "lsdl3fgOiM4Iuy7xjTQxiBtAwB0=",
 			"path": "github.com/stretchr/testify/mock",
-			"revision": "890a5c3458b43e6104ff5da8dfa139d013d77544",
-			"revisionTime": "2017-07-05T02:17:15Z",
-			"tree": true
+			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
+			"revisionTime": "2018-12-05T02:12:43Z",
+			"tree": true,
+			"version": "v1.3.0",
+			"versionExact": "v1.3.0"
+		},
+		{
+			"checksumSHA1": "3DvkGtpbJW8oXepRr3wYSs72LmQ=",
+			"path": "github.com/stretchr/testify/require",
+			"revision": "ffdc059bfe9ce6a4e144ba849dbedead332c6053",
+			"revisionTime": "2018-12-05T02:12:43Z",
+			"version": "v1.3.0",
+			"versionExact": "v1.3.0"
 		},
 		{
 			"checksumSHA1": "05lvaWg4qIggY2tBfxg2To4cPI4=",

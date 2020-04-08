@@ -24,8 +24,8 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp/factory"
 	"github.com/pkg/errors"
 )
 

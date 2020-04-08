@@ -22,10 +22,10 @@ import (
 	cax509 "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/hyperledger/fabric/bccsp/utils"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp/factory"
+	cspsigner "github.com/hyperledger/fabric-ca/internal/pkg/bccsp/signer"
+	"github.com/hyperledger/fabric-ca/internal/pkg/bccsp/utils"
 	"github.com/stretchr/testify/assert"
 )
 
