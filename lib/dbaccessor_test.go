@@ -287,18 +287,11 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 	t.Log("TestInsertAndGetFilteredUsers")
 	ta.Truncate()
-	// test type=* and affiliation is not nil
-	// insert affiliation
-	err := ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
-	if err != nil {
-		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
-	}
 	// create user
 	insert := cadbuser.Info{
-		Name:        "testTypes",
-		Pass:        "123456",
-		Type:        "*",
-		Affiliation: "Bank1",
+		Name: "testTypesClient",
+		Pass: "123456",
+		Type: "client",
 		Attributes: []api.Attribute{
 			api.Attribute{
 				Name:  "hf.Registrar.Roles",
@@ -319,30 +312,94 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 		},
 	}
 	// insert user
+	err := ta.Accessor.InsertUser(&insert)
+	if err != nil {
+		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+	}
+	// test get the user
+	rows, err := ta.Accessor.GetFilteredUsers("", "client,orderer")
+	if err != nil {
+		t.Errorf("Failed to get users by affiliation: %s, and type: %s, error: %s", "", "client,orderer", err)
+	}
+
+	typesClientSuccessFlag := false
+	for rows.Next() {
+		var id cadbuser.Record
+		err := rows.StructScan(&id)
+		if err != nil {
+			t.Errorf("Failed to get read row! error: %s", err)
+		}
+		// get the target user
+		if id.Name == insert.Name && id.Type == "client" {
+			typesClientSuccessFlag = true
+		}
+	}
+	// not success
+	if !typesClientSuccessFlag {
+		t.Errorf("Test InsertAndGetFilteredUsers Failed!")
+	}
+
+	// test type=* and affiliation is not nil
+	// insert affiliation
+	err = ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
+	if err != nil {
+		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
+	}
+	// change user info
+	insert.Type = "*"
+	insert.Affiliation = "Bank1"
+	// insert user
 	err = ta.Accessor.InsertUser(&insert)
 	if err != nil {
 		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 	// test get the user
-	rows, err := ta.Accessor.GetFilteredUsers(insert.Affiliation, "*")
+	rows, err = ta.Accessor.GetFilteredUsers("Bank1", "*")
 	if err != nil {
-		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
+		t.Errorf("Failed to get users by affiliation: %s, and type: %s, error: %s", "Bank1", "*", err)
 	}
 	// use the success flag to tag success
-	successFlag := false
+	affiliationsTypeStarSuccessFlag := false
 	for rows.Next() {
 		var id cadbuser.Record
 		err := rows.StructScan(&id)
 		if err != nil {
-			t.Errorf("Error occured during parser the rows data: %s, error: %s", insert.Name, err)
+			t.Errorf("Failed to get read row! error: %s", err)
 		}
 		// get the target user
 		if id.Affiliation == "Bank1" && id.Name == insert.Name {
-			successFlag = true
+			affiliationsTypeStarSuccessFlag = true
 		}
 	}
 	// not success
-	if !successFlag {
+	if !affiliationsTypeStarSuccessFlag {
+		t.Errorf("Test InsertAndGetFilteredUsers Failed!")
+	}
+
+	// test get all user
+	affiliationsTypeStarSuccessFlag = false
+	typesClientSuccessFlag = false
+	// test get all users
+	rows, err = ta.Accessor.GetFilteredUsers("", "*")
+	if err != nil {
+		t.Errorf("Failed to get users by affiliation: %s, and type: %s, error: %s", "", "*", err)
+	}
+	for rows.Next() {
+		var id cadbuser.Record
+		err := rows.StructScan(&id)
+		if err != nil {
+			t.Errorf("Failed to get read row! error: %s", err)
+		}
+		// get the target user
+		if id.Affiliation == "Bank1" && id.Name == insert.Name {
+			affiliationsTypeStarSuccessFlag = true
+		}
+		if id.Name == insert.Name && id.Type == "client" {
+			typesClientSuccessFlag = true
+		}
+	}
+	// not success
+	if !(affiliationsTypeStarSuccessFlag && typesClientSuccessFlag) {
 		t.Errorf("Test InsertAndGetFilteredUsers Failed!")
 	}
 }
