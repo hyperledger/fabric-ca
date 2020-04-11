@@ -68,6 +68,17 @@ var _ = Describe("System", func() {
 		}
 	})
 
+	It("hosts an unsecured endpoint for the version information", func() {
+		err := system.Start()
+		Expect(err).NotTo(HaveOccurred())
+
+		versionURL := fmt.Sprintf("https://%s/version", system.Addr())
+		resp, err := unauthClient.Get(versionURL)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		resp.Body.Close()
+	})
+
 	Context("when ClientCertRequired is true", func() {
 		BeforeEach(func() {
 			options.TLS.ClientCertRequired = true
