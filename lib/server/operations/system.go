@@ -9,6 +9,8 @@ package operations
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -17,6 +19,7 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	kitstatsd "github.com/go-kit/kit/metrics/statsd"
 	"github.com/gorilla/mux"
+	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-lib-go/healthz"
 	"github.com/hyperledger/fabric/common/metrics"
 	"github.com/hyperledger/fabric/common/metrics/disabled"
@@ -68,6 +71,7 @@ func NewSystem(o Options) *System {
 	system.initializeServer()
 	system.initializeHealthCheckHandler()
 	system.initializeMetricsProvider()
+	system.initializeVersionInfoHandler()
 
 	return system
 }
@@ -143,6 +147,13 @@ func (s *System) initializeMetricsProvider() {
 func (s *System) initializeHealthCheckHandler() {
 	s.healthHandler = healthz.NewHealthHandler()
 	s.mux.Handle("/healthz", s.healthHandler)
+}
+
+func (s *System) initializeVersionInfoHandler() {
+	version := fmt.Sprintf(`{"Version":"%s"}`, metadata.Version)
+	s.mux.HandleFunc("/version", func(w http.ResponseWriter, _ *http.Request) {
+		io.WriteString(w, version)
+	})
 }
 
 func (s *System) startMetricsTickers() error {
