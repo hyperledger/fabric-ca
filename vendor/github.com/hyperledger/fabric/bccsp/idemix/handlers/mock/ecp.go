@@ -10,9 +10,8 @@ import (
 type Ecp struct {
 	BytesStub        func() ([]byte, error)
 	bytesMutex       sync.RWMutex
-	bytesArgsForCall []struct {
-	}
-	bytesReturns struct {
+	bytesArgsForCall []struct{}
+	bytesReturns     struct {
 		result1 []byte
 		result2 error
 	}
@@ -27,8 +26,7 @@ type Ecp struct {
 func (fake *Ecp) Bytes() ([]byte, error) {
 	fake.bytesMutex.Lock()
 	ret, specificReturn := fake.bytesReturnsOnCall[len(fake.bytesArgsForCall)]
-	fake.bytesArgsForCall = append(fake.bytesArgsForCall, struct {
-	}{})
+	fake.bytesArgsForCall = append(fake.bytesArgsForCall, struct{}{})
 	fake.recordInvocation("Bytes", []interface{}{})
 	fake.bytesMutex.Unlock()
 	if fake.BytesStub != nil {
@@ -37,8 +35,7 @@ func (fake *Ecp) Bytes() ([]byte, error) {
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bytesReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.bytesReturns.result1, fake.bytesReturns.result2
 }
 
 func (fake *Ecp) BytesCallCount() int {
@@ -47,15 +44,7 @@ func (fake *Ecp) BytesCallCount() int {
 	return len(fake.bytesArgsForCall)
 }
 
-func (fake *Ecp) BytesCalls(stub func() ([]byte, error)) {
-	fake.bytesMutex.Lock()
-	defer fake.bytesMutex.Unlock()
-	fake.BytesStub = stub
-}
-
 func (fake *Ecp) BytesReturns(result1 []byte, result2 error) {
-	fake.bytesMutex.Lock()
-	defer fake.bytesMutex.Unlock()
 	fake.BytesStub = nil
 	fake.bytesReturns = struct {
 		result1 []byte
@@ -64,8 +53,6 @@ func (fake *Ecp) BytesReturns(result1 []byte, result2 error) {
 }
 
 func (fake *Ecp) BytesReturnsOnCall(i int, result1 []byte, result2 error) {
-	fake.bytesMutex.Lock()
-	defer fake.bytesMutex.Unlock()
 	fake.BytesStub = nil
 	if fake.bytesReturnsOnCall == nil {
 		fake.bytesReturnsOnCall = make(map[int]struct {

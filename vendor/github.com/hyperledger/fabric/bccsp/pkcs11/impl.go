@@ -54,7 +54,7 @@ func New(opts PKCS11Opts, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 	}
 
 	sessions := make(chan pkcs11.SessionHandle, sessionCacheSize)
-	csp := &impl{swCSP, conf, keyStore, ctx, sessions, slot, lib, opts.SoftVerify, opts.Immutable}
+	csp := &impl{swCSP, conf, keyStore, ctx, sessions, slot, pin, lib, opts.SoftVerify, opts.Immutable, opts.AltId}
 	csp.returnSession(*session)
 	return csp, nil
 }
@@ -68,11 +68,14 @@ type impl struct {
 	ctx      *pkcs11.Ctx
 	sessions chan pkcs11.SessionHandle
 	slot     uint
+	pin      string
 
 	lib        string
 	softVerify bool
 	//Immutable flag makes object immutable
 	immutable bool
+	// Alternate identifier of the private key
+	altId string
 }
 
 // KeyGen generates a key using opts.
@@ -180,11 +183,11 @@ func (csp *impl) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]byte
 	}
 
 	// Check key type
-	switch key := k.(type) {
+	switch k.(type) {
 	case *ecdsaPrivateKey:
-		return csp.signECDSA(*key, digest, opts)
+		return csp.signECDSA(*k.(*ecdsaPrivateKey), digest, opts)
 	default:
-		return csp.BCCSP.Sign(key, digest, opts)
+		return csp.BCCSP.Sign(k, digest, opts)
 	}
 }
 
@@ -202,11 +205,11 @@ func (csp *impl) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.Signer
 	}
 
 	// Check key type
-	switch key := k.(type) {
+	switch k.(type) {
 	case *ecdsaPrivateKey:
-		return csp.verifyECDSA(key.pub, signature, digest, opts)
+		return csp.verifyECDSA(k.(*ecdsaPrivateKey).pub, signature, digest, opts)
 	case *ecdsaPublicKey:
-		return csp.verifyECDSA(*key, signature, digest, opts)
+		return csp.verifyECDSA(*k.(*ecdsaPublicKey), signature, digest, opts)
 	default:
 		return csp.BCCSP.Verify(k, signature, digest, opts)
 	}
@@ -239,7 +242,7 @@ func FindPKCS11Lib() (lib, pin, label string) {
 			"/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",           //Ubuntu
 			"/usr/lib/s390x-linux-gnu/softhsm/libsofthsm2.so",            //Ubuntu
 			"/usr/lib/powerpc64le-linux-gnu/softhsm/libsofthsm2.so",      //Power
-			"/usr/local/Cellar/softhsm/2.5.0/lib/softhsm/libsofthsm2.so", //MacOS
+			"/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so", //MacOS
 		}
 		for _, path := range possibilities {
 			if _, err := os.Stat(path); !os.IsNotExist(err) {
