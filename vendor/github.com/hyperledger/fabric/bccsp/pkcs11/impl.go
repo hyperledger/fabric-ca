@@ -8,7 +8,6 @@ package pkcs11
 
 import (
 	"crypto/ecdsa"
-	"crypto/rsa"
 	"crypto/x509"
 	"os"
 
@@ -54,7 +53,7 @@ func New(opts PKCS11Opts, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 	}
 
 	sessions := make(chan pkcs11.SessionHandle, sessionCacheSize)
-	csp := &impl{swCSP, conf, ctx, sessions, slot, lib, opts.SoftVerify, opts.Immutable}
+	csp := &impl{swCSP, conf, ctx, sessions, slot, pin, lib, opts.SoftVerify, opts.Immutable}
 	csp.returnSession(*session)
 	return csp, nil
 }
@@ -67,6 +66,7 @@ type impl struct {
 	ctx      *pkcs11.Ctx
 	sessions chan pkcs11.SessionHandle
 	slot     uint
+	pin      string
 
 	lib        string
 	softVerify bool
@@ -138,10 +138,8 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		switch pk.(type) {
 		case *ecdsa.PublicKey:
 			return csp.KeyImport(pk, &bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
-		case *rsa.PublicKey:
-			return csp.KeyImport(pk, &bccsp.RSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 		default:
-			return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA, RSA]")
+			return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA]")
 		}
 
 	default:
