@@ -146,6 +146,11 @@ fabric_ca=$GOPATH/src/github.com/hyperledger/fabric-ca
 docsdir=$fabric_ca/docs/source
 export PATH=$PATH:$fabric_ca/bin
 
+if ! "${fabric_ca}/scripts/metrics_doc.sh"; then
+    echo "Metrics doc generation failed"
+    exit 1
+fi
+
 temp=$docsdir/temp
 rm -rf $temp
 mkdir -p $temp
