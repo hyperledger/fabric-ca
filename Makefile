@@ -77,9 +77,10 @@ path-map.fabric-ca-client := cmd/fabric-ca-client
 path-map.fabric-ca-server := cmd/fabric-ca-server
 
 include docker-env.mk
-include gotools.mk
 
 all: rename docker unit-tests
+
+include gotools.mk
 
 rename: .FORCE
 	@scripts/rename-repo

@@ -3,18 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "-v",
-			"revision": ""
-		},
-		{
-			"path": "appengine/cloudsql",
-			"revision": ""
-		},
-		{
-			"path": "context",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "3eH5XenKCK28s5fpbAeQoPGT3D0=",
 			"path": "github.com/GeertJohan/go.rice",
 			"revision": "9fdfd46f9806a9228aae341d65ab75c5235c383c",
@@ -211,10 +199,6 @@
 			"path": "github.com/docker/docker/api",
 			"revision": "0d9dc3f4b5f78995d67a6889172de56497eeff80",
 			"revisionTime": "2019-01-28T21:06:06Z"
-		},
-		{
-			"path": "github.com/docker/docker/api\n",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "PM15F2b73fvtlDsjFyXSMd9LJqU=",
@@ -667,13 +651,13 @@
 			"revisionTime": "2018-12-30T09:37:25Z"
 		},
 		{
-			"checksumSHA1": "hGnESjql5y3vBJpia3r9k5G53bs=",
+			"checksumSHA1": "iWAFYxDd84aofYQ2EH0w2SjWBPM=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "7891c890ab6ca541b2184a32f52d05f2f964adcf",
-			"revisionTime": "2019-10-28T13:05:25Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"tree": true,
-			"version": "master",
-			"versionExact": "master"
+			"version": "release-1.4",
+			"versionExact": "release-1.4"
 		},
 		{
 			"checksumSHA1": "D5IFXuu/Fa/DSNzw1nX7azuv//U=",
@@ -1495,10 +1479,6 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
 			"revisionTime": "2016-09-28T15:37:09Z"
-		},
-		{
-			"path": "https://github.com/felixge/httpsnoop",
-			"revision": ""
 		}
 	],
 	"rootPath": "github.com/hyperledger/fabric-ca"
