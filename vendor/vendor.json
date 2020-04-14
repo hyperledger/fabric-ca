@@ -3,18 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "-v",
-			"revision": ""
-		},
-		{
-			"path": "appengine/cloudsql",
-			"revision": ""
-		},
-		{
-			"path": "context",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "3eH5XenKCK28s5fpbAeQoPGT3D0=",
 			"path": "github.com/GeertJohan/go.rice",
 			"revision": "9fdfd46f9806a9228aae341d65ab75c5235c383c",
@@ -193,6 +181,11 @@
 			"path": "github.com/felixge/httpsnoop",
 			"revision": "eadd4fad6aac69ae62379194fe0219f3dbc80fd3",
 			"revisionTime": "2017-06-29T01:04:42Z"
+		},
+		{
+			"checksumSHA1": "Fanvk5Tua0lSCtgEB+Ji0lZD1B8=",
+			"path": "github.com/felixge/httpsnoop",
+			"revision": "eadd4fad6aac69ae62379194fe0219f3dbc80fd3"
 		},
 		{
 			"checksumSHA1": "hveFTNQ9YEyYRs6SWuXM+XU9qRI=",
@@ -501,11 +494,13 @@
 			"revisionTime": "2018-12-30T09:37:25Z"
 		},
 		{
-			"checksumSHA1": "GxaWcYIyCMkDHbpBIxtnV0s8Dd8=",
+			"checksumSHA1": "iWAFYxDd84aofYQ2EH0w2SjWBPM=",
 			"path": "github.com/hyperledger/fabric/bccsp",
-			"revision": "e37aa35178fdb83228f63ef4670c1a67896f081b",
-			"revisionTime": "2019-10-16T01:19:04Z",
-			"tree": true
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
+			"tree": true,
+			"version": "release-1.4",
+			"versionExact": "release-1.4"
 		},
 		{
 			"checksumSHA1": "n+ZKx3gMoBi4t0fN84vzz0r2uCM=",
@@ -1292,10 +1287,6 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
 			"revisionTime": "2016-09-28T15:37:09Z"
-		},
-		{
-			"path": "https://github.com/felixge/httpsnoop",
-			"revision": ""
 		}
 	],
 	"rootPath": "github.com/hyperledger/fabric-ca"
