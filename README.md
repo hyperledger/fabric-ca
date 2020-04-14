@@ -21,12 +21,7 @@ The following are guidelines to follow when contributing:
 
 1. See the general information about [contributing to fabric](http://hyperledger-fabric.readthedocs.io/en/latest/CONTRIBUTING.html).
 
-2. To set up your development environment for doing common development tasks, see [bash_profile](https://github.com/hyperledger/fabric-ca/blob/master/scripts/bash_profile).  This contains variables and functions which can be copied directly into your `.bash_profile` file.  Even if you do not use bash, you should still find the functions instructive.  For example:
-   a. **clone** - pulls the latest fabric-ca code from gerrit and places it based on your GOPATH setting
-   b. **cdr** - cd to the fabric-ca repository root, which is equivalent to "cd $GOPATH/src/github.com/hyperledger/fabric-ca"
-   c. **gencov** - generates a test coverage report
-
-3. To run the unit tests manually:
+2. To run the unit tests manually:
 
    ```
    # cdr
