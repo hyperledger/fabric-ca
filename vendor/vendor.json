@@ -505,34 +505,34 @@
 		{
 			"checksumSHA1": "n+ZKx3gMoBi4t0fN84vzz0r2uCM=",
 			"path": "github.com/hyperledger/fabric/common/attrmgr",
-			"revision": "0c221f49da2667c9298ce36fdcd1a606f35927cf",
-			"revisionTime": "2019-10-25T06:30:32Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"version": "release-1.4",
 			"versionExact": "release-1.4"
 		},
 		{
-			"checksumSHA1": "P7nT07WKj5tR1bN20uO4Qp+XShM=",
+			"checksumSHA1": "JHp0x/m/9SXzDdwLhI4DLk8EcQY=",
 			"path": "github.com/hyperledger/fabric/common/flogging",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"tree": true,
 			"version": "release-1.4",
 			"versionExact": "release-1.4"
 		},
 		{
-			"checksumSHA1": "YUhMkV0DBrplcqK/TTbZbp1CNB4=",
+			"checksumSHA1": "cOiPYqF62i2lLRxi2TAaAY8ze0I=",
 			"path": "github.com/hyperledger/fabric/common/metrics",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"tree": true,
-			"version": "release-2.0",
-			"versionExact": "release-2.0"
+			"version": "release-1.4",
+			"versionExact": "release-1.4"
 		},
 		{
-			"checksumSHA1": "PqH9vrWA6RXpEtpESGLuoC2O3jU=",
+			"checksumSHA1": "PZEB7eAHAev0KuBWBfDvfGGIO9c=",
 			"path": "github.com/hyperledger/fabric/idemix",
-			"revision": "115c7a2205a6bfc1a3f9bb6094326e9573654be3",
-			"revisionTime": "2019-10-27T20:20:24Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"tree": true,
 			"version": "release-1.4",
 			"versionExact": "release-1.4"
