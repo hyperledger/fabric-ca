@@ -1,59 +1,64 @@
 Metrics Reference
 =================
 
+Metrics exposed by the Fabric CA include *labels* to differentiate various
+characteristics of the item being measured. Five different labels are used.
+
+  api_name
+    For API requests, this is the path of the requested resource with the version
+    prefix removed. The list of resource paths can be found in the
+    `Swagger API Documentation <https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json>`_.
+    Examples include ``cainfo``, register``, and ``enroll``.
+
+  ca_name
+    The name of the certificate authority associated with the metric.
+
+  db_api_name
+    For database requests, this contains the SQL operation that was used.
+    Examples include ``Commit``, ``Exec``, ``Get``, ``NamedExec``, ``Select``,
+    and ``Queryx``
+
+  func_name
+    For database access, this includes the name of the function that initiated
+    the database request. Examples include ``GetUser``, ``InsertUser``,
+    ``LoginComplete``, and  ``ResetIncorrectLoginAttempts``.
+
+  status_code
+    For API requests, this is the HTTP status code of the response. Successful
+    requests will have status codes that are less than 400.
+
 Prometheus Metrics
 ------------------
 
 The following metrics are currently exported for consumption by Prometheus.
 
-+-------------------------+-----------+------------------------------------------------------------+--------------------------------------------------------------------------------+
-| Name                    | Type      | Description                                                | Labels                                                                         |
-+=========================+===========+============================================================+=============+==================================================================+
-| api_request_count       | counter   | Number of requests made to an API                          | ca_name     |                                                                  |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | api_name    | example api_names: affiliations/{affiliation}, affiliations,     |
-|                         |           |                                                            |             | certificates, enroll, reenroll, gencrl, idemix/cri, identities,  |
-|                         |           |                                                            |             | register, revoke, idemix/credential, identities/{id}.            |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | status_code | Http status code.                                                |
-|                         |           |                                                            |             | https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html          |
-+-------------------------+-----------+------------------------------------------------------------+-------------+------------------------------------------------------------------+
-| api_request_duration    | histogram | Time taken in seconds for the request to an API to be      | ca_name     |                                                                  |
-|                         |           | completed                                                  +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | api_name    | example api_names: affiliations/{affiliation}, affiliations,     |
-|                         |           |                                                            |             | certificates, enroll, reenroll, gencrl, idemix/cri, identities,  |
-|                         |           |                                                            |             | register, revoke, idemix/credential, identities/{id}.            |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | status_code | Http status code.                                                |
-|                         |           |                                                            |             | https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html          |
-+-------------------------+-----------+------------------------------------------------------------+-------------+------------------------------------------------------------------+
-| db_api_request_count    | counter   | Number of requests made to a database API                  | ca_name     |                                                                  |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | func_name   |                                                                  |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | dbapi_name  | example dbapi_names: affiliations/{affiliation}, affiliations,   |
-|                         |           |                                                            |             | certificates, enroll, reenroll, gencrl, idemix/cri, identities,  |
-|                         |           |                                                            |             | register, revoke, idemix/credential, identities/{id}.            |
-+-------------------------+-----------+------------------------------------------------------------+-------------+------------------------------------------------------------------+
-| db_api_request_duration | histogram | Time taken in seconds for the request to a database API to | ca_name     |                                                                  |
-|                         |           | be completed                                               +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | func_name   |                                                                  |
-|                         |           |                                                            +-------------+------------------------------------------------------------------+
-|                         |           |                                                            | dbapi_name  | example dbapi_names: affiliations/{affiliation}, affiliations,   |
-|                         |           |                                                            |             | certificates, enroll, reenroll, gencrl, idemix/cri, identities,  |
-|                         |           |                                                            |             | register, revoke, idemix/credential, identities/{id}.            |
-+-------------------------+-----------+------------------------------------------------------------+-------------+------------------------------------------------------------------+
++-------------------------+-----------+------------------------------------------------------------+--------------------+
+| Name                    | Type      | Description                                                | Labels             |
++=========================+===========+============================================================+====================+
+| api_request_count       | counter   | Number of requests made to an API                          | ca_name            |
+|                         |           |                                                            | api_name           |
+|                         |           |                                                            | status_code        |
++-------------------------+-----------+------------------------------------------------------------+--------------------+
+| api_request_duration    | histogram | Time taken in seconds for the request to an API to be      | ca_name            |
+|                         |           | completed                                                  | api_name           |
+|                         |           |                                                            | status_code        |
++-------------------------+-----------+------------------------------------------------------------+--------------------+
+| db_api_request_count    | counter   | Number of requests made to a database API                  | ca_name            |
+|                         |           |                                                            | func_name          |
+|                         |           |                                                            | dbapi_name         |
++-------------------------+-----------+------------------------------------------------------------+--------------------+
+| db_api_request_duration | histogram | Time taken in seconds for the request to a database API to | ca_name            |
+|                         |           | be completed                                               | func_name          |
+|                         |           |                                                            | dbapi_name         |
++-------------------------+-----------+------------------------------------------------------------+--------------------+
 
 
 StatsD Metrics
 --------------
 
 The following metrics are currently emitted for consumption by StatsD. The
-``%{variable_name}`` nomenclature represents segments that vary based on
-context.
-
-For example, ``%{channel}`` will be replaced with the name of the channel
-associated with the metric.
+``%{label_name}`` nomenclature indicates the location of a label value in the
+bucket name.
 
 +---------------------------------------------------------------+-----------+------------------------------------------------------------+
 | Bucket                                                        | Type      | Description                                                |

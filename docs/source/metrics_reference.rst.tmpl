@@ -4,6 +4,32 @@
 Metrics Reference
 =================
 
+Metrics exposed by the Fabric CA include *labels* to differentiate various
+characteristics of the item being measured. Five different labels are used.
+
+  api_name
+    For API requests, this is the path of the requested resource with the version
+    prefix removed. The list of resource paths can be found in the
+    `Swagger API Documentation <https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json>`_.
+    Examples include ``cainfo``, register``, and ``enroll``.
+
+  ca_name
+    The name of the certificate authority associated with the metric.
+
+  db_api_name
+    For database requests, this contains the SQL operation that was used.
+    Examples include ``Commit``, ``Exec``, ``Get``, ``NamedExec``, ``Select``,
+    and ``Queryx``
+
+  func_name
+    For database access, this includes the name of the function that initiated
+    the database request. Examples include ``GetUser``, ``InsertUser``,
+    ``LoginComplete``, and  ``ResetIncorrectLoginAttempts``.
+
+  status_code
+    For API requests, this is the HTTP status code of the response. Successful
+    requests will have status codes that are less than 400.
+
 Prometheus Metrics
 ------------------
 
@@ -15,11 +41,8 @@ StatsD Metrics
 --------------
 
 The following metrics are currently emitted for consumption by StatsD. The
-``%{variable_name}`` nomenclature represents segments that vary based on
-context.
-
-For example, ``%{channel}`` will be replaced with the name of the channel
-associated with the metric.
+``%{label_name}`` nomenclature indicates the location of a label value in the
+bucket name.
 
 {{ StatsdTable }}
 

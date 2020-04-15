@@ -2,10 +2,10 @@
 package mock
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/hyperledger/fabric/common/flogging"
-	"go.uber.org/zap/zapcore"
+	flogging "github.com/hyperledger/fabric/common/flogging"
+	zapcore "go.uber.org/zap/zapcore"
 )
 
 type Observer struct {

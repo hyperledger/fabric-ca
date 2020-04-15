@@ -68,7 +68,9 @@ func (r *Recorder) Entries() []string {
 	defer r.mutex.RUnlock()
 
 	entries := make([]string, len(r.entries), cap(r.entries))
-	copy(entries, r.entries)
+	for i, v := range r.entries {
+		entries[i] = v
+	}
 	return entries
 }
 
@@ -104,7 +106,9 @@ func (r *Recorder) Messages() []string {
 	defer r.mutex.RUnlock()
 
 	messages := make([]string, len(r.messages), cap(r.messages))
-	copy(messages, r.messages)
+	for i, v := range r.messages {
+		messages[i] = v
+	}
 	return messages
 }
 
@@ -139,6 +143,7 @@ type RecordingCore struct {
 	zapcore.LevelEnabler
 	encoder  zapcore.Encoder
 	recorder *Recorder
+	fields   []zapcore.Field
 	writer   zapcore.WriteSyncer
 }
 

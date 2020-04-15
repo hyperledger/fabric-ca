@@ -2,9 +2,9 @@
 package fakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"github.com/hyperledger/fabric/common/flogging/httpadmin"
+	httpadmin "github.com/hyperledger/fabric/common/flogging/httpadmin"
 )
 
 type Logging struct {
