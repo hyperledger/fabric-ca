@@ -44,7 +44,7 @@ func FileOptions(f *ast.File) ([]interface{}, error) {
 
 	// If the file contains gendoc:ignore, ignore the file
 	for _, c := range f.Comments {
-		if strings.Contains(c.Text(), "gendoc:ignore") {
+		if strings.Index(c.Text(), "gendoc:ignore") != -1 {
 			return nil, nil
 		}
 	}
@@ -148,15 +148,6 @@ func populateOption(lit *ast.CompositeLit, target interface{}) (interface{}, err
 			// ignored
 			case "Buckets":
 
-			// map[string]string
-			case "LabelHelp":
-				labelHelp, err := asStringMap(kv.Value.(*ast.CompositeLit))
-				if err != nil {
-					return nil, err
-				}
-				labelHelpValue := reflect.ValueOf(labelHelp)
-				field.Set(labelHelpValue)
-
 			// slice of strings
 			case "LabelNames":
 				labelNames, err := stringSlice(kv.Value.(*ast.CompositeLit))
@@ -195,23 +186,4 @@ func stringSlice(lit *ast.CompositeLit) ([]string, error) {
 	}
 
 	return slice, nil
-}
-
-func asStringMap(lit *ast.CompositeLit) (map[string]string, error) {
-	m := map[string]string{}
-
-	for _, elem := range lit.Elts {
-		elem := elem.(*ast.KeyValueExpr)
-		key, err := strconv.Unquote(elem.Key.(*ast.BasicLit).Value)
-		if err != nil {
-			return nil, err
-		}
-		value, err := strconv.Unquote(elem.Value.(*ast.BasicLit).Value)
-		if err != nil {
-			return nil, err
-		}
-		m[key] = value
-	}
-
-	return m, nil
 }

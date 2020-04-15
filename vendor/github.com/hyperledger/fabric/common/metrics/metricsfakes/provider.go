@@ -59,8 +59,7 @@ func (fake *Provider) NewCounter(arg1 metrics.CounterOpts) metrics.Counter {
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newCounterReturns
-	return fakeReturns.result1
+	return fake.newCounterReturns.result1
 }
 
 func (fake *Provider) NewCounterCallCount() int {
@@ -69,22 +68,13 @@ func (fake *Provider) NewCounterCallCount() int {
 	return len(fake.newCounterArgsForCall)
 }
 
-func (fake *Provider) NewCounterCalls(stub func(metrics.CounterOpts) metrics.Counter) {
-	fake.newCounterMutex.Lock()
-	defer fake.newCounterMutex.Unlock()
-	fake.NewCounterStub = stub
-}
-
 func (fake *Provider) NewCounterArgsForCall(i int) metrics.CounterOpts {
 	fake.newCounterMutex.RLock()
 	defer fake.newCounterMutex.RUnlock()
-	argsForCall := fake.newCounterArgsForCall[i]
-	return argsForCall.arg1
+	return fake.newCounterArgsForCall[i].arg1
 }
 
 func (fake *Provider) NewCounterReturns(result1 metrics.Counter) {
-	fake.newCounterMutex.Lock()
-	defer fake.newCounterMutex.Unlock()
 	fake.NewCounterStub = nil
 	fake.newCounterReturns = struct {
 		result1 metrics.Counter
@@ -92,8 +82,6 @@ func (fake *Provider) NewCounterReturns(result1 metrics.Counter) {
 }
 
 func (fake *Provider) NewCounterReturnsOnCall(i int, result1 metrics.Counter) {
-	fake.newCounterMutex.Lock()
-	defer fake.newCounterMutex.Unlock()
 	fake.NewCounterStub = nil
 	if fake.newCounterReturnsOnCall == nil {
 		fake.newCounterReturnsOnCall = make(map[int]struct {
@@ -119,8 +107,7 @@ func (fake *Provider) NewGauge(arg1 metrics.GaugeOpts) metrics.Gauge {
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newGaugeReturns
-	return fakeReturns.result1
+	return fake.newGaugeReturns.result1
 }
 
 func (fake *Provider) NewGaugeCallCount() int {
@@ -129,22 +116,13 @@ func (fake *Provider) NewGaugeCallCount() int {
 	return len(fake.newGaugeArgsForCall)
 }
 
-func (fake *Provider) NewGaugeCalls(stub func(metrics.GaugeOpts) metrics.Gauge) {
-	fake.newGaugeMutex.Lock()
-	defer fake.newGaugeMutex.Unlock()
-	fake.NewGaugeStub = stub
-}
-
 func (fake *Provider) NewGaugeArgsForCall(i int) metrics.GaugeOpts {
 	fake.newGaugeMutex.RLock()
 	defer fake.newGaugeMutex.RUnlock()
-	argsForCall := fake.newGaugeArgsForCall[i]
-	return argsForCall.arg1
+	return fake.newGaugeArgsForCall[i].arg1
 }
 
 func (fake *Provider) NewGaugeReturns(result1 metrics.Gauge) {
-	fake.newGaugeMutex.Lock()
-	defer fake.newGaugeMutex.Unlock()
 	fake.NewGaugeStub = nil
 	fake.newGaugeReturns = struct {
 		result1 metrics.Gauge
@@ -152,8 +130,6 @@ func (fake *Provider) NewGaugeReturns(result1 metrics.Gauge) {
 }
 
 func (fake *Provider) NewGaugeReturnsOnCall(i int, result1 metrics.Gauge) {
-	fake.newGaugeMutex.Lock()
-	defer fake.newGaugeMutex.Unlock()
 	fake.NewGaugeStub = nil
 	if fake.newGaugeReturnsOnCall == nil {
 		fake.newGaugeReturnsOnCall = make(map[int]struct {
@@ -179,8 +155,7 @@ func (fake *Provider) NewHistogram(arg1 metrics.HistogramOpts) metrics.Histogram
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.newHistogramReturns
-	return fakeReturns.result1
+	return fake.newHistogramReturns.result1
 }
 
 func (fake *Provider) NewHistogramCallCount() int {
@@ -189,22 +164,13 @@ func (fake *Provider) NewHistogramCallCount() int {
 	return len(fake.newHistogramArgsForCall)
 }
 
-func (fake *Provider) NewHistogramCalls(stub func(metrics.HistogramOpts) metrics.Histogram) {
-	fake.newHistogramMutex.Lock()
-	defer fake.newHistogramMutex.Unlock()
-	fake.NewHistogramStub = stub
-}
-
 func (fake *Provider) NewHistogramArgsForCall(i int) metrics.HistogramOpts {
 	fake.newHistogramMutex.RLock()
 	defer fake.newHistogramMutex.RUnlock()
-	argsForCall := fake.newHistogramArgsForCall[i]
-	return argsForCall.arg1
+	return fake.newHistogramArgsForCall[i].arg1
 }
 
 func (fake *Provider) NewHistogramReturns(result1 metrics.Histogram) {
-	fake.newHistogramMutex.Lock()
-	defer fake.newHistogramMutex.Unlock()
 	fake.NewHistogramStub = nil
 	fake.newHistogramReturns = struct {
 		result1 metrics.Histogram
@@ -212,8 +178,6 @@ func (fake *Provider) NewHistogramReturns(result1 metrics.Histogram) {
 }
 
 func (fake *Provider) NewHistogramReturnsOnCall(i int, result1 metrics.Histogram) {
-	fake.newHistogramMutex.Lock()
-	defer fake.newHistogramMutex.Unlock()
 	fake.NewHistogramStub = nil
 	if fake.newHistogramReturnsOnCall == nil {
 		fake.newHistogramReturnsOnCall = make(map[int]struct {
