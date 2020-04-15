@@ -5,12 +5,8 @@
 name: $(SourceBranchName)-$(Date:yyyyMMdd)$(Rev:.rrr)
 trigger:
 - master
-- release-2.*
-- release-1.4
 pr:
 - master
-- release-2.*
-- release-1.4
 
 variables:
   GOPATH: $(Agent.BuildDirectory)/go

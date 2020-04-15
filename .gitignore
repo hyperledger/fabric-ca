@@ -1,3 +1,4 @@
+.idea
 *.csr
 *.der
 /release/darwin-amd64
