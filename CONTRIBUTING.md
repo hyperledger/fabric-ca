@@ -1,7 +1,7 @@
-# Contributions Welcome!
+   # Contributions Welcome!
 
-This repository is part of the 
-[Fabric project](https://wiki.hyperledger.org/display/fabric/Hyperledger+Fabric).
+ This repository is part of the 
+[ Fabric project](https://wiki.hyperledger.org/display/fabric/Hyperledger+Fabric).
 Please consult
 [Fabric's Contributuon Guide](https://hyperledger-fabric.readthedocs.io/en/latest/CONTRIBUTING.html)
 for information on how to contribute to this repository.
