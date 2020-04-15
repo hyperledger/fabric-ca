@@ -669,13 +669,13 @@
 			"versionExact": "release-1.4"
 		},
 		{
-			"checksumSHA1": "YUhMkV0DBrplcqK/TTbZbp1CNB4=",
+			"checksumSHA1": "cOiPYqF62i2lLRxi2TAaAY8ze0I=",
 			"path": "github.com/hyperledger/fabric/common/metrics",
-			"revision": "77bafd68ab02c0a7cd4f4f06d5b718fd57ac877a",
-			"revisionTime": "2020-04-13T01:26:49Z",
+			"revision": "1f0a0dd5316310d299a02f0588db3f7ec50c965e",
+			"revisionTime": "2020-04-08T13:26:44Z",
 			"tree": true,
-			"version": "release-2.0",
-			"versionExact": "release-2.0"
+			"version": "release-1.4",
+			"versionExact": "release-1.4"
 		},
 		{
 			"checksumSHA1": "PZEB7eAHAev0KuBWBfDvfGGIO9c=",
