@@ -65,6 +65,7 @@ and TLS mutual authentication is disabled.
 .. note:: In a production environment, you will probably use your organization's CA
           to get TLS certificates. You will have to transfer out-of-band your CA's
           certificate with organizations that will validate your TLS certificates.
+          Thus, unlike this example, each organization would have its own TLS CA. 
 
 A docker service, such as the one below can be used to a launch a Fabric TLS CA
 container.
