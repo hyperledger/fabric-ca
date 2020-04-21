@@ -31,7 +31,7 @@
 #   - gotools - Installs go tools, such as: golint, goimports, gocov
 
 PROJECT_NAME = fabric-ca
-ALPINE_VER ?= 3.10
+ALPINE_VER ?= 3.11
 DEBIAN_VER ?= stretch
 BASE_VERSION = 2.0.0
 PREV_VERSION = 2.0.0-alpha
@@ -60,7 +60,7 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
-GO_VER = 1.13.8
+GO_VER = 1.14.1
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
