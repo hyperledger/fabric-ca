@@ -26,6 +26,10 @@ sys.path.insert(0, os.path.abspath('.'))
 
 import sphinx_rtd_theme
 
+placeholder_replacements = {
+    "{BRANCH}": "master"
+}
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -47,11 +51,18 @@ extensions = ['sphinx.ext.autodoc',
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# recommonmark is a python utility that allows markdown to be used within
+# Sphinx projects.
+# Installed version as per directive in docs/requirement.txt
+from recommonmark.parser import CommonMarkParser
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
+
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
 
 # The master toctree document.
 master_doc = 'index'
@@ -112,8 +123,16 @@ html_add_permalinks = True
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+def placeholderReplace(app, docname, source):
+    result = source[0]
+    for key in app.config.placeholder_replacements:
+        result = result.replace(key, app.config.placeholder_replacements[key])
+    source[0] = result
+
 def setup(app):
     app.add_stylesheet('css/custom.css')
+    app.add_config_value('placeholder_replacements', {}, True)
+    app.connect('source-read', placeholderReplace)
 
 # -- Options for HTMLHelp output ------------------------------------------
 
