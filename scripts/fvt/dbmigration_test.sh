@@ -189,6 +189,10 @@ mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELEC
 if [ $? != 0 ]; then
     ErrorMsg "Database column 'id' should have character limit of 255"
 fi
+mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "SELECT column_name, character_maximum_length FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'certificates' AND COLUMN_NAME = 'pem';" | grep "8192"
+if [ $? != 0 ]; then
+    ErrorMsg "Database column 'pem' should have byte limit of 8192"
+fi
 
 ###### POSTGRES ######
 $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d postgres # Start up the server and the new schema should get created
