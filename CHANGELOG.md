@@ -1,3 +1,30 @@
+## v1.4.7
+Thu May 14 12:48:59 EDT 2020
+
+* [a891700](https://github.com/hyperledger/fabric-ca/commit/a891700) Release Fabric CA v1.4.7
+* [c1e4403](https://github.com/hyperledger/fabric-ca/commit/c1e4403) [FAB-17438](https://jira.hyperledger.org/browse/FAB-17438) Fabric CA Deployment Guide
+* [287ea31](https://github.com/hyperledger/fabric-ca/commit/287ea31) Add operations guide to the toc in the release-1.4  branch
+* [0a6179f](https://github.com/hyperledger/fabric-ca/commit/0a6179f) Add support for .md files and variable replacement in /docs
+* [56e16da](https://github.com/hyperledger/fabric-ca/commit/56e16da) [FABC-904] Add Version Endpoint
+* [1dcf373](https://github.com/hyperledger/fabric-ca/commit/1dcf373) Back port Operations Guide to release-1.4 branch
+* [47c3854](https://github.com/hyperledger/fabric-ca/commit/47c3854) Move AZP file to correct place
+* [03f35b4](https://github.com/hyperledger/fabric-ca/commit/03f35b4) [FABC-907] Update Go to 1.13
+* [5c1b961](https://github.com/hyperledger/fabric-ca/commit/5c1b961) Replace LabelHelp with info in doc template
+* [15d676f](https://github.com/hyperledger/fabric-ca/commit/15d676f) Add metrics doc generation to docs make target
+* [a4e6a01](https://github.com/hyperledger/fabric-ca/commit/a4e6a01) Pin fabric dependencies to specific releases
+* [789f83c](https://github.com/hyperledger/fabric-ca/commit/789f83c) Cleanup vendor.json and bring in bccsp from 1.4
+* [5616f18](https://github.com/hyperledger/fabric-ca/commit/5616f18) Update release make targets
+* [505df12](https://github.com/hyperledger/fabric-ca/commit/505df12) Remove call to InitFactories (#108)
+* [4e2a19a](https://github.com/hyperledger/fabric-ca/commit/4e2a19a) Prepare for fabric-ca v1.4.7
+
+## v1.4.6
+Tue Feb 25 12:48:07 EST 2020
+
+* [8d3a701](https://github.com/hyperledger/fabric-ca/commit/8d3a701) Update Release notes for 1.4.6
+* [2799a7b](https://github.com/hyperledger/fabric-ca/commit/2799a7b) Update sqlite3 dependency and simplify release target
+* [ce91e5d](https://github.com/hyperledger/fabric-ca/commit/ce91e5d) Release fabric-ca v1.4.6
+* [c00700f](https://github.com/hyperledger/fabric-ca/commit/c00700f) Prepare for next fabric-ca release v1.4.6
+
 ## v1.4.5
 Wed Feb 19 13:13:12 EST 2020
 
