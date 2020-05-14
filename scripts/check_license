@@ -20,6 +20,7 @@ function filterExcludedFiles {
 		| grep -v "swagger/" \
 		| grep -v "^LICENSE$" \
 		| grep -v "\.png$" \
+		| grep -v "\.pptx$" \
 		| grep -v "\.rst$" \
 		| grep -v "\.txt$" \
 		| grep -v "\.pem$" \

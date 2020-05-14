@@ -36,7 +36,7 @@ stages:
             displayName: Checkout Fabric CA Code
           - script: make dist/$(TARGET)
             displayName: Compile Binary and Create Tarball
-          - publish: release/$(TARGET)/bin/hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
+          - publish: release/$(TARGET)/hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
             artifact: hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
             displayName: Publish Release Artifact
 
