@@ -8,6 +8,7 @@ package mysql
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -93,9 +94,41 @@ func (m *Mysql) PingContext(ctx context.Context) error {
 	return nil
 }
 
+// OpenDatabase opens connection to database
+func (m *Mysql) OpenDatabase() (*db.DB, error) {
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", m.dbName, util.MaskDBCred(m.datasource))
+	sqlxdb, err := sqlx.Open("mysql", m.datasource)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", m.dbName)
+	}
+	m.SqlxDB = db.New(sqlxdb, m.CAName, m.Metrics)
+	return m.SqlxDB.(*db.DB), nil
+}
+
+// Exists checks if database already exists
+func (m *Mysql) Exists() (bool, error) {
+	log.Debugf("Checking if MySQL Database (%s) already exists...", m.dbName)
+	var exists bool
+	err := m.SqlxDB.Get("CheckIfDatabaseExists", &exists, "SELECT true as 'exists' FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '"+m.dbName+"'")
+	if err != nil && !strings.Contains(err.Error(), fmt.Sprintf("sql: no rows in result set")) {
+		return false, errors.Wrapf(err, "Failed to check if database '%s' exists in MySQL server", m.dbName)
+	}
+	return exists, nil
+}
+
 // Create creates database and tables
 func (m *Mysql) Create() (*db.DB, error) {
-	db, err := m.CreateDatabase()
+	exists, err := m.Exists()
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		err = m.CreateDatabase()
+		if err != nil {
+			return nil, err
+		}
+	}
+	db, err := m.OpenDatabase()
 	if err != nil {
 		return nil, err
 	}
@@ -107,23 +140,12 @@ func (m *Mysql) Create() (*db.DB, error) {
 }
 
 // CreateDatabase creates database
-func (m *Mysql) CreateDatabase() (*db.DB, error) {
-	datasource := m.datasource
-	dbName := m.dbName
+func (m *Mysql) CreateDatabase() error {
 	err := m.createDatabase()
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create MySQL database")
+		return errors.Wrap(err, "Failed to create MySQL database")
 	}
-
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, util.MaskDBCred(datasource))
-	sqlxdb, err := sqlx.Open("mysql", datasource)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
-	}
-
-	m.SqlxDB = db.New(sqlxdb, m.CAName, m.Metrics)
-
-	return m.SqlxDB.(*db.DB), nil
+	return nil
 }
 
 // CreateTables creates table
@@ -136,14 +158,11 @@ func (m *Mysql) CreateTables() error {
 }
 
 func (m *Mysql) createDatabase() error {
-	dbName := m.dbName
-	log.Debugf("Creating MySQL Database (%s) if it does not exist...", dbName)
-
-	_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE IF NOT EXISTS "+dbName)
+	log.Debugf("Creating MySQL Database (%s)...", m.dbName)
+	_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE "+m.dbName)
 	if err != nil {
 		return errors.Wrap(err, "Failed to execute create database query")
 	}
-
 	return nil
 }
 

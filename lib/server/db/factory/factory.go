@@ -22,6 +22,7 @@ import (
 type DB interface {
 	Connect() error
 	PingContext(ctx context.Context) error
+	Exists() (bool, error)
 	Create() (*db.DB, error)
 }
 

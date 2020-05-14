@@ -9,6 +9,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"os"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
@@ -66,6 +67,18 @@ func (s *Sqlite) PingContext(ctx context.Context) error {
 		return errors.Wrap(err, "Failed to ping to SQLite database")
 	}
 	return nil
+}
+
+// Exists checks if database already exists
+func (s *Sqlite) Exists() (bool, error) {
+	_, err := os.Stat(s.datasource)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
 
 // Create creates database and tables

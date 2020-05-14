@@ -126,11 +126,35 @@ var _ = Describe("Postgres", func() {
 		})
 	})
 
+	Context("checking if fabric database already exists", func() {
+		It("returns no error if able to check if database exists", func() {
+			db.SqlxDB = mockDB
+			_, err := db.Exists()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns error if unable to check if database exists", func() {
+			mockDB.GetReturns(errors.New("query error"))
+			db.SqlxDB = mockDB
+			_, err := db.Exists()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("Failed to check if database '' exists in Postgres server: query error"))
+		})
+	})
+
+	Context("open database", func() {
+		It("returns no error if able to open database", func() {
+			db.SqlxDB = mockDB
+			_, err := db.OpenDatabase()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Context("creating fabric ca database", func() {
 		It("returns an error if unable execute create fabric ca database sql", func() {
 			mockDB.ExecReturns(nil, errors.New("error creating database"))
 			db.SqlxDB = mockDB
-			_, err := db.CreateDatabase()
+			err := db.CreateDatabase()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Failed to create Postgres database: Failed to execute create database query: error creating database"))
 		})
@@ -138,7 +162,7 @@ var _ = Describe("Postgres", func() {
 		It("creates the fabric ca database", func() {
 			db.SqlxDB = mockDB
 
-			_, err := db.CreateDatabase()
+			err := db.CreateDatabase()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
