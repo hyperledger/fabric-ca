@@ -129,8 +129,17 @@ var _ = Describe("Migrator", func() {
 			Expect(err.Error()).To(Equal("failed to modify id column"))
 		})
 
+		It("returns error if modifying pem column fails", func() {
+			mockTx.ExecReturnsOnCall(2, nil, errors.New("failed to modify pem column"))
+			migrator.Tx = mockTx
+
+			err := migrator.MigrateCertificatesTable()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("failed to modify pem column"))
+		})
+
 		It("returns error if updating properties to new certificate table level fails", func() {
-			mockTx.ExecReturnsOnCall(2, nil, errors.New("failed to update properties table"))
+			mockTx.ExecReturnsOnCall(3, nil, errors.New("failed to update properties table"))
 			migrator.Tx = mockTx
 
 			err := migrator.MigrateCertificatesTable()

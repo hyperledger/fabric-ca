@@ -91,7 +91,8 @@ func (m *Migrator) MigrateCertificatesTable() error {
 	tx := m.Tx
 	const funcName = "MigrateCertificatesTable"
 	// Future schema updates should add to the logic below to handle other levels
-	if m.CurLevels.Certificate < 1 {
+	curLevel := m.CurLevels.Certificate
+	if curLevel < 1 {
 		log.Debug("Upgrade certificates table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE certificates ADD COLUMN level INTEGER DEFAULT 0 AFTER pem")
 		if err != nil {
@@ -103,7 +104,17 @@ func (m *Migrator) MigrateCertificatesTable() error {
 		if err != nil {
 			return err
 		}
+		curLevel++
 	}
+	if curLevel < 2 {
+		log.Debug("Upgrade certificates table to level 2")
+		_, err := tx.Exec(funcName, "ALTER TABLE certificates MODIFY pem varbinary(8192)")
+		if err != nil {
+			return err
+		}
+		curLevel++
+	}
+
 	_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'certificate.level')"), m.SrvLevels.Certificate)
 	if err != nil {
 		return err
