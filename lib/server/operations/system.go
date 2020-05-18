@@ -25,7 +25,7 @@ import (
 	"github.com/hyperledger/fabric/common/metrics/disabled"
 	"github.com/hyperledger/fabric/common/metrics/prometheus"
 	"github.com/hyperledger/fabric/common/metrics/statsd"
-	prom "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // System is an operations server that is responsible for metrics and health checks
@@ -133,7 +133,7 @@ func (s *System) initializeMetricsProvider() {
 
 	case "prometheus":
 		s.Provider = &prometheus.Provider{}
-		s.mux.Handle("/metrics", prom.Handler())
+		s.mux.Handle("/metrics", promhttp.Handler())
 
 	default:
 		if providerType != "disabled" {

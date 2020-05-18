@@ -8,7 +8,8 @@ FROM golang:${GO_VER}-buster as fabric-ca-builder
 ARG GO_LDFLAGS
 ARG GO_TAGS
 
-ADD . ${GOPATH}/src/github.com/hyperledger/fabric-ca
+ADD . $GOPATH/src/github.com/hyperledger/fabric-ca
+WORKDIR /build/fabric-ca
 RUN go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 	-o /usr/local/bin/fabric-ca-server \
 	github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
