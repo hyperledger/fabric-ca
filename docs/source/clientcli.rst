@@ -16,6 +16,7 @@ Fabric-CA Client's CLI
       gencrl      Generate a CRL
       gencsr      Generate a CSR
       getcainfo   Get CA certificate chain and Idemix public key
+      help        Help about any command
       identity    Manage identities
       reenroll    Reenroll an identity
       register    Register an identity
@@ -23,35 +24,36 @@ Fabric-CA Client's CLI
       version     Prints Fabric CA Client version
     
     Flags:
-          --caname string                  Name of CA
-          --csr.cn string                  The common name field of the certificate signing request
-          --csr.hosts stringSlice          A list of comma-separated host names in a certificate signing request
-          --csr.keyrequest.algo string     Specify key algorithm
-          --csr.keyrequest.size int        Specify key size
-          --csr.names stringSlice          A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)
-          --csr.serialnumber string        The serial number in a certificate signing request
-          --enrollment.attrs stringSlice   A list of comma-separated attribute requests of the form <name>[:opt] (e.g. foo,bar:opt)
-          --enrollment.label string        Label to use in HSM operations
-          --enrollment.profile string      Name of the signing profile to use in issuing the certificate
-          --enrollment.type string         The type of enrollment request: 'x509' or 'idemix' (default "x509")
-      -H, --home string                    Client's home directory (default "$HOME/.fabric-ca-client")
-          --id.affiliation string          The identity's affiliation
-          --id.attrs stringSlice           A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
-          --id.maxenrollments int          The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
-          --id.name string                 Unique name of the identity
-          --id.secret string               The enrollment secret for the identity being registered
-          --id.type string                 Type of identity being registered (e.g. 'peer, app, user') (default "client")
-          --loglevel string                Set logging level (info, warning, debug, error, fatal, critical)
-      -M, --mspdir string                  Membership Service Provider directory (default "msp")
-      -m, --myhost string                  Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
-      -a, --revoke.aki string              AKI (Authority Key Identifier) of the certificate to be revoked
-      -e, --revoke.name string             Identity whose certificates should be revoked
-      -r, --revoke.reason string           Reason for revocation
-      -s, --revoke.serial string           Serial number of the certificate to be revoked
-          --tls.certfiles stringSlice      A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
-          --tls.client.certfile string     PEM-encoded certificate file when mutual authenticate is enabled
-          --tls.client.keyfile string      PEM-encoded key file when mutual authentication is enabled
-      -u, --url string                     URL of fabric-ca-server (default "http://localhost:7054")
+          --caname string                Name of CA
+          --csr.cn string                The common name field of the certificate signing request
+          --csr.hosts strings            A list of comma-separated host names in a certificate signing request
+          --csr.keyrequest.algo string   Specify key algorithm
+          --csr.keyrequest.size int      Specify key size
+          --csr.names strings            A list of comma-separated CSR names of the form <name>=<value> (e.g. C=CA,O=Org1)
+          --csr.serialnumber string      The serial number in a certificate signing request
+          --enrollment.attrs strings     A list of comma-separated attribute requests of the form <name>[:opt] (e.g. foo,bar:opt)
+          --enrollment.label string      Label to use in HSM operations
+          --enrollment.profile string    Name of the signing profile to use in issuing the certificate
+          --enrollment.type string       The type of enrollment request: 'x509' or 'idemix' (default "x509")
+      -h, --help                         help for fabric-ca-client
+      -H, --home string                  Client's home directory (default "$HOME/.fabric-ca-client")
+          --id.affiliation string        The identity's affiliation
+          --id.attrs strings             A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+          --id.maxenrollments int        The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
+          --id.name string               Unique name of the identity
+          --id.secret string             The enrollment secret for the identity being registered
+          --id.type string               Type of identity being registered (e.g. 'peer, app, user') (default "client")
+          --loglevel string              Set logging level (info, warning, debug, error, fatal, critical)
+      -M, --mspdir string                Membership Service Provider directory (default "msp")
+      -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
+      -a, --revoke.aki string            AKI (Authority Key Identifier) of the certificate to be revoked
+      -e, --revoke.name string           Identity whose certificates should be revoked
+      -r, --revoke.reason string         Reason for revocation
+      -s, --revoke.serial string         Serial number of the certificate to be revoked
+          --tls.certfiles strings        A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
+          --tls.client.certfile string   PEM-encoded certificate file when mutual authenticate is enabled
+          --tls.client.keyfile string    PEM-encoded key file when mutual authentication is enabled
+      -u, --url string                   URL of fabric-ca-server (default "http://localhost:7054")
     
     Use "fabric-ca-client [command] --help" for more information about a command.
 
@@ -71,6 +73,9 @@ Identity Command
       modify      Modify identity
       remove      Remove identity
     
+    Flags:
+      -h, --help   help for identity
+    
     -----------------------------
     
     Add an identity
@@ -83,7 +88,8 @@ Identity Command
     
     Flags:
           --affiliation string   The identity's affiliation
-          --attrs stringSlice    A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+          --attrs strings        A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+      -h, --help                 help for add
           --json string          JSON string for adding a new identity
           --maxenrollments int   The maximum number of times the secret can be reused to enroll (default CA's Max Enrollment)
           --secret string        The enrollment secret for the identity being added
@@ -97,6 +103,7 @@ Identity Command
       fabric-ca-client identity list [flags]
     
     Flags:
+      -h, --help        help for list
           --id string   Get identity information from the fabric-ca server
     
     -----------------------------
@@ -111,7 +118,8 @@ Identity Command
     
     Flags:
           --affiliation string   The identity's affiliation
-          --attrs stringSlice    A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+          --attrs strings        A list of comma-separated attributes of the form <name>=<value> (e.g. foo=foo1,bar=bar1)
+      -h, --help                 help for modify
           --json string          JSON string for modifying an existing identity
           --maxenrollments int   The maximum number of times the secret can be reused to enroll
           --secret string        The enrollment secret for the identity
@@ -129,6 +137,7 @@ Identity Command
     
     Flags:
           --force   Forces removing your own identity
+      -h, --help    help for remove
     
 
 Affiliation Command
@@ -147,6 +156,9 @@ Affiliation Command
       modify      Modify affiliation
       remove      Remove affiliation
     
+    Flags:
+      -h, --help   help for affiliation
+    
     -----------------------------
     
     Add affiliation
@@ -156,6 +168,7 @@ Affiliation Command
     
     Flags:
           --force   Creates parent affiliations if they do not exist
+      -h, --help    help for add
     
     -----------------------------
     
@@ -166,6 +179,7 @@ Affiliation Command
     
     Flags:
           --affiliation string   Get affiliation information from the fabric-ca server
+      -h, --help                 help for list
     
     -----------------------------
     
@@ -176,6 +190,7 @@ Affiliation Command
     
     Flags:
           --force         Forces identities using old affiliation to use new affiliation
+      -h, --help          help for modify
           --name string   Rename the affiliation
     
     -----------------------------
@@ -187,6 +202,7 @@ Affiliation Command
     
     Flags:
           --force   Forces removal of any child affiliations and any identities associated with removed affiliations
+      -h, --help    help for remove
     
 
 Certificate Command
@@ -201,6 +217,9 @@ Certificate Command
     
     Available Commands:
       list        List certificates
+    
+    Flags:
+      -h, --help   help for certificate
     
     -----------------------------
     
@@ -217,6 +236,7 @@ Certificate Command
     Flags:
           --aki string          Get certificates for this AKI
           --expiration string   Get certificates which expire between the UTC timestamp (RFC3339 format) or duration specified (e.g. <begin_time>::<end_time>)
+      -h, --help                help for list
           --id string           Get certificates for this enrollment ID
           --notexpired          Don't return expired certificates
           --notrevoked          Don't return revoked certificates

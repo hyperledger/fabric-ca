@@ -29,6 +29,7 @@
 #   - clean-all - cleans the build area and release packages
 #   - docker-thirdparty - pulls thirdparty images (postgres)
 #   - gotools - Installs go tools, such as: golint, goimports, gocov
+#   - vendor - vendors third-party packages
 
 PROJECT_NAME = fabric-ca
 ALPINE_VER ?= 3.11
@@ -115,7 +116,7 @@ lint: $(TOOLS)/golint
 vet: .FORCE
 	@scripts/check_vet
 
-docs: fabric-ca-client fabric-ca-server
+docs: gotools fabric-ca-client fabric-ca-server
 	@scripts/regenDocs
 
 fabric-ca-client: bin/fabric-ca-client
@@ -166,6 +167,12 @@ unit-test: unit-tests
 
 int-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
+
+vendor: .FORCE
+	@echo > go.mod
+	@go mod tidy -modfile vendor.mod
+	@go mod vendor  -modfile vendor.mod
+	@rm go.mod
 
 # Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
 bench: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client

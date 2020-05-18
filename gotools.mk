@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-GOTOOLS = gocov gocov-xml goimports golint
+GOTOOLS = gendoc gocov gocov-xml goimports golint
 
 .PHONY: gotools
 gotools: $(patsubst %,build/tools/%, $(GOTOOLS))
