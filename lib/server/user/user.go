@@ -520,6 +520,14 @@ func (u *Impl) Migrate(tx userDB) error {
 		}
 		currentLevel++
 	}
+
+	if currentLevel < 2 {
+		err := u.migrateUserToLevel2(tx)
+		if err != nil {
+			return err
+		}
+		currentLevel++
+	}
 	return nil
 }
 
@@ -541,6 +549,42 @@ func (u *Impl) migrateUserToLevel1(tx userDB) error {
 	}
 
 	err = u.setLevel(tx, 1)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to update level of user")
+	}
+
+	return nil
+}
+
+func (u *Impl) migrateUserToLevel2(tx userDB) error {
+	log.Debugf("Migrating user '%s' to level 2", u.GetName())
+
+	// Update identity to level 2
+	// Only give these attributes to a registrar user
+	_, err := u.GetAttribute("hf.Registrar.Roles") // Check if user is a registrar
+	if err == nil {
+		_, err := u.GetAttribute("hf.AffiliationMgr") // Check if user already has "hf.AffiliationMgr" attribute
+		if err != nil {
+			newAttr := api.Attribute{Name: "hf.AffiliationMgr", Value: "true"}
+			err := u.ModifyAttributesTx(tx, []api.Attribute{newAttr})
+			if err != nil {
+				return errors.WithMessage(err, "Failed to set attribute")
+			}
+			u.attrs[newAttr.Name] = newAttr
+		}
+
+		_, err = u.GetAttribute("hf.GenCRL") // Check if user already has "hf.GenCRL" attribute
+		if err != nil {
+			newAttr := api.Attribute{Name: "hf.GenCRL", Value: "true"}
+			err := u.ModifyAttributesTx(tx, []api.Attribute{newAttr})
+			if err != nil {
+				return errors.WithMessage(err, "Failed to set attribute")
+			}
+			u.attrs[newAttr.Name] = newAttr
+		}
+	}
+
+	err = u.setLevel(tx, 2)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to update level of user")
 	}
