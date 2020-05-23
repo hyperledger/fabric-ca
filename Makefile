@@ -79,12 +79,9 @@ path-map.fabric-ca-server := cmd/fabric-ca-server
 
 include docker-env.mk
 
-all: rename docker unit-tests
+all: docker unit-tests
 
 include gotools.mk
-
-rename: .FORCE
-	@scripts/rename-repo
 
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
