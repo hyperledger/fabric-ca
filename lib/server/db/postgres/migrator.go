@@ -37,9 +37,7 @@ func (m *Migrator) MigrateUsersTable() error {
 	tx := m.Tx
 	// Future schema updates should add to the logic below to handle other levels
 	curLevel := m.CurLevels.Identity
-	res := []struct {
-		columnName string `db:"column_name"`
-	}{}
+	var res []string
 	const funcName = "MigrateUsersTable"
 	if curLevel < 1 {
 		log.Debug("Upgrade identity table to level 1")
@@ -110,9 +108,7 @@ func (m *Migrator) MigrateCertificatesTable() error {
 	// Future schema updates should add to the logic below to handle other levels
 	if m.CurLevels.Certificate < 1 {
 		log.Debug("Upgrade certificates table to level 1")
-		res := []struct {
-			columnName string `db:"column_name"`
-		}{}
+		var res []string
 		query := "SELECT column_name  FROM information_schema.columns WHERE table_name='certificates' and column_name='level'"
 		err := tx.Select(funcName, &res, tx.Rebind(query))
 		if err != nil {
@@ -145,9 +141,7 @@ func (m *Migrator) MigrateAffiliationsTable() error {
 	// Future schema updates should add to the logic below to handle other levels
 	if m.CurLevels.Affiliation < 1 {
 		log.Debug("Upgrade affiliations table to level 1")
-		res := []struct {
-			columnName string `db:"column_name"`
-		}{}
+		var res []string
 		query := "SELECT column_name  FROM information_schema.columns WHERE table_name='affiliations' and column_name='level'"
 		err := tx.Select(funcName, &res, tx.Rebind(query))
 		if err != nil {

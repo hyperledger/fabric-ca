@@ -64,7 +64,7 @@ func testMain(m *testing.M) int {
 	return m.Run()
 }
 
-func testKeyGenerate(t *testing.T, kr csr.KeyRequest, mustFail bool) {
+func testKeyGenerate(t *testing.T, kr *csr.KeyRequest, mustFail bool) {
 	req := csr.CertificateRequest{
 		KeyRequest: kr,
 	}
@@ -113,18 +113,18 @@ func TestInitBCCSP(t *testing.T) {
 }
 
 func TestKeyGenerate(t *testing.T) {
-	t.Run("256", func(t *testing.T) { testKeyGenerate(t, csr.NewBasicKeyRequest(), false) })
-	t.Run("384", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "ecdsa", S: 384}, false) })
-	t.Run("521", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "ecdsa", S: 521}, true) })
-	t.Run("521", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "ecdsa", S: 224}, true) })
-	t.Run("512", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 512}, true) })
-	t.Run("1024", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 1024}, true) })
-	t.Run("2048", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 2048}, false) })
-	t.Run("3072", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 3072}, false) })
-	t.Run("4096", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 4096}, false) })
-	t.Run("4097", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 4097}, true) })
-	t.Run("10000", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{A: "rsa", S: 10000}, true) })
-	t.Run("empty", func(t *testing.T) { testKeyGenerate(t, &csr.BasicKeyRequest{}, true) })
+	t.Run("256", func(t *testing.T) { testKeyGenerate(t, csr.NewKeyRequest(), false) })
+	t.Run("384", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "ecdsa", S: 384}, false) })
+	t.Run("521", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "ecdsa", S: 521}, true) })
+	t.Run("521", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "ecdsa", S: 224}, true) })
+	t.Run("512", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 512}, true) })
+	t.Run("1024", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 1024}, true) })
+	t.Run("2048", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 2048}, false) })
+	t.Run("3072", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 3072}, false) })
+	t.Run("4096", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 4096}, false) })
+	t.Run("4097", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 4097}, true) })
+	t.Run("10000", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{A: "rsa", S: 10000}, true) })
+	t.Run("empty", func(t *testing.T) { testKeyGenerate(t, &csr.KeyRequest{}, true) })
 	t.Run("nil", func(t *testing.T) { testKeyGenerate(t, nil, false) })
 }
 

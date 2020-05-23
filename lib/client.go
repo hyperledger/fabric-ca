@@ -204,7 +204,7 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 	cr.CN = id
 
 	if (cr.KeyRequest == nil) || (cr.KeyRequest.Size() == 0 && cr.KeyRequest.Algo() == "") {
-		cr.KeyRequest = newCfsslBasicKeyRequest(api.NewBasicKeyRequest())
+		cr.KeyRequest = newCfsslKeyRequest(api.NewKeyRequest())
 	}
 
 	key, cspSigner, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
@@ -510,7 +510,7 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo) *csr.CertificateRequest
 		}
 	}
 	if req != nil && req.KeyRequest != nil {
-		cr.KeyRequest = newCfsslBasicKeyRequest(req.KeyRequest)
+		cr.KeyRequest = newCfsslKeyRequest(req.KeyRequest)
 	}
 	if req != nil {
 		cr.CA = req.CA
@@ -903,8 +903,8 @@ func (c *Client) verifyIdemixCredential() error {
 	return nil
 }
 
-func newCfsslBasicKeyRequest(bkr *api.BasicKeyRequest) *csr.BasicKeyRequest {
-	return &csr.BasicKeyRequest{A: bkr.Algo, S: bkr.Size}
+func newCfsslKeyRequest(bkr *api.KeyRequest) *csr.KeyRequest {
+	return &csr.KeyRequest{A: bkr.Algo, S: bkr.Size}
 }
 
 // NormalizeURL normalizes a URL (from cfssl)
