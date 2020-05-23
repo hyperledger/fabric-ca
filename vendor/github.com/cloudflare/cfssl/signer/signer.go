@@ -64,6 +64,12 @@ type SignRequest struct {
 	// for canonicalization) as the value of the notAfter field of the
 	// certificate.
 	NotAfter time.Time
+	// If ReturnPrecert is true a certificate with the CT poison extension
+	// will be returned from the Signer instead of attempting to retrieve
+	// SCTs and populate the tbsCert with them itself. This precert can then
+	// be passed to SignFromPrecert with the SCTs in order to create a
+	// valid certificate.
+	ReturnPrecert bool
 }
 
 // appendIf appends to a if s is not an empty string.
@@ -186,6 +192,7 @@ func ParseCertificateRequest(s Signer, csrBytes []byte) (template *x509.Certific
 		DNSNames:           csrv.DNSNames,
 		IPAddresses:        csrv.IPAddresses,
 		EmailAddresses:     csrv.EmailAddresses,
+		URIs:               csrv.URIs,
 	}
 
 	for _, val := range csrv.Extensions {
@@ -314,6 +321,7 @@ func FillTemplate(template *x509.Certificate, defaultProfile, profile *config.Si
 		}
 		template.DNSNames = nil
 		template.EmailAddresses = nil
+		template.URIs = nil
 	}
 	template.SubjectKeyId = ski
 

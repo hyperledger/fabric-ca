@@ -2558,7 +2558,7 @@ func setupGenCSRTest(t *testing.T, adminHome string) *lib.Server {
 
 	srv := lib.TestGetServer(serverPort, srvHome, "", -1, t)
 	srv.Config.Debug = true
-	srv.CA.Config.CSR.KeyRequest = &api.BasicKeyRequest{Algo: "ecdsa", Size: 384}
+	srv.CA.Config.CSR.KeyRequest = &api.KeyRequest{Algo: "ecdsa", Size: 384}
 
 	adminName := "admin"
 	adminPass := "adminpw"

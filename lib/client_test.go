@@ -698,7 +698,7 @@ func testEnrollMiscFailures(c *Client, t *testing.T) {
 
 	c.Config.URL = ""
 	var r api.CSRInfo
-	var k api.BasicKeyRequest
+	var k api.KeyRequest
 	var n csr.Name
 	k.Algo = "dsa"
 	k.Size = 256
@@ -1396,7 +1396,7 @@ func TestGenCSR(t *testing.T) {
 	// Fail to gen key
 	config.CSR = api.CSRInfo{
 		CN: "TestGenCSR",
-		KeyRequest: &api.BasicKeyRequest{
+		KeyRequest: &api.KeyRequest{
 			Algo: "dsa",
 			Size: 256,
 		},
