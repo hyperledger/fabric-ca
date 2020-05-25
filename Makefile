@@ -14,11 +14,6 @@
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - builds/cleans the fabric-ca docker image
 #   - docker-fvt[-clean] - builds/cleans the fabric-ca functional verification testing image
-#   - bench - Runs benchmarks in all the packages and stores the results in /tmp/bench.results
-#   - bench-cpu - Runs the benchmarks in the specified package with cpu profiling
-#   - bench-mem - Runs the benchmarks in the specified package with memory profiling
-#   - bench-clean - Removes all benchmark related files
-#   - benchcmp - Compares benchmarks results of current and previous release
 #   - release - builds fabric-ca-client binary for the host platform. Binary built with this target will not support pkcs11
 #   - release-all - builds fabric-ca-client binary for all target platforms. Binaries built with this target will not support pkcs11
 #   - dist - builds release package for the host platform
@@ -171,34 +166,11 @@ vendor: .FORCE
 	@go mod vendor  -modfile vendor.mod
 	@rm go.mod
 
-# Runs benchmarks in all the packages and stores the benchmarks in /tmp/bench.results
-bench: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
-	@scripts/run_benchmarks
-
-# Runs benchmarks in the specified package with cpu profiling
-# e.g. make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib
-bench-cpu: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
-	@scripts/run_benchmarks -C -P $(pkg)
-
-# Runs benchmarks in the specified package with memory profiling
-# e.g. make bench-mem pkg=github.com/hyperledger/fabric-ca/lib
-bench-mem: $(TOOLS)/benchcmp fabric-ca-server fabric-ca-client
-	@scripts/run_benchmarks -M -P $(pkg)
-
-# e.g. make benchcmp prev_rel=v1.0.0
-benchcmp: $(TOOLS)/benchcmp guard-prev_rel bench
-	@scripts/compare_benchmarks $(prev_rel)
-
 guard-%:
 	@if [ "${${*}}" = "" ]; then \
 		echo "Environment variable $* not set"; \
 		exit 1; \
 	fi
-
-
-# Removes all benchmark related files (bench, bench-cpu, bench-mem and *.test)
-bench-clean: $(TOOLS)/benchcmp
-	@scripts/run_benchmarks -R
 
 container-tests: docker
 
