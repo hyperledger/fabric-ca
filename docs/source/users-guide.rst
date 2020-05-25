@@ -2323,8 +2323,6 @@ point to the location where the SoftHSM2 configuration file is stored. The confi
   objectstore.backend = file
   log.level = INFO
 
-You can find example configuration file named SoftHSM2.conf under testdata directory.
-
 Create a token, label it “ForFabric”, set the pin to ‘98765432’
 (refer to SoftHSM documentation).
 
