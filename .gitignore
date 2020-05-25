@@ -1,13 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+.#*
+*~
+*#
+.DS_Store
 .idea
 *.csr
 *.der
-/release/darwin-amd64
-/release/linux-amd64
-/release/linux-ppc64le
-/release/linux-s390x
-/release/windows-amd64
-bin
-build
+/bin
+/build
+/release
 coverage.xml
 fabric-ca-server-config.yaml
 profile.cov
@@ -21,5 +22,5 @@ testdata/initFabricCaFvt.json
 testdata/openssl.cnf.base.this
 testdata/runFabricCaFvt.json
 vendor/github.com/cloudflare/cfssl/vendor/github.com/cloudflare/cfssl_trust/ca-bundle/http:*.crt
-# tox
 .tox/
+.vscode
