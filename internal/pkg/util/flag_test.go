@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib"
-	. "github.com/hyperledger/fabric-ca/util"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -176,7 +176,7 @@ func TestViperUnmarshal(t *testing.T) {
 
 	cfg := &lib.CAConfig{}
 	vp := viper.New()
-	vp.SetConfigFile("../testdata/testviperunmarshal.yaml")
+	vp.SetConfigFile("testdata/testviperunmarshal.yaml")
 	err = vp.ReadInConfig()
 	if err != nil {
 		t.Errorf("Failed to read config file: %s", err)

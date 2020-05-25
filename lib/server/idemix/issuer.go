@@ -19,12 +19,11 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-amcl/amcl"
 	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/common"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
@@ -202,7 +201,7 @@ func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, 
 	if parts == nil {
 		return "", errors.New("Invalid Idemix token format; token format must be: 'idemix.<enrollment ID>.<base64 encoding of Idemix signature bytes>'")
 	}
-	if parts[1] != common.IdemixTokenVersion1 {
+	if parts[1] != api.IdemixTokenVersion1 {
 		return "", errors.New("Invalid version found in the Idemix token. Version must be 1")
 	}
 	enrollmentID := parts[2]

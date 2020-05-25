@@ -20,7 +20,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 )
 
 func TestGetCommandLineOptValue(t *testing.T) {

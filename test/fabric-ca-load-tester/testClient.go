@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
 	"github.com/hyperledger/fabric-ca/lib"
 )
 

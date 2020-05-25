@@ -4,7 +4,7 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package common
+package api
 
 const (
 	// IdemixTokenVersion1 represents version 1 of the authorization token created using Idemix credential

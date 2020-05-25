@@ -27,7 +27,8 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/csr"
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
@@ -35,7 +36,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	libtls "github.com/hyperledger/fabric-ca/lib/tls"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

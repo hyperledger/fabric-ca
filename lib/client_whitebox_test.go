@@ -18,10 +18,9 @@ import (
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	cax509 "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
-	"github.com/hyperledger/fabric-ca/lib/common"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
@@ -241,7 +240,7 @@ func enrollAndCheck(t *testing.T, c *Client, body []byte, authHeader string) {
 	if authHeader != "" {
 		post.Header.Set("Authorization", authHeader)
 	}
-	var result common.EnrollmentResponseNet
+	var result api.EnrollmentResponseNet
 	err = c.SendReq(post, &result)
 	t.Logf("c.SendReq: %v", err)
 	if err == nil {
@@ -667,7 +666,7 @@ func masqueradeEnroll(c *Client, id string, passInSubject bool, req *api.Enrollm
 		return nil, err
 	}
 	post.SetBasicAuth(req.Name, req.Secret)
-	var result common.EnrollmentResponseNet
+	var result api.EnrollmentResponseNet
 	err = c.SendReq(post, &result)
 	if err != nil {
 		return nil, err
@@ -704,7 +703,7 @@ func masqueradeReenroll(c *Client, id string, identity *Identity, passInSubject 
 		return nil, err
 	}
 	// Send the CSR to the fabric-ca server with basic auth header
-	var result common.EnrollmentResponseNet
+	var result api.EnrollmentResponseNet
 	err = identity.Post("reenroll", body, &result, nil)
 	if err != nil {
 		return nil, err

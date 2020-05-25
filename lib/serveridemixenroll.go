@@ -8,7 +8,7 @@ package lib
 
 import (
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/lib/common"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 )
@@ -45,13 +45,13 @@ func handleIdemixEnrollReq(ctx *serverRequestContextImpl) (interface{}, error) {
 
 // newIdemixEnrollmentResponseNet returns an instance of IdemixEnrollmentResponseNet that is
 // constructed using the specified idemix.EnrollmentResponse object
-func newIdemixEnrollmentResponseNet(resp *idemix.EnrollmentResponse) common.IdemixEnrollmentResponseNet {
-	return common.IdemixEnrollmentResponseNet{
+func newIdemixEnrollmentResponseNet(resp *idemix.EnrollmentResponse) api.IdemixEnrollmentResponseNet {
+	return api.IdemixEnrollmentResponseNet{
 		Nonce:      resp.Nonce,
 		Attrs:      resp.Attrs,
 		Credential: resp.Credential,
 		CRI:        resp.CRI,
-		CAInfo:     common.CAInfoResponseNet{}}
+		CAInfo:     api.CAInfoResponseNet{}}
 }
 
 // idemixServerCtx implements idemix.ServerRequestContext
