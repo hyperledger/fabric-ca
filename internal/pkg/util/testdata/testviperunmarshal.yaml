@@ -1,0 +1,17 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+ca:
+  name: test
+
+db:
+  tls:
+      enabled: false
+
+operations:
+  tls:
+    enabled: true
+    certfile: "tls_server-cert.pem"
+    keyfile: "tls_server-key.pem"

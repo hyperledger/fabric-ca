@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest/mocks"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
 

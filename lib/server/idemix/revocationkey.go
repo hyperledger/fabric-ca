@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/pkg/errors"
 )
 

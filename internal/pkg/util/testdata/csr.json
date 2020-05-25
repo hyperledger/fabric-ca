@@ -1,0 +1,20 @@
+{
+    "hosts": [
+        "myhost.com",
+        "www.myhost.com"
+    ],
+    "CN": "admin",
+    "key": {
+        "algo": "ecdsa",
+        "size": 256
+    },
+    "names": [
+        {
+            "O": "Hyperledger Fabric",
+            "OU": "COP",
+            "L": "Raleigh",
+            "ST": "North Carolina",
+            "C": "US"
+        }
+    ]
+}

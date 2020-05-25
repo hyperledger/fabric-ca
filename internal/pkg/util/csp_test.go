@@ -22,11 +22,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/cloudflare/cfssl/csr"
-	. "github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric-ca/util/mocks"
+	. "github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util/mocks"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/stretchr/testify/assert"
@@ -181,22 +182,22 @@ func testGetSignerFromCertFile(t *testing.T, keyFile, certFile string, mustFail 
 
 func TestGetSignerFromCertFile(t *testing.T) {
 	t.Run("ec", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "../testdata/ec.pem", 0)
+		testGetSignerFromCertFile(t, filepath.Join("testdata", "ec-key.pem"), filepath.Join("testdata", "ec.pem"), 0)
 	})
 	t.Run("nokey", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "doesnotexist.pem", "../testdata/ec.pem", 1)
+		testGetSignerFromCertFile(t, "doesnotexist.pem", filepath.Join("testdata", "ec.pem"), 1)
 	})
 	t.Run("nocert", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "doesnotexist.pem", 2)
+		testGetSignerFromCertFile(t, filepath.Join("testdata", "ec-key.pem"), "doesnotexist.pem", 2)
 	})
 	t.Run("cert4key", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../testdata/ec.pem", "../testdata/ec.pem", 1)
+		testGetSignerFromCertFile(t, filepath.Join("testdata", "ec.pem"), filepath.Join("testdata", "ec.pem"), 1)
 	})
 	t.Run("rsa", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../testdata/rsa-key.pem", "../testdata/rsa.pem", 1)
+		testGetSignerFromCertFile(t, filepath.Join("testdata", "rsa-key.pem"), filepath.Join("testdata", "rsa.pem"), 1)
 	})
 	t.Run("wrongcert", func(t *testing.T) {
-		testGetSignerFromCertFile(t, "../testdata/ec-key.pem", "../testdata/test.pem", 2)
+		testGetSignerFromCertFile(t, filepath.Join("testdata", "ec-key.pem"), filepath.Join("testdata", "test.pem"), 2)
 	})
 }
 
@@ -214,7 +215,7 @@ func TestBccspBackedSigner(t *testing.T) {
 		t.Fatal("BccspBackedSigner should not be valid for non-existent cert")
 	}
 
-	signer, err = BccspBackedSigner("../testdata/ec.pem", "../testdata/ec-key.pem", nil, csp)
+	signer, err = BccspBackedSigner(filepath.Join("testdata", "ec.pem"), filepath.Join("testdata", "ec-key.pem"), nil, csp)
 	if signer == nil {
 		t.Fatalf("BccspBackedSigner should had found cert: %s", err)
 	}

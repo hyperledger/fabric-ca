@@ -1,17 +1,7 @@
 /*
-Copyright IBM Corp. 2016 All Rights Reserved.
+Copyright IBM Corp. All Rights Reserved.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-                 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+SPDX-License-Identifier: Apache-2.0
 */
 
 package util
@@ -30,7 +20,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -42,7 +31,7 @@ import (
 )
 
 func TestGetEnrollmentIDFromPEM(t *testing.T) {
-	cert, err := ioutil.ReadFile(getPath("ec.pem"))
+	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	if err != nil {
 		t.Fatalf("TestGetEnrollmentIDFromPEM.ReadFile failed: %s", err)
 	}
@@ -53,9 +42,9 @@ func TestGetEnrollmentIDFromPEM(t *testing.T) {
 }
 
 func TestECCreateToken(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	bccsp := GetDefaultBCCSP()
-	privKey, err := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
+	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
 	if err != nil {
 		t.Logf("Failed importing key %s", err)
 	}
@@ -104,7 +93,7 @@ func TestECCreateToken(t *testing.T) {
 		t.Fatal("VerifyToken should have failed as body was tampered")
 	}
 
-	ski, skierror := ioutil.ReadFile(getPath("ec-key.ski"))
+	ski, skierror := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	if skierror != nil {
 		t.Fatalf("SKI File Read failed with error : %s", skierror)
 	}
@@ -147,7 +136,7 @@ func TestDecodeToken(t *testing.T) {
 }
 func TestGetX509CertFromPem(t *testing.T) {
 
-	certBuffer, error := ioutil.ReadFile(getPath("ec.pem"))
+	certBuffer, error := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	if error != nil {
 		t.Fatalf("Certificate File Read from file failed with error : %s", error)
 	}
@@ -159,7 +148,7 @@ func TestGetX509CertFromPem(t *testing.T) {
 		t.Fatal("Certificate cannot be nil")
 	}
 
-	skiBuffer, skiError := ioutil.ReadFile(getPath("ec-key.ski"))
+	skiBuffer, skiError := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	if skiError != nil {
 		t.Fatalf("SKI File read failed with error : %s", skiError)
 	}
@@ -174,7 +163,7 @@ func TestGetX509CertFromPem(t *testing.T) {
 }
 
 func TestGetX509CertsFromPem(t *testing.T) {
-	certBuffer, error := ioutil.ReadFile(getPath("ec.pem"))
+	certBuffer, error := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	if error != nil {
 		t.Fatalf("Certificate File Read from file failed with error : %s", error)
 	}
@@ -183,7 +172,7 @@ func TestGetX509CertsFromPem(t *testing.T) {
 	assert.NotNil(t, certificates)
 	assert.Equal(t, 1, len(certificates), "GetX509CertificatesFromPEM should have returned 1 certificate")
 
-	skiBuffer, skiError := ioutil.ReadFile(getPath("ec-key.ski"))
+	skiBuffer, skiError := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	if skiError != nil {
 		t.Fatalf("SKI File read failed with error : %s", skiError)
 	}
@@ -201,8 +190,8 @@ func TestGetX509CertsFromPem(t *testing.T) {
 // as BCCSP does not have support for RSA private key import
 /*
 func TestRSACreateToken(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("rsa.pem"))
-	privKey, _ := ioutil.ReadFile(getPath("rsa-key.pem"))
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata","rsa.pem"))
+	privKey, _ := ioutil.ReadFile(filepath.Join("testdata","rsa-key.pem"))
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
@@ -219,9 +208,9 @@ func TestRSACreateToken(t *testing.T) {
 */
 
 func TestCreateTokenDiffKey(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(getPath("rsa-key.pem"), bccsp, true)
+	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "rsa-key.pem"), bccsp, true)
 	body := []byte("request byte array")
 	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", body)
 	if err == nil {
@@ -234,8 +223,8 @@ func TestCreateTokenDiffKey(t *testing.T) {
 // import. This will be uncommented when the support is in.
 /*
 func TestCreateTokenDiffKey2(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("rsa.pem"))
-	privKey, _ := ioutil.ReadFile(getPath("ec-key.pem"))
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata","rsa.pem"))
+	privKey, _ := ioutil.ReadFile(filepath.Join("testdata","ec-key.pem"))
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
@@ -257,7 +246,7 @@ func TestEmptyToken(t *testing.T) {
 }
 
 func TestEmptyCert(t *testing.T) {
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	body := []byte("request byte array")
 
 	csp := factory.GetDefault()
@@ -269,7 +258,7 @@ func TestEmptyCert(t *testing.T) {
 
 func TestEmptyKey(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
+	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
 	body := []byte("request byte array")
 	_, err := CreateToken(bccsp, []byte(""), privKey, "POST", "/enroll", body)
 	if err == nil {
@@ -279,8 +268,8 @@ func TestEmptyKey(t *testing.T) {
 
 func TestEmptyBody(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(getPath("ec-key.pem"), bccsp, true)
-	cert, _ := ioutil.ReadFile(getPath("ec.pem"))
+	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
+	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", []byte(""))
 	if err != nil {
 		t.Fatalf("CreateToken failed: %s", err)
@@ -402,7 +391,7 @@ func TestMarshal(t *testing.T) {
 }
 
 func TestReadFile(t *testing.T) {
-	_, err := ReadFile("../testdata/csr.json")
+	_, err := ReadFile(filepath.Join("testdata", "csr.json"))
 	if err != nil {
 		t.Error("Failed to read file, error: ", err)
 	}
@@ -415,19 +404,15 @@ func TestWriteFile(t *testing.T) {
 	}
 	defer os.RemoveAll(testdir)
 	testData := []byte("foo")
-	err = WriteFile(path.Join(testdir, "test.txt"), testData, 0777)
+	err = WriteFile(filepath.Join(testdir, "test.txt"), testData, 0777)
 	assert.NoError(t, err)
-	readOnlyDir := path.Join(testdir, "readonlydir")
+	readOnlyDir := filepath.Join(testdir, "readonlydir")
 	err = os.MkdirAll(readOnlyDir, 4444)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
-	err = WriteFile(path.Join(readOnlyDir, "test/test.txt"), testData, 0777)
+	err = WriteFile(filepath.Join(readOnlyDir, "test/test.txt"), testData, 0777)
 	assert.Error(t, err, "Should fail to create 'test' directory as the parent directory is read only")
-}
-
-func getPath(file string) string {
-	return "../testdata/" + file
 }
 
 func TestStrContained(t *testing.T) {
@@ -440,7 +425,7 @@ func TestStrContained(t *testing.T) {
 }
 
 func TestFileExists(t *testing.T) {
-	name := "../testdata/csr.json"
+	name := "testdata/csr.json"
 	exists := FileExists(name)
 	if exists == false {
 		t.Error("File does not exist")
@@ -629,7 +614,7 @@ func TestNormalizeStringSlice(t *testing.T) {
 // Test file list with multiple and single entries both with and without brackets
 func TestNormalizeFileList(t *testing.T) {
 	slice := []string{"[file0,file1]", "file2,file3", "file4", "[file5]"}
-	slice, err := NormalizeFileList(slice, "../testdata")
+	slice, err := NormalizeFileList(slice, "testdata")
 	if err != nil {
 		t.Fatalf("Failed to normalize files list, error: %s", err)
 	}
@@ -677,7 +662,7 @@ func TestGetSerialAsHex(t *testing.T) {
 }
 
 func TestECPrivateKey(t *testing.T) {
-	_, err := GetECPrivateKey(getPEM("../testdata/ec-key.pem", t))
+	_, err := GetECPrivateKey(getPEM(filepath.Join("testdata", "ec-key.pem"), t))
 	assert.NoError(t, err)
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
@@ -701,7 +686,7 @@ func TestECPrivateKey(t *testing.T) {
 }
 
 func TestPKCS8WrappedECPrivateKey(t *testing.T) {
-	_, err := GetECPrivateKey(getPEM("../testdata/pkcs8eckey.pem", t))
+	_, err := GetECPrivateKey(getPEM(filepath.Join("testdata", "pkcs8eckey.pem"), t))
 	assert.NoError(t, err)
 }
 
@@ -709,7 +694,7 @@ func TestRSAPrivateKey(t *testing.T) {
 	_, err := GetRSAPrivateKey([]byte("hello"))
 	assert.Error(t, err)
 
-	_, err = GetRSAPrivateKey(getPEM("../testdata/rsa-key.pem", t))
+	_, err = GetRSAPrivateKey(getPEM(filepath.Join("testdata", "rsa-key.pem"), t))
 	assert.NoError(t, err)
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
@@ -743,21 +728,21 @@ func TestRSAPrivateKey(t *testing.T) {
 }
 
 func TestCheckHostsInCert(t *testing.T) {
-	err := CheckHostsInCert("../testdata/doesnotexist.pem", "")
+	err := CheckHostsInCert("testdata/doesnotexist.pem", "")
 	assert.Error(t, err)
 
-	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "localhost")
+	err = CheckHostsInCert(filepath.Join("testdata", "tls_server-cert.pem"), "localhost")
 	assert.NoError(t, err, fmt.Sprintf("Failed to find 'localhost' for host in certificate: %s", err))
 
-	err = CheckHostsInCert("../testdata/tls_server-cert.pem", "localhost", "fakehost")
+	err = CheckHostsInCert("testdata/tls_server-cert.pem", "localhost", "fakehost")
 	assert.Error(t, err, "Certificate does not contain 'fakehost', should have failed")
 
-	err = CheckHostsInCert("../testdata/root.pem", "x")
+	err = CheckHostsInCert("testdata/root.pem", "x")
 	assert.Error(t, err, "Certificate contained no host, should have failed")
 }
 
 func TestCertDuration(t *testing.T) {
-	d, err := GetCertificateDurationFromFile("../testdata/ec.pem")
+	d, err := GetCertificateDurationFromFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 	assert.True(t, d.Hours() == 43800, "Expected certificate duration of 43800h in ec.pem")
 	_, err = GetCertificateDurationFromFile("bogus.pem")
@@ -874,10 +859,10 @@ func TestValidateAndReturnAbsConf(t *testing.T) {
 		t.Error("Failed to get correct path for configuration file")
 	}
 
-	filename, homeDir, err = ValidateAndReturnAbsConf("", "../testdata/tmp", "fabric-ca-client")
+	filename, homeDir, err = ValidateAndReturnAbsConf("", "testdata/tmp", "fabric-ca-client")
 	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
 
-	homeDirAbs, err := filepath.Abs("../testdata/tmp")
+	homeDirAbs, err := filepath.Abs("testdata/tmp")
 	if err != nil {
 		t.Fatal("Error occured getting absolute path: ", err)
 	}
@@ -898,10 +883,10 @@ func TestValidateAndReturnAbsConf(t *testing.T) {
 		t.Error("Failed to get correct path for configuration file")
 	}
 
-	filename, homeDir, err = ValidateAndReturnAbsConf("../testdata/tmp/test.yaml", "", "fabric-ca-client")
+	filename, homeDir, err = ValidateAndReturnAbsConf("testdata/tmp/test.yaml", "", "fabric-ca-client")
 	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
 
-	homeDirAbs, err = filepath.Abs("../testdata/tmp")
+	homeDirAbs, err = filepath.Abs("testdata/tmp")
 	if err != nil {
 		t.Fatal("Error occured getting absolute path: ", err)
 	}

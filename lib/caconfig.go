@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp/factory"
 )
 

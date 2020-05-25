@@ -29,11 +29,11 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/cloudflare/cfssl/signer"
 	cflocalsigner "github.com/cloudflare/cfssl/signer/local"
-	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	"github.com/hyperledger/fabric-ca/lib/common"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
@@ -47,7 +47,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/lib/tls"
-	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 )
@@ -975,7 +974,7 @@ func (ca *CA) getUserAffiliation(username string) (string, error) {
 }
 
 // fillCAInfo fills the CA info structure appropriately
-func (ca *CA) fillCAInfo(info *common.CAInfoResponseNet) error {
+func (ca *CA) fillCAInfo(info *api.CAInfoResponseNet) error {
 	caChain, err := ca.getCAChain()
 	if err != nil {
 		return err
