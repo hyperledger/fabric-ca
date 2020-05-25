@@ -166,12 +166,6 @@ vendor: .FORCE
 	@go mod vendor  -modfile vendor.mod
 	@rm go.mod
 
-guard-%:
-	@if [ "${${*}}" = "" ]; then \
-		echo "Environment variable $* not set"; \
-		exit 1; \
-	fi
-
 container-tests: docker
 
 load-test: docker-clean docker-fvt

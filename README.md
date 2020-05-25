@@ -65,17 +65,9 @@ The following are guidelines to follow when contributing:
 
 ## Additional info
 
-## Profiling
-Fabric CA server can be profiled two ways, namely, using benchmarks and by retrieving profiling data from the server (at /debug/pprof/ endpoint) while running load.
+### Profiling Fabric CA server
 
-### Benchmarks
-You can profile the benchmarks by running `make bench-cpu` or `make bench-mem` commands. You can profile benchmarks in one package or all the packages using these make targets. For example, to profile benchmarks in the *lib* package, run: `make bench-cpu pkg=github.com/hyperledger/fabric-ca/lib`. This will create **bench-cpu.prof**, **lib.test** and **bench** files in the *lib* folder. The **bench** file will contain benchmark stats: bytes/operation, allocations/operation and nanoseconds/operation. **lib.test** file is the executable and **bench-cpu.prof** contains cpu profile information. To analyze the profile, run: `go tool pprof lib.test bench-cpu.prof`. Similarly, you can run `make bench-mem pkg=github.com/hyperledger/fabric-ca/lib` to perform memory profiling of the benchmarks in the *lib* package. The **bench-mem.prof** file contains memory profile information.
-
-If you run `make bench-cpu` or `make bench-mem` without *pkg* variable, benchmarks in each package are run with cpu or memory profiling. So, executable, benchmark output, and profile info files are created in each package folder. You need to analyze these profiles separately.
-
-### Whole server
-To enable profiling on the server, set the FABRIC_CA_SERVER_PROFILE_PORT environment
-variable to a valid, available port number and start the server. The server will start listening for profile requests at the */debug/pprof/* HTTP endpoint and the specified port. Then run `go tool pprof` with server's profiling URL (http://<server host>:<profiling port>/debug/pprof/<profile|heap|block>) as an argument, it will download and examine a live profile.
+To enable profiling on the server, set the FABRIC_CA_SERVER_PROFILE_PORT environment variable to a valid, available port number and start the server. The server will start listening for profile requests at the */debug/pprof/* HTTP endpoint and the specified port. Then run `go tool pprof` with server's profiling URL (http://<server host>:<profiling port>/debug/pprof/<profile|heap|block>) as an argument, it will download and examine a live profile.
 
 You can start the server in the FVT image by running following docker command from the fabric-ca root directory:
 
