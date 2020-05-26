@@ -10,6 +10,8 @@
 #   - license - check all go files for license headers
 #   - fabric-ca-server - builds the fabric-ca-server executable
 #   - fabric-ca-client - builds the fabric-ca-client executable
+#   - all-tests - runs unit and integration tests
+#   - int-tests - runs the go-test based integration tests
 #   - unit-tests - runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
 #   - docker[-clean] - builds/cleans the fabric-ca docker image
@@ -78,12 +80,6 @@ docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
 
-# should be removed once CI scripts are updated
-docker-all: docker
-
-# should be removed once CI scripts are updated
-docker-fabric-ca: docker
-
 changelog:
 	./scripts/changelog.sh v$(PREV_VERSION) HEAD v$(BASE_VERSION)
 
@@ -142,17 +138,15 @@ build/image/fabric-ca-fvt/$(DUMMY):
 	@touch $@
 
 
-all-tests: gotools fabric-ca-server fabric-ca-client
-	@scripts/run_unit_tests
+all-tests: unit-tests int-tests
+
+int-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_integration_tests
 
 unit-tests: gotools fabric-ca-server fabric-ca-client
 	@scripts/run_unit_tests
 
 unit-test: unit-tests
-
-int-tests: gotools fabric-ca-server fabric-ca-client
-	@scripts/run_integration_tests
 
 vendor: .FORCE
 	@echo > go.mod
@@ -166,8 +160,6 @@ load-test: docker-clean docker-fvt
 	@docker run -p 8888:8888 -p 8054:8054 -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca -e FABRIC_CA_SERVER_PROFILE_PORT=8054 --name loadTest -td hyperledger/fabric-ca-fvt test/fabric-ca-load-tester/launchServer.sh 3
 	@test/fabric-ca-load-tester/runLoad.sh -B
 	@docker kill loadTest
-
-ci-tests: all-tests docs fvt-tests
 
 fvt-tests: docker-clean docker-fvt
 	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
