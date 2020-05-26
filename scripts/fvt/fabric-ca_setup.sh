@@ -8,8 +8,6 @@
 FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 . $SCRIPTDIR/fabric-ca_utils
-GO_VER="1.7.1"
-ARCH="amd64"
 RC=0
 
 function usage() {
