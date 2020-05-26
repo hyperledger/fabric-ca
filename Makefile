@@ -124,11 +124,9 @@ build/image/fabric-ca/$(DUMMY):
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
 		--build-arg ALPINE_VER=${ALPINE_VER} \
-		-t $(BASE_DOCKER_NS)/$(TARGET) .
-	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
-		$(DOCKER_NS)/$(TARGET):$(BASE_VERSION)
-	docker tag $(BASE_DOCKER_NS)/$(TARGET) \
-		$(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
+		-t $(DOCKER_NS)/$(TARGET) .
+	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(BASE_VERSION)
+	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
 	@touch $@
 
 build/image/fabric-ca-fvt/$(DUMMY):
@@ -140,7 +138,7 @@ build/image/fabric-ca-fvt/$(DUMMY):
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
 		--build-arg PG_VER=${PG_VER} \
-		-t $(BASE_DOCKER_NS)/$(TARGET) .
+		-t $(DOCKER_NS)/$(TARGET) .
 	@touch $@
 
 
@@ -177,7 +175,6 @@ fvt-tests: docker-clean docker-fvt
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
 	-docker images -q $(DOCKER_NS)/$(TARGET):latest | xargs -I '{}' docker rmi -f '{}'
-	-docker images -q $(NEXUS_URL)/*:$(STABLE_TAG) | xargs -I '{}' docker rmi -f '{}'
 	-@rm -rf build/image/$(TARGET) ||:
 
 docker-clean: $(patsubst %,%-docker-clean, $(IMAGES) $(PROJECT_NAME)-fvt)
