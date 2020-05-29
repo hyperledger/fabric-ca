@@ -20,7 +20,7 @@ cp $FABRIC_CA_DATA/$TLS_SERVER_CERT $MYSQLDATA/
 openssl rsa -in $FABRIC_CA_DATA/$TLS_SERVER_KEY -out $MYSQLDATA/$TLS_SERVER_KEY || let RC+=1
 chown mysql.mysql $MYSQLDATA/*pem
 chmod 600 $MYSQLDATA/$TLS_SERVER_KEY
-test $arch = s390x && MYCNF=/etc/mysql/my.cnf || MYCNF=/etc/mysql/mysql.conf.d/mysqld.cnf
+MYCNF=/etc/mysql/mysql.conf.d/mysqld.cnf
 sed -i "s/^[[:blank:]]*#*[[:blank:]]*ssl-ca=.*/ssl-ca=$TLS_BUNDLE/;
         s/\(^[[:blank:]]*\)#*\([[:blank:]]*max_connections[[:blank:]]*=[[:blank:]]*\).*/\1\22000/;
         s/^[[:blank:]]*#*[[:blank:]]*ssl-cert=.*/ssl-cert=$TLS_SERVER_CERT/;

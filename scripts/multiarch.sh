@@ -55,19 +55,15 @@ IMAGES="fabric-ca"
 # check that all images have been published
 for image in ${IMAGES}; do
   docker pull ${NS}/${image}:amd64-${VERSION} || missing
-  docker pull ${NS}/${image}:s390x-${VERSION} || missing
 done
 
 # push the multiarch manifest and tag with just $VERSION and 'latest'
 for image in ${IMAGES}; do
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
-   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
+   --platforms linux/amd64 --template "${NS}/${image}:ARCH-${VERSION}"\
    --target "${NS}/${image}:${VERSION}"
-#  manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
-#   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
-#   --target "${NS}/${image}:latest"
   manifest-tool --username ${USER} --password ${PASSWORD} push from-args\
-   --platforms linux/amd64,linux/s390x --template "${NS}/${image}:ARCH-${VERSION}"\
+   --platforms linux/amd64 --template "${NS}/${image}:ARCH-${VERSION}"\
    --target "${NS}/${image}:${TWO_DIGIT_VERSION}"
 done
 
