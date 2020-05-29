@@ -46,11 +46,7 @@ PROJECT_VERSION=$(BASE_VERSION)
 FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
-ifeq ($(ARCH),s390x)
 PG_VER=11
-else
-PG_VER=11
-endif
 
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
@@ -64,7 +60,7 @@ export GO_LDFLAGS
 IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
-RELEASE_PLATFORMS = linux-amd64 darwin-amd64 linux-ppc64le linux-s390x windows-amd64
+RELEASE_PLATFORMS = linux-amd64 darwin-amd64 windows-amd64
 RELEASE_PKGS = fabric-ca-client fabric-ca-server
 
 TOOLS = build/tools
@@ -207,13 +203,6 @@ release/%-amd64: GOARCH=amd64
 
 release/linux-%: GOOS=linux
 
-release/linux-ppc64le: GOARCH=ppc64le
-release/linux-ppc64le: CC=/usr/bin/powerpc64le-linux-gnu-gcc
-release/linux-ppc64le: $(patsubst %,release/linux-ppc64le/bin/%, $(RELEASE_PKGS))
-
-release/linux-s390x: GOARCH=s390x
-release/linux-s390x: $(patsubst %,release/linux-s390x/bin/%, $(RELEASE_PKGS))
-
 release/%/bin/fabric-ca-client: GO_TAGS+= caclient
 release/%/bin/fabric-ca-client: $(GO_SOURCE)
 	@echo "Building $@ for $(GOOS)-$(GOARCH)"
@@ -244,10 +233,6 @@ dist/darwin-amd64:
 	cd release/darwin-amd64 && tar -czvf hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz *
 dist/linux-amd64:
 	cd release/linux-amd64 && tar -czvf hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz *
-dist/linux-ppc64le:
-	cd release/linux-ppc64le && tar -czvf hyperledger-fabric-ca-linux-ppc64le-$(PROJECT_VERSION).tar.gz *
-dist/linux-s390x:
-	cd release/linux-s390x && tar -czvf hyperledger-fabric-ca-linux-s390x-$(PROJECT_VERSION).tar.gz *
 
 .PHONY: clean
 clean: docker-clean release-clean
@@ -266,7 +251,5 @@ dist-clean:
 	-@rm -rf release/windows-amd64/hyperledger-fabric-ca-windows-amd64-$(PROJECT_VERSION).tar.gz ||:
 	-@rm -rf release/darwin-amd64/hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz ||:
 	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-ppc64le/hyperledger-fabric-ca-linux-ppc64le-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-s390x/hyperledger-fabric-ca-linux-s390x-$(PROJECT_VERSION).tar.gz ||:
 
 .FORCE:
