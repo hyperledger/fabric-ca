@@ -135,7 +135,7 @@ func createAllSQLiteTables(tx Create, args ...interface{}) error {
 
 func createIdentityTable(tx Create) error {
 	log.Debug("Creating users table if it does not exist")
-	if _, err := tx.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER,  max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0)"); err != nil {
+	if _, err := tx.Exec("CreateUsersTable", "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255), token bytea, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, level INTEGER DEFAULT 0, incorrect_password_attempts INTEGER DEFAULT 0, PRIMARY KEY (id))"); err != nil {
 		return errors.Wrap(err, "Error creating users table")
 	}
 	return nil
