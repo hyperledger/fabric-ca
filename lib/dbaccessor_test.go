@@ -330,7 +330,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 			t.Errorf("Failed to get read row! error: %s", err)
 		}
 		// get the target user
-		if id.Name == insert.Name && id.Type == "client" {
+		if id.Name == "testTypesClient" && id.Type == "client" {
 			typesClientSuccessFlag = true
 		}
 	}
@@ -346,6 +346,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
 	}
 	// change user info
+	insert.Name = "testTypesStar"
 	insert.Type = "*"
 	insert.Affiliation = "Bank1"
 	// insert user
@@ -367,7 +368,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 			t.Errorf("Failed to get read row! error: %s", err)
 		}
 		// get the target user
-		if id.Affiliation == "Bank1" && id.Name == insert.Name {
+		if id.Affiliation == "Bank1" && id.Name == "testTypesStar" {
 			affiliationsTypeStarSuccessFlag = true
 		}
 	}
@@ -391,10 +392,10 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 			t.Errorf("Failed to get read row! error: %s", err)
 		}
 		// get the target user
-		if id.Affiliation == "Bank1" && id.Name == insert.Name {
+		if id.Affiliation == "Bank1" && id.Name == "testTypesStar" {
 			affiliationsTypeStarSuccessFlag = true
 		}
-		if id.Name == insert.Name && id.Type == "client" {
+		if id.Name == "testTypesClient" && id.Type == "client" {
 			typesClientSuccessFlag = true
 		}
 	}
