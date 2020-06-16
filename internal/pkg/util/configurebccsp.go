@@ -14,6 +14,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/hyperledger/fabric/bccsp/pkcs11"
 	"github.com/pkg/errors"
 )
 
@@ -59,8 +60,16 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) error
 		log.Debugf("Initializing BCCSP with software options %+v", opts.SwOpts)
 	}
 	if opts.Pkcs11Opts != nil {
-		log.Debugf("Initializing BCCSP with PKCS11 options %+v", opts.Pkcs11Opts)
+		log.Debugf("Initializing BCCSP with PKCS11 options %+v", sanitizePKCS11Opts(*opts.Pkcs11Opts))
 	}
 	*optsPtr = opts
 	return nil
+}
+
+// redacts label and pin from PKCS11 opts
+func sanitizePKCS11Opts(opts pkcs11.PKCS11Opts) pkcs11.PKCS11Opts {
+	mask := strings.Repeat("*", 6)
+	opts.Pin = mask
+	opts.Label = mask
+	return opts
 }
