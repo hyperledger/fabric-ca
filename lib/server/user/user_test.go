@@ -432,13 +432,27 @@ var _ = Describe("user", func() {
 	})
 
 	Context("migrate", func() {
-		It("adds new attribute to user", func() {
+		It("adds new attributes to user", func() {
+			_, err := u.GetAttribute("hf.Registrar.Attributes")
+			Expect(err).To(HaveOccurred())
+			_, err = u.GetAttribute("hf.AffiliationMgr")
+			Expect(err).To(HaveOccurred())
+			_, err = u.GetAttribute("hf.GenCRL")
+			Expect(err).To(HaveOccurred())
+
 			mockResult.RowsAffectedReturns(int64(1), nil)
 			mockUserDB.ExecReturns(mockResult, nil)
-			err := u.Migrate(mockUserDB)
+			err = u.Migrate(mockUserDB)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = u.GetAttribute("hf.Registrar.Attributes")
+			val, err := u.GetAttribute("hf.Registrar.Attributes")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(val.Value).To(Equal("*"))
+			val, err = u.GetAttribute("hf.AffiliationMgr")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(val.Value).To(Equal("true"))
+			val, err = u.GetAttribute("hf.GenCRL")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(val.Value).To(Equal("true"))
 		})
 	})
 
