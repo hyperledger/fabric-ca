@@ -3,33 +3,47 @@
 # Copyright IBM Corp. All Rights Reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
-#
-SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-echo "Running unit tests ..."
-{
+set -euo pipefail
 
-export PATH=$PATH:$SCRIPTPATH/../build/tools
-
-EXCLUDED_PKGS=(
-    "/api$"
-    "/credential$"
-    "/fabric-ca-client$"
-    "/lib/common$"
-    "/test/fabric-ca-load-tester$"
-    "/mocks$"
-    "integration"
+excluded=(
+    "/integration"
     "/ldap"
-    "/metrics"
+    "/test/fabric-ca-load-tester$"
 )
 
-PKGS=`go list github.com/hyperledger/fabric-ca/... | grep -v -f <(printf '%s\n' "${EXCLUDED_PKGS[@]}")`
+# join array elements by the specified string
+join_by() {
+    local IFS="$1"; shift
+    [ "$#" -eq 0 ] && return 0
+    echo "$*"
+}
 
-gocov test -timeout 15m $PKGS | gocov-xml > coverage.xml
-} 2>&1 | tee /tmp/test.results
+list_and_filter() {
+    local filter
+    filter=$(join_by '|' "${excluded[@]}")
+    if [ -n "$filter" ]; then
+        go list "$@" 2>/dev/null | grep -Ev "${filter}" || true
+    else
+        go list "$@" 2>/dev/null
+    fi
+}
 
-echo "Finished running all tests"
+run_tests() {
+    GO_TAGS=${GO_TAGS:-}
+    [ -n "$GO_TAGS" ] && echo "Testing with $GO_TAGS..."
 
-$SCRIPTPATH/check_test_results /tmp/test.results
+    time go test -tags "$GO_TAGS" -cover -timeout 15m -p 1 "$@"
+}
 
-exit $?
+main() {
+    local packages=()
+    while IFS= read -r pkg; do
+        packages+=("$pkg");
+    done < <(list_and_filter "github.com/hyperledger/fabric-ca/...")
+
+    run_tests "${packages[@]}"
+    GO_TAGS="pkcs11" run_tests "${packages[@]}"
+}
+
+main
