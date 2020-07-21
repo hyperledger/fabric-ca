@@ -97,19 +97,19 @@ Or you can manually copy the Node OU material into the `config.yaml` file for th
 
 ```
 NodeOUs:
-Enable: true
-ClientOUIdentifier:
-  Certificate: cacerts/<root CA cert for this org>.pem
-  OrganizationalUnitIdentifier: client
-PeerOUIdentifier:
-  Certificate: cacerts/<root CA cert for this org>.pem
-  OrganizationalUnitIdentifier: peer
-AdminOUIdentifier:
-  Certificate: cacerts/<root CA cert for this org>.pem
-  OrganizationalUnitIdentifier: admin
-OrdererOUIdentifier:
-  Certificate: cacerts/<root CA cert for this org>.pem
-  OrganizationalUnitIdentifier: orderer
+  Enable: true
+  ClientOUIdentifier:
+    Certificate: cacerts/<root CA cert for this org>.pem
+    OrganizationalUnitIdentifier: client
+  PeerOUIdentifier:
+    Certificate: cacerts/<root CA cert for this org>.pem
+    OrganizationalUnitIdentifier: peer
+  AdminOUIdentifier:
+    Certificate: cacerts/<root CA cert for this org>.pem
+    OrganizationalUnitIdentifier: admin
+  OrdererOUIdentifier:
+    Certificate: cacerts/<root CA cert for this org>.pem
+    OrganizationalUnitIdentifier: orderer
 ```
 
 In a production scenario, it is assumed that users will be creating only one organization. However, it is a good practice to establish a separate folder structure for this organization and then create a structure underneath this organization for your `msp` (defining the organization) and your nodes (which will have a local MSP and TLS sections).
