@@ -145,7 +145,6 @@ func (nm *nonceManager) startNonceSweeper() {
 func (nm *nonceManager) sweep(curTime time.Time) error {
 	err := nm.removeExpiredNoncesFromDB(curTime)
 	if err != nil {
-		log.Errorf("Failed to deleted expired nonces from DB for CA %s: %s", nm.issuer.Name(), err.Error())
 		return err
 	}
 	return nil
