@@ -35,6 +35,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
+	idemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	servermetrics "github.com/hyperledger/fabric-ca/lib/server/metrics"
 	"github.com/hyperledger/fabric-ca/lib/server/operations"
 	stls "github.com/hyperledger/fabric-ca/lib/tls"
@@ -195,6 +196,10 @@ func (s *Server) Start() (err error) {
 		return nil
 	}
 
+	for _, ca := range s.caMap {
+		startNonceSweeper(ca)
+	}
+
 	// Start listening and serving
 	err = s.listenAndServe()
 	if err != nil {
@@ -206,6 +211,14 @@ func (s *Server) Start() (err error) {
 	}
 
 	return nil
+}
+
+func startNonceSweeper(ca *CA) {
+	if nm, ok := ca.issuer.(interface{ NonceManager() idemix.NonceManager }); ok && nm != nil {
+		if ss, ok := nm.NonceManager().(interface{ StartNonceSweeper() }); ok {
+			ss.StartNonceSweeper()
+		}
+	}
 }
 
 // Stop the server

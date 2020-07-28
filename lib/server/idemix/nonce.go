@@ -84,7 +84,6 @@ func NewNonceManager(issuer MyIssuer, clock Clock, level int) (NonceManager, err
 		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for Issuer '%s'",
 			issuer.Name()))
 	}
-	mgr.startNonceSweeper()
 	return mgr, nil
 }
 
@@ -131,11 +130,13 @@ func (nm *nonceManager) SweepExpiredNonces() error {
 	return nm.sweep(nm.clock.Now().UTC())
 }
 
-func (nm *nonceManager) startNonceSweeper() {
-	ticker := time.NewTicker(nm.nonceSweepInterval)
+// StartNonceSweeper starts a separate thread that will remove expired
+// nonces at the interval speciifed by the idemix.noncesweepinterval. This
+// function should be called while initializing the server.
+func (nm *nonceManager) StartNonceSweeper() {
 	go func() {
+		ticker := time.NewTicker(nm.nonceSweepInterval)
 		for t := range ticker.C {
-			log.Debugf("Cleaning up expired nonces for CA '%s'", nm.issuer.Name())
 			nm.sweep(t.UTC())
 		}
 	}()
@@ -143,12 +144,8 @@ func (nm *nonceManager) startNonceSweeper() {
 
 // sweep deletes all nonces that have expired (whose expiry is less than current timestamp)
 func (nm *nonceManager) sweep(curTime time.Time) error {
-	err := nm.removeExpiredNoncesFromDB(curTime)
-	if err != nil {
-		log.Errorf("Failed to deleted expired nonces from DB for CA %s: %s", nm.issuer.Name(), err.Error())
-		return err
-	}
-	return nil
+	log.Debugf("Cleaning up expired nonces for CA '%s'", nm.issuer.Name())
+	return nm.removeExpiredNoncesFromDB(curTime)
 }
 
 // Gets the specified nonce from DB and removes it from the DB
