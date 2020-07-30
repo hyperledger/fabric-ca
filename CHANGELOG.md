@@ -1,3 +1,15 @@
+## v1.4.8
+Thu Jul 30 20:04:06 EDT 2020
+
+* [c4ef033](https://github.com/hyperledger/fabric-ca/commit/c4ef033) Rel notes v1.4.8
+* [146b8be](https://github.com/hyperledger/fabric-ca/commit/146b8be) Bump Go to 1.13.12
+* [f8b233c](https://github.com/hyperledger/fabric-ca/commit/f8b233c) Move StartNonceSweeper out of NonceManager constructor (bp #181) (#182)
+* [b6aa376](https://github.com/hyperledger/fabric-ca/commit/b6aa376) [FABC-912] Remove label and pin from logs
+* [f96ceb9](https://github.com/hyperledger/fabric-ca/commit/f96ceb9) Fix the indentation in the NodeOU source code
+* [b10a159](https://github.com/hyperledger/fabric-ca/commit/b10a159) [FAB-17702](https://jira.hyperledger.org/browse/FAB-17702) Use a CA
+* [fcda8bb](https://github.com/hyperledger/fabric-ca/commit/fcda8bb) [FABC-829] Add hf.AffiliationMgr and hf.GenCRL attributes to migrated (#159)
+* [f9a3427](https://github.com/hyperledger/fabric-ca/commit/f9a3427) Prepare for Fabric CA v1.4.8
+
 ## v1.4.7
 Thu May 14 12:48:59 EDT 2020
 
