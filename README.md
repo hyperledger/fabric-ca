@@ -97,14 +97,21 @@ You can also use [**go-torch**](https://github.com/uber/go-torch) tool to analyz
 To enable profiling on the client, set the FABRIC_CA_CLIENT_PROFILE_MODE environment variable to either "heap" or "cpu" to enable heap, cpu profiling respectively. A file containing profiling data is created in the present working directory of the client. Heap profiling data is written to **mem.pprof** and cpu profiling data is written to **cpu.pprof**. You can run `go tool pprof <client executable> <profiling file>` to analyze the profiling data.
 
 ### Profiling links
-https://blog.golang.org/profiling-go-programs
-https://medium.com/@hackintoshrao/daily-code-optimization-using-benchmarks-and-profiling-in-golang-gophercon-india-2016-talk-874c8b4dc3c5
-https://www.youtube.com/watch?v=2h_NFBFrciI
-https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs
-http://www.soroushjp.com/2015/01/27/beautifully-simple-benchmarking-with-go/
-https://vinceyuan.github.io/profiling-memory-usage-of-a-go-app/
-https://www.youtube.com/watch?v=N3PWzBeLX2M&feature=youtu.be
-https://www.youtube.com/watch?v=oorX84tBMqo&feature=youtu.be
+
+* [Profiling Go Programs](https://blog.golang.org/profiling-go-programs)
+* [Daily code optimization using benchmarks and profiling in Golang - Gophercon India 2016 talk
+](https://medium.com/@hackintoshrao/daily-code-optimization-using-benchmarks-and-profiling-in-golang-gophercon-india-2016-talk-874c8b4dc3c5)
+* [Golang UK Conference 2016 - Dave Cheney - Seven ways to Profile Go Applications
+](https://www.youtube.com/watch?v=2h_NFBFrciI)
+* [Debugging performance issues in Go* programs
+](https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs)
+* [Beautifully Simple Benchmarking with Go
+](http://www.soroushjp.com/2015/01/27/beautifully-simple-benchmarking-with-go/)
+* [Profiling memory usage of a Go app](https://vinceyuan.github.io/profiling-memory-usage-of-a-go-app/)
+* [Profiling and Optimizing Go
+](https://www.youtube.com/watch?v=N3PWzBeLX2M&feature=youtu.be)
+* [Golang UK Conference 2015 - Francesc Campoy - Program Analysis
+](https://www.youtube.com/watch?v=oorX84tBMqo&feature=youtu.be)
 
 ### FVT
 
