@@ -24,7 +24,7 @@ The following are guidelines to follow when contributing:
 2. To run the unit tests manually:
 
    ```
-   # cdr
+   # cd $GOPATH/src/github.com/hyperledger/fabric-ca
    # make unit-tests
    ```
 
