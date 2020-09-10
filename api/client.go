@@ -345,9 +345,12 @@ type TimeRange struct {
 }
 
 // BasicKeyRequest encapsulates size and algorithm for the key to be generated
+// If ReuseKey is set, reenrollment requests will reuse the existing private
+// key.
 type BasicKeyRequest struct {
-	Algo string `json:"algo" yaml:"algo" help:"Specify key algorithm"`
-	Size int    `json:"size" yaml:"size" help:"Specify key size"`
+	Algo     string `json:"algo" yaml:"algo" help:"Specify key algorithm"`
+	Size     int    `json:"size" yaml:"size" help:"Specify key size"`
+	ReuseKey bool   `json:"reusekey" yaml:"reusekey" help:"Reuse existing key during reenrollment"`
 }
 
 // Attribute is a name and value pair
