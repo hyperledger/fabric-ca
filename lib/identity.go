@@ -18,6 +18,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
 	"github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
 	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
+	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 )
 
@@ -130,9 +131,30 @@ func (i *Identity) RegisterAndEnroll(req *api.RegistrationRequest) (*Identity, e
 func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, error) {
 	log.Debugf("Reenrolling %s", util.StructToString(req))
 
-	csrPEM, key, err := i.client.GenCSR(req.CSR, i.GetName())
-	if err != nil {
-		return nil, err
+	var (
+		key    bccsp.Key
+		csrPEM []byte
+		err    error
+	)
+	if req.CSR != nil && req.CSR.KeyRequest != nil {
+		if req.CSR.KeyRequest.ReuseKey {
+			val, err := i.GetX509Credential().Val()
+			if err != nil {
+				return nil, err
+			}
+			key = val.(*x509.Signer).Key()
+			csrPEM, key, err = i.client.GenCSRUsingKey(req.CSR, i.GetName(), key)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if csrPEM == nil {
+		csrPEM, key, err = i.client.GenCSR(req.CSR, i.GetName())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	reqNet := &api.ReenrollmentRequestNet{
