@@ -22,8 +22,11 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attrmgr"
+	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -721,18 +724,76 @@ func testEnrollMiscFailures(c *Client, t *testing.T) {
 	}
 }
 
+func getKeyFromIdentity(i *Identity) (bccsp.Key, error) {
+	val, err := i.GetX509Credential().Val()
+	if err != nil {
+		return nil, errors.Errorf("getKeyFromIdentity: failed getting x509 credentials: %s", err)
+	}
+	return val.(*x509.Signer).Key(), nil
+}
+
 func testReenroll(c *Client, t *testing.T) {
 	id, err := c.LoadMyIdentity()
 	if err != nil {
 		t.Errorf("testReenroll: failed LoadMyIdentity: %s", err)
 		return
 	}
-	eresp, err := id.Reenroll(&api.ReenrollmentRequest{})
+
+	//  generate new key during reenroll
+	originalKey, err := getKeyFromIdentity(id)
+	if err != nil {
+		t.Errorf("testReenroll: %s", err)
+		return
+	}
+	eresp, err := id.Reenroll(&api.ReenrollmentRequest{
+		CSR: &api.CSRInfo{
+			KeyRequest: &api.BasicKeyRequest{
+				ReuseKey: false,
+			},
+		},
+	})
 	if err != nil {
 		t.Errorf("testReenroll: failed reenroll: %s", err)
 		return
 	}
 	id = eresp.Identity
+	newKey, err := getKeyFromIdentity(id)
+	if err != nil {
+		t.Errorf("testReenroll: %s", err)
+		return
+	}
+	if originalKey == newKey {
+		t.Error("testReenroll: reenroll should have generated new key")
+		return
+	}
+	err = id.Store()
+	if err != nil {
+		t.Errorf("testReenroll: failed Store: %s", err)
+	}
+
+	// reuse existing key during reenroll
+	originalKey = newKey
+	eresp, err = id.Reenroll(&api.ReenrollmentRequest{
+		CSR: &api.CSRInfo{
+			KeyRequest: &api.BasicKeyRequest{
+				ReuseKey: true,
+			},
+		},
+	})
+	if err != nil {
+		t.Errorf("testReenroll: failed reenroll: %s", err)
+		return
+	}
+	id = eresp.Identity
+	newKey, err = getKeyFromIdentity(id)
+	if err != nil {
+		t.Errorf("testReenroll: %s", err)
+		return
+	}
+	if originalKey != newKey {
+		t.Error("testReenroll: reenroll should have reused existing key")
+		return
+	}
 	err = id.Store()
 	if err != nil {
 		t.Errorf("testReenroll: failed Store: %s", err)

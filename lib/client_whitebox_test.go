@@ -555,7 +555,7 @@ func TestCWBNewCertificateRequest(t *testing.T) {
 		Hosts:      []string{},
 		KeyRequest: api.NewBasicKeyRequest(),
 	}
-	if c.newCertificateRequest(req) == nil {
+	if c.newCertificateRequest(req, "fake-id") == nil {
 		t.Error("newCertificateRequest failed")
 	}
 }

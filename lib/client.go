@@ -8,6 +8,8 @@ package lib
 
 import (
 	"bytes"
+	"crypto"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -34,6 +36,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
+	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -200,16 +203,10 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 		return nil, nil, err
 	}
 
-	cr := c.newCertificateRequest(req)
-	cr.CN = id
+	cr := c.newCertificateRequest(req, id)
 
-	if (cr.KeyRequest == nil) || (cr.KeyRequest.Size() == 0 && cr.KeyRequest.Algo() == "") {
-		cr.KeyRequest = newCfsslBasicKeyRequest(api.NewBasicKeyRequest())
-	}
-
-	key, cspSigner, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
+	cspSigner, key, err := c.generateCSPSigner(cr, nil)
 	if err != nil {
-		log.Debugf("failed generating BCCSP key: %s", err)
 		return nil, nil, err
 	}
 
@@ -220,6 +217,55 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 	}
 
 	return csrPEM, key, nil
+}
+
+// GenCSRUsingKey generates a CSR (Certificate Signing Request) using the
+// supplied private key.
+func (c *Client) GenCSRUsingKey(req *api.CSRInfo, id string, k bccsp.Key) ([]byte, bccsp.Key, error) {
+	log.Debugf("GenCSRUsingKey %+v", req)
+
+	err := c.Init()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cr := c.newCertificateRequest(req, id)
+
+	cspSigner, key, err := c.generateCSPSigner(cr, k)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	csrPEM, err := csr.Generate(cspSigner, cr)
+	if err != nil {
+		log.Debugf("failed generating CSR: %s", err)
+		return nil, nil, err
+	}
+
+	return csrPEM, key, nil
+}
+
+// generateCSPSigner generates a crypto.Signer for a given certificate request.
+// If a key is not provided, a new one will be generated.
+func (c *Client) generateCSPSigner(cr *csr.CertificateRequest, key bccsp.Key) (crypto.Signer, bccsp.Key, error) {
+	if key == nil {
+		// generate new key
+		key, cspSigner, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
+		if err != nil {
+			log.Debugf("failed generating BCCSP key: %s", err)
+			return nil, nil, err
+		}
+		return cspSigner, key, nil
+	}
+
+	// use existing key
+	log.Debugf("generating signer with existing key: %s", hex.EncodeToString(key.SKI()))
+	cspSigner, err := cspsigner.New(c.csp, key)
+	if err != nil {
+		return nil, nil, errors.WithMessage(err, "Failed initializing CryptoSigner")
+	}
+
+	return cspSigner, key, nil
 }
 
 // Enroll enrolls a new identity
@@ -494,29 +540,33 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *common.
 
 // newCertificateRequest creates a certificate request which is used to generate
 // a CSR (Certificate Signing Request)
-func (c *Client) newCertificateRequest(req *api.CSRInfo) *csr.CertificateRequest {
-	cr := csr.CertificateRequest{}
-	if req != nil && req.Names != nil {
-		cr.Names = req.Names
-	}
-	if req != nil && req.Hosts != nil {
-		cr.Hosts = req.Hosts
-	} else {
-		// Default requested hosts are local hostname
-		hostname, _ := os.Hostname()
-		if hostname != "" {
-			cr.Hosts = make([]string, 1)
-			cr.Hosts[0] = hostname
-		}
-	}
-	if req != nil && req.KeyRequest != nil {
-		cr.KeyRequest = newCfsslBasicKeyRequest(req.KeyRequest)
-	}
+func (c *Client) newCertificateRequest(req *api.CSRInfo, id string) *csr.CertificateRequest {
+	cr := &csr.CertificateRequest{CN: id}
+
 	if req != nil {
+		cr.Names = req.Names
+		cr.Hosts = req.Hosts
 		cr.CA = req.CA
 		cr.SerialNumber = req.SerialNumber
+
+		keyRequest := req.KeyRequest
+		if keyRequest == nil || (keyRequest.Size == 0 && keyRequest.Algo == "") {
+			keyRequest = api.NewBasicKeyRequest()
+		}
+		cr.KeyRequest = newCfsslBasicKeyRequest(keyRequest)
+
+		return cr
 	}
-	return &cr
+
+	// Default requested hosts are local hostname
+	hostname, _ := os.Hostname()
+	if hostname != "" {
+		cr.Hosts = []string{hostname}
+	}
+
+	cr.KeyRequest = newCfsslBasicKeyRequest(api.NewBasicKeyRequest())
+
+	return cr
 }
 
 // newIdemixCredentialRequest returns CredentialRequest object, a secret key, and a random number used in
