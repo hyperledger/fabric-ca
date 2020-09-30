@@ -1,3 +1,10 @@
+## v1.4.9
+Wed Sep 30 14:48:49 EDT 2020
+
+* [e709511](https://github.com/hyperledger/fabric-ca/commit/e709511) Add v1.4.9 release notes.
+* [8ac7348](https://github.com/hyperledger/fabric-ca/commit/8ac7348) Allow reenroll to reuse existing private key
+* [4d53ed8](https://github.com/hyperledger/fabric-ca/commit/4d53ed8) Edits to use a CA
+
 ## v1.4.8
 Thu Jul 30 20:04:06 EDT 2020
 
