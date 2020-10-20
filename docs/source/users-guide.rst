@@ -1647,7 +1647,7 @@ The following are the supported reasons that can be specified using ``-r`` flag:
   1. unspecified
   2. keycompromise
   3. cacompromise
-  4. affiliationchange
+  4. affiliationchanged
   5. superseded
   6. cessationofoperation
   7. certificatehold
