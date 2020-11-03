@@ -205,7 +205,7 @@ For more information about the folders and certificates that are needed in both 
 
 The organizations in a Fabric network don't exist in a physical sense the way nodes do. Rather, they exist as a structure of folders and certificates on the configuration of a channel. These certificates identify the relevant root CA, intermediate CA (if one was used), TLS CA, and at least one admin identity. As you recall from the membership topic and the registration and enrollment steps above, these folders and certificates are returned by the Fabric CA client when enrolling an admin identity, which is why the act of enrolling an admin and the act of "creating an organization" are closely related.
 
-Here is a sample of the folder structure you will need if you want to add an organization to a channel (the structure might vary slightly depending on the method you use to add an organization to a channel, but whatever the method, these are the files and folders you will need):
+Here is a sample of the folder structure you need to create when you want to add an organization to a channel (the structure might vary slightly depending on the method you use to add an organization to a channel, but whatever the method, these are the files and folders you will need):
 
 ```
 <location of msp>/msp
@@ -222,14 +222,14 @@ Here is a sample of the folder structure you will need if you want to add an org
 
 Where the folders and certificates are:
 
-* `cacerts`: the root cert of the organization CA where the identity of the admin was registered and enrolled.
-* `intermediatecerts`: the root cert of an intermediate CA, if one was used.
-* `tlscacerts`: the root cert of the TLS CA that has issued certificates to the nodes associated with this organization.
-* `tlsintermediatecerts`: the root cert of the intermediate TLS CA, if one was used.
+* `cacerts`: the root certificate (`ca-cert.pem`) of the organization CA where the identity of the admin was registered and enrolled.
+* `intermediatecerts`: the root certificate of an intermediate CA, if one was used.
+* `tlscacerts`: the root certificate (`ca-cert.pem`)  of the TLS CA that has issued certificates to the nodes associated with this organization.
+* `tlsintermediatecerts`: the root certificate of the intermediate TLS CA, if one was used.
 
-Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.
+Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.  
 
-In older versions of Fabric, the `config.yaml` file would not have been here and an additional folder, `admincerts`, would be needed, in which certificates identifying the admin of this organization would be placed. This is no longer necessary thanks to Node OUs. **Any identity given a Node OU of `admin` by the CA listed in `config.yaml` can administer the organization**.
+See [NodeOUs](#nodeous) for instructions on how to generate the `config.yaml` file for this organization. In older versions of Fabric, the `config.yaml` file would not have been here and an additional folder, `admincerts`, would be needed, in which certificates identifying the admin of this organization would be placed. This is no longer necessary thanks to Node OUs. **Any identity given a Node OU of `admin` by the CA listed in `config.yaml` can administer the organization**.
 
 ### Create the local MSP of a node
 
@@ -285,6 +285,7 @@ Where the folders and certificates are:
 Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.
 
 Just as Node OUs make it no longer necessary to include a certificate of an admin in the organization MSP, it is not necessary to include the public certificate of a node admin to administer the node. **Any identity given a Node OU of `admin` by the CA listed in `config.yaml` can administer any of the nodes owned by that organization without needing to place the public certificate of that admin in the organization MSP or the local MSP**.
+
 
 <!--- Licensed under Creative Commons Attribution 4.0 International License
 https://creativecommons.org/licenses/by/4.0/ -->
