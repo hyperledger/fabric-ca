@@ -87,7 +87,7 @@ via the Hyperledger Fabric CA client or through one of the Fabric SDKs.
 All communication to the Hyperledger Fabric CA server is via REST APIs.
 See `fabric-ca/swagger/swagger-fabric-ca.json` for the swagger documentation
 for these REST APIs.
-You may view this documentation via the http://editor2.swagger.io online editor.
+You may view this documentation via the `Swagger online editor <http://editor.swagger.io>`_. 
 
 The Hyperledger Fabric CA client or SDK may connect to a server in a cluster
 of Hyperledger Fabric CA servers.   This is illustrated in the top right section
