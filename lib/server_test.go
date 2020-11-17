@@ -225,8 +225,14 @@ func TestSRVRootServer(t *testing.T) {
 	cert := user1.GetECert().GetX509Cert()
 	assert.NotNil(t, cert, "Failed to get user1's enrollment certificate")
 
-	ouPath := strings.Join(cert.Subject.OrganizationalUnit, ".")
-	assert.Equal(t, "user.hyperledger.fabric.security", ouPath, "Invalid OU path in certificate")
+	assert.Contains(
+		t,
+		cert.Subject.OrganizationalUnit,
+		"user",
+		"hyperledger",
+		"fabric",
+		"security",
+	)
 
 	// The admin ID should have 1 cert in the DB now
 	dba := server.CA.CertDBAccessor()
