@@ -217,7 +217,7 @@ func testValidMatchingKeys(cert *x509.Certificate, t *testing.T) {
 		t.Error("Should have failed, public key and private key do not match")
 	}
 
-	err = validateMatchingKeys(cert, string(0))
+	err = validateMatchingKeys(cert, "/does-not-exist")
 	t.Log("validateMatchingKeys Error: ", err)
 	if err == nil {
 		t.Error("Should have failed to read bad file")
@@ -290,21 +290,13 @@ func TestCAParseDuration(t *testing.T) {
 }
 
 func TestCAwriteFile(t *testing.T) {
-	err := writeFile("/"+string(0)+"/", make([]byte, 1), 0777)
-	t.Log("writeFile err: ", err)
-	if err == nil {
-		t.Fatal("Should have failed: ")
-	}
-	err = writeFile(string(0), make([]byte, 1), 0777)
-	t.Log("writeFile err: ", err)
-	if err == nil {
-		t.Fatal("Should have failed: ")
-	}
+	err := writeFile("/invalid/", make([]byte, 1), 0777)
+	assert.Error(t, err)
 }
 
 func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
 	ca, err := newCA(serverCfgFile(os.TempDir()), &CAConfig{}, &srv, true)
-	_, err = ca.loadCNFromEnrollmentInfo(string(0))
+	_, err = ca.loadCNFromEnrollmentInfo("does-not-exist")
 	t.Log("loadCNFromEnrollmentInfo err: ", err)
 	if err == nil {
 		t.Error("Should have failed: ")
@@ -323,7 +315,7 @@ func TestCAgetUserAffiliation(t *testing.T) {
 	if err != nil {
 		t.Fatal("newCA failed ", err)
 	}
-	_, err = ca.getUserAffiliation(string(0))
+	_, err = ca.getUserAffiliation("does-not-exist")
 	t.Log("getUserAffiliation err: ", err)
 	if err == nil {
 		t.Error("getUserAffiliation should have failed: bad parameter")
@@ -337,7 +329,7 @@ func TestCAuserHasAttribute(t *testing.T) {
 	if err != nil {
 		t.Fatal("newCA failed ", err)
 	}
-	_, err = ca.userHasAttribute(string(0), string(0))
+	_, err = ca.userHasAttribute("does-not-exist", "does-not-exist")
 	t.Log("userHasAttribute err: ", err)
 	if err == nil {
 		t.Error("userHasAttribute should have failed: bad parameter")
@@ -403,7 +395,7 @@ func TestCAgetCaCert(t *testing.T) {
 	cfg = CAConfig{}
 
 	cfg.CSR = api.CSRInfo{CA: &csr.CAConfig{}}
-	cfg.CSR.CA.Expiry = string(0)
+	cfg.CSR.CA.Expiry = "not-a-date"
 	_, err := newCA(configFile, &cfg, &srv, false)
 	t.Log("getCaCert error: ", err)
 	if err == nil {

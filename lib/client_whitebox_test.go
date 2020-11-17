@@ -77,6 +77,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 		return
 	}
 	server.CA.Config.CSR.CN = "localhost"
+	server.Config.CAcfg.CSR.Hosts = []string{"localhost"}
 	err := server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
@@ -132,7 +133,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	// Start server
 	log.Debug("Starting the server with TLS")
 	server.Config.TLS.Enabled = true
-	server.Config.TLS.CertFile = "ca-cert.pem"
+	server.Config.TLS.CertFile = "tls-cert.pem"
 	err = server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server with HTTPS: %s", err)
