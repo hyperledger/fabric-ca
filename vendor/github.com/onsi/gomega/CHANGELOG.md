@@ -1,3 +1,18 @@
+## 1.10.3
+
+### Fixes
+- updates golang/x/net to fix vulnerability detected by snyk (#394) [c479356]
+
+## 1.10.2
+
+### Fixes
+- Add ExpectWithOffset, EventuallyWithOffset and ConsistentlyWithOffset to WithT (#391) [990941a]
+
+## 1.10.1
+
+### Fixes
+- Update dependencies (#389) [9f5eecd]
+
 ## 1.10.0
 
 ### Features

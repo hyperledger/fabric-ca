@@ -204,11 +204,14 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 		// Or, define a new standard go/types/gcexportdata package.
 		fset := token.NewFileSet()
 
-		// The indexed export format starts with an 'i'.
-		if len(data) == 0 || data[0] != 'i' {
-			return nil, fmt.Errorf("unknown export data format")
+		// The indexed export format starts with an 'i'; the older
+		// binary export format starts with a 'c', 'd', or 'v'
+		// (from "version"). Select appropriate importer.
+		if len(data) > 0 && data[0] == 'i' {
+			_, pkg, err = IImportData(fset, packages, data[1:], id)
+		} else {
+			_, pkg, err = BImportData(fset, packages, data, id)
 		}
-		_, pkg, err = IImportData(fset, packages, data[1:], id)
 
 	default:
 		err = fmt.Errorf("unknown export data header: %q", hdr)
@@ -341,7 +344,7 @@ func (p *parser) expectKeyword(keyword string) {
 
 // PackageId = string_lit .
 //
-func (p *parser) parsePackageID() string {
+func (p *parser) parsePackageId() string {
 	id, err := strconv.Unquote(p.expect(scanner.String))
 	if err != nil {
 		p.error(err)
@@ -381,7 +384,7 @@ func (p *parser) parseDotIdent() string {
 //
 func (p *parser) parseQualifiedName() (id, name string) {
 	p.expect('@')
-	id = p.parsePackageID()
+	id = p.parsePackageId()
 	p.expect('.')
 	// Per rev f280b8a485fd (10/2/2013), qualified names may be used for anonymous fields.
 	if p.tok == '?' {
@@ -693,7 +696,7 @@ func (p *parser) parseInterfaceType(parent *types.Package) types.Type {
 
 	// Complete requires the type's embedded interfaces to be fully defined,
 	// but we do not define any
-	return newInterface(methods, nil).Complete()
+	return types.NewInterface(methods, nil).Complete()
 }
 
 // ChanType = ( "chan" [ "<-" ] | "<-" "chan" ) Type .
@@ -782,7 +785,7 @@ func (p *parser) parseType(parent *types.Package) types.Type {
 func (p *parser) parseImportDecl() {
 	p.expectKeyword("import")
 	name := p.parsePackageName()
-	p.getPkg(p.parsePackageID(), name)
+	p.getPkg(p.parsePackageId(), name)
 }
 
 // int_lit = [ "+" | "-" ] { "0" ... "9" } .
