@@ -1035,22 +1035,24 @@ func (ca *CA) validateCertAndKey(certFile string, keyFile string) error {
 }
 
 // Returns expiration of the CA certificate
-func (ca *CA) getCACertExpiry() (time.Time, error) {
-	var caexpiry time.Time
+func (ca *CA) getCACertExpiry() (time.Time, time.Time, error) {
+	var notAfter time.Time
+	var notBefore time.Time
 	signer, ok := ca.enrollSigner.(*cflocalsigner.Signer)
 	if ok {
 		cacert, err := signer.Certificate("", "ca")
 		if err != nil {
 			log.Errorf("Failed to get CA certificate for CA %s: %s", ca.Config.CA.Name, err)
-			return caexpiry, err
+			return notBefore, notAfter, err
 		} else if cacert != nil {
-			caexpiry = cacert.NotAfter
+			notAfter = cacert.NotAfter
+			notBefore = cacert.NotBefore
 		}
 	} else {
 		log.Errorf("Not expected condition as the enrollSigner can only be cfssl/signer/local/Signer")
-		return caexpiry, errors.New("Unexpected error while getting CA certificate expiration")
+		return notBefore, notAfter, errors.New("Unexpected error while getting CA certificate expiration")
 	}
-	return caexpiry, nil
+	return notBefore, notAfter, nil
 }
 
 func canSignCRL(cert *x509.Certificate) bool {
