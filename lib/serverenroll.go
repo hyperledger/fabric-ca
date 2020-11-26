@@ -114,17 +114,24 @@ func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error)
 	}
 	req.NotAfter = time.Now().Round(time.Minute).Add(profile.Expiry).UTC()
 
-	caexpiry, err := ca.getCACertExpiry()
+	notBefore, notAfter, err := ca.getCACertExpiry()
 	if err != nil {
 		return nil, errors.New("Failed to get CA certificate information")
 	}
 
 	// Make sure requested expiration for enrollment certificate is not after CA certificate
 	// expiration
-	if !caexpiry.IsZero() && req.NotAfter.After(caexpiry) {
+	if !notAfter.IsZero() && req.NotAfter.After(notAfter) {
 		log.Debugf("Requested expiry '%s' is after the CA certificate expiry '%s'. Will use CA cert expiry",
-			req.NotAfter, caexpiry)
-		req.NotAfter = caexpiry
+			req.NotAfter, notAfter)
+		req.NotAfter = notAfter
+	}
+	// Make sure that requested expiration for enrollment certificate is not before CA certificate
+	// expiration
+	if !notBefore.IsZero() && req.NotBefore.Before(notBefore) {
+		log.Debugf("Requested expiry '%s' is before the CA certificate expiry '%s'. Will use CA cert expiry",
+			req.NotBefore, notBefore)
+		req.NotBefore = notBefore
 	}
 
 	// Process the sign request from the caller.
