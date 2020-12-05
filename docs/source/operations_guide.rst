@@ -810,7 +810,7 @@ The command below assumes that this is being executed on the orderer's host mach
     export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/org0/admin
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org0/orderer/assets/ca/org0-ca-cert.pem
     export FABRIC_CA_CLIENT_MSPDIR=msp
-    fabric-ca-client enroll -d -u https://orderer-org0-admin:ordererAdminPW@0.0.0.0:7053
+    fabric-ca-client enroll -d -u https://admin-org0:org0adminpw@0.0.0.0:7053
 
 After enrollment, you should have an msp folder at ``/tmp/hyperledger/org0/admin``.
 You will copy the certificate from this MSP and move it to the orderer's MSP under the
