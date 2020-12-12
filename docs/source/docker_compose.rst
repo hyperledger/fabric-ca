@@ -12,6 +12,7 @@
       command: sh -c 'fabric-ca-server start -d -b tls-ca-admin:tls-ca-adminpw --port 7052'
       environment:
          - FABRIC_CA_SERVER_HOME=/tmp/hyperledger/fabric-ca/crypto
+         - FABRIC_CA_SERVER_TLS_ENABLED=true
          - FABRIC_CA_SERVER_CSR_CN=tls-ca
          - FABRIC_CA_SERVER_CSR_HOSTS=0.0.0.0
          - FABRIC_CA_SERVER_DEBUG=true
