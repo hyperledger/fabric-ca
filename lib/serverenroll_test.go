@@ -216,8 +216,20 @@ func TestCertificateExpiration(t *testing.T) {
 	userCert, err := util.GetX509CertificateFromPEM(certBytes)
 	assert.NoError(t, err, "Failed to extract certificate from enroll response")
 
-	assert.False(t, userCert.NotBefore.Before(caCert.NotBefore),
-		"user certificate NotBefore %v is before CA cert NotBefore %v", userCert.NotBefore, caCert.NotBefore)
-	assert.False(t, userCert.NotAfter.After(caCert.NotAfter),
-		"user certificate NotAfter %v is after CA cert NotAfter %v", userCert.NotAfter, caCert.NotAfter)
+	// certificate validity is in range of CA cert validity
+	assertValidityInRange(t, userCert.NotBefore, userCert.NotAfter, caCert.NotBefore, caCert.NotAfter)
+
+	// ensure that CA issue a certificate with starting time as early as possible
+	assert.True(t, userCert.NotBefore.Equal(caCert.NotBefore), "certificate starting time should be as early as possible")
+}
+
+func assertValidityInRange(t assert.TestingT, certNotBefore time.Time, certNotAfter time.Time, caNotBefore time.Time, caNotAfter time.Time) {
+	// caCertNotBefore <= certNotBefore < certNotAfter <= caCertNotAfter
+
+	assert.True(t, certNotBefore.Before(certNotAfter), "certificate without valid time NotBefore is not before NotAfter")
+
+	assert.False(t, certNotBefore.Before(caNotBefore),
+		"certificate NotBefore %v is before CA cert NotBefore %v", certNotBefore, caNotBefore)
+	assert.False(t, certNotAfter.After(caNotAfter),
+		"user certificate NotAfter %v is after CA cert NotAfter %v", certNotAfter, caNotAfter)
 }
