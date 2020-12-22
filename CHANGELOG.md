@@ -1,3 +1,13 @@
+## v1.4.10
+Mon Dec 21 19:54:58 EST 2020
+
+* [3c1f2cf6](https://github.com/hyperledger/fabric-ca/commit/3c1f2cf6) Add v1.4.10 release notes
+* [1636ca34](https://github.com/hyperledger/fabric-ca/commit/1636ca34) Bump baseimage version
+* [0aa26627](https://github.com/hyperledger/fabric-ca/commit/0aa26627) Prepare for next Fabric CA release 1.4.10
+* [f4e5e750](https://github.com/hyperledger/fabric-ca/commit/f4e5e750) Bump Go to 1.14.12
+* [932248da](https://github.com/hyperledger/fabric-ca/commit/932248da) small clarification on org msp folder
+* [e538ccd1](https://github.com/hyperledger/fabric-ca/commit/e538ccd1) Update v1.4.9 release note to clarify reenroll improvement.
+
 ## v1.4.9
 Wed Sep 30 14:48:49 EDT 2020
 
