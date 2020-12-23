@@ -111,16 +111,15 @@ const jsonConfig = `{
 }`
 
 var (
-	defYaml       string
-	fabricCADB    = path.Join(tdDir, dbName)
-	srv           *lib.Server
-	serverURL     = fmt.Sprintf("http://localhost:%d", serverPort)
-	enrollURL     = fmt.Sprintf("http://admin:adminpw@localhost:%d", serverPort)
-	enrollURL1    = fmt.Sprintf("http://admin2:adminpw2@localhost:%d", serverPort)
-	tlsServerURL  = fmt.Sprintf("https://localhost:%d", serverPort)
-	tlsEnrollURL  = fmt.Sprintf("https://admin:adminpw@localhost:%d", serverPort)
-	tlsEnrollURL1 = fmt.Sprintf("https://admin2:adminpw2@localhost:%d", serverPort)
-	testYaml      = path.Join(tdDir, "test.yaml")
+	defYaml      string
+	fabricCADB   = path.Join(tdDir, dbName)
+	srv          *lib.Server
+	serverURL    = fmt.Sprintf("http://localhost:%d", serverPort)
+	enrollURL    = fmt.Sprintf("http://admin:adminpw@localhost:%d", serverPort)
+	enrollURL1   = fmt.Sprintf("http://admin2:adminpw2@localhost:%d", serverPort)
+	tlsServerURL = fmt.Sprintf("https://localhost:%d", serverPort)
+	tlsEnrollURL = fmt.Sprintf("https://admin:adminpw@localhost:%d", serverPort)
+	testYaml     = path.Join(tdDir, "test.yaml")
 )
 
 type TestData struct {

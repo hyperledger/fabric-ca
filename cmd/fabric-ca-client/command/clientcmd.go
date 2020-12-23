@@ -28,11 +28,7 @@ const (
 )
 
 const (
-	client    = "client"
 	enroll    = "enroll"
-	reenroll  = "reenroll"
-	register  = "register"
-	revoke    = "revoke"
 	getcacert = "getcacert"
 	getcainfo = "getcainfo"
 	gencsr    = "gencsr"

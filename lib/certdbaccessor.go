@@ -42,10 +42,6 @@ WHERE (serial_number = ? AND authority_key_identifier = ?);`
 UPDATE certificates
 SET status='revoked', revoked_at=CURRENT_TIMESTAMP, reason=:reason
 WHERE (id = :id AND status != 'revoked');`
-
-	deleteCertificatebyID = `
-DELETE FROM certificates
-		WHERE (ID = ?);`
 )
 
 // CertDBAccessor implements certdb.Accessor interface.

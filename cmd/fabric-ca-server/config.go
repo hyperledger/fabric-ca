@@ -26,7 +26,6 @@ const (
 	cmdName      = "fabric-ca-server"
 	envVarPrefix = "FABRIC_CA_SERVER"
 	homeEnvVar   = "FABRIC_CA_SERVER_HOME"
-	caNameReqMsg = "ca.name property is required but is missing from the configuration file"
 )
 
 const (

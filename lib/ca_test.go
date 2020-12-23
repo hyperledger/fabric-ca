@@ -40,7 +40,6 @@ const (
 	badUsageCert          = "../testdata/tls_client-cert.pem"
 	badUsageKey           = "../testdata/tls_client-key.pem"
 	noUsageCert           = "../testdata/noKeyUsage.cert.pem"
-	noUsageKey            = "../testdata/noKeyUsage.key.pem"
 	noCACert              = "../testdata/caFalse.cert.pem"
 	noCAkey               = "../testdata/caFalse.key.pem"
 	caCert                = "ca-cert.pem"

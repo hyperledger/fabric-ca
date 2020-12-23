@@ -54,10 +54,6 @@ SELECT * FROM users
 INSERT INTO affiliations (name, prekey, level)
 	VALUES (?, ?, ?)`
 
-	deleteAffiliation = `
-DELETE FROM affiliations
-	WHERE (name = ?)`
-
 	deleteAffAndSubAff = `
 DELETE FROM affiliations
 	WHERE (name = ? OR name LIKE ?)`

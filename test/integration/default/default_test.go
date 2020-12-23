@@ -35,8 +35,7 @@ import (
 )
 
 const (
-	cmdName    = "fabric-ca-client"
-	clientHome = "clientHome"
+	cmdName = "fabric-ca-client"
 )
 
 var (
