@@ -206,31 +206,6 @@ func CreateToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string
 	return token, nil
 }
 
-//GenRSAToken signs the http body and cert with RSA using RSA private key
-// @csp : BCCSP instance
-/*
-func GenRSAToken(csp bccsp.BCCSP, cert []byte, key []byte, body []byte) (string, error) {
-	privKey, err := GetRSAPrivateKey(key)
-	if err != nil {
-		return "", err
-	}
-	b64body := B64Encode(body)
-	b64cert := B64Encode(cert)
-	bodyAndcert := b64body + "." + b64cert
-	hash := sha512.New384()
-	hash.Write([]byte(bodyAndcert))
-	h := hash.Sum(nil)
-	RSAsignature, err := rsa.SignPKCS1v15(rand.Reader, privKey, crypto.SHA384, h[:])
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to rsa.SignPKCS1v15")
-	}
-	b64sig := B64Encode(RSAsignature)
-	token := b64cert + "." + b64sig
-
-	return  token, nil
-}
-*/
-
 //GenECDSAToken signs the http body and cert with ECDSA using EC private key
 func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string, body []byte) (string, error) {
 	b64body := B64Encode(body)
