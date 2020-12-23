@@ -65,54 +65,6 @@ The following are guidelines to follow when contributing:
 
 ## Additional info
 
-### Profiling Fabric CA server
-
-To enable profiling on the server, set the FABRIC_CA_SERVER_PROFILE_PORT environment variable to a valid, available port number and start the server. The server will start listening for profile requests at the */debug/pprof/* HTTP endpoint and the specified port. Then run `go tool pprof` with server's profiling URL (http://<server host>:<profiling port>/debug/pprof/<profile|heap|block>) as an argument, it will download and examine a live profile.
-
-You can start the server in the FVT image by running following docker command from the fabric-ca root directory:
-
-`docker run -p 8888:8888 -p 8054:8054 -v $PWD:/opt/gopath/src/github.com/hyperledger/fabric-ca -e FABRIC_CA_SERVER_PROFILE_PORT=8054 --name loadTest -td hyperledger/fabric-ca-fvt test/fabric-ca-load-tester/launchServer.sh 1`
-
-Then start the load by running `/test/fabric-ca-load-tester/runLoad.sh -B`
-
-In other window, you can start profiling by running (assuming load test takes about a minute to complete):
-
-`curl http://localhost:8054/debug/pprof/profile?seconds=60 > load-cpu.prof`
-
-then analyze the profile:
-
-`go tool pprof bin/fabric-ca-server load-cpu.prof`
-
-OR simply run:
-
-`go tool pprof -seconds=60 -output=load-cpu.prof http://localhost:8054/debug/pprof/profile`
-
-You can use commands like *top*, *top -cum*, *list* and *web* to look at the top consumers, list the code to see the hotspots and to view the graph in a browser. You can run `go tool pprof -h` to view all the options supported by the pprof tool
-
-You can also use [**go-torch**](https://github.com/uber/go-torch) tool to analyze the profile:
-
-`go-torch bin/fabric-ca-server load-cpu.prof`
-
-### Profiling Fabric CA client
-To enable profiling on the client, set the FABRIC_CA_CLIENT_PROFILE_MODE environment variable to either "heap" or "cpu" to enable heap, cpu profiling respectively. A file containing profiling data is created in the present working directory of the client. Heap profiling data is written to **mem.pprof** and cpu profiling data is written to **cpu.pprof**. You can run `go tool pprof <client executable> <profiling file>` to analyze the profiling data.
-
-### Profiling links
-
-* [Profiling Go Programs](https://blog.golang.org/profiling-go-programs)
-* [Daily code optimization using benchmarks and profiling in Golang - Gophercon India 2016 talk
-](https://medium.com/@hackintoshrao/daily-code-optimization-using-benchmarks-and-profiling-in-golang-gophercon-india-2016-talk-874c8b4dc3c5)
-* [Golang UK Conference 2016 - Dave Cheney - Seven ways to Profile Go Applications
-](https://www.youtube.com/watch?v=2h_NFBFrciI)
-* [Debugging performance issues in Go* programs
-](https://software.intel.com/en-us/blogs/2014/05/10/debugging-performance-issues-in-go-programs)
-* [Beautifully Simple Benchmarking with Go
-](http://www.soroushjp.com/2015/01/27/beautifully-simple-benchmarking-with-go/)
-* [Profiling memory usage of a Go app](https://vinceyuan.github.io/profiling-memory-usage-of-a-go-app/)
-* [Profiling and Optimizing Go
-](https://www.youtube.com/watch?v=N3PWzBeLX2M&feature=youtu.be)
-* [Golang UK Conference 2015 - Francesc Campoy - Program Analysis
-](https://www.youtube.com/watch?v=oorX84tBMqo&feature=youtu.be)
-
 ### FVT
 
 See [FVT tests](scripts/fvt/README.md) for information on functional verification test cases.

@@ -156,11 +156,6 @@ vendor: .FORCE
 
 container-tests: docker
 
-load-test: docker-clean docker-fvt
-	@docker run -p 8888:8888 -p 8054:8054 -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca -e FABRIC_CA_SERVER_PROFILE_PORT=8054 --name loadTest -td hyperledger/fabric-ca-fvt test/fabric-ca-load-tester/launchServer.sh 3
-	@test/fabric-ca-load-tester/runLoad.sh -B
-	@docker kill loadTest
-
 fvt-tests: docker-clean docker-fvt
 	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
 
