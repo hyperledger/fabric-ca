@@ -69,19 +69,6 @@ func checkTest(in *TestData, t *testing.T) {
 	}
 }
 
-// errorTest validates error cases
-func errorTest(in *TestData, t *testing.T) {
-	err := RunMain(in.input)
-	if err != nil {
-		matched, _ := regexp.MatchString(in.expected, err.Error())
-		if !matched {
-			t.Errorf("FAILED:\n \tin: %v;\n \tout: %v;\n \texpected: %v\n", in.input, err.Error(), in.expected)
-		}
-	} else {
-		t.Errorf("FAILED:\n \tin: %v;\n \tout: <nil>\n \texpected: %v\n", in.input, in.expected)
-	}
-}
-
 func TestMain(m *testing.M) {
 	os.Setenv("FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS", "localhost:0")
 	defer os.Unsetenv("FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS")
@@ -100,6 +87,19 @@ func TestNoArguments(t *testing.T) {
 func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
 	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
+
+	// errorTest validates error cases
+	errorTest := func(in *TestData, t *testing.T) {
+		err := RunMain(in.input)
+		if err != nil {
+			matched, _ := regexp.MatchString(in.expected, err.Error())
+			if !matched {
+				t.Errorf("FAILED:\n \tin: %v;\n \tout: %v;\n \texpected: %v\n", in.input, err.Error(), in.expected)
+			}
+		} else {
+			t.Errorf("FAILED:\n \tin: %v;\n \tout: <nil>\n \texpected: %v\n", in.input, in.expected)
+		}
+	}
 
 	errorCases := []TestData{
 		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
