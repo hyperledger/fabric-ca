@@ -2439,23 +2439,6 @@ func cleanMultiCADir(t *testing.T) {
 	}
 }
 
-func getRootServerURL() string {
-	return fmt.Sprintf("http://admin:adminpw@localhost:%d", rootPort)
-}
-
-func getRootServer(t *testing.T) *Server {
-	return getServer(rootPort, rootDir, "", -1, t)
-}
-
-func getIntermediateServer(idx int, t *testing.T) *Server {
-	return getServer(
-		intermediatePort,
-		path.Join(intermediateDir, strconv.Itoa(idx)),
-		getRootServerURL(),
-		-1,
-		t)
-}
-
 func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *Server {
 	if home != testdataDir {
 		err := os.RemoveAll(home)
@@ -2511,10 +2494,6 @@ func getServer(port int, home, parentURL string, maxEnroll int, t *testing.T) *S
 
 func getRootClient() *Client {
 	return getTestClient(rootPort)
-}
-
-func getIntermediateClient() *Client {
-	return getTestClient(intermediatePort)
 }
 
 func getTestClient(port int) *Client {

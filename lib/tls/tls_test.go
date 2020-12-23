@@ -33,15 +33,8 @@ import (
 
 const (
 	configDir   = "../../testdata"
-	caCert      = "root.pem"
-	certFile    = "tls_client-cert.pem"
-	keyFile     = "tls_client-key.pem"
 	expiredCert = "../../testdata/expiredcert.pem"
 )
-
-type testTLSConfig struct {
-	TLS *ClientTLSConfig
-}
 
 func TestGetClientTLSConfig(t *testing.T) {
 

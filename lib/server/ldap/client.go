@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -29,7 +28,6 @@ import (
 
 var (
 	errNotSupported = errors.New("Not supported")
-	ldapURLRegex    = regexp.MustCompile("ldaps*://(\\S+):(\\S+)@")
 )
 
 // Config is the configuration object for this LDAP client
@@ -466,16 +464,6 @@ func (u *user) IncrementIncorrectPasswordAttempts() error {
 
 func (u *user) GetFailedLoginAttempts() int {
 	return 0
-}
-
-// Returns a slice with the elements reversed
-func reverse(in []string) []string {
-	size := len(in)
-	out := make([]string, size)
-	for i := 0; i < size; i++ {
-		out[i] = in[size-i-1]
-	}
-	return out
 }
 
 func newUserExpr(client *Client, attr, expr string) (*userExpr, error) {

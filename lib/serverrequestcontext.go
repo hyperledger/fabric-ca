@@ -69,10 +69,6 @@ type serverRequestContextImpl struct {
 	callerRoles map[string]bool
 }
 
-const (
-	registrarRole = "hf.Registrar.Roles"
-)
-
 // newServerRequestContext is the constructor for a serverRequestContextImpl
 func newServerRequestContext(r *http.Request, w http.ResponseWriter, se *serverEndpoint) *serverRequestContextImpl {
 	return &serverRequestContextImpl{

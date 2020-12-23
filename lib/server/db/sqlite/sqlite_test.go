@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	testdataDir = "../../../../../testdata"
-	dbName      = "fabric_ca.db"
+	dbName = "fabric_ca.db"
 )
 
 var _ = Describe("Sqlite", func() {

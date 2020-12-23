@@ -36,8 +36,6 @@ const (
 	testTLSClientAuthDir = "testTLSClientAuthDir"
 )
 
-var clientConfig = path.Join(testdataDir, "client-config.json")
-
 func TestCWBClient1(t *testing.T) {
 	server := getServer(whitePort, path.Join(serversDir, "c1"), "", 1, t)
 	if server == nil {

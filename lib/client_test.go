@@ -31,17 +31,14 @@ import (
 )
 
 var (
-	ctport1     = 7098
-	ctport2     = 7099
-	intCAPort   = 7080
-	tdDir       = "../testdata"
-	fcaDB       = path.Join(tdDir, "fabric-ca-server.db")
-	fcaDB2      = path.Join(tdDir, "fabric-ca.db")
-	cfgFile     = path.Join(tdDir, "config.json")
-	testCfgFile = "testconfig.json"
-	csrFile     = path.Join(tdDir, "csr.json")
-	serversDir  = "testservers"
-	adminID     *Identity
+	ctport1    = 7098
+	ctport2    = 7099
+	intCAPort  = 7080
+	tdDir      = "../testdata"
+	cfgFile    = path.Join(tdDir, "config.json")
+	csrFile    = path.Join(tdDir, "csr.json")
+	serversDir = "testservers"
+	adminID    *Identity
 )
 
 const (

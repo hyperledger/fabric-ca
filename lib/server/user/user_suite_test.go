@@ -19,7 +19,6 @@ func TestUser(t *testing.T) {
 }
 
 //go:generate counterfeiter -o mocks/result.go -fake-name Result . result
-
 type result interface {
 	LastInsertId() (int64, error)
 	RowsAffected() (int64, error)

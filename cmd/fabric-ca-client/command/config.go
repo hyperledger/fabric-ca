@@ -27,7 +27,6 @@ import (
 
 const (
 	longName     = "Hyperledger Fabric Certificate Authority Client"
-	shortName    = "fabric-ca client"
 	cmdName      = "fabric-ca-client"
 	envVarPrefix = "FABRIC_CA_CLIENT"
 	homeEnvVar   = "FABRIC_CA_CLIENT_HOME"
