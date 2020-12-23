@@ -89,8 +89,6 @@ type Server struct {
 	serveError error
 	// caMap is a list of CAs by name
 	caMap map[string]*CA
-	// caConfigMap is a list CA configs by filename
-	caConfigMap map[string]*CAConfig
 	// levels currently supported by the server
 	levels *dbutil.Levels
 	wait   chan bool

@@ -1259,12 +1259,6 @@ func initSigningProfile(spp **config.SigningProfile, expiry time.Duration, isCA 
 	sp.ExtensionWhitelist[attrmgr.AttrOIDString] = true
 }
 
-type wallClock struct{}
-
-func (wc wallClock) Now() time.Time {
-	return time.Now()
-}
-
 func getMigrator(driverName string, tx cadb.FabricCATx, curLevels, srvLevels *dbutil.Levels) (cadb.Migrator, error) {
 	var migrator cadb.Migrator
 	switch driverName {
