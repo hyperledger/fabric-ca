@@ -42,7 +42,6 @@ import (
 
 const (
 	testdataDir          = "homeDir"
-	mspDir               = "../../../testdata/msp"
 	myhost               = "hostname"
 	certfile             = "ec.pem"
 	keyfile              = "ec-key.pem"
@@ -2190,7 +2189,6 @@ func TestCleanUp(t *testing.T) {
 	os.Remove(filepath.Join(tdDir, "IssuerRevocationPublicKey"))
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
-	os.RemoveAll(mspDir)
 	os.RemoveAll(moptionDir)
 	cleanMultiCADir()
 }
