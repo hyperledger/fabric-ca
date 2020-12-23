@@ -41,10 +41,6 @@ var (
 	adminID    *Identity
 )
 
-const (
-	DefaultCA = ""
-)
-
 func TestClientConfigStat(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

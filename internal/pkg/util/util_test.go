@@ -372,13 +372,14 @@ func TestGetDefaultConfigFile(t *testing.T) {
 
 func TestUnmarshal(t *testing.T) {
 	byteArray := []byte(`{"text":"foo"}`)
-	type test struct {
-		text string
+	var test struct {
+		Text string
 	}
-	var Test test
-	err := Unmarshal(byteArray, &Test, "testing unmarshal")
-	if err != nil {
+	if err := Unmarshal(byteArray, &test, "testing unmarshal"); err != nil {
 		t.Error("Failed to unmarshal, error: ", err)
+	}
+	if test.Text != "foo" {
+		t.Fatalf("unmarshal failed, want: foo, got: %s", test.Text)
 	}
 }
 
