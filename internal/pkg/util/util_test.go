@@ -525,13 +525,13 @@ func TestStructToString(t *testing.T) {
 	obj.Addr = addr
 	obj.Pass = "bar"
 	str := StructToString(&obj)
-	if strings.Index(str, "bar") > 0 {
+	if strings.Contains(str, "bar") {
 		t.Errorf("Password is not masked by the StructToString function: %s", str)
 	}
-	if strings.Index(str, "foo") > 0 {
+	if strings.Contains(str, "foo") {
 		t.Errorf("Name is not masked by the StructToString function: %s", str)
 	}
-	if strings.Index(str, addr) < 0 {
+	if !strings.Contains(str, addr) {
 		t.Errorf("Addr is masked by the StructToString function: %s", str)
 	}
 

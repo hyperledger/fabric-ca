@@ -365,8 +365,7 @@ func (s *Server) initMultiCAConfig() (err error) {
 	if len(cfg.CAfiles) != 0 {
 		log.Debugf("Default CA configuration, if necessary, will be used to replace missing values for additional CAs: %+v", s.Config.CAcfg)
 		log.Debugf("Additional CAs to be started: %s", cfg.CAfiles)
-		var caFiles []string
-		caFiles = util.NormalizeStringSlice(cfg.CAfiles)
+		caFiles := util.NormalizeStringSlice(cfg.CAfiles)
 		for _, caFile := range caFiles {
 			err = s.loadCA(caFile, false)
 			if err != nil {
@@ -786,7 +785,7 @@ func (s *Server) closeListener() error {
 	defer s.mutex.Unlock()
 
 	if s.listener == nil {
-		msg := fmt.Sprintf("Stop: listener was already closed")
+		msg := "Stop: listener was already closed"
 		log.Debugf(msg)
 		return errors.New(msg)
 	}

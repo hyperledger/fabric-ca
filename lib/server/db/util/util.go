@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	dbURLRegex = regexp.MustCompile("(Datasource:\\s*)?(\\S+):(\\S+)@|(Datasource:.*\\s)?(user=\\S+).*\\s(password=\\S+)|(Datasource:.*\\s)?(password=\\S+).*\\s(user=\\S+)")
+	dbURLRegex = regexp.MustCompile(`(Datasource:\s*)?(\S+):(\S+)@|(Datasource:.*\s)?(user=\S+).*\s(password=\S+)|(Datasource:.*\s)?(password=\S+).*\s(user=\S+)`)
 )
 
 // Levels contains the levels of identities, affiliations, and certificates
@@ -67,7 +67,7 @@ func MaskDBCred(str string) string {
 				}
 			}
 		}
-		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:len(str)]
+		str = str[:matchIdxs[0]] + substr + str[matchIdxs[1]:]
 	}
 	return str
 }

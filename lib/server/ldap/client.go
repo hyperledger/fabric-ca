@@ -83,7 +83,7 @@ func NewClient(cfg *Config, csp bccsp.BCCSP) (*Client, error) {
 		return nil, errors.Errorf("Invalid LDAP scheme: %s", u.Scheme)
 	}
 	var host, port string
-	if strings.Index(u.Host, ":") < 0 {
+	if !strings.Contains(u.Host, ":") {
 		host = u.Host
 		port = defaultPort
 	} else {

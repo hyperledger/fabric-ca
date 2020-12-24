@@ -374,11 +374,11 @@ type causer interface {
 // GetCause gets the root cause of the error
 func GetCause(err error) *HTTPErr {
 	for err != nil {
-		switch err.(type) {
+		switch e := err.(type) {
 		case *HTTPErr:
-			return err.(*HTTPErr)
+			return e
 		case causer:
-			err = err.(causer).Cause()
+			err = e.Cause()
 		default:
 			return nil
 		}
