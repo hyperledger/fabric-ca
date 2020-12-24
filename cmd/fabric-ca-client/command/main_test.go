@@ -1278,6 +1278,9 @@ func TestMOption(t *testing.T) {
 // Checks to see if root and intermediate certificates are correctly getting stored in their respective directories
 func validCertsInDir(rootCertDir, interCertsDir string, t *testing.T) {
 	files, err := ioutil.ReadDir(rootCertDir)
+	if err != nil {
+		t.Fatalf("failed to read root cert dir: %s", err)
+	}
 	file := files[0].Name()
 	rootCertPath := filepath.Join(rootCertDir, file)
 	rootcert, err := util.GetX509CertificateFromPEMFile(rootCertPath)
@@ -1315,6 +1318,7 @@ func TestThreeCAHierarchy(t *testing.T) {
 func testThreeCAHierarchy(t *testing.T) {
 	validateCACerts := func(rootCertDir, interCertsDir string) {
 		files, err := ioutil.ReadDir(rootCertDir)
+		assert.NoError(t, err, "failed to read %", rootCertDir)
 		file := files[0].Name()
 		rootCertPath := filepath.Join(rootCertDir, file)
 		rootcaCertBytes, err := util.ReadFile(rootCertPath)

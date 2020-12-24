@@ -76,9 +76,7 @@ func TestGetVersionInfo(t *testing.T) {
 }
 
 func TestGetVersion(t *testing.T) {
-	info := metadata.GetVersion()
-
 	metadata.Version = "1.0.0"
-	info = metadata.GetVersion()
+	info := metadata.GetVersion()
 	assert.Contains(t, info, "1.0.0")
 }

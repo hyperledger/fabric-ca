@@ -163,6 +163,9 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 		return "", errors.Wrapf(err, "Failed to create signature while creating token")
 	}
 	sigBytes, err := proto.Marshal(sig)
+	if err != nil {
+		return "", err
+	}
 	token := "idemix." + api.IdemixTokenVersion1 + "." + enrollmentID + "." + util.B64Encode(sigBytes)
 	return token, nil
 }

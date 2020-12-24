@@ -50,12 +50,11 @@ func TestCanRegisterAttributes(t *testing.T) {
 func negativeTests(t *testing.T) {
 	var err error
 
-	requestedAttrs := []api.Attribute{}
 	user := getUser("testuser", []api.Attribute{})
 	registrar := getUser("admin", []api.Attribute{})
 
 	// Negative Case: Registrar does not have 'hf.Registrar.Attribute'
-	requestedAttrs = []api.Attribute{
+	requestedAttrs := []api.Attribute{
 		api.Attribute{
 			Name:  Roles,
 			Value: "peer,client",

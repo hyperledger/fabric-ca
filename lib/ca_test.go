@@ -295,6 +295,7 @@ func TestCAwriteFile(t *testing.T) {
 
 func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
 	ca, err := newCA(serverCfgFile(os.TempDir()), &CAConfig{}, &srv, true)
+	assert.NoError(t, err, "failed to create new CA")
 	_, err = ca.loadCNFromEnrollmentInfo("does-not-exist")
 	t.Log("loadCNFromEnrollmentInfo err: ", err)
 	if err == nil {
@@ -606,8 +607,10 @@ func TestCAVerifyCertificate(t *testing.T) {
 	err = GenerateECDSATestCert()
 	util.FatalError(t, err, "Failed to generate certificate for testing")
 	caCert1, err := ioutil.ReadFile("../testdata/ec_cert.pem")
+	assert.NoError(t, err, "failed to read ec_cert.pem")
 	caCert2 := append(caCert1, util.RandomString(128)...)
 	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0644)
+	assert.NoError(t, err, "failed to write ca-chainfile.pem")
 	ca.Config.CA.Chainfile = filepath.Join(os.TempDir(), "ca-chainfile.pem")
 	err = ca.VerifyCertificate(cert)
 	t.Log("ca.VerifyCertificate error: ", err)

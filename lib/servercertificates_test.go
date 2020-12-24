@@ -33,6 +33,7 @@ import (
 func TestCertificatesHandler(t *testing.T) {
 	ctx := new(serverRequestContextImpl)
 	req, err := http.NewRequest("GET", "", bytes.NewReader([]byte{}))
+	assert.NoError(t, err)
 	ctx.req = req
 	_, err = certificatesHandler(ctx)
 	util.ErrorContains(t, err, "No authorization header", "Failed to catch error")
