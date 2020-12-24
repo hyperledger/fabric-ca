@@ -208,6 +208,6 @@ func TestConvertDayToHours(t *testing.T) {
 	assert.NoError(t, err, "Failed to convert days to hours")
 	assert.Equal(t, "+480h", timeHours)
 
-	timeHours, err = convertDayToHours("d")
+	_, err = convertDayToHours("d")
 	assert.Error(t, err, "Should fail, not a valid number")
 }

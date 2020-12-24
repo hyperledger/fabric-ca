@@ -185,6 +185,9 @@ func getTime(timeStr string) (*time.Time, error) {
 
 		if strings.HasSuffix(timeStr, "d") {
 			timeStr, err = convertDayToHours(timeStr)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		dur, err := time.ParseDuration(timeStr)

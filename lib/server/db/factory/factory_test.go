@@ -35,7 +35,7 @@ func TestNew(t *testing.T) {
 	gt.Expect(db).NotTo(BeNil())
 	gt.Expect(db).To(Equal(mysql.NewDB("fabric_ca_mysql", "", nil, nil, nil)))
 
-	db, err = factory.New("fake", "fabric_ca_mysql", "", nil, nil, nil)
+	_, err = factory.New("fake", "fabric_ca_mysql", "", nil, nil, nil)
 	gt.Expect(err).To(HaveOccurred())
 
 	os.Remove("fabric_ca.db")

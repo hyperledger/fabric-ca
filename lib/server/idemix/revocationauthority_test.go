@@ -572,14 +572,13 @@ func TestIdemixCreateCRIError(t *testing.T) {
 		t.Fatalf("Failed to create temp directory: %s", err.Error())
 	}
 	defer os.RemoveAll(homeDir)
-	db := new(dmocks.FabricCADB)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
 
-	db = new(dmocks.FabricCADB)
+	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, true, selectFnc)
 	_, err = ra.CreateCRI()
@@ -602,7 +601,6 @@ func TestEpochValuesInCRI(t *testing.T) {
 	cri, err := ra.CreateCRI()
 	assert.NoError(t, err)
 
-	db = new(dmocks.FabricCADB)
 	cri1, err := ra.CreateCRI()
 	assert.NoError(t, err)
 	if err == nil {

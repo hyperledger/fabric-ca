@@ -42,6 +42,7 @@ func TestGetAllAffiliations(t *testing.T) {
 		Name:   "admin2",
 		Secret: "admin2pw",
 	})
+	assert.NoError(t, err, "failed to enroll admin2")
 
 	admin2 := resp.Identity
 
@@ -93,7 +94,7 @@ func TestGetAllAffiliations(t *testing.T) {
 	util.FatalError(t, err, "Failed to enroll user 'admin'")
 	admin = resp.Identity
 
-	getResp, err = admin.GetAllAffiliations("")
+	_, err = admin.GetAllAffiliations("")
 	util.ErrorContains(t, err, "16", "If no affiliations are configured, should throw an error")
 }
 
@@ -122,6 +123,7 @@ func TestGetAffiliation(t *testing.T) {
 		Name:   "admin2",
 		Secret: "admin2pw",
 	})
+	assert.NoError(t, err, "failed to enroll admin2")
 
 	admin2 := resp.Identity
 
@@ -183,6 +185,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 			},
 		},
 	})
+	assert.NoError(t, err, "failed to register and enroll admin")
 
 	resp, err = client.Enroll(&api.EnrollmentRequest{
 		Name:   "admin2",

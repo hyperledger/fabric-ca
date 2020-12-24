@@ -780,13 +780,13 @@ func TestRead(t *testing.T) {
 
 	// Test with a buffer that is too small to fit data
 	buf := make([]byte, 10)
-	data, err := Read(&myReader, buf)
+	_, err := Read(&myReader, buf)
 	assert.Error(t, err, "Should have errored, the data passed is bigger than the buffer")
 
 	// Test with a buffer that is big enough to fit data
 	buf = make([]byte, 25)
 	myReader.bytesRead = 0
-	data, err = Read(&myReader, buf)
+	data, err := Read(&myReader, buf)
 	if assert.NoError(t, err, fmt.Sprintf("Error occured during read: %s", err)) {
 		if string(data) != string(myReader.buf) {
 			t.Error("The data returned does not match")

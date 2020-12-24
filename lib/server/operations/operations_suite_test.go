@@ -130,6 +130,9 @@ func genCert(name, dir string, cert []byte, privKey *rsa.PrivateKey) error {
 	}
 
 	parentCert, err := x509.ParseCertificate(cert)
+	if err != nil {
+		return err
+	}
 
 	// create a self-signed certificate. template = parent
 	cert, err = x509.CreateCertificate(rand.Reader, template, parentCert, publickey, privKey)
