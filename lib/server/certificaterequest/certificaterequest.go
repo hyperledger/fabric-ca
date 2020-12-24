@@ -211,7 +211,7 @@ func getTime(timeStr string) (*time.Time, error) {
 func convertDayToHours(timeStr string) (string, error) {
 	log.Debugf("Converting days to hours: %s", timeStr)
 
-	re := regexp.MustCompile("\\d+")
+	re := regexp.MustCompile(`\d+`)
 	durationValDays, err := strconv.Atoi(re.FindString(timeStr))
 	if err != nil {
 		return "", errors.Errorf("Invalid time format, integer values required for duration, please check: %s", timeStr)

@@ -173,7 +173,7 @@ func (js *jsonStream) getNextName() (string, error) {
 	case string:
 		return v, nil
 	case json.Delim:
-		d := fmt.Sprintf("%s", v)
+		d := v.String()
 		if d == "}" {
 			return "", nil
 		}

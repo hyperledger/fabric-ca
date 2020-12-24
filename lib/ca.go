@@ -765,22 +765,22 @@ func (ca *CA) loadAffiliationsTableR(val interface{}, parentPath string) (err er
 	if val == nil {
 		return nil
 	}
-	switch val.(type) {
+	switch val := val.(type) {
 	case string:
-		path = affiliationPath(val.(string), parentPath)
+		path = affiliationPath(val, parentPath)
 		err = ca.addAffiliation(path, parentPath)
 		if err != nil {
 			return err
 		}
 	case []string:
-		for _, ele := range val.([]string) {
+		for _, ele := range val {
 			err = ca.loadAffiliationsTableR(ele, parentPath)
 			if err != nil {
 				return err
 			}
 		}
 	case []interface{}:
-		for _, ele := range val.([]interface{}) {
+		for _, ele := range val {
 			err = ca.loadAffiliationsTableR(ele, parentPath)
 			if err != nil {
 				return err
@@ -1138,14 +1138,14 @@ func validateMatchingKeys(cert *x509.Certificate, keyFile string) error {
 	}
 
 	pubKey := cert.PublicKey
-	switch pubKey.(type) {
+	switch pubKey := pubKey.(type) {
 	case *rsa.PublicKey:
 		privKey, err := util.GetRSAPrivateKey(keyPEM)
 		if err != nil {
 			return err
 		}
 
-		if privKey.PublicKey.N.Cmp(pubKey.(*rsa.PublicKey).N) != 0 {
+		if privKey.PublicKey.N.Cmp(pubKey.N) != 0 {
 			return errors.New("Public key and private key do not match")
 		}
 	case *ecdsa.PublicKey:
@@ -1154,7 +1154,7 @@ func validateMatchingKeys(cert *x509.Certificate, keyFile string) error {
 			return err
 		}
 
-		if privKey.PublicKey.X.Cmp(pubKey.(*ecdsa.PublicKey).X) != 0 {
+		if privKey.PublicKey.X.Cmp(pubKey.X) != 0 {
 			return errors.New("Public key and private key do not match")
 		}
 	}

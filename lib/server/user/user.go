@@ -393,10 +393,7 @@ func (u *Impl) Revoke() error {
 
 // IsRevoked returns back true if user is revoked
 func (u *Impl) IsRevoked() bool {
-	if u.State == -1 {
-		return true
-	}
-	return false
+	return u.State == -1
 }
 
 // ModifyAttributesTx adds a new attribute, modifies existing attribute, or delete attribute

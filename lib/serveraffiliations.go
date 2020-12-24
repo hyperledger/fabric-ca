@@ -504,10 +504,7 @@ func isChildAffiliation(name, child string) bool {
 	}
 	nameParts := strings.Split(name, ".")
 	childParts := strings.Split(child, ".")
-	if len(childParts) != len(nameParts)+1 {
-		return false
-	}
-	return true
+	return len(childParts) == len(nameParts)+1
 }
 
 func getIDInfo(user user.User) (*api.IdentityInfo, error) {

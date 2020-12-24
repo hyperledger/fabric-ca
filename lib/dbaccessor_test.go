@@ -73,16 +73,11 @@ func TestSQLite(t *testing.T) {
 
 // Truncate truncates the DB
 func Truncate(db *db.DB) {
-	var sql []string
-	sql = []string{sqliteTruncateTables}
-
-	for _, expr := range sql {
-		if len(strings.TrimSpace(expr)) == 0 {
-			continue
-		}
-		if _, err := db.Exec("", expr); err != nil {
-			panic(err)
-		}
+	if len(strings.TrimSpace(sqliteTruncateTables)) == 0 {
+		return
+	}
+	if _, err := db.Exec("", sqliteTruncateTables); err != nil {
+		panic(err)
 	}
 }
 

@@ -2156,7 +2156,7 @@ func TestCSRInputLengthCheck(t *testing.T) {
 		Secret: "pass",
 		CSR:    badCSR,
 	})
-	if assert.Error(t, err, fmt.Sprint("Number of characters for CN is greater than the maximum limit, should have resulted in an error")) {
+	if assert.Error(t, err, "Number of characters for CN is greater than the maximum limit, should have resulted in an error") {
 		assert.Contains(t, err.Error(), "CN")
 	}
 

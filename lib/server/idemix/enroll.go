@@ -192,10 +192,7 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.
 			rc = append(rc, idemix.HashModOrder(idBytes))
 			attrMap[attrName] = caller.GetName()
 		} else if attrName == AttrOU {
-			ou := []string{}
-			for _, aff := range caller.GetAffiliationPath() {
-				ou = append(ou, aff)
-			}
+			ou := append([]string{}, caller.GetAffiliationPath()...)
 			ouVal := strings.Join(ou, ".")
 			ouBytes := []byte(ouVal)
 			rc = append(rc, idemix.HashModOrder(ouBytes))

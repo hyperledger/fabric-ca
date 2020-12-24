@@ -209,7 +209,7 @@ func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo
 				return false
 			}
 			rhBytes := idemix.BigToBytes(rh)
-			if bytes.Compare(rhBytes, rrhBytes) == 0 {
+			if bytes.Equal(rhBytes, rrhBytes) {
 				return true
 			}
 		}

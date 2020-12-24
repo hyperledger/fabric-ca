@@ -503,11 +503,9 @@ func (i *Identity) GetStreamResponse(endpoint string, queryParam map[string]stri
 	if err != nil {
 		return err
 	}
-	if queryParam != nil {
-		for key, value := range queryParam {
-			if value != "" {
-				addQueryParm(req, key, value)
-			}
+	for key, value := range queryParam {
+		if value != "" {
+			addQueryParm(req, key, value)
 		}
 	}
 	err = i.addTokenAuthHdr(req, nil)
@@ -523,10 +521,8 @@ func (i *Identity) Put(endpoint string, reqBody []byte, queryParam map[string]st
 	if err != nil {
 		return err
 	}
-	if queryParam != nil {
-		for key, value := range queryParam {
-			addQueryParm(req, key, value)
-		}
+	for key, value := range queryParam {
+		addQueryParm(req, key, value)
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {
@@ -541,10 +537,8 @@ func (i *Identity) Delete(endpoint string, result interface{}, queryParam map[st
 	if err != nil {
 		return err
 	}
-	if queryParam != nil {
-		for key, value := range queryParam {
-			addQueryParm(req, key, value)
-		}
+	for key, value := range queryParam {
+		addQueryParm(req, key, value)
 	}
 	err = i.addTokenAuthHdr(req, nil)
 	if err != nil {
@@ -562,10 +556,8 @@ func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}, que
 	if err != nil {
 		return err
 	}
-	if queryParam != nil {
-		for key, value := range queryParam {
-			addQueryParm(req, key, value)
-		}
+	for key, value := range queryParam {
+		addQueryParm(req, key, value)
 	}
 	err = i.addTokenAuthHdr(req, reqBody)
 	if err != nil {

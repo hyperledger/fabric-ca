@@ -354,10 +354,7 @@ func getTokenParts(token string) []string {
 // IsToken returns true if the specified token has the format expected of an authorization token
 // that is created using an Idemix credential
 func IsToken(token string) bool {
-	if getTokenParts(token) != nil {
-		return true
-	}
-	return false
+	return getTokenParts(token) != nil
 }
 
 type wallClock struct{}

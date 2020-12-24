@@ -392,8 +392,7 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 	nonce := fp256bn.FromBytes(nonceBytes)
 	log.Infof("Successfully got nonce from CA %s", req.CAName)
 
-	ipkBytes := []byte{}
-	ipkBytes, err = util.B64Decode(result.CAInfo.IssuerPublicKey)
+	ipkBytes, err := util.B64Decode(result.CAInfo.IssuerPublicKey)
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to decode issuer public key that was returned by CA %s", req.CAName))
 	}
@@ -586,7 +585,7 @@ func (c *Client) newIdemixCredentialRequest(nonce *fp256bn.BIG, ipkBytes []byte)
 
 func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
 	var err error
-	if ipkBytes == nil || len(ipkBytes) == 0 {
+	if len(ipkBytes) == 0 {
 		ipkBytes, err = ioutil.ReadFile(c.ipkFile)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error reading CA's Idemix public key at '%s'", c.ipkFile)
@@ -791,7 +790,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 		log.Debugf("Received response\n%s", util.HTTPResponseToString(resp))
 	}
 	var body *cfsslapi.Response
-	if respBody != nil && len(respBody) > 0 {
+	if len(respBody) > 0 {
 		body = new(cfsslapi.Response)
 		err = json.Unmarshal(respBody, body)
 		if err != nil {

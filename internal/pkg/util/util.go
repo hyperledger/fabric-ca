@@ -80,7 +80,7 @@ var RevocationReasonCodes = map[string]int{
 const SecretTag = "mask"
 
 // URLRegex is the regular expression to check if a value is an URL
-var URLRegex = regexp.MustCompile("(ldap|http)s*://(\\S+):(\\S+)@")
+var URLRegex = regexp.MustCompile(`(ldap|http)s*://(\S+):(\S+)@`)
 
 //ECDSASignature forms the structure for R and S value for ECDSA
 type ECDSASignature struct {
@@ -325,9 +325,9 @@ func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
 	}
 	key, err2 := x509.ParsePKCS8PrivateKey(decoded.Bytes)
 	if err2 == nil {
-		switch key.(type) {
+		switch key := key.(type) {
 		case *ecdsa.PrivateKey:
-			return key.(*ecdsa.PrivateKey), nil
+			return key, nil
 		case *rsa.PrivateKey:
 			return nil, errors.New("Expecting EC private key but found RSA private key")
 		default:
@@ -349,11 +349,11 @@ func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	}
 	key, err2 := x509.ParsePKCS8PrivateKey(decoded.Bytes)
 	if err2 == nil {
-		switch key.(type) {
+		switch key := key.(type) {
 		case *ecdsa.PrivateKey:
 			return nil, errors.New("Expecting RSA private key but found EC private key")
 		case *rsa.PrivateKey:
-			return key.(*rsa.PrivateKey), nil
+			return key, nil
 		default:
 			return nil, errors.New("Invalid private key type in PKCS#8 wrapping")
 		}
@@ -572,8 +572,7 @@ func Fatal(format string, v ...interface{}) {
 
 // GetUser returns username and password from CLI input
 func GetUser(v *viper.Viper) (string, string, error) {
-	var fabricCAServerURL string
-	fabricCAServerURL = v.GetString("url")
+	fabricCAServerURL := v.GetString("url")
 
 	URL, err := url.Parse(fabricCAServerURL)
 	if err != nil {
@@ -652,7 +651,7 @@ func GetMaskedURL(url string) string {
 				matchStr = strings.Replace(matchStr, matches[idx], "****", 1)
 			}
 		}
-		url = url[:matchIdxs[0]] + matchStr + url[matchIdxs[1]:len(url)]
+		url = url[:matchIdxs[0]] + matchStr + url[matchIdxs[1]:]
 	}
 	return url
 }
