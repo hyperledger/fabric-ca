@@ -34,9 +34,10 @@ func NewMigrator(tx db.FabricCATx, curLevels, srvLevels *util.Levels) *Migrator 
 func (m *Migrator) MigrateUsersTable() error {
 	tx := m.Tx
 	const funcName = "MigrateUsersTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	curLevel := m.CurLevels.Identity
-	if curLevel < 1 {
+	switch m.CurLevels.Identity {
+	case 0:
 		log.Debug("Upgrade identity table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE users RENAME TO users_old")
 		if err != nil {
@@ -55,9 +56,9 @@ func (m *Migrator) MigrateUsersTable() error {
 		if err != nil {
 			return err
 		}
-		curLevel++
-	}
-	if curLevel < 2 {
+		fallthrough
+
+	case 1:
 		log.Debug("Upgrade identity table to level 2")
 		_, err := tx.Exec(funcName, "ALTER TABLE users RENAME TO users_old")
 		if err != nil {
@@ -76,26 +77,27 @@ func (m *Migrator) MigrateUsersTable() error {
 		if err != nil {
 			return err
 		}
-		curLevel++
-	}
+		fallthrough
 
-	users, err := user.GetUserLessThanLevel(tx, m.SrvLevels.Identity)
-	if err != nil {
-		return err
-	}
-
-	for _, u := range users {
-		err := u.Migrate(tx)
+	default:
+		users, err := user.GetUserLessThanLevel(tx, m.SrvLevels.Identity)
 		if err != nil {
 			return err
 		}
-	}
 
-	_, err = tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'identity.level')"), m.SrvLevels.Identity)
-	if err != nil {
-		return err
+		for _, u := range users {
+			err := u.Migrate(tx)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'identity.level')"), m.SrvLevels.Identity)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
 }
 
 // MigrateCertificatesTable is responsible for migrating certificates table
@@ -106,8 +108,10 @@ func (m *Migrator) MigrateUsersTable() error {
 func (m *Migrator) MigrateCertificatesTable() error {
 	tx := m.Tx
 	const funcName = "MigrateCertificatesTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	if m.CurLevels.Certificate < 1 {
+	switch m.CurLevels.Certificate {
+	case 0:
 		log.Debug("Upgrade certificates table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE certificates RENAME TO certificates_old")
 		if err != nil {
@@ -126,12 +130,15 @@ func (m *Migrator) MigrateCertificatesTable() error {
 		if err != nil {
 			return err
 		}
+		fallthrough
+
+	default:
+		_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'certificate.level')"), m.SrvLevels.Certificate)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'certificate.level')"), m.SrvLevels.Certificate)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // MigrateAffiliationsTable is responsible for migrating affiliations table
@@ -142,8 +149,10 @@ func (m *Migrator) MigrateCertificatesTable() error {
 func (m *Migrator) MigrateAffiliationsTable() error {
 	tx := m.Tx
 	const funcName = "MigrateAffiliationsTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	if m.CurLevels.Affiliation < 1 {
+	switch m.CurLevels.Affiliation {
+	case 0:
 		log.Debug("Upgrade affiliations table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE affiliations RENAME TO affiliations_old")
 		if err != nil {
@@ -162,12 +171,15 @@ func (m *Migrator) MigrateAffiliationsTable() error {
 		if err != nil {
 			return err
 		}
+		fallthrough
+
+	default:
+		_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'affiliation.level')"), m.SrvLevels.Affiliation)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'affiliation.level')"), m.SrvLevels.Affiliation)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // MigrateCredentialsTable is responsible for migrating credentials table
