@@ -568,14 +568,13 @@ func (i *Identity) Post(endpoint string, reqBody []byte, result interface{}, que
 
 func (i *Identity) addTokenAuthHdr(req *http.Request, body []byte) error {
 	log.Debug("Adding token-based authorization header")
-	var token string
-	var err error
-	for _, cred := range i.creds {
-		token, err = cred.CreateToken(req, body)
-		if err != nil {
-			return errors.WithMessage(err, "Failed to add token authorization header")
-		}
-		break
+	if len(i.creds) == 0 {
+		return nil
+	}
+	cred := i.creds[0]
+	token, err := cred.CreateToken(req, body)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to add token authorization header")
 	}
 	req.Header.Set("authorization", token)
 	return nil
