@@ -36,9 +36,10 @@ func NewMigrator(tx db.FabricCATx, curLevels, srvLevels *util.Levels) *Migrator 
 func (m *Migrator) MigrateUsersTable() error {
 	tx := m.Tx
 	const funcName = "MigrateUsersTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	curLevel := m.CurLevels.Identity
-	if curLevel < 1 {
+	switch m.CurLevels.Identity {
+	case 0:
 		log.Debug("Upgrade identity table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE users MODIFY id VARCHAR(255), MODIFY type VARCHAR(256), MODIFY affiliation VARCHAR(1024)")
 		if err != nil {
@@ -49,50 +50,49 @@ func (m *Migrator) MigrateUsersTable() error {
 			return err
 		}
 		_, err = tx.Exec(funcName, "ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 0 AFTER max_enrollments")
-		if err != nil {
-			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "1060") { // Already using the latest schema
+			return err
 		}
-		curLevel++
-	}
-	if curLevel < 2 {
+		fallthrough
+
+	case 1:
 		log.Debug("Upgrade identity table to level 2")
 		_, err := tx.Exec(funcName, "ALTER TABLE users ADD COLUMN incorrect_password_attempts INTEGER DEFAULT 0 AFTER level")
-		if err != nil {
-			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "1060") { // Already using the latest schema
+			return err
 		}
-		curLevel++
-	}
+		fallthrough
 
-	users, err := user.GetUserLessThanLevel(tx, m.SrvLevels.Identity)
-	if err != nil {
-		return err
-	}
-
-	for _, u := range users {
-		err := u.Migrate(tx)
+	default:
+		users, err := user.GetUserLessThanLevel(tx, m.SrvLevels.Identity)
 		if err != nil {
 			return err
 		}
-	}
 
-	_, err = tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'identity.level')"), m.SrvLevels.Identity)
-	if err != nil {
-		return err
+		for _, u := range users {
+			err := u.Migrate(tx)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'identity.level')"), m.SrvLevels.Identity)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
-	return nil
 }
 
 // MigrateCertificatesTable is responsible for migrating certificates table
 func (m *Migrator) MigrateCertificatesTable() error {
 	tx := m.Tx
 	const funcName = "MigrateCertificatesTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	curLevel := m.CurLevels.Certificate
-	if curLevel < 1 {
+	switch m.CurLevels.Certificate {
+	case 0:
 		log.Debug("Upgrade certificates table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE certificates ADD COLUMN level INTEGER DEFAULT 0 AFTER pem")
 		if err != nil {
@@ -104,67 +104,64 @@ func (m *Migrator) MigrateCertificatesTable() error {
 		if err != nil {
 			return err
 		}
-		curLevel++
-	}
-	if curLevel < 2 {
+		fallthrough
+
+	case 1:
 		log.Debug("Upgrade certificates table to level 2")
 		_, err := tx.Exec(funcName, "ALTER TABLE certificates MODIFY pem varbinary(8192)")
 		if err != nil {
 			return err
 		}
-		curLevel++
-	}
+		fallthrough
 
-	_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'certificate.level')"), m.SrvLevels.Certificate)
-	if err != nil {
-		return err
+	default:
+		_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'certificate.level')"), m.SrvLevels.Certificate)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
 }
 
 // MigrateAffiliationsTable is responsible for migrating affiliations table
 func (m *Migrator) MigrateAffiliationsTable() error {
 	tx := m.Tx
 	const funcName = "MigrateAffiliationsTable"
+
 	// Future schema updates should add to the logic below to handle other levels
-	if m.CurLevels.Affiliation < 1 {
+	switch m.CurLevels.Affiliation {
+	case 0:
 		log.Debug("Upgrade affiliations table to level 1")
 		_, err := tx.Exec(funcName, "ALTER TABLE affiliations ADD COLUMN level INTEGER DEFAULT 0 AFTER prekey")
-		if err != nil {
-			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "1060") { // Already using the latest schema
+			return err
 		}
 		_, err = tx.Exec(funcName, "ALTER TABLE affiliations DROP INDEX name;")
-		if err != nil {
-			if !strings.Contains(err.Error(), "Error 1091") { // Indicates that index not found
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "Error 1091") { // Indicates that index not found
+			return err
 		}
 		_, err = tx.Exec(funcName, "ALTER TABLE affiliations ADD COLUMN id INT NOT NULL PRIMARY KEY AUTO_INCREMENT FIRST")
-		if err != nil {
-			if !strings.Contains(err.Error(), "1060") { // Already using the latest schema
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "1060") { // Already using the latest schema
+			return err
 		}
 		_, err = tx.Exec(funcName, "ALTER TABLE affiliations MODIFY name VARCHAR(1024), MODIFY prekey VARCHAR(1024)")
 		if err != nil {
 			return err
 		}
 		_, err = tx.Exec(funcName, "ALTER TABLE affiliations ADD INDEX name_index (name)")
-		if err != nil {
-			if !strings.Contains(err.Error(), "Error 1061") { // Error 1061: Duplicate key name, index already exists
-				return err
-			}
+		if err != nil && !strings.Contains(err.Error(), "Error 1061") { // Error 1061: Duplicate key name, index already exists
+			return err
 		}
-	}
+		fallthrough
 
-	_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'affiliation.level')"), m.SrvLevels.Affiliation)
-	if err != nil {
-		return err
-	}
+	default:
+		_, err := tx.Exec(funcName, tx.Rebind("UPDATE properties SET value = ? WHERE (property = 'affiliation.level')"), m.SrvLevels.Affiliation)
+		if err != nil {
+			return err
+		}
 
-	return nil
+		return nil
+	}
 }
 
 // MigrateCredentialsTable is responsible for migrating credentials table
