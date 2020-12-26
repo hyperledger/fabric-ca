@@ -67,11 +67,6 @@ const SecretTag = "mask"
 // URLRegex is the regular expression to check if a value is an URL
 var URLRegex = regexp.MustCompile(`(ldap|http)s*://(\S+):(\S+)@`)
 
-//ECDSASignature forms the structure for R and S value for ECDSA
-type ECDSASignature struct {
-	R, S *big.Int
-}
-
 // RandomString returns a random string
 func RandomString(n int) string {
 	b := make([]byte, n)
