@@ -86,18 +86,6 @@ func RandomString(n int) string {
 	return string(b)
 }
 
-// RemoveQuotes removes outer quotes from a string if necessary
-func RemoveQuotes(str string) string {
-	if str == "" {
-		return str
-	}
-	if (strings.HasPrefix(str, "'") && strings.HasSuffix(str, "'")) ||
-		(strings.HasPrefix(str, "\"") && strings.HasSuffix(str, "\"")) {
-		str = str[1 : len(str)-1]
-	}
-	return str
-}
-
 // ReadFile reads a file
 func ReadFile(file string) ([]byte, error) {
 	return ioutil.ReadFile(file)

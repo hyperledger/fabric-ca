@@ -283,20 +283,6 @@ func TestRandomString(t *testing.T) {
 	}
 }
 
-func TestRemoveQuotes(t *testing.T) {
-	str := RemoveQuotes(`"a"`)
-	if str != "a" {
-		t.Fatalf("TestRemoveQuotes failed")
-	}
-}
-
-func TestRemoveQuotesNone(t *testing.T) {
-	str := RemoveQuotes(`a`)
-	if str != "a" {
-		t.Fatalf("TestRemoveQuotesNone failed")
-	}
-}
-
 func TestCreateHome(t *testing.T) {
 	t.Log("Test Creating Home Directory")
 	os.Unsetenv("COP_HOME")
@@ -639,11 +625,6 @@ func testMakeFileAbs(t *testing.T, file, dir, expect string) {
 	if path != expect {
 		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
 	}
-}
-
-func TestRemoveQuotesInvalidArgs(t *testing.T) {
-	res := RemoveQuotes("")
-	assert.Equal(t, "", res)
 }
 
 func TestUnmarshalInvalidArgs(t *testing.T) {
