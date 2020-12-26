@@ -186,27 +186,6 @@ func TestGetX509CertsFromPem(t *testing.T) {
 	}
 }
 
-// This test case has been removed temporarily
-// as BCCSP does not have support for RSA private key import
-/*
-func TestRSACreateToken(t *testing.T) {
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata","rsa.pem"))
-	privKey, _ := ioutil.ReadFile(filepath.Join("testdata","rsa-key.pem"))
-	body := []byte("request byte array")
-
-	csp := factory.GetDefault()
-	RSAtoken, err := CreateToken(csp, cert, privKey, body)
-	if err != nil {
-		t.Fatalf("CreatToken failed with error : %s", err)
-	}
-
-	_, err = VerifyToken(csp, RSAtoken, body)
-	if err != nil {
-		t.Fatalf("VerifyToken failed with error : %s", err)
-	}
-}
-*/
-
 func TestCreateTokenDiffKey(t *testing.T) {
 	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	bccsp := GetDefaultBCCSP()
@@ -217,23 +196,6 @@ func TestCreateTokenDiffKey(t *testing.T) {
 		t.Fatalf("TestCreateTokenDiffKey passed but should have failed")
 	}
 }
-
-// TestCreateTokenDiffKey2 has been commeted out right now
-// As there BCCSP does not have support fot RSA private Key
-// import. This will be uncommented when the support is in.
-/*
-func TestCreateTokenDiffKey2(t *testing.T) {
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata","rsa.pem"))
-	privKey, _ := ioutil.ReadFile(filepath.Join("testdata","ec-key.pem"))
-	body := []byte("request byte array")
-
-	csp := factory.GetDefault()
-	_, err := CreateToken(csp, cert, privKey, body)
-	if err == nil {
-		t.Fatalf("TestCreateTokenDiffKey2 passed but should have failed")
-	}
-}
-*/
 
 func TestEmptyToken(t *testing.T) {
 	body := []byte("request byte array")
