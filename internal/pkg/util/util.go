@@ -46,7 +46,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/ocsp"
 )
 
 var (
@@ -61,20 +60,6 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
-
-// RevocationReasonCodes is a map between string reason codes to integers as defined in RFC 5280
-var RevocationReasonCodes = map[string]int{
-	"unspecified":          ocsp.Unspecified,
-	"keycompromise":        ocsp.KeyCompromise,
-	"cacompromise":         ocsp.CACompromise,
-	"affiliationchanged":   ocsp.AffiliationChanged,
-	"superseded":           ocsp.Superseded,
-	"cessationofoperation": ocsp.CessationOfOperation,
-	"certificatehold":      ocsp.CertificateHold,
-	"removefromcrl":        ocsp.RemoveFromCRL,
-	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
-	"aacompromise":         ocsp.AACompromise,
-}
 
 // SecretTag to tag a field as secret as in password, token
 const SecretTag = "mask"

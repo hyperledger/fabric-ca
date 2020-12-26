@@ -15,6 +15,7 @@ import (
 	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
+	"golang.org/x/crypto/ocsp"
 )
 
 type revocationResponseNet struct {
@@ -41,6 +42,20 @@ func newRevokeEndpoint(s *Server) *serverEndpoint {
 	}
 }
 
+// revocationReasonCodes is a map between string reason codes to integers as defined in RFC 5280
+var revocationReasonCodes = map[string]int{
+	"unspecified":          ocsp.Unspecified,
+	"keycompromise":        ocsp.KeyCompromise,
+	"cacompromise":         ocsp.CACompromise,
+	"affiliationchanged":   ocsp.AffiliationChanged,
+	"superseded":           ocsp.Superseded,
+	"cessationofoperation": ocsp.CessationOfOperation,
+	"certificatehold":      ocsp.CertificateHold,
+	"removefromcrl":        ocsp.RemoveFromCRL,
+	"privilegewithdrawn":   ocsp.PrivilegeWithdrawn,
+	"aacompromise":         ocsp.AACompromise,
+}
+
 // Handle an revoke request
 func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 	// Parse revoke request body
@@ -65,7 +80,7 @@ func revokeHandler(ctx *serverRequestContextImpl) (interface{}, error) {
 
 	certDBAccessor := ca.certDBAccessor
 	registry := ca.registry
-	reason := util.RevocationReasonCodes[req.Reason]
+	reason := revocationReasonCodes[req.Reason]
 
 	result := &revocationResponseNet{}
 	if req.Serial != "" && req.AKI != "" {
