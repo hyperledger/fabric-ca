@@ -118,24 +118,24 @@ func TestECCreateToken(t *testing.T) {
 
 func TestDecodeToken(t *testing.T) {
 	token := "x.y.z"
-	_, _, _, err := DecodeToken(token)
+	_, _, _, err := decodeToken(token)
 	assert.Error(t, err, "Decode should fail if the token has more than two parts")
 
 	token = "x"
-	_, _, _, err = DecodeToken(token)
+	_, _, _, err = decodeToken(token)
 	assert.Error(t, err, "Decode should fail if the token has less than two parts")
 
 	token = "x.y"
-	_, _, _, err = DecodeToken(token)
+	_, _, _, err = decodeToken(token)
 	assert.Error(t, err, "Decode should fail if the 1st part of the token is not in base64 encoded format")
 
 	fakecert := B64Encode([]byte("hello"))
 	token = fakecert + ".y"
-	_, _, _, err = DecodeToken(token)
+	_, _, _, err = decodeToken(token)
 	assert.Error(t, err, "Decode should fail if the 1st part of the token is not base64 bytes of a X509 cert")
 }
-func TestGetX509CertFromPem(t *testing.T) {
 
+func TestGetX509CertFromPem(t *testing.T) {
 	certBuffer, error := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	if error != nil {
 		t.Fatalf("Certificate File Read from file failed with error : %s", error)

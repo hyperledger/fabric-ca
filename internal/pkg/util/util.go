@@ -208,11 +208,10 @@ func genECDSAToken(csp bccsp.BCCSP, key bccsp.Key, b64cert, payload string) (str
 // VerifyToken verifies token signed by either ECDSA or RSA and
 // returns the associated user ID
 func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte, compMode1_3 bool) (*x509.Certificate, error) {
-
 	if csp == nil {
 		return nil, errors.New("BCCSP instance is not present")
 	}
-	x509Cert, b64Cert, b64Sig, err := DecodeToken(token)
+	x509Cert, b64Cert, b64Sig, err := decodeToken(token)
 	if err != nil {
 		return nil, err
 	}
@@ -260,8 +259,8 @@ func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte,
 	return x509Cert, nil
 }
 
-// DecodeToken extracts an X509 certificate and base64 encoded signature from a token
-func DecodeToken(token string) (*x509.Certificate, string, string, error) {
+// decodeToken extracts an X509 certificate and base64 encoded signature from a token
+func decodeToken(token string) (*x509.Certificate, string, string, error) {
 	if token == "" {
 		return nil, "", "", errors.New("Invalid token; it is empty")
 	}
