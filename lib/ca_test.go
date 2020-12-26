@@ -104,7 +104,7 @@ func TestCABadCACertificates(t *testing.T) {
 	testValidDates(cert, t)
 	testValidKeyType(cert, t)
 	testValidKeySize(cert, t)
-	testValidMatchingKeys(cert, t)
+	testValidMatchingKeys(t)
 	testValidUsages(cert, t)
 	CAclean(ca, t)
 }
@@ -181,10 +181,10 @@ func testValidKeySize(cert *x509.Certificate, t *testing.T) {
 	}
 }
 
-func testValidMatchingKeys(cert *x509.Certificate, t *testing.T) {
+func testValidMatchingKeys(t *testing.T) {
 	err := GenerateECDSATestCert()
 	util.FatalError(t, err, "Failed to generate certificate for testing")
-	cert, err = getCertFromFile(ecCert)
+	cert, err := getCertFromFile(ecCert)
 	if err != nil {
 		t.Fatal(err)
 	}
