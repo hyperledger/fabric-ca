@@ -271,7 +271,7 @@ func (ra *revocationAuthority) getNextRevocationHandle() (int, error) {
 	return nextHandle, nil
 }
 
-func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args ...interface{}) (interface{}, error) {
+func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, _ ...interface{}) (interface{}, error) {
 	var err error
 
 	// Get the latest revocation authority info from the database
@@ -289,6 +289,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, args 
 	nextHandle := rcInfo.NextRevocationHandle
 	newNextHandle := rcInfo.NextRevocationHandle + 1
 	var inQuery string
+	var args []interface{}
 	if nextHandle == rcInfo.LastHandleInPool {
 		newLastHandleInPool := rcInfo.LastHandleInPool + ra.issuer.Config().RHPoolSize
 		newEpoch := rcInfo.Epoch + 1
