@@ -364,15 +364,6 @@ func TestWriteFile(t *testing.T) {
 	assert.Error(t, err, "Should fail to create 'test' directory as the parent directory is read only")
 }
 
-func TestStrContained(t *testing.T) {
-	strs := []string{"one", "two", "three"}
-	str := "one"
-	result := StrContained(str, strs)
-	if result != true {
-		t.Error("Should have result in true")
-	}
-}
-
 func TestFileExists(t *testing.T) {
 	name := "testdata/csr.json"
 	exists := FileExists(name)
@@ -595,11 +586,6 @@ func TestUnmarshalInvalidArgs(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to unmarshal ")
 }
 
-func TestStrContainedInvalidArgs(t *testing.T) {
-	res := StrContained("Hello World", nil)
-	assert.False(t, res)
-}
-
 func TestGetSerialAsHex(t *testing.T) {
 	res := GetSerialAsHex(big.NewInt(101))
 	assert.Equal(t, "65", res)
@@ -751,26 +737,6 @@ func getPEM(file string, t *testing.T) []byte {
 	buf, err := ioutil.ReadFile(file)
 	assert.NoError(t, err)
 	return buf
-}
-
-func TestIsSubsetOf(t *testing.T) {
-	testIsSubsetOf(t, "a,b", "b,a,c", true)
-	testIsSubsetOf(t, "a,b", "b,a", true)
-	testIsSubsetOf(t, "a,b,c", "a,b", false)
-	testIsSubsetOf(t, "a,b,c", "", false)
-}
-
-func testIsSubsetOf(t *testing.T, small, large string, expectToPass bool) {
-	err := IsSubsetOf(small, large)
-	if expectToPass {
-		if err != nil {
-			t.Errorf("IsSubsetOf('%s','%s') failed: %s", small, large, err)
-		}
-	} else {
-		if err == nil {
-			t.Errorf("IsSubsetOf('%s','%s') expected error but passed", small, large)
-		}
-	}
 }
 
 func TestHostname(t *testing.T) {

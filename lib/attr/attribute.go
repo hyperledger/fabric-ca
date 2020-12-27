@@ -246,11 +246,41 @@ func (ac *attributeControl) IsSubsetOf(requestedAttrValue, callersAttrValue stri
 	if (ac.getName() == Roles || ac.getName() == DelegateRoles) && util.ListContains(callersAttrValue, "*") {
 		return nil
 	}
-	err := util.IsSubsetOf(requestedAttrValue, callersAttrValue)
+	err := isSubsetOf(requestedAttrValue, callersAttrValue)
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("The requested values for attribute '%s' is a superset of the caller's attribute value", ac.getName()))
 	}
 	return nil
+}
+
+// isSubsetOf returns an error if there is something in 'small' that
+// is not in 'big'.  Both small and big are assumed to be comma-separated
+// strings.  All string comparisons are case-insensitive.
+// Examples:
+// 1) isSubsetOf('a,B', 'A,B,C') returns nil
+// 2) isSubsetOf('A,B,C', 'B,C') returns an error because A is not in the 2nd set.
+func isSubsetOf(small, big string) error {
+	bigSet := strings.Split(big, ",")
+	smallSet := strings.Split(small, ",")
+	for _, s := range smallSet {
+		if s == "" {
+			continue
+		}
+		if !strContained(s, bigSet) {
+			return errors.Errorf("'%s' is not a member of '%s'", s, big)
+		}
+	}
+	return nil
+}
+
+// strContained returns true if 'str' is in 'strs'; otherwise return false
+func strContained(str string, strs []string) bool {
+	for _, s := range strs {
+		if strings.ToLower(s) == strings.ToLower(str) {
+			return true
+		}
+	}
+	return false
 }
 
 // Check if registrar has the proper authority to register the values for 'hf.Registrar.Attributes'.
@@ -318,7 +348,7 @@ func checkDelegateRoleValues(reqAttrs []api.Attribute, user AttributeControl) er
 		return nil
 	}
 	delegateRoles := GetAttrValue(reqAttrs, DelegateRoles)
-	err := util.IsSubsetOf(delegateRoles, roles)
+	err := isSubsetOf(delegateRoles, roles)
 	if err != nil {
 		return errors.New("The delegateRoles field is a superset of roles")
 	}

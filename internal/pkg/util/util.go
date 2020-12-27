@@ -338,33 +338,6 @@ func B64Decode(str string) (buf []byte, err error) {
 	return base64.StdEncoding.DecodeString(str)
 }
 
-// StrContained returns true if 'str' is in 'strs'; otherwise return false
-func StrContained(str string, strs []string) bool {
-	for _, s := range strs {
-		if strings.ToLower(s) == strings.ToLower(str) {
-			return true
-		}
-	}
-	return false
-}
-
-// IsSubsetOf returns an error if there is something in 'small' that
-// is not in 'big'.  Both small and big are assumed to be comma-separated
-// strings.  All string comparisons are case-insensitive.
-// Examples:
-// 1) IsSubsetOf('a,B', 'A,B,C') returns nil
-// 2) IsSubsetOf('A,B,C', 'B,C') returns an error because A is not in the 2nd set.
-func IsSubsetOf(small, big string) error {
-	bigSet := strings.Split(big, ",")
-	smallSet := strings.Split(small, ",")
-	for _, s := range smallSet {
-		if s != "" && !StrContained(s, bigSet) {
-			return errors.Errorf("'%s' is not a member of '%s'", s, big)
-		}
-	}
-	return nil
-}
-
 // HTTPRequestToString returns a string for an HTTP request for debuggging
 func HTTPRequestToString(req *http.Request) string {
 	body, _ := ioutil.ReadAll(req.Body)
