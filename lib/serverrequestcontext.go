@@ -593,12 +593,21 @@ func (ctx *serverRequestContextImpl) canActOnType(requestedType string) (bool, e
 	if requestedType == "" {
 		requestedType = "client"
 	}
-	if !util.StrContained(requestedType, types) {
+	if !strContained(requestedType, types) {
 		log.Debugf("Caller with types '%s' is not authorized to act on '%s'", types, requestedType)
 		return false, nil
 	}
 
 	return true, nil
+}
+
+func strContained(needle string, haystack []string) bool {
+	for _, s := range haystack {
+		if strings.ToLower(s) == strings.ToLower(needle) {
+			return true
+		}
+	}
+	return false
 }
 
 // HasRole returns an error if the caller does not have the attribute or the value is false for a boolean attribute
