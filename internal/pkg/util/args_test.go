@@ -14,39 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package util_test
+package util
 
 import (
 	"os"
 	"testing"
-
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 )
 
 func TestGetCommandLineOptValue(t *testing.T) {
 	testGetCommandLineOptValue(t,
-		[]string{"fabric-ca", "client", "enroll", "-config", "myconfig.json"},
-		"-config",
-		true,
-		"myconfig.json",
-		[]string{"fabric-ca", "client", "enroll"})
-	testGetCommandLineOptValue(t,
 		[]string{"fabric-ca", "client", "-config", "myconfig.json", "enroll"},
 		"-config",
-		true,
 		"myconfig.json",
-		[]string{"fabric-ca", "client", "enroll"})
-	testGetCommandLineOptValue(t,
-		[]string{"fabric-ca", "client", "-config", "myconfig.json", "enroll"},
-		"-config",
-		false,
-		"myconfig.json",
-		[]string{"fabric-ca", "client", "-config", "myconfig.json", "enroll"})
-	testGetCommandLineOptValue(t,
-		[]string{"fabric-ca", "client", "-config", "myconfig.json", "enroll"},
-		"-config2",
-		true,
-		"",
 		[]string{"fabric-ca", "client", "-config", "myconfig.json", "enroll"})
 }
 
@@ -69,11 +48,11 @@ func TestOpts(t *testing.T) {
 }
 
 func testGetCommandLineOptValue(t *testing.T,
-	args []string, opt string, remove bool, expectedVal string, expectedArgs []string) {
+	args []string, opt string, expectedVal string, expectedArgs []string) {
 
 	saveArgs := os.Args
 	os.Args = args
-	val := util.GetCommandLineOptValue(opt, remove)
+	val := getCommandLineOptValue(opt)
 	if val != expectedVal {
 		t.Errorf("val was '%s' but expected '%s'", val, expectedVal)
 	}
@@ -84,7 +63,7 @@ func testGetCommandLineOptValue(t *testing.T,
 func testSetDefaultServerPort(t *testing.T, inputArgs []string, expectedOutputArgs []string) {
 	saveArgs := os.Args
 	os.Args = inputArgs
-	util.SetDefaultServerPort()
+	setDefaultServerPort()
 	compareArgs(t, os.Args, expectedOutputArgs)
 	os.Args = saveArgs
 }
@@ -98,11 +77,11 @@ func testOpt(t *testing.T, opt, val, expectedVal string) {
 	}
 	switch opt {
 	case "-protocol":
-		val = util.GetServerProtocol()
+		val = getServerProtocol()
 	case "-address":
-		val = util.GetServerAddr()
+		val = getServerAddr()
 	case "-port":
-		val = util.GetServerPort()
+		val = GetServerPort()
 	default:
 		panic("bad opt value")
 	}

@@ -27,66 +27,59 @@ const (
 	defaultServerPort     = "7054"
 )
 
-// GetCommandLineOptValue searches the command line arguments for the
-// specified option and returns the following value if found; otherwise
-// it returns "".  If **remove** is true and it is found, the option
-// and its value are removed from os.Args.
-// For example, if command line is:
-//    fabric-ca client enroll -config myconfig.json
-// GetCommandLineOptValue("-config",true) returns "myconfig.json"
-// and changes os.Args to
-//    fabric-ca client enroll
-func GetCommandLineOptValue(optName string, remove bool) string {
-	for i := 0; i < len(os.Args)-1; i++ {
-		if os.Args[i] == optName {
-			val := os.Args[i+1]
-			if remove {
-				// Splice out the option and its value
-				os.Args = append(os.Args[:i], os.Args[i+2:]...)
-			}
-			return val
-		}
-	}
-	return ""
-}
-
 // GetServerURL returns the server's URL
 func GetServerURL() string {
-	return fmt.Sprintf("%s://%s:%s", GetServerProtocol(), GetServerAddr(), GetServerPort())
-}
-
-// GetServerProtocol returns the server's protocol
-func GetServerProtocol() string {
-	protocol := GetCommandLineOptValue("-protocol", false)
-	if protocol != "" {
-		return protocol
-	}
-	return defaultServerProtocol
-}
-
-// GetServerAddr returns the server's address
-func GetServerAddr() string {
-	addr := GetCommandLineOptValue("-address", false)
-	if addr != "" {
-		return addr
-	}
-	return defaultServerAddr
+	return fmt.Sprintf("%s://%s:%s", getServerProtocol(), getServerAddr(), GetServerPort())
 }
 
 // GetServerPort returns the server's listening port
 func GetServerPort() string {
-	port := GetCommandLineOptValue("-port", false)
+	port := getCommandLineOptValue("-port")
 	if port != "" {
 		return port
 	}
 	return defaultServerPort
 }
 
-// SetDefaultServerPort overrides the default CFSSL server port
+// getCommandLineOptValue searches the command line arguments for the
+// specified option and returns the following value if found; otherwise
+// it returns "".
+// For example, if command line is:
+//    fabric-ca client enroll -config myconfig.json
+// getCommandLineOptValue("-config") returns "myconfig.json"
+func getCommandLineOptValue(optName string) string {
+	for i := 0; i < len(os.Args)-1; i++ {
+		if os.Args[i] == optName {
+			val := os.Args[i+1]
+			return val
+		}
+	}
+	return ""
+}
+
+// getServerProtocol returns the server's protocol
+func getServerProtocol() string {
+	protocol := getCommandLineOptValue("-protocol")
+	if protocol != "" {
+		return protocol
+	}
+	return defaultServerProtocol
+}
+
+// getServerAddr returns the server's address
+func getServerAddr() string {
+	addr := getCommandLineOptValue("-address")
+	if addr != "" {
+		return addr
+	}
+	return defaultServerAddr
+}
+
+// setDefaultServerPort overrides the default CFSSL server port
 // by adding the "-port" option to the command line if it was not
 // already present.
-func SetDefaultServerPort() {
-	if len(os.Args) > 2 && GetCommandLineOptValue("-port", false) == "" {
+func setDefaultServerPort() {
+	if len(os.Args) > 2 && getCommandLineOptValue("-port") == "" {
 		os.Args = append(os.Args, "-port", defaultServerPort)
 	}
 }
