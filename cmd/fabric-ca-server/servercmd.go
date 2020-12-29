@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	version = "version"
+	extraArgsError = "Unrecognized arguments found: %v\n\n%s"
 )
 
 // ServerCmd encapsulates cobra command that provides command line interface
@@ -175,7 +175,7 @@ func (s *ServerCmd) registerFlags() {
 
 // Configuration file is not required for some commands like version
 func (s *ServerCmd) configRequired() bool {
-	return s.name != version
+	return s.name != "version"
 }
 
 // getServer returns a lib.Server for the init and start commands

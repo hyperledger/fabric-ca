@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -33,6 +34,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
+	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 )
 
 const (
@@ -213,19 +215,17 @@ func GenerateECDSATestCert() error {
 	return nil
 }
 
-// Currently not being used anywhere, commenting it out for right now
-// it was just bringing test coverage.
-
-// StopAndCleanupServer stops the server and removes the server's home directory
-// func StopAndCleanupServer(t *testing.T, srv *Server) {
-// 	if srv != nil {
-// 		defer os.RemoveAll(srv.HomeDir)
-// 		err := srv.Stop()
-// 		if err != nil {
-// 			t.Errorf("Server stop failed: %s", err)
-// 		}
-// 	}
-// }
+// GetCertID extracts the serial number and authority key ID from a PEM encoded
+// certificate.
+func GetCertID(certBytes []byte) (string, string, error) {
+	cert, err := BytesToX509Cert(certBytes)
+	if err != nil {
+		return "", "", nil
+	}
+	serial := util.GetSerialAsHex(cert.SerialNumber)
+	aki := hex.EncodeToString(cert.AuthorityKeyId)
+	return serial, aki, nil
+}
 
 // TestGetRootClient returns a Fabric CA client that is meant for a root Fabric CA server
 func TestGetRootClient() *Client {
