@@ -9,7 +9,6 @@ package lib
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"github.com/cloudflare/cfssl/log"
 	"github.com/grantae/certinfo"
 	"github.com/hyperledger/fabric-ca/internal/pkg/api"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -33,17 +31,6 @@ var clientAuthTypes = map[string]tls.ClientAuthType{
 	"requireanyclientcert":       tls.RequireAnyClientCert,
 	"verifyclientcertifgiven":    tls.VerifyClientCertIfGiven,
 	"requireandverifyclientcert": tls.RequireAndVerifyClientCert,
-}
-
-// GetCertID returns both the serial number and AKI (Authority Key ID) for the certificate
-func GetCertID(bytes []byte) (string, string, error) {
-	cert, err := BytesToX509Cert(bytes)
-	if err != nil {
-		return "", "", err
-	}
-	serial := util.GetSerialAsHex(cert.SerialNumber)
-	aki := hex.EncodeToString(cert.AuthorityKeyId)
-	return serial, aki, nil
 }
 
 // BytesToX509Cert converts bytes (PEM or DER) to an X509 certificate
@@ -157,17 +144,6 @@ func IdentityDecoder(decoder *json.Decoder) error {
 	return nil
 }
 
-// AffiliationDecoder decodes streams of data coming from the server into an Affiliation object
-func AffiliationDecoder(decoder *json.Decoder) error {
-	var aff api.AffiliationInfo
-	err := decoder.Decode(&aff)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%s\n", aff.Name)
-	return nil
-}
-
 // CertificateDecoder is needed to keep track of state, to see how many certificates
 // have been returned for each enrollment ID.
 type CertificateDecoder struct {
@@ -200,7 +176,7 @@ func (cd *CertificateDecoder) CertificateDecoder(decoder *json.Decoder) error {
 	}
 	enrollmentID := certificate.Subject.CommonName
 	if cd.storePath != "" {
-		err = cd.StoreCert(enrollmentID, cd.storePath, []byte(cert.PEM))
+		err = cd.storeCert(enrollmentID, cd.storePath, []byte(cert.PEM))
 		if err != nil {
 			return err
 		}
@@ -214,8 +190,8 @@ func (cd *CertificateDecoder) CertificateDecoder(decoder *json.Decoder) error {
 	return nil
 }
 
-// StoreCert stores the certificate on the file system
-func (cd *CertificateDecoder) StoreCert(enrollmentID, storePath string, cert []byte) error {
+// storeCert stores the certificate on the file system
+func (cd *CertificateDecoder) storeCert(enrollmentID, storePath string, cert []byte) error {
 	cd.certIDCount[enrollmentID] = cd.certIDCount[enrollmentID] + 1
 
 	err := os.MkdirAll(storePath, os.ModePerm)

@@ -533,10 +533,6 @@ metrics:
 `
 )
 
-var (
-	extraArgsError = "Unrecognized arguments found: %v\n\n%s"
-)
-
 // Initialize config
 func (s *ServerCmd) configInit() (err error) {
 	if !s.configRequired() {
