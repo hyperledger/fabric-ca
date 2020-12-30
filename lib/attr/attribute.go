@@ -298,7 +298,7 @@ func checkHfRegistrarAttrValues(reqAttr *api.Attribute, reqAttrs []api.Attribute
 		}
 		if strings.HasPrefix(requestedAttrValue, "hf.") {
 			log.Debugf("Checking if value '%s' for hf.Registrar.Attribute is owned by user", requestedAttrValue)
-			if !Exists(reqAttrs, requestedAttrValue) {
+			if !exists(reqAttrs, requestedAttrValue) {
 				// Attribute not present in the list of attributes being requested along side 'hf.Registrar.Attributes'
 				// if user equals nil, this is a new user registration request
 				if user == nil {
@@ -372,9 +372,9 @@ func getAttributeControl(attrName string) (*attributeControl, error) {
 	}, nil
 }
 
-// Exists searches 'attrs' for the attribute with name 'name' and returns
+// exists searches 'attrs' for the attribute with name 'name' and returns
 // true if found
-func Exists(attrs []api.Attribute, name string) bool {
+func exists(attrs []api.Attribute, name string) bool {
 	for _, attr := range attrs {
 		if attr.Name == name {
 			return true
