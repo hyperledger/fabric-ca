@@ -4,9 +4,9 @@
 
 The tests scripts that will run are in `scripts/fvt`.
 
-From `${GOPATH}/src/github.com/hyperledger/fabric-ca`, issue `make docker-fvt`
-to generate the docker test image.  To remove build artifacts of the docker
-fvt test image, run `make docker-clean`.
+From the repository root, issue `make docker-fvt` to generate the docker test
+image.  To remove build artifacts of the docker fvt test image, run `make
+docker-clean`.
 
 ### Running the fvt tests
 

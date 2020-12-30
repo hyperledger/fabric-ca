@@ -4,14 +4,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-FCA=$GOPATH/src/github.com/hyperledger/fabric-ca
+FABRIC_CA="$(cd "$(dirname "$0")/.." && pwd)"
+export PATH="$PATH:$FABRIC_CA/build/tools"
 
 echo "Running integration tests ..."
 
-export PATH=$PATH:$GOPATH/bin
-
-PKGS=`go list github.com/hyperledger/fabric-ca/test/integration/...`
-
-go test $PKGS
+go test github.com/hyperledger/fabric-ca/test/integration/...
 
 exit $?

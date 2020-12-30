@@ -4,14 +4,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-FABRIC_CA=$GOPATH/src/github.com/hyperledger/fabric-ca
+FABRIC_CA="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 export RESULTLOG="/tmp/fvt-test.results"
 export STARTIME=$SECONDS
-export PATH=$PATH:$GOPATH/bin
+export PATH="$PATH:$FABRIC_CA/build/tools"
 export RC=0
->$RESULTLOG
+true >$RESULTLOG
 
 function runTests() {
   echo "Running fvt tests ..."
