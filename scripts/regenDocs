@@ -142,7 +142,7 @@ function generateCertificateCLI {
 }
 
 
-fabric_ca=$GOPATH/src/github.com/hyperledger/fabric-ca
+fabric_ca="$(cd "$(dirname "$0")/.." && pwd)"
 docsdir=$fabric_ca/docs/source
 export PATH=$PATH:$fabric_ca/bin
 
