@@ -1,9 +1,8 @@
 #!/bin/bash
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
 SCRIPTDIR="/etc/hyperledger/fabric-ca"
 export HOME=$SCRIPTDIR
 PKI="$SCRIPTDIR/pki"
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 CaDir='/tmp/CAs'
 RC=0
 

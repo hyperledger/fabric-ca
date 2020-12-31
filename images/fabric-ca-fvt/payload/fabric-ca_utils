@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-export FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
+export FABRIC_CA="/build/fabric-ca"
 export FABRIC_CA_CLIENTEXEC="/usr/local/bin/fabric-ca-client"
 export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"

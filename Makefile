@@ -149,15 +149,13 @@ unit-tests: gotools fabric-ca-server fabric-ca-client
 unit-test: unit-tests
 
 vendor: .FORCE
-	@echo > go.mod
-	@go mod tidy -modfile vendor.mod
-	@go mod vendor  -modfile vendor.mod
-	@rm go.mod
+	@go mod tidy
+	@go mod vendor
 
 container-tests: docker
 
 fvt-tests: docker-clean docker-fvt
-	@docker run -v $(shell pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
+	@docker run -v $(shell pwd):/build/fabric-ca ${DOCKER_NS}/fabric-ca-fvt
 
 %-docker-clean:
 	$(eval TARGET = ${patsubst %-docker-clean,%,${@}})
