@@ -5,14 +5,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+FABRIC_CA="$(cd "$SCRIPTDIR/../.." && pwd)"
 FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
-TESTDATA="$FABRIC_CA/testdata"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 HOST="http://localhost:$PROXY_PORT"
 RC=0
 HOST="https://localhost:$PROXY_PORT"
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 
 while getopts "u:t:g:a:x:" option; do
   case "$option" in

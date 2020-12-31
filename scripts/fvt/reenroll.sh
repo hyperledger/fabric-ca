@@ -5,10 +5,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+FABRIC_CA="$(cd "$SCRIPTDIR/../.." && pwd)"
 FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
 TESTDATA="$FABRIC_CA/testdata"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 CSR="$TESTDATA/csr.json"
 HOST="http://localhost:$PROXY_PORT"
 RUNCONFIG="$TESTDATA/postgres.json"

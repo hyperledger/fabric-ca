@@ -7,10 +7,9 @@
 #
 
 : ${TESTCASE:="idemix"}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 CA_CFG_PATH="/tmp/idemixTesting"
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 
 USERNAME="admin"

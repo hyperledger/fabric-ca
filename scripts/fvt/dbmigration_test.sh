@@ -6,8 +6,7 @@
 #
 
 TESTCASE="db_migration"
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 . $SCRIPTDIR/fabric-ca_utils
 RC=0
 DBNAME="fabric_ca"

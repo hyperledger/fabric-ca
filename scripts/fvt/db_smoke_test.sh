@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-SCRIPTDIR="$GOPATH/src/github.com/hyperledger/fabric-ca/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 MYSQLSMOKECONFIG=$FABRIC_CA_DATA/smoke/caconfig.yml
 
 mkdir -p "$(dirname ${MYSQLSMOKECONFIG})"

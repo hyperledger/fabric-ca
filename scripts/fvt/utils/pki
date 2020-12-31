@@ -633,7 +633,7 @@ if test "$subca" = "$certauth" -a "$function" = newsub; then
    exit 1
 fi
 
-FABRIC_CA="${GOPATH}/src/github.com/hyperledger/fabric-ca"
+FABRIC_CA="$(cd "$(dirname "$0")/../../.." && pwd)"
 TESTDATA="$FABRIC_CA/testdata"
 certdir="/tmp"
 baseconf="$TESTDATA/openssl.cnf.base"

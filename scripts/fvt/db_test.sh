@@ -6,11 +6,8 @@
 #
 
 : ${TESTCASE:="db_resiliency"}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
-TESTDATA="$FABRIC_CA/testdata"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 HOST="http://localhost:$PROXY_PORT"
 RC=0
 

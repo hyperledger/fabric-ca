@@ -8,11 +8,8 @@
 
 : ${TESTCASE:="multica-test"}
 TDIR=/tmp/$TESTCASE
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
-. $SCRIPTDIR/fabric-ca_utils
-TLSDIR="$TESTDATA"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 NUMINTCAS=4
 MAXENROLL=$((2*NUMINTCAS))
 NUMUSERS=2

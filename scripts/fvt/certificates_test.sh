@@ -6,11 +6,8 @@
 #
 
 : ${TESTCASE:="certificates"}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-FABRIC_CAEXEC="$FABRIC_CA/bin/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 
 USERNAME="admin"

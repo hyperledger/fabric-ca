@@ -7,10 +7,8 @@
 
 : ${TESTCASE:="intermediateca-test"}
 TDIR=/tmp/$TESTCASE
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 ROOT_CA_ADDR=localhost
 TLSDIR="$TDIR/tls"
 NUMINTCAS=8

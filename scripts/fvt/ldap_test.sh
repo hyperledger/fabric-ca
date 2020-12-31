@@ -6,10 +6,9 @@
 #
 
 : ${TESTNAME:=ldap}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 TESTDIR="/tmp/$TESTNAME"
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 export CA_CFG_PATH="$TESTDIR"
 export UDIR="$TESTDIR/users"

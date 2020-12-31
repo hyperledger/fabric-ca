@@ -6,9 +6,8 @@
 #
 
 : ${TESTCASE="ca_cluster"}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 ROOTDIR=/tmp/cluster
 INTDIR=$ROOTDIR/int
 ROOTUSERDIR=$ROOTDIR/users

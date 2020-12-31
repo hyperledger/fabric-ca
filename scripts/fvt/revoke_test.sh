@@ -5,19 +5,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-TESTDATA="$FABRIC_CA/testdata"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 export CA_CFG_PATH="/tmp/revoke_test"
 RC=0
 DB="fabric_ca"
 USERS=("admin" "admin2" "notadmin" "testUser" "testUser2" "testUser3" )
 PSWDS=("adminpw" "adminpw2" "pass" "user1" "user2" "user3" )
-#USERS=("admin" "admin2" "notadmin")
-#PSWDS=("adminpw" "adminpw2" "pass")
 HTTP_PORT="3755"
 
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 # FIXME should not require user:pass
 URI="${PROTO}user:pass@localhost:$PROXY_PORT"
 

@@ -6,9 +6,8 @@
 #
 
 TESTCASE="backwards_comp"
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 
 export FABRIC_CA_SERVER_HOME="/tmp/$TESTCASE"

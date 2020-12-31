@@ -6,17 +6,11 @@
 #
 
 : ${TESTCASE="keys"}
-CA_CFG_PATH="/tmp/keys"
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-TESTDATA="$FABRIC_CA/testdata"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
+RC=0
 EE_KEY="/tmp/keys/admin/msp/keystore/*_sk"
-EE_CERT="$HOME/abric-ca/cert.pem"
-RC=0
-. $SCRIPTDIR/fabric-ca_utils
-RC=0
-export CA_CFG_PATH
-
+export CA_CFG_PATH="/tmp/keys"
 CA_KEY="$CA_CFG_PATH/msp/keystore/*_sk"
 ecl=(256 384)
 ecOid[256]="prime256v1"
