@@ -81,7 +81,7 @@ docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
 
 changelog:
-	./scripts/changelog.sh v$(PREV_VERSION) HEAD v$(BASE_VERSION)
+	./scripts/changelog.sh v$(PREV_VERSION) v$(BASE_VERSION)
 
 checks: license vet lint format imports
 
