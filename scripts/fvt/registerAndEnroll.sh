@@ -5,9 +5,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+FABRIC_CA="$(cd "$SCRIPTDIR/../.." && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 
 while getopts "du:t:k:l:x:" option; do

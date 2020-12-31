@@ -7,23 +7,18 @@
 
 dbDriver=postgres
 
-: ${TESTCASE="aff_modify"}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
+
+: "${TESTCASE="aff_modify"}"
 TESTDIR=/tmp/$TESTCASE
 RC=0
-NUMROLES=8
-
-# defaults
-declare -A defaultValues
-defaultValues=([Maxenrollments]=2147483647 [Affiliation]='.' [Type]="user" [Passwd]="user1pw")
 
 function tableCount() {
    driver="$1"
    tableType="$2"
    shift 2
-   $SCRIPTDIR/fabric-ca_setup.sh -L -d $driver -D | sed -n "/$tableType:/,/^.*: *$/p" | sed '1,3d;$d' |
+   "$SCRIPTDIR/fabric-ca_setup.sh" -L -d "$driver" -D | sed -n "/$tableType:/,/^.*: *$/p" | sed '1,3d;$d' |
       awk -v s="$*" '
          BEGIN { n=split(s, terms) }
          {

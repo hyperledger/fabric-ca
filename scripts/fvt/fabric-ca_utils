@@ -4,11 +4,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-export FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
+
+if [ -z "${BASH_SOURCE[0]}" ]; then
+  echo "fabric-ca_utils must be sourced by a bash script"
+  exit 2
+fi
+
+export SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export FABRIC_CA="$(cd "$SCRIPTDIR/../.." && pwd)"
 export FABRIC_CA_CLIENTEXEC="/usr/local/bin/fabric-ca-client"
 export FABRIC_CA_SERVEREXEC="/usr/local/bin/fabric-ca-server"
 export TESTDATA="$FABRIC_CA/testdata"
-export SCRIPTDIR="$FABRIC_CA/scripts/fvt"
 export MYSQL_PORT="3306"
 export LDAP_PORT="636"
 export LDAP_PROTO="ldaps://"

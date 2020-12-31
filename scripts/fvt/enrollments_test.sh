@@ -5,9 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
-. $SCRIPTDIR/fabric-ca_utils
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPTDIR/fabric-ca_utils"
 CA_CFG_PATH="/tmp/fabric-ca/enrollments"
 SERVERCONFIG="$CA_CFG_PATH/serverConfig.json"
 CLIENTCONFIG="$CA_CFG_PATH/fabric-ca_client.json"

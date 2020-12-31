@@ -6,15 +6,14 @@
 #
 
 : ${TESTCASE:=gencsr}
-FABRIC_CA="$GOPATH/src/github.com/hyperledger/fabric-ca"
-SCRIPTDIR="$FABRIC_CA/scripts/fvt"
+SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 CA_CFG_PATH="/tmp/$TESTCASE"
 ADMINUSER="admin"
 USERDIR="$CA_CFG_PATH/$ADMINUSER"
 CONFIGFILE="$USERDIR/fabric-ca-client-config.yaml"
 ADMINCERT="$USERDIR/admincert.pem"
 CSR=$CA_CFG_PATH/$ADMINUSER/msp/signcerts/$ADMINUSER.csr
-. $SCRIPTDIR/fabric-ca_utils
+. "$SCRIPTDIR/fabric-ca_utils"
 RC=0
 export CA_CFG_PATH
 rm -rf /tmp/${TESTCASE}
