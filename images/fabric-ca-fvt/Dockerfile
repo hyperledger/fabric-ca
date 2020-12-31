@@ -8,21 +8,20 @@ FROM golang:${GO_VER}-buster as fabric-ca-builder
 ARG GO_LDFLAGS
 ARG GO_TAGS
 
-ADD . $GOPATH/src/github.com/hyperledger/fabric-ca
+ADD . /build/fabric-ca
 WORKDIR /build/fabric-ca
 RUN go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 	-o /usr/local/bin/fabric-ca-server \
 	github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
 	&& go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 	-o /usr/local/bin/fabric-ca-client \
-	github.com/hyperledger/fabric-ca/cmd/fabric-ca-client;
+	github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
 
 FROM debian:buster-20190910-slim
 ARG PG_VER
 
 ENV PATH="/usr/local/go/bin/:${PATH}" \
     DEBIAN_FRONTEND="noninteractive" \
-    GOPATH="/opt/gopath" \
     PGDATA="/usr/local/pgsql/data/" \
     PGUSER="postgres" \
     PGPASSWORD="postgres" \
@@ -61,15 +60,9 @@ RUN ${FABRIC_CA_DATA}/slapd_setup.sh
 RUN ${FABRIC_CA_DATA}/mysql_setup.sh
 
 COPY --from=fabric-ca-builder /usr/local/go /usr/local
-
-# Install fabric-ca dependencies
-RUN go get github.com/go-sql-driver/mysql
-RUN go get github.com/lib/pq
-
-# Add docker-built execs for (potentially) alternative architecture
 COPY --from=fabric-ca-builder /usr/local/bin /usr/local/bin
 
-WORKDIR ${GOPATH}/src/github.com/hyperledger/fabric-ca
+WORKDIR /build/fabric-ca
 RUN cp ${FABRIC_CA_DATA}/start.sh /
 ENTRYPOINT [ "/start.sh" ]
 CMD ["scripts/run_fvt_tests"]

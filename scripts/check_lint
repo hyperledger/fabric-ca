@@ -4,6 +4,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
+TOOLS_DIR="$(cd "$(dirname "$0")/../build/tools" && pwd)"
 
 function runlint {
    for dir in `ls`
@@ -13,7 +14,7 @@ function runlint {
          vendor|bin|testdata|scripts)
            ;;
         *)
-           golint $dir/...
+           "$TOOLS_DIR/golint" $dir/...
            ;;
         esac
       fi

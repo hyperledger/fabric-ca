@@ -33,9 +33,7 @@ jobs:
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
-  - script: make docker-fvt
-    displayName: Build FVT Test Image
-  - script: docker run -v $(pwd):/opt/gopath/src/github.com/hyperledger/fabric-ca hyperledger/fabric-ca-fvt
+  - script: make fvt-tests
     displayName: Run FVT Tests
 
 - job: DocBuild

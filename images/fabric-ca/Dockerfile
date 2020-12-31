@@ -15,7 +15,7 @@ RUN apk add --no-cache \
 	git \
 	musl-dev;
 
-ADD . $GOPATH/src/github.com/hyperledger/fabric-ca
+ADD . /build/fabric-ca
 WORKDIR /build/fabric-ca
 RUN go install -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
 	github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
