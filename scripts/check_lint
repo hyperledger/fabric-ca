@@ -7,18 +7,7 @@
 TOOLS_DIR="$(cd "$(dirname "$0")/../build/tools" && pwd)"
 
 function runlint {
-   for dir in `ls`
-   do
-      if [ -d $dir ]; then
-        case "$dir" in
-         vendor|bin|testdata|scripts)
-           ;;
-        *)
-           "$TOOLS_DIR/golint" $dir/...
-           ;;
-        esac
-      fi
-   done
+  go list ./... | xargs "$TOOLS_DIR/golint"
 }
 
 echo "Running lint ..."
