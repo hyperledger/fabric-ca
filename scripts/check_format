@@ -7,22 +7,22 @@
 rc=0
 
 echo "Checking file format ..."
-found=$(gofmt -l `find . -path ./vendor -prune -o -type f -regex ".*.go" -print` 2>&1)
+found="$(find . -path ./vendor -prune -o -type f -name '*.go' -print0 | xargs -0 gofmt -l)"
 if [[ -n "$found" ]]; then
    echo "The following files need reformatting with 'gofmt -w <file>':"
    echo "$found"
-   let rc+=1
+   (( rc++ )) || true
 fi
 
 echo "Checking for trailing blanks..."
 find . -path ./vendor -prune -o -type f -regex ".*\(regenDocs\|\.\(go\|sh\)\)" \
                       -exec egrep -q " +$" {} \; \
-                      -exec printf "trailing blanks in {}\n" \; | egrep ".*"
+                      -exec printf "trailing blanks in {}\n" \; | grep -E '.*'
 if test $? -eq 0; then
    echo "To fix, run"
    echo '   find . -path ./vendor -prune -o -type f -regex ".*\(regenDocs\|\.\(go\|sh\)\)" -exec sed -i "s/ \+$//" {} \;'
    echo ""
-   let rc+=1
+   (( rc++ )) || true
 fi
 
 test "$rc" -eq 0 || exit "$rc"
