@@ -10,6 +10,6 @@ PRINTFUNCS="Print,Printf,Info,Infof,Warning,Warningf,Error,Errorf,Critical,Criti
 OUTPUT="$(go vet -all -printfuncs $PRINTFUNCS ./...)"
 if [ -n "$OUTPUT" ]; then
     echo "The following files contain go vet errors"
-    echo $OUTPUT
+    echo "$OUTPUT"
     exit 1
 fi
