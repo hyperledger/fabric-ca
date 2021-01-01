@@ -602,9 +602,9 @@ shift $(($OPTIND-1))
 : ${inform:="pem"}
 : ${outform:="der"}
 
-next_year=$(($(date +"%g")+1))
+next_year=$(($(date +"%y")+1))
 one_year=$(date +"$next_year%m%d%H%M%SZ")
-now=$(date +"%g%m%d%H%M%SZ")
+now=$(date +"%y%m%d%H%M%SZ")
 test -z "$startDate" && startDate=$now
 test -z "$endDate" && endDate=$one_year
 
