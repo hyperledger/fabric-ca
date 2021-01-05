@@ -197,6 +197,8 @@ func genECDSAToken(csp bccsp.BCCSP, key bccsp.Key, b64cert, payload string) (str
 
 // VerifyToken verifies token signed by either ECDSA or RSA and
 // returns the associated user ID
+//
+// TODO(mjs): Move to consumer (lib/serverRequestContextImpl#verifyX509Token)
 func VerifyToken(csp bccsp.BCCSP, token string, method, uri string, body []byte, compMode1_3 bool) (*x509.Certificate, error) {
 	if csp == nil {
 		return nil, errors.New("BCCSP instance is not present")

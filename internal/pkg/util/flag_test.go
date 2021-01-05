@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package util_test
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
@@ -46,8 +45,7 @@ type C struct {
 	CStr  string `help:"Str description"`
 }
 
-type ABad struct {
-}
+type ABad struct{}
 
 type DurBad struct {
 	ADur time.Duration `def:"xx" help:"Duration"`
@@ -57,40 +55,30 @@ type Int64Struct struct {
 	Int64Var int64 `def:"3546343826724305832" help:"int64"`
 }
 
-func printit(f *Field) error {
-	//fmt.Printf("%+v\n", f)
-	return nil
-}
-
 func TestRegisterFlags(t *testing.T) {
 	tags := map[string]string{
 		"help.fb.int": "This is an int field",
 	}
 	err := RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &A{}, tags)
-	if err != nil {
-		t.Errorf("Failed to register flags: %s", err)
-	}
+	assert.NoError(t, err, "failed to RegisterFlags for A")
+
 	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &C{}, tags)
-	if err != nil {
-		t.Errorf("Failed to register flags: %s", err)
-	}
+	assert.NoError(t, err, "failed to RegisterFlags for C")
+
 	err = RegisterFlags(viper.GetViper(), &pflag.FlagSet{}, &Int64Struct{}, tags)
 	assert.NoError(t, err, "Failed to register int64 flag")
 }
 
 func TestParseObj(t *testing.T) {
-	err := ParseObj(&A{}, printit, nil)
-	if err != nil {
-		t.Errorf("Failed to parse foo: %s", err)
-	}
+	cb := func(*Field) error { return nil }
+	err := ParseObj(&A{}, cb, nil)
+	assert.NoError(t, err, "failed to parse A")
+
 	err = ParseObj(&A{}, nil, nil)
-	if err == nil {
-		t.Error("Should have failed to parse but didn't")
-	}
+	assert.EqualError(t, err, "nil callback", "parse with nil callback should have failed")
 }
 
 func TestCheckForMissingValues(t *testing.T) {
-
 	src := &A{
 		ADur:      time.Hour,
 		AStr:      "AStr",
@@ -123,43 +111,17 @@ func TestCheckForMissingValues(t *testing.T) {
 
 	CopyMissingValues(src, dst)
 
-	if src.AStr != dst.AStr {
-		t.Error("Failed to copy field AStr")
-	}
-
-	if src.AB.BStr != dst.AB.BStr {
-		t.Error("Failed to copy field AB.BStr")
-	}
-
-	if src.ABPtr.BStr != dst.ABPtr.BStr {
-		t.Error("Failed to copy field ABPtr.BStr")
-	}
-
-	if src.ABPtr.BCPtr.CStr != dst.ABPtr.BCPtr.CStr {
-		t.Error("Failed to copy field ABPtr.BCPtr.CStr")
-	}
-
-	if !reflect.DeepEqual(src.AMap, dst.AMap) {
-		t.Errorf("Failed to copy AMap: src=%+v, dst=%+v", src.AMap, dst.AMap)
-	}
-
-	for i := range src.AIntArray {
-		sv := src.AIntArray[i]
-		dv := dst.AIntArray[i]
-		if sv != dv {
-			t.Errorf("Failed to copy element %d of Int2 array (%d != %d)", i, sv, dv)
-		}
-	}
-
-	if dst.AStr2 != "dstAStr2" {
-		t.Errorf("Incorrectly replaced AStr2 with %s", dst.AStr2)
-	}
-
-	if dst.AInt != 2 {
-		t.Errorf("Incorrectly replaced AInt with %d", dst.AInt)
-	}
+	assert.Equal(t, src.AStr, dst.AStr, "failed to copy field AStr")
+	assert.Equal(t, src.AB.BStr, dst.AB.BStr, "failed to copy field AB.BStr")
+	assert.Equal(t, src.ABPtr.BStr, dst.ABPtr.BStr, "failed to copy field ABPtr.BStr")
+	assert.Equal(t, src.ABPtr.BCPtr.CStr, dst.ABPtr.BCPtr.CStr, "failed to copy field ABPtr.BCPtr.CStr")
+	assert.Equal(t, src.AMap, dst.AMap, "failed to copy AMap")
+	assert.Equal(t, src.AIntArray, dst.AIntArray, "failed to copy AIntArray")
+	assert.Equal(t, "dstAStr2", dst.AStr2, "incorrectly replaced AStr2")
+	assert.Equal(t, 2, dst.AInt, "incorrectly replaced AInt")
 }
 
+// TODO: Remove this and ViperUnmarshal (dead)
 func TestViperUnmarshal(t *testing.T) {
 	var err error
 
@@ -167,9 +129,7 @@ func TestViperUnmarshal(t *testing.T) {
 	vp := viper.New()
 	vp.SetConfigFile("testdata/testviperunmarshal.yaml")
 	err = vp.ReadInConfig()
-	if err != nil {
-		t.Errorf("Failed to read config file: %s", err)
-	}
+	assert.NoError(t, err, "failed to read configuration")
 
 	sliceFields := []string{
 		"db.tls",

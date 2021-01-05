@@ -9,6 +9,8 @@ SPDX-License-Identifier: Apache-2.0
 package util
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/hyperledger/fabric/bccsp/factory"
@@ -17,7 +19,10 @@ import (
 )
 
 func TestConfigureBCCSP(t *testing.T) {
-	mspDir := "msp"
+	mspDir, err := ioutil.TempDir("", "util-bccsp")
+	assert.NoError(t, err)
+	defer os.RemoveAll(mspDir)
+
 	lib, pin, label := pkcs11.FindPKCS11Lib()
 	opts := &factory.FactoryOpts{
 		ProviderName: "PKCS11",
@@ -30,10 +35,8 @@ func TestConfigureBCCSP(t *testing.T) {
 		},
 	}
 
-	err := ConfigureBCCSP(&opts, mspDir, "")
-	if err != nil {
-		t.Fatalf("Failed initialization 1 of BCCSP: %s", err)
-	}
+	err = ConfigureBCCSP(&opts, mspDir, "")
+	assert.NoError(t, err, "bccsp initialization failed")
 }
 
 func TestSanitizePKCS11Opts(t *testing.T) {
