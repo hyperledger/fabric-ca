@@ -8,7 +8,6 @@ package util_test
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,7 +16,6 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	. "github.com/hyperledger/fabric-ca/internal/pkg/util"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util/mocks"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/stretchr/testify/assert"
@@ -175,9 +173,8 @@ func TestGetSignerFromCertInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "CSP was not initialized")
 
-	csp := &mocks.BCCSP{}
-	csp.On("KeyImport", (*x509.Certificate)(nil), &bccsp.X509PublicKeyImportOpts{Temporary: true}).Return(bccsp.Key(nil), errors.New("mock key import error"))
-	_, _, err = GetSignerFromCert(nil, csp)
+	_, _, err = GetSignerFromCert(&x509.Certificate{}, csp)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to import certificate's public key: mock key import error")
+	assert.Contains(t, err.Error(), "Failed to import certificate's public key:")
+	assert.Contains(t, err.Error(), "Certificate's public key type not recognized.")
 }
