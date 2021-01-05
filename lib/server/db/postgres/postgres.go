@@ -8,6 +8,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"regexp"
 	"strings"
@@ -105,6 +106,18 @@ func (p *Postgres) PingContext(ctx context.Context) error {
 	return nil
 }
 
+// exists determines if the database has already been created
+func exists(sqlxDB db.FabricCADB, dbName string) (bool, error) {
+	log.Debugf("Checking if Postgres CA database '%s' exists", dbName)
+	var exists bool
+	query := fmt.Sprintf("SELECT true as exists FROM pg_catalog.pg_database WHERE lower(datname) = lower('%s')", dbName)
+	err := sqlxDB.Get("CheckIfDatabaseExists", &exists, query)
+	if err != nil && err != sql.ErrNoRows {
+		return false, errors.Wrapf(err, "Failed to check if Postgres CA database '%s' exists", dbName)
+	}
+	return exists, nil
+}
+
 // Create creates database and tables
 func (p *Postgres) Create() (*db.DB, error) {
 	db, err := p.CreateDatabase()
@@ -120,16 +133,15 @@ func (p *Postgres) Create() (*db.DB, error) {
 
 // CreateDatabase creates database
 func (p *Postgres) CreateDatabase() (*db.DB, error) {
-	dbName := p.dbName
 	err := p.createDatabase()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create Postgres database")
 	}
 
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, util.MaskDBCred(p.datasource))
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", p.dbName, util.MaskDBCred(p.datasource))
 	sqlxdb, err := sqlx.Open("postgres", p.datasource)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to open database '%s' in Postgres server", dbName)
+		return nil, errors.Wrapf(err, "Failed to open database '%s' in Postgres server", p.dbName)
 	}
 	p.SqlxDB = db.New(sqlxdb, p.CAName, p.Metrics)
 
@@ -146,17 +158,17 @@ func (p *Postgres) CreateTables() error {
 }
 
 func (p *Postgres) createDatabase() error {
-	dbName := p.dbName
-	log.Debugf("Creating Postgres Database (%s) if it does not exist...", dbName)
-
-	query := "CREATE DATABASE " + dbName
-	_, err := p.SqlxDB.Exec("CreateDatabase", query)
+	exists, err := exists(p.SqlxDB, p.dbName)
 	if err != nil {
-		if !strings.Contains(err.Error(), fmt.Sprintf("database \"%s\" already exists", dbName)) {
+		return err
+	}
+	if !exists {
+		log.Debugf("Creating Postgres Database '%s'", p.dbName)
+		_, err := p.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE "+p.dbName)
+		if err != nil {
 			return errors.Wrap(err, "Failed to execute create database query")
 		}
 	}
-
 	return nil
 }
 
