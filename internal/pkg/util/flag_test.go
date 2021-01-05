@@ -11,7 +11,6 @@ import (
 	"time"
 
 	. "github.com/hyperledger/fabric-ca/internal/pkg/util"
-	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -119,33 +118,6 @@ func TestCheckForMissingValues(t *testing.T) {
 	assert.Equal(t, src.AIntArray, dst.AIntArray, "failed to copy AIntArray")
 	assert.Equal(t, "dstAStr2", dst.AStr2, "incorrectly replaced AStr2")
 	assert.Equal(t, 2, dst.AInt, "incorrectly replaced AInt")
-}
-
-// TODO: Remove this and ViperUnmarshal (dead)
-func TestViperUnmarshal(t *testing.T) {
-	var err error
-
-	cfg := &lib.CAConfig{}
-	vp := viper.New()
-	vp.SetConfigFile("testdata/testviperunmarshal.yaml")
-	err = vp.ReadInConfig()
-	assert.NoError(t, err, "failed to read configuration")
-
-	sliceFields := []string{
-		"db.tls",
-	}
-	err = ViperUnmarshal(cfg, sliceFields, vp)
-	if err == nil {
-		t.Error("Should have resulted in an error, as tls can't be casted to type string array")
-	}
-
-	sliceFields = []string{
-		"db.tls.certfiles",
-	}
-	err = ViperUnmarshal(cfg, sliceFields, vp)
-	if err != nil {
-		t.Error("Failed to correctly process valid path to be type string array: ", err)
-	}
 }
 
 func TestRegisterFlagsInvalidArgs(t *testing.T) {
