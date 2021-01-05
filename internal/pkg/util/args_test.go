@@ -9,6 +9,8 @@ package util
 import (
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCommandLineOptValue(t *testing.T) {
@@ -37,29 +39,26 @@ func TestOpts(t *testing.T) {
 	testOpt(t, "-port", "", "7054")
 }
 
-func testGetCommandLineOptValue(t *testing.T,
-	args []string, opt string, expectedVal string, expectedArgs []string) {
+func testGetCommandLineOptValue(t *testing.T, args []string, opt string, expectedVal string, expectedArgs []string) {
+	defer func(args []string) { os.Args = args }(os.Args)
 
-	saveArgs := os.Args
 	os.Args = args
 	val := getCommandLineOptValue(opt)
-	if val != expectedVal {
-		t.Errorf("val was '%s' but expected '%s'", val, expectedVal)
-	}
-	compareArgs(t, os.Args, expectedArgs)
-	os.Args = saveArgs
+	assert.Equal(t, expectedVal, val)
+	assert.Equal(t, expectedArgs, os.Args)
 }
 
 func testSetDefaultServerPort(t *testing.T, inputArgs []string, expectedOutputArgs []string) {
-	saveArgs := os.Args
+	defer func(args []string) { os.Args = args }(os.Args)
+
 	os.Args = inputArgs
 	setDefaultServerPort()
-	compareArgs(t, os.Args, expectedOutputArgs)
-	os.Args = saveArgs
+	assert.Equal(t, expectedOutputArgs, os.Args)
 }
 
 func testOpt(t *testing.T, opt, val, expectedVal string) {
-	saveArgs := os.Args
+	defer func(args []string) { os.Args = args }(os.Args)
+
 	if val != "" {
 		os.Args = []string{"fabric-ca", "client", "enroll", opt, val}
 	} else {
@@ -75,22 +74,5 @@ func testOpt(t *testing.T, opt, val, expectedVal string) {
 	default:
 		panic("bad opt value")
 	}
-	if val != expectedVal {
-		t.Errorf("val was '%s' but expected '%s' for option '%s'", val, expectedVal, opt)
-	}
-	os.Args = saveArgs
-}
-
-func compareArgs(t *testing.T, args, expectedArgs []string) {
-	if len(args) == len(expectedArgs) {
-		for i, arg := range args {
-			if arg != expectedArgs[i] {
-				t.Errorf("args were '%+v' but expected '%+v'", args, expectedArgs)
-				return
-			}
-		}
-	} else {
-		t.Errorf("args were '%+v' but expected '%+v'", args, expectedArgs)
-	}
-
+	assert.Equal(t, expectedVal, val, "unexpected value for option '%s'", opt)
 }

@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package util
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -15,7 +14,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -25,82 +23,62 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric/bccsp/factory"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
+// TODO(mjs): So many tests that aren't. These need to be reviewed to ensure
+// that the tests are driving out the correct paths and assertions as there
+// are some obvious deficiencies.
+
 func TestGetEnrollmentIDFromPEM(t *testing.T) {
 	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	if err != nil {
-		t.Fatalf("TestGetEnrollmentIDFromPEM.ReadFile failed: %s", err)
-	}
+	assert.NoError(t, err)
+
 	_, err = GetEnrollmentIDFromPEM(cert)
-	if err != nil {
-		t.Fatalf("Failed to get enrollment ID from PEM: %s", err)
-	}
+	assert.NoError(t, err, "failed to get enrollment ID from PEM")
 }
 
 func TestECCreateToken(t *testing.T) {
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
 	bccsp := GetDefaultBCCSP()
 	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
-	if err != nil {
-		t.Logf("Failed importing key %s", err)
-	}
+	assert.NoError(t, err, "failed to import key")
+
+	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	assert.NoError(t, err)
 	body := []byte("request byte array")
 
-	ECtoken, err := CreateToken(bccsp, cert, privKey, "GET", "/enroll", body)
-	if err != nil {
-		t.Fatalf("CreatToken failed: %s", err)
-	}
+	tok, err := CreateToken(bccsp, cert, privKey, "GET", "/enroll", body)
+	assert.NoError(t, err, "CreateToken failed")
 
 	os.Setenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3", "false") // Test new token
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body, false)
-	if err != nil {
-		t.Fatalf("VerifyToken failed: %s", err)
-	}
+	_, err = VerifyToken(bccsp, tok, "GET", "/enroll", body, false)
+	assert.NoError(t, err, "VerifyToken failed")
 
-	_, err = VerifyToken(nil, ECtoken, "GET", "/enroll", body, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as no instance of csp is passed")
-	}
+	_, err = VerifyToken(nil, tok, "GET", "/enroll", body, false)
+	assert.Error(t, err, "VerifyToken should have failed as no instance of CSP was provided")
 
 	_, err = VerifyToken(bccsp, "", "GET", "/enroll", body, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as no EC Token is passed")
-	}
+	assert.Error(t, err, "VerifyToken should have failed as no EC token was provided")
 
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", nil, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as no body is passed")
-	}
+	_, err = VerifyToken(bccsp, tok, "GET", "/enroll", nil, false)
+	assert.Error(t, err, "VerifyToken should have failed as no body was provided")
 
-	_, err = VerifyToken(bccsp, ECtoken, "POST", "/enroll", nil, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as method was tampered")
-	}
+	_, err = VerifyToken(bccsp, tok, "POST", "/enroll", body, false)
+	assert.Error(t, err, "VerifyToken should have failed as the method was changed")
 
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/affiliations", nil, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as path was tampered")
-	}
+	_, err = VerifyToken(bccsp, tok, "GET", "/affiliations", body, false)
+	assert.Error(t, err, "VerifyToken should have failed as the path was changed")
 
-	verifiedByte := []byte("TEST")
-	body = append(body, verifiedByte[0])
-	_, err = VerifyToken(bccsp, ECtoken, "GET", "/enroll", body, false)
-	if err == nil {
-		t.Fatal("VerifyToken should have failed as body was tampered")
-	}
+	_, err = VerifyToken(bccsp, tok, "GET", "/enroll", append(body, byte('T')), false)
+	assert.Error(t, err, "VerifyToken should have failed as the body was changed")
 
-	ski, skierror := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
-	if skierror != nil {
-		t.Fatalf("SKI File Read failed with error : %s", skierror)
-	}
-	ECtoken, err = CreateToken(bccsp, ski, privKey, "GET", "/enroll", body)
-	if (err == nil) || (ECtoken != "") {
-		t.Fatal("CreatToken should have failed as certificate passed is not correct")
-	}
+	ski, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	assert.NoError(t, err, "failed to read ec-key.ski")
+
+	tok, err = CreateToken(bccsp, ski, privKey, "GET", "/enroll", body)
+	assert.Error(t, err, "CreateToken should have failed with non-certificate")
+	assert.Equal(t, "", tok)
 
 	// With comptability mode disabled, using old token should fail
 	b64Cert := B64Encode(cert)
@@ -136,136 +114,104 @@ func TestDecodeToken(t *testing.T) {
 }
 
 func TestGetX509CertFromPem(t *testing.T) {
-	certBuffer, error := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	if error != nil {
-		t.Fatalf("Certificate File Read from file failed with error : %s", error)
-	}
-	certificate, err := GetX509CertificateFromPEM(certBuffer)
-	if err != nil {
-		t.Fatalf("GetX509CertificateFromPEM failed with error : %s", err)
-	}
-	if certificate == nil {
-		t.Fatal("Certificate cannot be nil")
-	}
+	certBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	assert.NoError(t, err)
 
-	skiBuffer, skiError := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
-	if skiError != nil {
-		t.Fatalf("SKI File read failed with error : %s", skiError)
-	}
+	certificate, err := GetX509CertificateFromPEM(certBuffer)
+	assert.NoError(t, err, "GetX509CertificateFromPEM failed")
+	assert.NotNil(t, certificate, "certificate cannot be nil")
+
+	skiBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	assert.NoError(t, err)
 
 	certificate, err = GetX509CertificateFromPEM(skiBuffer)
-	if err == nil {
-		t.Fatal("GetX509CertificateFromPEM should have failed as bytes passed was not in correct format")
-	}
-	if certificate != nil {
-		t.Fatalf("GetX509CertificateFromPEM should have failed as bytes passed was not in correct format")
-	}
+	assert.Error(t, err, "GetX509CertificateFromPEM should have failed as bytes passed was not in correct format")
+	assert.Nil(t, certificate, "GetX509CertificateFromPEM should have failed as bytes passed was not in correct format")
 }
 
 func TestGetX509CertsFromPem(t *testing.T) {
-	certBuffer, error := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	if error != nil {
-		t.Fatalf("Certificate File Read from file failed with error : %s", error)
-	}
+	certBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	assert.NoError(t, err)
+
 	certificates, err := GetX509CertificatesFromPEM(certBuffer)
 	assert.NoError(t, err, "GetX509CertificatesFromPEM failed")
 	assert.NotNil(t, certificates)
 	assert.Equal(t, 1, len(certificates), "GetX509CertificatesFromPEM should have returned 1 certificate")
 
-	skiBuffer, skiError := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
-	if skiError != nil {
-		t.Fatalf("SKI File read failed with error : %s", skiError)
-	}
+	skiBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	assert.NoError(t, err)
 
 	certificates, err = GetX509CertificatesFromPEM(skiBuffer)
-	if err == nil {
-		t.Fatal("GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
-	}
-	if certificates != nil {
-		t.Fatalf("GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
-	}
+	assert.Error(t, err, "GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
+	assert.Nil(t, certificates, "GetX509CertificatesFromPEM should have failed as bytes passed was not in correct format")
 }
 
-func TestCreateTokenDiffKey(t *testing.T) {
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "rsa-key.pem"), bccsp, true)
-	body := []byte("request byte array")
-	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", body)
-	if err == nil {
-		t.Fatalf("TestCreateTokenDiffKey passed but should have failed")
-	}
-}
+// TODO(mjs): This isn't testing what it claims to test. RSA keys cannot be
+// imported so privKey is nil when CreateToken is called.
+
+// func TestCreateTokenDiffKey(t *testing.T) {
+// 	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+// 	bccsp := GetDefaultBCCSP()
+// 	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "rsa-key.pem"), bccsp, true)
+// 	body := []byte("request byte array")
+// 	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", body)
+// 	if err == nil {
+// 		t.Fatalf("TestCreateTokenDiffKey passed but should have failed")
+// 	}
+// }
 
 func TestEmptyToken(t *testing.T) {
-	body := []byte("request byte array")
-
 	csp := factory.GetDefault()
-	_, err := VerifyToken(csp, "", "POST", "/enroll", body, true)
-	if err == nil {
-		t.Fatalf("TestEmptyToken passed but should have failed")
-	}
+	_, err := VerifyToken(csp, "", "POST", "/enroll", []byte("request-body"), true)
+	assert.Error(t, err, "verification should fail with an empty token")
 }
 
 func TestEmptyCert(t *testing.T) {
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	body := []byte("request byte array")
+	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	assert.NoError(t, err)
 
 	csp := factory.GetDefault()
-	_, err := CreateToken(csp, cert, nil, "POST", "/enroll", body)
-	if err == nil {
-		t.Fatalf("TestEmptyCert passed but should have failed")
-	}
+	_, err = CreateToken(csp, cert, nil, "POST", "/enroll", []byte("request body"))
+	assert.Error(t, err, "CreateToken should have failed with nil key")
 }
 
 func TestEmptyKey(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
-	body := []byte("request byte array")
-	_, err := CreateToken(bccsp, []byte(""), privKey, "POST", "/enroll", body)
-	if err == nil {
-		t.Fatalf("TestEmptyKey passed but should have failed")
-	}
+	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
+	assert.NoError(t, err)
+
+	_, err = CreateToken(bccsp, []byte(""), privKey, "POST", "/enroll", []byte("request body"))
+	assert.Error(t, err, "CreateToken should have failed with empty certificate")
 }
 
 func TestEmptyBody(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
-	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
-	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
-	_, err := CreateToken(bccsp, cert, privKey, "POST", "/enroll", []byte(""))
-	if err != nil {
-		t.Fatalf("CreateToken failed: %s", err)
-	}
+	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
+	assert.NoError(t, err)
+	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	assert.NoError(t, err)
+
+	_, err = CreateToken(bccsp, cert, privKey, "POST", "/enroll", []byte(""))
+	assert.NoError(t, err, "create token should succeed with empty body")
 }
 
 func TestRandomString(t *testing.T) {
-	str := RandomString(10)
-	if str == "" {
-		t.Fatalf("RandomString failure")
+	for i := 0; i <= 10; i++ {
+		str := RandomString(i)
+		assert.Equal(t, i, len(str))
 	}
 }
 
 func TestCreateHome(t *testing.T) {
-	t.Log("Test Creating Home Directory")
-	os.Unsetenv("COP_HOME")
 	tempDir, err := ioutil.TempDir("", "test")
-	if err != nil {
-		t.Errorf("Failed to create temp directory [error: %s]", err)
-	}
+	assert.NoError(t, err, "failed to create temporary directory")
+	defer os.RemoveAll(tempDir)
+
 	os.Setenv("HOME", tempDir)
-
 	dir, err := CreateClientHome()
-	if err != nil {
-		t.Errorf("Failed to create home directory, error: %s", err)
-	}
-
-	if _, err = os.Stat(dir); err != nil {
-		if os.IsNotExist(err) {
-			t.Error("Failed to create home directory")
-		}
-	}
-
-	os.RemoveAll(dir)
+	assert.NoError(t, err, "Failed to create home directory, error: %s")
+	assert.Equal(t, filepath.Join(tempDir, ".fabric-ca-client"), dir)
+	assert.DirExists(t, dir, "client home directory was not created")
 }
 
 func TestGetDefaultConfigFile(t *testing.T) {
@@ -280,101 +226,94 @@ func TestGetDefaultConfigFile(t *testing.T) {
 	os.Setenv("HOME", "/tmp")
 
 	expected := filepath.Join("/tmp/.fabric-ca-client/", clientConfig)
-	real := GetDefaultConfigFile("fabric-ca-client")
-	if real != expected {
-		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
-			expected, real)
-	}
+	actual := GetDefaultConfigFile("fabric-ca-client")
+	assert.Equal(t, expected, actual, "incorrect default config path")
 
 	os.Setenv("FABRIC_CA_HOME", "/tmp")
 	expected = filepath.Join("/tmp", clientConfig)
-	real = GetDefaultConfigFile("fabric-ca-client")
-	if real != expected {
-		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
-			expected, real)
-	}
+	actual = GetDefaultConfigFile("fabric-ca-client")
+	assert.Equal(t, expected, actual, "incorrect default config path")
 
 	expected = filepath.Join("/tmp", serverConfig)
-	real = GetDefaultConfigFile("fabric-ca-server")
-	if real != expected {
-		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
-			expected, real)
-	}
+	actual = GetDefaultConfigFile("fabric-ca-server")
+	assert.Equal(t, expected, actual, "incorrect default config path")
 
 	os.Setenv("FABRIC_CA_CLIENT_HOME", "/tmp/client")
 	expected = filepath.Join("/tmp/client", clientConfig)
-	real = GetDefaultConfigFile("fabric-ca-client")
-	if real != expected {
-		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
-			expected, real)
-	}
+	actual = GetDefaultConfigFile("fabric-ca-client")
+	assert.Equal(t, expected, actual, "incorrect default config path")
 
 	os.Setenv("FABRIC_CA_SERVER_HOME", "/tmp/server")
 	expected = filepath.Join("/tmp/server", serverConfig)
-	real = GetDefaultConfigFile("fabric-ca-server")
-	if real != expected {
-		t.Errorf("Incorrect default config path retrieved; expected %s but found %s",
-			expected, real)
-	}
+	actual = GetDefaultConfigFile("fabric-ca-server")
+	assert.Equal(t, expected, actual, "incorrect default config path")
 }
 
+// TODO(mjs): Move the implementation to the consumer(s). The majority of the
+// users are in the client pacakge and all the code does is annotate error
+// messages and hide the fact that the serialization format is JSON.
+// Oh, and the test doesn't even test the error wrapping aspect...
 func TestUnmarshal(t *testing.T) {
 	byteArray := []byte(`{"text":"foo"}`)
 	var test struct {
 		Text string
 	}
-	if err := Unmarshal(byteArray, &test, "testing unmarshal"); err != nil {
-		t.Error("Failed to unmarshal, error: ", err)
-	}
-	if test.Text != "foo" {
-		t.Fatalf("unmarshal failed, want: foo, got: %s", test.Text)
-	}
+	err := Unmarshal(byteArray, &test, "testing unmarshal")
+	assert.NoError(t, err, "failed to unmarshal")
+	assert.Equal(t, "foo", test.Text)
 }
 
+func TestUnmarshalInvalidArgs(t *testing.T) {
+	err := Unmarshal(nil, nil, "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Failed to unmarshal ")
+}
+
+// TODO(mjs): Move the implementation to the consumer(s). The majority of the
+// users are in the 'lib' pacakge and all the code does is annotate error
+// messages and hide the fact that the serialization format is JSON.
+// Oh, and the test doesn't even test the error wrapping aspect...
 func TestMarshal(t *testing.T) {
 	var x interface{}
 	_, err := Marshal(x, "testing marshal")
-	if err != nil {
-		t.Error("Failed to marshal, error: ", err)
-	}
+	assert.NoError(t, err, "failed to marshal")
 }
 
+// TODO(mjs): Get rid of this. It's literally a call to ioutil.ReadFile.
 func TestReadFile(t *testing.T) {
 	_, err := ReadFile(filepath.Join("testdata", "csr.json"))
-	if err != nil {
-		t.Error("Failed to read file, error: ", err)
-	}
+	assert.NoError(t, err, "failed to read file")
 }
 
 func TestWriteFile(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "writefiletest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testdir, err := ioutil.TempDir("", "writefiletest")
+	assert.NoError(t, err)
 	defer os.RemoveAll(testdir)
+
 	testData := []byte("foo")
 	err = WriteFile(filepath.Join(testdir, "test.txt"), testData, 0777)
 	assert.NoError(t, err)
+
 	readOnlyDir := filepath.Join(testdir, "readonlydir")
 	err = os.MkdirAll(readOnlyDir, 4444)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to create read only directory")
 	err = WriteFile(filepath.Join(readOnlyDir, "test/test.txt"), testData, 0777)
 	assert.Error(t, err, "Should fail to create 'test' directory as the parent directory is read only")
 }
 
 func TestFileExists(t *testing.T) {
-	name := "testdata/csr.json"
+	name := filepath.Join("testdata", "csr.json")
 	exists := FileExists(name)
-	if exists == false {
-		t.Error("File does not exist")
-	}
-	name = "better-not-exist"
-	exists = FileExists(name)
-	if exists == true {
-		t.Error("File 'better-not-exist' should not exist")
-	}
+	assert.True(t, exists, "%s should be an existing file", name)
+
+	exists = FileExists("better-not-exist")
+	assert.False(t, exists, "better-not-exist should not be an existing file")
+}
+
+func testMakeFileAbs(t *testing.T, file, dir, expect string) {
+	path, err := MakeFileAbs(file, dir)
+	assert.NoError(t, err, "failed to make %s absolute", file)
+	assert.Equal(t, expect, path, "unexpected absolute path for file %q in directory %q", file, dir)
 }
 
 func TestMakeFileAbs(t *testing.T) {
@@ -390,62 +329,48 @@ func TestMakeFilesAbs(t *testing.T) {
 	file3 := "/a/b"
 	files := []*string{&file1, &file2, &file3}
 	err := MakeFileNamesAbsolute(files, "/tmp")
-	if err != nil {
-		t.Fatalf("MakeFilesAbsolute failed: %s", err)
-	}
-	if file1 != "/tmp/a" {
-		t.Errorf("TestMakeFilesAbs failure: expecting /tmp/a but found %s", file1)
-	}
-	if file2 != "/tmp/a/b" {
-		t.Errorf("TestMakeFilesAbs failure: expecting /tmp/a/b but found %s", file2)
-	}
-	if file3 != "/a/b" {
-		t.Errorf("TestMakeFilesAbs failure: expecting /a/b but found %s", file3)
-	}
+	assert.NoError(t, err, "MakeFileNamesAbsolute failed")
+
+	assert.Equal(t, "/tmp/a", file1)
+	assert.Equal(t, "/tmp/a/b", file2)
+	assert.Equal(t, "/a/b", file3)
 }
 
 func TestB64(t *testing.T) {
+	// FIXME(mjs): And this tests the standard library...
 	buf := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	str := B64Encode(buf)
 	buf2, err := B64Decode(str)
-	if err != nil {
-		t.Errorf("Failed base64 decoding standard: %s", err)
-	}
-	if !bytes.Equal(buf, buf2) {
-		t.Error("Failed base64 decoding standard bytes aren't equal")
-	}
+	assert.NoError(t, err, "failed base64 decoding")
+	assert.Equal(t, buf, buf2)
 }
 
 func TestGetUser(t *testing.T) {
+	v := viper.New()
 	os.Unsetenv("FABRIC_CA_CLIENT_URL")
-	viper.BindEnv("url", "FABRIC_CA_CLIENT_URL")
+	err := v.BindEnv("url", "FABRIC_CA_CLIENT_URL")
+	assert.NoError(t, err)
+
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://localhost:7054")
-	_, _, err := GetUser(viper.GetViper())
+	_, _, err = GetUser(v)
 	assert.Error(t, err, "Should have failed no username and password provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://:pass@localhost:7054")
-	_, _, err = GetUser(viper.GetViper())
+	_, _, err = GetUser(v)
 	assert.Error(t, err, "Should have failed no username provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://user:@localhost:7054")
-	_, _, err = GetUser(viper.GetViper())
+	_, _, err = GetUser(v)
 	assert.Error(t, err, "Should have failed no password provided")
 
 	os.Setenv("FABRIC_CA_CLIENT_URL", "http://foo:bar@localhost:7054")
-
-	user, pass, err := GetUser(viper.GetViper())
+	user, pass, err := GetUser(v)
 	assert.NoError(t, err)
-
-	if user != "foo" {
-		t.Error("Failed to retrieve correct username")
-	}
-
-	if pass != "bar" {
-		t.Error("Failed to retrieve correct password")
-	}
+	assert.Equal(t, "foo", user, "unexpected username")
+	assert.Equal(t, "bar", pass, "unexpected password")
 }
 
-type configID struct {
+type masked struct {
 	Name string `mask:"username"`
 	Addr string `json:"address"`
 	Pass string `mask:"password"`
@@ -453,49 +378,37 @@ type configID struct {
 	ID   int    `mask:"url"`
 }
 
-func (cc configID) String() string {
+func (cc masked) String() string {
 	return StructToString(&cc)
 }
 
 func TestStructToString(t *testing.T) {
-	var obj configID
-	obj.Name = "foo"
-	addr := "101, penn ave"
-	obj.Addr = addr
-	obj.Pass = "bar"
+	obj := masked{
+		Name: "foo",
+		Addr: "101, penn ave",
+		Pass: "bar",
+		URL:  "http://bang:bazzword@localhost:7054",
+	}
 	str := StructToString(&obj)
-	if strings.Contains(str, "bar") {
-		t.Errorf("Password is not masked by the StructToString function: %s", str)
-	}
-	if strings.Contains(str, "foo") {
-		t.Errorf("Name is not masked by the StructToString function: %s", str)
-	}
-	if !strings.Contains(str, addr) {
-		t.Errorf("Addr is masked by the StructToString function: %s", str)
-	}
+	assert.NotContains(t, str, "bar", "password is not masked")
+	assert.NotContains(t, str, "foo", "name is not masked")
+	assert.Contains(t, str, obj.Addr, "address should not be masked")
+	assert.NotContains(t, str, "bang", "user from url is not masked in the output")
+	assert.NotContains(t, str, "bazzword", "password from url is not masked in the output")
 
-	type registry struct {
-		MaxEnrollments int
-		Identities     []configID
-	}
-	type config struct {
-		Registry     registry
-		Affiliations map[string]interface{}
-	}
-	affiliations := map[string]interface{}{"org1": nil}
+	type registry struct{ Identities []masked }
+	type config struct{ Registry registry }
 	caConfig := config{
-		Affiliations: affiliations,
 		Registry: registry{
-			MaxEnrollments: -1,
-			Identities: []configID{
-				configID{
+			Identities: []masked{
+				{
 					Name: "foo",
 					Pass: "foopwd",
 					Addr: "user",
 					URL:  "http://foo:foopwd@localhost:7054",
 					ID:   2,
 				},
-				configID{
+				{
 					Name: "bar",
 					Pass: "barpwd",
 					Addr: "user",
@@ -508,10 +421,8 @@ func TestStructToString(t *testing.T) {
 	caConfigStr := fmt.Sprintf("caConfig=%+v", caConfig)
 	assert.NotContains(t, caConfigStr, "foopwd", "Identity password is not masked in the output")
 	assert.NotContains(t, caConfigStr, "barpwd", "Identity password is not masked in the output")
-	idStr := fmt.Sprintf("Identity[0]=%+v", caConfig.Registry.Identities[0])
-	assert.NotContains(t, idStr, "foopwd", "Identity password is not masked in the output")
-	idStr = fmt.Sprintf("Identity[1]=%+v", &caConfig.Registry.Identities[1])
-	assert.NotContains(t, idStr, "barpwd", "Identity password is not masked in the output")
+	assert.NotContains(t, caConfig.Registry.Identities[0].String(), "foopwd", "Identity password is not masked in the output")
+	assert.NotContains(t, caConfig.Registry.Identities[1].String(), "barpwd", "Identity password is not masked in the output")
 }
 
 func TestNormalizeStringSlice(t *testing.T) {
@@ -555,35 +466,15 @@ func TestNormalizeStringSlice(t *testing.T) {
 func TestNormalizeFileList(t *testing.T) {
 	slice := []string{"[file0,file1]", "file2,file3", "file4", "[file5]"}
 	slice, err := NormalizeFileList(slice, "testdata")
-	if err != nil {
-		t.Fatalf("Failed to normalize files list, error: %s", err)
-	}
-	assert.Equal(t, 6, len(slice), "Invalid slice length")
+	assert.NoError(t, err, "failed to normalize files list")
+	assert.Len(t, slice, 6, "Invalid slice length")
+
+	dataDir, err := filepath.Abs("testdata")
+	assert.NoError(t, err)
 	for i := range slice {
-		if !strings.HasSuffix(slice[i], fmt.Sprintf("file%d", i)) {
-			t.Errorf("Failed to normalize files list for element %d; found '%s'", i, slice[i])
-		}
+		assert.Equal(t, dataDir, filepath.Dir(slice[i]))
+		assert.Equal(t, fmt.Sprintf("file%d", i), filepath.Base(slice[i]))
 	}
-}
-
-func testMakeFileAbs(t *testing.T, file, dir, expect string) {
-	path, err := MakeFileAbs(file, dir)
-	if err != nil {
-		t.Errorf("Failed to make %s absolute: %s", file, err)
-	}
-	// make expected path platform specific to work on Windows
-	if expect != "" {
-		expect, _ = filepath.Abs(expect)
-	}
-	if path != expect {
-		t.Errorf("Absolute of file=%s with dir=%s expected %s but was %s", file, dir, expect, path)
-	}
-}
-
-func TestUnmarshalInvalidArgs(t *testing.T) {
-	err := Unmarshal(nil, nil, "")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Failed to unmarshal ")
 }
 
 func TestGetSerialAsHex(t *testing.T) {
@@ -596,13 +487,9 @@ func TestECPrivateKey(t *testing.T) {
 	assert.NoError(t, err)
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
-	if err != nil {
-		t.Fatalf("Failed to create rsa key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to create RSA key")
 	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
-	if err != nil {
-		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to marshal RSA private key")
 
 	pemEncodedPK := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
 	_, err = GetECPrivateKey(pemEncodedPK)
@@ -628,13 +515,9 @@ func TestRSAPrivateKey(t *testing.T) {
 	assert.NoError(t, err)
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
-	if err != nil {
-		t.Fatalf("Failed to create rsa key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to create RSA key")
 	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
-	if err != nil {
-		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to marshal RSA private key")
 
 	pemEncodedPK := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
 	_, err = GetRSAPrivateKey(pemEncodedPK)
@@ -644,93 +527,55 @@ func TestRSAPrivateKey(t *testing.T) {
 	assert.Error(t, err)
 
 	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatalf("Failed to create rsa key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to generate P256 key")
 	encodedPK, err = x509.MarshalPKCS8PrivateKey(ecdsaKey)
-	if err != nil {
-		t.Fatalf("Failed to marshal RSA private key: %s", err.Error())
-	}
+	assert.NoError(t, err, "failed to marshal P256 private key")
 
 	pemEncodedPK = pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encodedPK})
 	_, err = GetRSAPrivateKey(pemEncodedPK)
-	assert.Error(t, err)
+	assert.Error(t, err, "treating P56 key as RSA private key should fail")
 }
 
 func TestCheckHostsInCert(t *testing.T) {
 	err := CheckHostsInCert("testdata/doesnotexist.pem", "")
-	assert.Error(t, err)
+	assert.Error(t, err) // TODO(mjs): clearly any error will do
 
 	err = CheckHostsInCert(filepath.Join("testdata", "tls_server-cert.pem"), "localhost")
-	assert.NoError(t, err, fmt.Sprintf("Failed to find 'localhost' for host in certificate: %s", err))
+	assert.NoError(t, err, "failed to find 'localhost' in certificate")
 
 	err = CheckHostsInCert("testdata/tls_server-cert.pem", "localhost", "fakehost")
-	assert.Error(t, err, "Certificate does not contain 'fakehost', should have failed")
+	assert.Error(t, err, "certificate does not contain 'fakehost', should have failed")
 
 	err = CheckHostsInCert("testdata/root.pem", "x")
-	assert.Error(t, err, "Certificate contained no host, should have failed")
+	assert.Error(t, err, "certificate contained no host, should have failed")
 }
 
 func TestCertDuration(t *testing.T) {
 	d, err := GetCertificateDurationFromFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
-	assert.True(t, d.Hours() == 43800, "Expected certificate duration of 43800h in ec.pem")
+	assert.EqualValues(t, 43800, d.Hours(), "Expected certificate duration of 43800h in ec.pem")
+
 	_, err = GetCertificateDurationFromFile("bogus.pem")
-	assert.Error(t, err)
-}
-
-type MyReader struct {
-	buf                   []byte
-	maxPerRead, bytesRead int
-}
-
-func (r *MyReader) Read(data []byte) (int, error) {
-	if r.bytesRead >= len(r.buf) {
-		return 0, io.EOF
-	}
-	buf := r.buf[r.bytesRead:]
-	count := 0
-	for i, v := range buf {
-		if i >= len(data) || count > r.maxPerRead {
-			break
-		}
-		data[i] = v
-		count++
-	}
-	r.bytesRead = r.bytesRead + count
-	return count, nil
+	assert.Error(t, err) // TODO(mjs): clearly any error will do
 }
 
 func TestRead(t *testing.T) {
-	myReader := MyReader{
-		buf:        []byte("123456789012345"),
-		maxPerRead: 6,
-	}
-
 	// Test with a buffer that is too small to fit data
 	buf := make([]byte, 10)
-	_, err := Read(&myReader, buf)
-	assert.Error(t, err, "Should have errored, the data passed is bigger than the buffer")
+	_, err := Read(strings.NewReader("this-is-longer-than-ten-bytes"), buf)
+	assert.Error(t, err, "should have failed with too much data for buffer")
 
 	// Test with a buffer that is big enough to fit data
-	buf = make([]byte, 25)
-	myReader.bytesRead = 0
-	data, err := Read(&myReader, buf)
-	if assert.NoError(t, err, fmt.Sprintf("Error occured during read: %s", err)) {
-		if string(data) != string(myReader.buf) {
-			t.Error("The data returned does not match")
-		}
-	}
+	buf = make([]byte, 20)
+	data, err := Read(strings.NewReader("short-string"), buf)
+	assert.NoError(t, err, "read should have been successful")
+	assert.Equal(t, "short-string", string(data), "the read data does not match the source")
 
 	// Test with a buffer with exact size of data
-	buf = make([]byte, len(myReader.buf))
-	myReader.bytesRead = 0
-	data, err = Read(&myReader, buf)
-	if assert.NoError(t, err, fmt.Sprintf("Error occured during exact size read: %s", err)) {
-		if string(data) != string(myReader.buf) {
-			t.Error("The data returned does not match")
-		}
-	}
+	buf = make([]byte, 2)
+	data, err = Read(strings.NewReader("hi"), buf)
+	assert.NoError(t, err, "read should have been successful")
+	assert.Equal(t, "hi", string(data), "the read data does not match the source")
 }
 
 func getPEM(file string, t *testing.T) []byte {
@@ -748,14 +593,12 @@ func TestHTTPRequestToString(t *testing.T) {
 	url := "http://localhost:7054"
 	reqBody := "Hello"
 	req, err := http.NewRequest("POST", url, strings.NewReader(reqBody))
-	if err != nil {
-		t.Errorf("Failed to create a request: %s", err)
-	} else {
-		reqStr := HTTPRequestToString(req)
-		assert.Contains(t, reqStr, url)
-		assert.Contains(t, reqStr, "POST")
-		assert.Contains(t, reqStr, reqBody)
-	}
+	assert.NoError(t, err, "failed to create http.Request")
+
+	reqStr := HTTPRequestToString(req)
+	assert.Contains(t, reqStr, url)
+	assert.Contains(t, reqStr, "POST")
+	assert.Contains(t, reqStr, reqBody)
 }
 
 func TestValidateAndReturnAbsConf(t *testing.T) {
@@ -764,50 +607,25 @@ func TestValidateAndReturnAbsConf(t *testing.T) {
 
 	filename, _, err = ValidateAndReturnAbsConf("/tmp/test.yaml", "/tmp/homeDir", "fabric-ca-client")
 	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
-
-	if filename != "/tmp/test.yaml" {
-		t.Error("Failed to get correct path for configuration file")
-	}
+	assert.Equal(t, "/tmp/test.yaml", filename, "failed to get correct path for configuration file")
 
 	filename, homeDir, err = ValidateAndReturnAbsConf("", "testdata/tmp", "fabric-ca-client")
-	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
+	assert.NoError(t, err, "should not have failed with a valid configuration")
 
 	homeDirAbs, err := filepath.Abs("testdata/tmp")
-	if err != nil {
-		t.Fatal("Error occured getting absolute path: ", err)
-	}
-
-	if homeDir != homeDirAbs {
-		t.Error("Failed to get correct path for home directory")
-	}
-
-	if filename != filepath.Join(homeDirAbs, "fabric-ca-client-config.yaml") {
-		t.Error("Failed to get correct path for configuration file")
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, homeDirAbs, homeDir, "failed to get correct path for home directory")
+	assert.Equal(t, filepath.Join(homeDirAbs, "fabric-ca-client-config.yaml"), filename)
 
 	// Test with no home directory set
 	filename, _, err = ValidateAndReturnAbsConf("/tmp/test.yaml", "", "fabric-ca-client")
 	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
-
-	if filename != "/tmp/test.yaml" {
-		t.Error("Failed to get correct path for configuration file")
-	}
+	assert.Equal(t, "/tmp/test.yaml", filename, "failed to get correct path for configuration file")
 
 	filename, homeDir, err = ValidateAndReturnAbsConf("testdata/tmp/test.yaml", "", "fabric-ca-client")
-	assert.NoError(t, err, "Should not have errored out, this is a valid configuration")
-
-	homeDirAbs, err = filepath.Abs("testdata/tmp")
-	if err != nil {
-		t.Fatal("Error occured getting absolute path: ", err)
-	}
-
-	if homeDir != homeDirAbs {
-		t.Error("Failed to get correct path for home directory")
-	}
-
-	if filename != filepath.Join(homeDirAbs, "test.yaml") {
-		t.Error("Failed to get correct path for configuration file")
-	}
+	assert.NoError(t, err, "should not have failed with a valid configuration")
+	assert.Equal(t, homeDirAbs, homeDir, "failed to get correct path for home directory")
+	assert.Equal(t, filepath.Join(homeDirAbs, "test.yaml"), filename, "failed to get correct path for configuration file")
 }
 
 func TestListContains(t *testing.T) {
