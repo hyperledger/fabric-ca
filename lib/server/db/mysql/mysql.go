@@ -8,6 +8,8 @@ package mysql
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -93,6 +95,18 @@ func (m *Mysql) PingContext(ctx context.Context) error {
 	return nil
 }
 
+// exists determines if the database has already been created
+func exists(sqlxDB db.FabricCADB, dbName string) (bool, error) {
+	log.Debugf("Checking if MySQL CA database '%s' exists", dbName)
+	var exists bool
+	query := fmt.Sprintf("SELECT true as 'exists' FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s'", dbName)
+	err := sqlxDB.Get("CheckIfDatabaseExists", &exists, query)
+	if err != nil && err != sql.ErrNoRows {
+		return false, errors.Wrapf(err, "Failed to check if MySQL CA database '%s' exists", dbName)
+	}
+	return exists, nil
+}
+
 // Create creates database and tables
 func (m *Mysql) Create() (*db.DB, error) {
 	db, err := m.CreateDatabase()
@@ -108,19 +122,16 @@ func (m *Mysql) Create() (*db.DB, error) {
 
 // CreateDatabase creates database
 func (m *Mysql) CreateDatabase() (*db.DB, error) {
-	datasource := m.datasource
-	dbName := m.dbName
 	err := m.createDatabase()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to create MySQL database")
 	}
 
-	log.Debugf("Connecting to database '%s', using connection string: '%s'", dbName, util.MaskDBCred(datasource))
-	sqlxdb, err := sqlx.Open("mysql", datasource)
+	log.Debugf("Connecting to database '%s', using connection string: '%s'", m.dbName, util.MaskDBCred(m.datasource))
+	sqlxdb, err := sqlx.Open("mysql", m.datasource)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to open database (%s) in MySQL server", dbName)
+		return nil, errors.Wrapf(err, "Failed to open database '%s' in MySQL server", m.dbName)
 	}
-
 	m.SqlxDB = db.New(sqlxdb, m.CAName, m.Metrics)
 
 	return m.SqlxDB.(*db.DB), nil
@@ -136,14 +147,17 @@ func (m *Mysql) CreateTables() error {
 }
 
 func (m *Mysql) createDatabase() error {
-	dbName := m.dbName
-	log.Debugf("Creating MySQL Database (%s) if it does not exist...", dbName)
-
-	_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE IF NOT EXISTS "+dbName)
+	exists, err := exists(m.SqlxDB, m.dbName)
 	if err != nil {
-		return errors.Wrap(err, "Failed to execute create database query")
+		return err
 	}
-
+	if !exists {
+		log.Debugf("Creating MySQL Database '%s'", m.dbName)
+		_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE "+m.dbName)
+		if err != nil {
+			return errors.Wrap(err, "Failed to execute create database query")
+		}
+	}
 	return nil
 }
 
