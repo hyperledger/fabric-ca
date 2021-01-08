@@ -148,6 +148,7 @@ type CAConfigRegistry struct {
 type CAConfigIdentity struct {
 	Name           string `mask:"username"`
 	Pass           string `mask:"password"`
+	PassFile       string
 	Type           string
 	Affiliation    string
 	MaxEnrollments int

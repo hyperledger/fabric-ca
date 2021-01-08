@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/cloudflare/cfssl/log"
@@ -160,6 +161,7 @@ registry:
   identities:
      - name: <<<ADMIN>>>
        pass: <<<ADMINPW>>>
+       passFile: <<<ADMINPASSFILE>>>
        type: client
        affiliation: ""
        attrs:
@@ -619,7 +621,7 @@ func (s *ServerCmd) configInit() (err error) {
 }
 
 func (s *ServerCmd) createDefaultConfigFile() error {
-	var user, pass string
+	var user, pass, upFile string
 	// If LDAP is enabled, authentication of enrollment requests are performed
 	// by using LDAP authentication; therefore, no bootstrap username and password
 	// are required.
@@ -631,6 +633,7 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 		// bootstrap administrator.  Other identities can be dynamically registered.
 		// Create the default config, but only if they provided this bootstrap
 		// username and password.
+		upFile = s.myViper.GetString("bootfile")
 		up := s.myViper.GetString("boot")
 		if up == "" {
 			return errors.New("The '-b user:pass' option is required")
@@ -644,11 +647,12 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 		}
 		user = ups[0]
 		pass = ups[1]
+
 		if len(user) >= 1024 {
 			return errors.Errorf("The identity name must be less than 1024 characters: '%s'", user)
 		}
-		if len(pass) == 0 {
-			return errors.New("An empty password in the '-b user:pass' option is not permitted")
+		if len(pass) == 0 && upFile == "" {
+			return errors.New("An empty password in the '-b user:pass' and '-f passfile' option is not permitted")
 		}
 	}
 
@@ -662,6 +666,13 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 	// Do string subtitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<VERSION>>>", metadata.Version, 1)
 	cfg = strings.Replace(cfg, "<<<ADMIN>>>", user, 1)
+	// When not provided, remove passfile from template
+	if upFile != "" && !util.FileExists(upFile) {
+		re := regexp.MustCompile("(?m)[\r\n]+^.*ADMINPASSFILE.*$")
+		cfg = re.ReplaceAllString(cfg, "")
+	} else {
+		cfg = strings.Replace(cfg, "<<<ADMINPASSFILE>>>", upFile, 1)
+	}
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	purl := s.myViper.GetString("intermediate.parentserver.url")

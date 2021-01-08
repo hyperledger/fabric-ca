@@ -154,6 +154,8 @@ func (s *ServerCmd) registerFlags() {
 	pflags.StringVarP(&s.homeDirectory, "home", "H", "", fmt.Sprintf("Server's home directory (default \"%s\")", filepath.Dir(cfg)))
 	util.FlagString(s.myViper, pflags, "boot", "b", "",
 		"The user:pass for bootstrap admin which is required to build default config file")
+	util.FlagString(s.myViper, pflags, "bootfile", "f", "",
+		"Password file for bootstrap admin which is required to build the default config file")
 
 	// Register flags for all tagged and exported fields in the config
 	s.cfg = &lib.ServerConfig{}

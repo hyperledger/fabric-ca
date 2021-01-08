@@ -133,6 +133,7 @@ Fabric-CA Server's Configuration File
       identities:
          - name: <<<adminUserName>>>
            pass: <<<adminPassword>>>
+           passFile: 
            type: client
            affiliation: ""
            attrs:

@@ -14,7 +14,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/cloudflare/cfssl/log"
@@ -27,24 +26,14 @@ import (
 )
 
 const (
-	initYaml    = "i.yaml"
 	startYaml   = "s.yaml"
 	ldapTestDir = "ldapTestDir"
 )
 
 var (
 	longUserName = util.RandomString(1025)
-)
-
-var (
 	longFileName = util.RandomString(261)
 )
-
-// Create a config element in unexpected format
-var badSyntaxYaml = "bad.yaml"
-
-// Unsupported file type
-var unsupportedFileType = "config.txt"
 
 type TestData struct {
 	input    []string // input
@@ -69,19 +58,6 @@ func checkTest(in *TestData, t *testing.T) {
 	}
 }
 
-// errorTest validates error cases
-func errorTest(in *TestData, t *testing.T) {
-	err := RunMain(in.input)
-	if err != nil {
-		matched, _ := regexp.MatchString(in.expected, err.Error())
-		if !matched {
-			t.Errorf("FAILED:\n \tin: %v;\n \tout: %v;\n \texpected: %v\n", in.input, err.Error(), in.expected)
-		}
-	} else {
-		t.Errorf("FAILED:\n \tin: %v;\n \tout: <nil>\n \texpected: %v\n", in.input, in.expected)
-	}
-}
-
 func TestMain(m *testing.M) {
 	os.Setenv("FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS", "localhost:0")
 	defer os.Unsetenv("FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS")
@@ -99,9 +75,22 @@ func TestNoArguments(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
+	initYaml := "i.yaml"
+	// Create a config element in unexpected format
+	badSyntaxYaml := "bad.yaml"
+	// Unsupported file type
+	unsupportedFileType := "config.txt"
 	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
+	defer func() {
+		os.Remove(badSyntaxYaml)
+		os.Remove(unsupportedFileType)
+		os.Remove(startYaml)
+	}()
 
-	errorCases := []TestData{
+	tests := []struct {
+		cmd      []string
+		expected string
+	}{
 		{[]string{cmdName, "init", "-c", initYaml}, "option is required"},
 		{[]string{cmdName, "init", "-c", initYaml, "-n", "acme.com", "-b", "user::"}, "Failed to read"},
 		{[]string{cmdName, "init", "-b", "user:pass", "-n", "acme.com", "ca.key"}, "Unrecognized arguments found"},
@@ -118,20 +107,45 @@ func TestErrors(t *testing.T) {
 		{[]string{cmdName, "start", "-c", startYaml, "-b", "user:pass", "ca.key"}, "Unrecognized arguments found"},
 	}
 
-	for _, e := range errorCases {
-		errorTest(&e, t)
-		_ = os.Remove(initYaml)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.expected, func(t *testing.T) {
+			err := RunMain(tt.cmd)
+			assert.Error(t, err, tt.expected)
+			os.Remove(initYaml)
+		})
 	}
 }
 
 func TestOneTimePass(t *testing.T) {
-	testDir := "oneTimePass"
-	os.RemoveAll(testDir)
-	defer os.RemoveAll(testDir)
-	// Test with "-b" option
-	err := RunMain([]string{cmdName, "init", "-b", "admin:adminpw", "--registry.maxenrollments", "1", "-H", testDir})
-	if err != nil {
-		t.Fatalf("Failed to init server with one time passwords: %s", err)
+	tests := []struct {
+		testName string
+		cmd      []string
+	}{
+		{
+			testName: "When identity has user and pass",
+			cmd:      []string{cmdName, "init", "-b", "admin:adminpw", "--registry.maxenrollments", "1", "-H", os.TempDir()},
+		},
+		{
+			testName: "When identity has user and passfile",
+			cmd:      []string{cmdName, "init", "-b", "admin:adminpw", "-f", "pwFile", "--registry.maxenrollments", "1", "-H", os.TempDir()},
+		},
+		{
+			testName: "When identity has user, pass, and passfile",
+			cmd:      []string{cmdName, "init", "-b", "admin:adminpw", "-f", "pwFile", "--registry.maxenrollments", "1", "-H", os.TempDir()},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			defer os.Remove(filepath.Join(os.TempDir(), "pwFile"))
+
+			err := ioutil.WriteFile(filepath.Join(os.TempDir(), "pwFile"), []byte("mypassword\n"), 0666)
+			assert.NoError(t, err, "Failed to create passfile")
+
+			err = RunMain(tt.cmd)
+			assert.NoError(t, err, "Failed to init server with one time passwords")
+		})
 	}
 }
 
@@ -426,11 +440,8 @@ func checkConfigAndDBLoc(t *testing.T, args TestData, cfgFile string, dsFile str
 func TestClean(t *testing.T) {
 	defYaml := util.GetDefaultConfigFile(cmdName)
 	os.Remove(defYaml)
-	os.Remove(initYaml)
 	os.Remove(startYaml)
-	os.Remove(badSyntaxYaml)
 	os.Remove(fmt.Sprintf("/tmp/%s.yaml", longFileName))
-	os.Remove(unsupportedFileType)
 	os.Remove("ca-key.pem")
 	os.Remove("ca-cert.pem")
 	os.Remove("IssuerSecretKey")
