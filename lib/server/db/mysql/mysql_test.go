@@ -4,13 +4,14 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package mysql
+package mysql_test
 
 import (
 	"context"
 	"errors"
 	"path/filepath"
 
+	"github.com/hyperledger/fabric-ca/lib/server/db/mysql"
 	"github.com/hyperledger/fabric-ca/lib/server/db/mysql/mocks"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	. "github.com/onsi/ginkgo"
@@ -23,7 +24,7 @@ const (
 
 var _ = Describe("Mysql", func() {
 	var (
-		db     *Mysql
+		db     *mysql.Mysql
 		mockDB *mocks.FabricCADB
 	)
 
@@ -32,7 +33,7 @@ var _ = Describe("Mysql", func() {
 			Enabled:   true,
 			CertFiles: []string{filepath.Join(testdataDir, "root.pem")},
 		}
-		db = NewDB(
+		db = mysql.NewDB(
 			"root:rootpw@tcp(localhost:3306)/fabric_ca_db",
 			"",
 			tls,
@@ -103,12 +104,10 @@ var _ = Describe("Mysql", func() {
 
 		When("the database already exists", func() {
 			It("does not attempt to create the database", func() {
-				mockDB.GetCalls(func(s string, i interface{}, s2 string, i2 ...interface{}) error {
-					exists := i.(*bool)
-					*exists = true
-					i = exists
+				mockDB.GetStub = func(s string, i interface{}, s2 string, i2 ...interface{}) error {
+					*(i.(*bool)) = true
 					return nil
-				})
+				}
 				db.SqlxDB = mockDB
 				sqlxDB, err := db.CreateDatabase()
 				Expect(err).NotTo(HaveOccurred())
