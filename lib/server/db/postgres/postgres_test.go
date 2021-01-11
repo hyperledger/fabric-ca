@@ -4,12 +4,13 @@ Copyright IBM Corp. All Rights Reserved.
 SPDX-License-Identifier: Apache-2.0
 */
 
-package postgres
+package postgres_test
 
 import (
 	"context"
 	"path/filepath"
 
+	"github.com/hyperledger/fabric-ca/lib/server/db/postgres"
 	"github.com/hyperledger/fabric-ca/lib/server/db/postgres/mocks"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	. "github.com/onsi/ginkgo"
@@ -23,7 +24,7 @@ const (
 
 var _ = Describe("Postgres", func() {
 	var (
-		db     *Postgres
+		db     *postgres.Postgres
 		mockDB *mocks.FabricCADB
 	)
 
@@ -32,7 +33,7 @@ var _ = Describe("Postgres", func() {
 			Enabled:   true,
 			CertFiles: []string{filepath.Join(testdataDir, "root.pem")},
 		}
-		db = NewDB(
+		db = postgres.NewDB(
 			"host=localhost port=5432 user=root password=rootpw dbname=fabric_ca",
 			"",
 			tls,
@@ -43,7 +44,7 @@ var _ = Describe("Postgres", func() {
 
 	Context("open connection to database", func() {
 		It("fails to connect if the contains incorrect syntax", func() {
-			db = NewDB(
+			db = postgres.NewDB(
 				"hos) (t=localhost port=5432 user=root password=rootpw dbname=fabric-ca",
 				"",
 				nil,
@@ -53,7 +54,7 @@ var _ = Describe("Postgres", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(Equal("Database name 'fabric-ca' cannot contain any '-' or end with '.db'"))
 
-			db = NewDB(
+			db = postgres.NewDB(
 				"host=localhost port=5432 user=root password=rootpw dbname=fabric_ca.db",
 				"",
 				nil,
@@ -148,12 +149,10 @@ var _ = Describe("Postgres", func() {
 
 		When("the database already exists", func() {
 			It("does not attempt to create the database", func() {
-				mockDB.GetCalls(func(s string, i interface{}, s2 string, i2 ...interface{}) error {
-					exists := i.(*bool)
-					*exists = true
-					i = exists
+				mockDB.GetStub = func(s string, i interface{}, s2 string, i2 ...interface{}) error {
+					*(i.(*bool)) = true
 					return nil
-				})
+				}
 				db.SqlxDB = mockDB
 				sqlxDB, err := db.CreateDatabase()
 				Expect(err).NotTo(HaveOccurred())
