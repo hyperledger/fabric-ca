@@ -19,6 +19,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -823,6 +824,17 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 
 	if err != nil {
 		return err
+	}
+
+	// A password file takes precedence over password
+	if id.PassFile != "" {
+		passBytes, err := util.ReadFile(id.PassFile)
+		if err != nil {
+			return errors.WithMessage(err, fmt.Sprintf("Failed to read password from '%s'", id.PassFile))
+		}
+		// Remove the newline from reading file
+		id.Pass = string(passBytes[:])
+		id.Pass = strings.TrimSuffix(id.Pass, "\n")
 	}
 
 	rec := cadbuser.Info{

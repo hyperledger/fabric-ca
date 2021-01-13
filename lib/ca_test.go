@@ -8,6 +8,7 @@ package lib
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -349,6 +350,93 @@ func TestCAgetUserAttrValue(t *testing.T) {
 		t.Error("getUserAttrValue sould have failed: no such user")
 	}
 	CAclean(ca, t)
+}
+
+func TestCAAddIdentity(t *testing.T) {
+	tests := []struct {
+		testName string
+		id       *CAConfigIdentity
+	}{
+		{
+			testName: "When identity has user and pass",
+			id: &CAConfigIdentity{
+				Name: "admin1",
+				Pass: "adminpw",
+			},
+		},
+		{
+			testName: "When identity has user and passfile",
+			id: &CAConfigIdentity{
+				Name:     "admin2",
+				PassFile: filepath.Join(os.TempDir(), "adminpwfile"),
+			},
+		},
+		{
+			testName: "When identity has user, pass, and passfile",
+			id: &CAConfigIdentity{
+				Name:     "admin3",
+				Pass:     "adminpw",
+				PassFile: filepath.Join(os.TempDir(), "adminpwfile"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			testDirClean(t)
+
+			if tt.id.PassFile != "" {
+				err := ioutil.WriteFile(tt.id.PassFile, []byte("mypassword\n"), 0666)
+				assert.NoError(t, err, "Failed to create passfile")
+				defer os.Remove(tt.id.PassFile)
+			}
+
+			cfg = CAConfig{}
+			cfg.Registry = CAConfigRegistry{MaxEnrollments: 10}
+			ca, err := newCA(configFile, &cfg, &srv, false)
+			assert.NoError(t, err, "Failed creating newCA")
+
+			err = ca.addIdentity(tt.id, true)
+			assert.NoError(t, err, "Failed to add new identity")
+
+			CAclean(ca, t)
+		})
+	}
+}
+
+func TestCAAddIdentityFailure(t *testing.T) {
+	tests := []struct {
+		testName    string
+		newID       *CAConfigIdentity
+		expectedErr error
+	}{
+		{
+			testName: "When passfile does not exist",
+			newID: &CAConfigIdentity{
+				Name:     "admin",
+				Pass:     "adminpw",
+				PassFile: "fakepassfile",
+			},
+			expectedErr: errors.New("Failed to read password from 'fakepassfile'"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			testDirClean(t)
+
+			cfg = CAConfig{}
+			cfg.Registry = CAConfigRegistry{
+				MaxEnrollments: 10,
+			}
+			ca, err := newCA(configFile, &cfg, &srv, false)
+			assert.NoError(t, err, "Failed creating newCA")
+
+			err = ca.addIdentity(tt.newID, true)
+			assert.Error(t, err, tt.expectedErr)
+			CAclean(ca, t)
+		})
+	}
 }
 
 func TestCAaddIdentity(t *testing.T) {
