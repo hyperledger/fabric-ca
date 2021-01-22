@@ -180,12 +180,9 @@ func TestRevokeSelf(t *testing.T) {
 		SwOpts: &factory.SwOpts{
 			HashFamily: "SHA2",
 			SecLevel:   256,
-			FileKeystore: &factory.FileKeystoreOpts{
-				KeyStorePath: "msp/keystore",
-			},
 		},
 	}
-	bccsp, err := util.InitBCCSP(&opts, filepath.Join(clientHome, "msp/keystore"), clientHome)
+	bccsp, err := util.InitBCCSP(&opts, "msp", clientHome)
 	if err != nil {
 		t.Fatalf("Failed initialize BCCSP: %s", err.Error())
 	}
