@@ -162,7 +162,7 @@ type ParentServer struct {
 }
 
 // IntermediateCA contains parent server information, TLS configuration, and
-// enrollment request for an intermetiate CA
+// enrollment request for an intermediate CA
 type IntermediateCA struct {
 	ParentServer ParentServer
 	TLS          tls.ClientTLSConfig

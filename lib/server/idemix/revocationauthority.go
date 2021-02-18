@@ -89,7 +89,7 @@ func NewRevocationAuthority(issuer MyIssuer, level int) (RevocationAuthority, er
 	}
 
 	// If epoch is 0, it means this is the first time revocation authority is being
-	// initialized. Initilize revocation authority info and store it in the database
+	// initialized. Initialize revocation authority info and store it in the database
 	if info.Epoch == 0 {
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,

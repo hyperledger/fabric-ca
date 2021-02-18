@@ -174,7 +174,7 @@ func TestValidateReq(t *testing.T) {
 
 	req = &api.GetCertificatesRequest{}
 	err = validateReq(req, times)
-	assert.NoError(t, err, "Should not have returned an error, failed to valided request")
+	assert.NoError(t, err, "Should not have returned an error, failed to validated request")
 }
 
 func TestGetTime(t *testing.T) {

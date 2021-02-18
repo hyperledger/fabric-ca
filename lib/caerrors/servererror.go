@@ -33,7 +33,7 @@ const (
 	ErrBadReqBody = 5
 	// The token in the authorization header was invalid
 	ErrBadReqToken = 6
-	// The caller does not have the "hf.Revoker" attibute
+	// The caller does not have the "hf.Revoker" attribute
 	ErrNotRevoker = 7
 	// Certificate to be revoked was not found
 	ErrRevCertNotFound = 8
@@ -41,7 +41,7 @@ const (
 	ErrCertWrongOwner = 9
 	// Identity of certificate to be revoked was not found
 	ErrRevokeIDNotFound = 10
-	// User info was not found for issuee of revoked certificate
+	// User info was not found for issue of revoked certificate
 	ErrRevokeUserInfoNotFound = 11
 	// Certificate revocation failed for another reason
 	ErrRevokeFailure = 12
@@ -143,13 +143,13 @@ const (
 	ErrUpdateConfigAddAff = 60
 	// Failed to remove affiliation
 	ErrUpdateConfigRemoveAff = 61
-	// Error occured while removing affiliation in database
+	// Error occurred while removing affiliation in database
 	ErrRemoveAffDB = 62
-	// Error occured when making a Get request to database
+	// Error occurred when making a Get request to database
 	ErrDBGet = 63
-	// Failed to modiy affiliation
+	// Failed to modify affiliation
 	ErrUpdateConfigModifyAff = 64
-	// Error occured while deleting user
+	// Error occurred while deleting user
 	ErrDBDeleteUser = 65
 	// Certificate that is being revoked has already been revoked
 	ErrCertAlreadyRevoked = 66
@@ -169,7 +169,7 @@ const (
 	ErrPasswordAttempts = 73
 	// Registering multiple identities with same name
 	ErrDupIdentityReg = 74
-	// Error occured registering identity
+	// Error occurred registering identity
 	ErrRegisteringIdentity = 75
 	// Registrat does not have authority to register identity
 	ErrRegistrarRegAuth = 76
@@ -183,7 +183,7 @@ const (
 	ErrInputValidCSR = 80
 	// Error occurred while generating attribute extension
 	ErrAttrExt = 81
-	// Error for invalid max enrolment registeration value
+	// Error for invalid max enrolment registration value
 	ErrInvalidMaxEnroll = 82
 )
 
@@ -199,7 +199,7 @@ func CreateHTTPErr(scode, code int, format string, args ...interface{}) *HTTPErr
 	}
 }
 
-// NewHTTPErr constructs a new HTTP error wrappered with pkg/errors error.
+// NewHTTPErr constructs a new HTTP error wrapped with pkg/errors error.
 func NewHTTPErr(scode, code int, format string, args ...interface{}) error {
 	return CreateHTTPErr(scode, code, format, args...)
 }

@@ -266,12 +266,12 @@ func testInsertAndGetUser(ta TestAccessor, t *testing.T) {
 
 	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
 	user, err := ta.Accessor.GetUser(insert.Name, nil)
 	if err != nil {
-		t.Errorf("Error occured during querying of id: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during querying of id: %s, error: %s", insert.Name, err)
 	}
 
 	if user.GetName() != insert.Name {
@@ -309,7 +309,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 	// insert user
 	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 	// test get the user
 	rows, err := ta.Accessor.GetFilteredUsers("", "client,orderer")
@@ -338,7 +338,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 	// insert affiliation
 	err = ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
 	if err != nil {
-		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
+		t.Errorf("Error occurred during insert query of group: %s, error: %s", "Bank1", err)
 	}
 	// change user info
 	insert.Name = "testTypesStar"
@@ -347,7 +347,7 @@ func testInsertAndGetFilteredUsers(ta TestAccessor, t *testing.T) {
 	// insert user
 	err = ta.Accessor.InsertUser(&insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 	// test get the user
 	rows, err = ta.Accessor.GetFilteredUsers("Bank1", "*")
@@ -462,12 +462,12 @@ func testDeleteUser(ta TestAccessor, t *testing.T) {
 
 	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of id: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during insert query of id: %s, error: %s", insert.Name, err)
 	}
 
 	_, err = ta.Accessor.DeleteUser(insert.Name)
 	if err != nil {
-		t.Errorf("Error occured during deletion of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during deletion of ID: %s, error: %s", insert.Name, err)
 	}
 
 	_, err = ta.Accessor.GetUser(insert.Name, nil)
@@ -490,7 +490,7 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 
 	err := ta.Accessor.InsertUser(&insert)
 	if err != nil {
-		t.Errorf("Error occured during insert query of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during insert query of ID: %s, error: %s", insert.Name, err)
 	}
 
 	insert.Pass = "654321"
@@ -502,12 +502,12 @@ func testUpdateUser(ta TestAccessor, t *testing.T) {
 
 	err = ta.Accessor.UpdateUser(&insert, true)
 	if err != nil {
-		t.Errorf("Error occured during update query of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during update query of ID: %s, error: %s", insert.Name, err)
 	}
 
 	user, err := ta.Accessor.GetUser(insert.Name, nil)
 	if err != nil {
-		t.Errorf("Error occured during querying of ID: %s, error: %s", insert.Name, err)
+		t.Errorf("Error occurred during querying of ID: %s, error: %s", insert.Name, err)
 	}
 
 	err = user.Login(insert.Pass, -1)
@@ -522,12 +522,12 @@ func testInsertAndGetAffiliation(ta TestAccessor, t *testing.T) {
 
 	err := ta.Accessor.InsertAffiliation("Bank1", "Banks", 0)
 	if err != nil {
-		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank1", err)
+		t.Errorf("Error occurred during insert query of group: %s, error: %s", "Bank1", err)
 	}
 
 	group, err := ta.Accessor.GetAffiliation("Bank1")
 	if err != nil {
-		t.Errorf("Error occured during querying of name: %s, error: %s", "Bank1", err)
+		t.Errorf("Error occurred during querying of name: %s, error: %s", "Bank1", err)
 	}
 
 	if group.GetName() != "Bank1" {
@@ -541,12 +541,12 @@ func testDeleteAffiliation(ta TestAccessor, t *testing.T) {
 
 	err := ta.Accessor.InsertAffiliation("Banks.Bank2", "Banks", 0)
 	if err != nil {
-		t.Errorf("Error occured during insert query of group: %s, error: %s", "Bank2", err)
+		t.Errorf("Error occurred during insert query of group: %s, error: %s", "Bank2", err)
 	}
 
 	_, err = ta.Accessor.DeleteAffiliation("Banks.Bank2", true, true, true)
 	if err != nil {
-		t.Errorf("Error occured during deletion of group: %s, error: %s", "Bank2", err)
+		t.Errorf("Error occurred during deletion of group: %s, error: %s", "Bank2", err)
 	}
 
 	_, err = ta.Accessor.GetAffiliation("Banks.Bank2")

@@ -1814,7 +1814,7 @@ func testNoClientCert(t *testing.T) {
 }
 
 // Configure server to start with no client authentication required
-// Root2.pem does not exists, server should still start because no client auth is requred
+// Root2.pem does not exists, server should still start because no client auth is required
 func testInvalidRootCertWithNoClientAuth(t *testing.T) {
 	srv := TestGetServer(rootPort, testdataDir, "", -1, t)
 	srv = getTLSConfig(srv, "NoClientCert", []string{"../testdata/root.pem", "../testdata/root2.pem"})
@@ -2275,7 +2275,7 @@ func TestAutoTLSCertificateGeneration(t *testing.T) {
 		Secret: "adminpw",
 	}
 	_, err = client.Enroll(enrollReq)
-	assert.NoError(t, err, "Error occured during enrollment on TLS enabled fabric-ca server")
+	assert.NoError(t, err, "Error occurred during enrollment on TLS enabled fabric-ca server")
 
 	err = srv.Stop()
 	assert.NoError(t, err, "Failed to stop server")

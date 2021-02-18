@@ -303,7 +303,7 @@ func csrInputLengthCheck(req *x509.CertificateRequest) error {
 	return nil
 }
 
-// Set the OU fields of the sign request based on the identity's type and affilation.
+// Set the OU fields of the sign request based on the identity's type and affiliation.
 // For example, if the type is 'peer' and the affiliation is 'a.b.c', the
 // OUs become 'OU=c,OU=b,OU=a,OU=peer'.
 // This is necessary because authorization decisions are made based on the OU fields,

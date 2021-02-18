@@ -21,12 +21,12 @@ func TestErrorString(t *testing.T) {
 	errMsg := err.Error()
 	assert.Contains(t, errMsg, msg)
 
-	err2 := errors.WithMessage(err, "error occured")
-	assert.Contains(t, err2.Error(), "error occured: nested http error message")
+	err2 := errors.WithMessage(err, "error occurred")
+	assert.Contains(t, err2.Error(), "error occurred: nested http error message")
 
-	msg = "error occured: %s"
+	msg = "error occurred: %s"
 	err3 := errors.Wrapf(err, msg, "failure")
-	assert.Contains(t, err3.Error(), "error occured: failure: nested http error message")
+	assert.Contains(t, err3.Error(), "error occurred: failure: nested http error message")
 }
 
 func TestHTTPErr(t *testing.T) {

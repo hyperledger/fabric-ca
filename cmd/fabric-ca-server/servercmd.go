@@ -70,7 +70,7 @@ func (s *ServerCmd) Execute() error {
 }
 
 // init initializes the ServerCmd instance
-// It intializes the cobra root and sub commands and
+// It initializes the cobra root and sub commands and
 // registers command flgs with viper
 func (s *ServerCmd) init() {
 	// root command

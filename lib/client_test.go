@@ -221,7 +221,7 @@ func TestIdemixEnroll(t *testing.T) {
 	assert.NoError(t, err, "Idemix enroll should not have failed with valid x509 enrollment certificate")
 	err = enrollRes.Identity.Store()
 	if err != nil {
-		t.Fatalf("Failed to store idenditity: %s", err.Error())
+		t.Fatalf("Failed to store identity: %s", err.Error())
 	}
 
 	_, err = client.LoadIdentity("", filepath.Join(clientHome, "msp/signcerts/cert.pem"), filepath.Join(clientHome, "msp/user/SignerConfig"))
@@ -297,7 +297,7 @@ func TestGetCRIUsingIdemixToken(t *testing.T) {
 	assert.NoError(t, err, "Idemix enroll should not have failed with valid userid/password")
 	err = enrollRes.Identity.Store()
 	if err != nil {
-		t.Fatalf("Failed to store idenditity: %s", err.Error())
+		t.Fatalf("Failed to store identity: %s", err.Error())
 	}
 
 	criRes, err := enrollRes.Identity.GetCRI(&api.GetCRIRequest{CAName: ""})
@@ -539,7 +539,7 @@ func testRegister(c *Client, t *testing.T) {
 		t.Fatalf("Register of %s failed: %s", userName, err)
 	}
 
-	// Get an ECert with no explict attribute requested and make sure we get the defaults.
+	// Get an ECert with no explicit attribute requested and make sure we get the defaults.
 	req = &api.EnrollmentRequest{
 		Name:   userName,
 		Secret: resp.Secret,
@@ -948,7 +948,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
 	t.Logf("testRevocationErrors reenroll error %v", err)
 	if err != nil {
-		t.Errorf("%s renroll failed and ecert should not be revoked", user)
+		t.Errorf("%s reenroll failed and ecert should not be revoked", user)
 	}
 
 	// Revoke cert that exists, but doesn't belong to user
@@ -963,7 +963,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
 	t.Logf("testRevocationErrors reenroll error %v", err)
 	if err != nil {
-		t.Errorf("%s renroll failed and ecert should not be revoked", user)
+		t.Errorf("%s reenroll failed and ecert should not be revoked", user)
 	}
 
 	// Cannot revoke across affiliations
@@ -978,7 +978,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 	eresp, err = id.Reenroll(&api.ReenrollmentRequest{})
 	t.Logf("testRevocationErrors reenroll error %v", err)
 	if err != nil {
-		t.Errorf("%s renroll failed and ecert should not be revoked", user)
+		t.Errorf("%s reenroll failed and ecert should not be revoked", user)
 	}
 }
 
@@ -1597,12 +1597,12 @@ func TestRevokedIdentity(t *testing.T) {
 
 	_, err = testuserid.Register(registerReq)
 	if err == nil {
-		t.Fatalf("Registeration of TestUser identity should have failed: %s", err)
+		t.Fatalf("Registration of TestUser identity should have failed: %s", err)
 	}
 
 	_, err = testuserid2.Register(registerReq)
 	if err == nil {
-		t.Fatalf("Registeration of TestUser identity should have failed: %s", err)
+		t.Fatalf("Registration of TestUser identity should have failed: %s", err)
 	}
 
 	_, err = testuserid.Revoke(&api.RevocationRequest{

@@ -102,7 +102,7 @@ func CanRegisterAttribute(requestedAttr *api.Attribute, allRequestedAttrs []api.
 	return nil
 }
 
-// attributeMap contains the control definition for reserverd (hf.) attributes
+// attributeMap contains the control definition for reserved (hf.) attributes
 var attributeMap = initAttrs()
 
 func initAttrs() map[string]*attributeControl {

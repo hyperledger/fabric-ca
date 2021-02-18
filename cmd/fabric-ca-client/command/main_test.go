@@ -134,7 +134,7 @@ func TestMain(m *testing.M) {
 func TestNoArguments(t *testing.T) {
 	err := RunMain([]string{cmdName})
 	if err == nil {
-		assert.Error(t, errors.New("Should have resulted in an error as no agruments provided"))
+		assert.Error(t, errors.New("Should have resulted in an error as no arguments provided"))
 	}
 }
 func TestExtraArguments(t *testing.T) {
@@ -2583,7 +2583,7 @@ func setupGenCSRTest(t *testing.T, adminHome string) *lib.Server {
 func extraArgErrorTest(in *TestData, t *testing.T) {
 	err := RunMain(in.input)
 	if err == nil {
-		assert.Error(t, errors.New("Should have resulted in an error as extra agruments provided"))
+		assert.Error(t, errors.New("Should have resulted in an error as extra arguments provided"))
 	}
 	if err != nil {
 		assert.Contains(t, err.Error(), "Unrecognized arguments found",

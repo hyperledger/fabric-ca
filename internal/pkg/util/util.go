@@ -330,7 +330,7 @@ func B64Decode(str string) (buf []byte, err error) {
 	return base64.StdEncoding.DecodeString(str)
 }
 
-// HTTPRequestToString returns a string for an HTTP request for debuggging
+// HTTPRequestToString returns a string for an HTTP request for debugging
 func HTTPRequestToString(req *http.Request) string {
 	body, _ := ioutil.ReadAll(req.Body)
 	req.Body = ioutil.NopCloser(bytes.NewReader(body))
@@ -338,7 +338,7 @@ func HTTPRequestToString(req *http.Request) string {
 		req.Method, req.URL, string(body))
 }
 
-// HTTPResponseToString returns a string for an HTTP response for debuggging
+// HTTPResponseToString returns a string for an HTTP response for debugging
 func HTTPResponseToString(resp *http.Response) string {
 	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
@@ -750,7 +750,7 @@ func ListContains(list, find string) bool {
 
 //TODO:  move these out of production code
 
-// FatalError will check to see if an error occured if so it will cause the test cases exit
+// FatalError will check to see if an error occurred if so it will cause the test cases exit
 func FatalError(t *testing.T, err error, msg string, args ...interface{}) {
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args)

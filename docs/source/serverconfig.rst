@@ -36,7 +36,7 @@ Fabric-CA Server's Configuration File
     #   For example, see "tls.certfile" and "tls.clientauth.certfiles".
     #   The value of each of these fields can be a simple filename, a
     #   relative path, or an absolute path.  If the value is not an
-    #   absolute path, it is interpretted as being relative to the location
+    #   absolute path, it is interpreted as being relative to the location
     #   of this configuration file.
     #
     #############################################################################
@@ -498,9 +498,9 @@ Fabric-CA Server's Configuration File
             # statsd server address
             address: 127.0.0.1:8125
     
-            # the interval at which locally cached counters and gauges are pushsed
+            # the interval at which locally cached counters and gauges are pushed
             # to statsd; timings are pushed immediately
             writeInterval: 10s
     
-            # prefix is prepended to all emitted statsd merics
+            # prefix is prepended to all emitted statsd metrics
             prefix: server

@@ -105,7 +105,7 @@ func (s *Server) Init(renew bool) (err error) {
 	return err
 }
 
-// init initializses the server leaving the DB open
+// init initializes the server leaving the DB open
 func (s *Server) init(renew bool) (err error) {
 	s.Config.Operations.Metrics = s.Config.Metrics
 	s.Operations = operations.NewSystem(s.Config.Operations)
@@ -419,7 +419,7 @@ func (s *Server) loadCA(caFile string, renew bool) error {
 	}
 
 	// Replace missing values in CA configuration values with values from the
-	// defaut CA configuration
+	// default CA configuration
 	util.CopyMissingValues(s.CA.Config, cfg)
 
 	// Integers and boolean values are handled outside the util.CopyMissingValues
@@ -476,7 +476,7 @@ func (s *Server) addCA(ca *CA) error {
 	return nil
 }
 
-// closeDB closes all CA dabatases
+// closeDB closes all CA databases
 func (s *Server) closeDB() error {
 	log.Debugf("Closing server DBs")
 	// close default CA DB

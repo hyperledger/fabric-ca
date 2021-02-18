@@ -787,7 +787,7 @@ func (d *Accessor) doTransaction(doit func(tx *sqlx.Tx, args ...interface{}) (in
 	if err != nil {
 		err2 := tx.Rollback()
 		if err2 != nil {
-			log.Errorf("Error encounted while rolling back transaction: %s", err2)
+			log.Errorf("Error encountered while rolling back transaction: %s", err2)
 			return nil, err
 		}
 		return nil, err

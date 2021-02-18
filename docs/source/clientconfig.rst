@@ -35,7 +35,7 @@ Fabric-CA Client's Configuration File
     #   For example, see "tls.certfiles" and "tls.client.certfile".
     #   The value of each of these fields can be a simple filename, a
     #   relative path, or an absolute path.  If the value is not an
-    #   absolute path, it is interpretted as being relative to the location
+    #   absolute path, it is interpreted as being relative to the location
     #   of this configuration file.
     #
     #############################################################################

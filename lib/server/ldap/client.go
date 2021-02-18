@@ -396,7 +396,7 @@ func (u *user) GetAffiliationPath() []string {
 			path = append(path, strings.Trim(p[3:], " "))
 		}
 	}
-	log.Debugf("Affilation path for DN '%s' is '%+v'", dn, path)
+	log.Debugf("Affiliation path for DN '%s' is '%+v'", dn, path)
 	return path
 }
 

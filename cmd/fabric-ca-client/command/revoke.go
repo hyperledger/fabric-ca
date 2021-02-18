@@ -103,7 +103,7 @@ func (c *ClientCmd) runRevoke(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("Sucessfully revoked certificates: %+v", result.RevokedCerts)
+	log.Infof("Successfully revoked certificates: %+v", result.RevokedCerts)
 
 	if req.GenCRL {
 		return storeCRL(c.clientCfg, result.CRL)
