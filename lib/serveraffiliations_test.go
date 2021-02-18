@@ -61,7 +61,7 @@ func TestGetAllAffiliations(t *testing.T) {
 		}
 	}
 
-	// admin2's affilations is "org2"
+	// admin2's affiliations is "org2"
 	getResp, err = admin2.GetAllAffiliations("")
 	assert.NoError(t, err, "Failed to get all affiliations for admin2")
 
@@ -203,7 +203,7 @@ func TestDynamicAddAffiliation(t *testing.T) {
 	assert.Error(t, err, "Should have failed, caller does not have 'hf.AffiliationMgr' attribute")
 
 	addAffResp, err = admin2.AddAffiliation(addAffReq)
-	assert.Error(t, err, "Should have failed affiliation, caller's affilation is 'org2'. Caller can't add affiliation 'org3'")
+	assert.Error(t, err, "Should have failed affiliation, caller's affiliation is 'org2'. Caller can't add affiliation 'org3'")
 
 	addAffResp, err = admin.AddAffiliation(addAffReq)
 	util.FatalError(t, err, "Failed to add affiliation 'org3'")

@@ -44,13 +44,13 @@ var _ = Describe("Migrator", func() {
 	})
 
 	Context("users table", func() {
-		It("returns error if modifying columns id, type, and affilaition fails", func() {
-			mockTx.ExecReturnsOnCall(0, nil, errors.New("failed to modify id, type, and affilaition columns"))
+		It("returns error if modifying columns id, type, and affiliation fails", func() {
+			mockTx.ExecReturnsOnCall(0, nil, errors.New("failed to modify id, type, and affiliation columns"))
 			migrator.Tx = mockTx
 
 			err := migrator.MigrateUsersTable()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("failed to modify id, type, and affilaition columns"))
+			Expect(err.Error()).To(Equal("failed to modify id, type, and affiliation columns"))
 		})
 
 		It("returns error if modifying attributes column fails", func() {

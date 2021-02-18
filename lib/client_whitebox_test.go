@@ -154,7 +154,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	client.Config.URL = fmt.Sprintf("https://localhost:%d", whitePort)
 	client.Config.TLS.Enabled = true
 	client.Config.TLS.CertFiles = []string{"../server/ca-cert.pem"}
-	// Reinialize the http client with updated config and re-enroll over HTTPS
+	// Reinitialize the http client with updated config and re-enroll over HTTPS
 	err = client.initHTTPClient()
 	assert.NoError(t, err)
 	resp, err := id.Reenroll(&api.ReenrollmentRequest{})
@@ -195,7 +195,7 @@ func TestCWBTLSClientAuth(t *testing.T) {
 	}
 
 	client.Config.TLS.Client.CertFile = path.Join("msp", "signcerts", "cert.pem")
-	// Reinialize the http client with updated config and re-enroll over HTTPS with client auth
+	// Reinitialize the http client with updated config and re-enroll over HTTPS with client auth
 	err = client.initHTTPClient()
 	assert.NoError(t, err)
 	_, err = id.Reenroll(&api.ReenrollmentRequest{})

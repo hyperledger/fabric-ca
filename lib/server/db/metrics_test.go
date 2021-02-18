@@ -40,7 +40,7 @@ var _ = Describe("metrics", func() {
 
 	Context("DB", func() {
 		It("records metrics", func() {
-			By("recoring count and duration metrics for calls to Select database API", func() {
+			By("recording count and duration metrics for calls to Select database API", func() {
 				testDB.Select("selectFunc", nil, "")
 				Expect(fakeAPICounter.AddCallCount()).To(Equal(1))
 				Expect(fakeAPICounter.WithArgsForCall(0)).NotTo(BeZero())

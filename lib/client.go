@@ -647,7 +647,7 @@ func (c *Client) LoadIdentity(keyFile, certFile, idemixCredFile string) (*Identi
 // NewIdentity creates a new identity
 func (c *Client) NewIdentity(creds []credential.Credential) (*Identity, error) {
 	if len(creds) == 0 {
-		return nil, errors.New("No credentials spcified. Atleast one credential must be specified")
+		return nil, errors.New("No credentials specified. Atleast one credential must be specified")
 	}
 	name, err := creds[0].EnrollmentID()
 	if err != nil {
@@ -905,9 +905,9 @@ func (c *Client) checkX509Enrollment() error {
 
 // checkIdemixEnrollment returns an error if CA's Idemix public key and user's
 // Idemix credential does not exist and if they exist and credential verification
-// fails. Returns nil if the credential verification suucceeds
+// fails. Returns nil if the credential verification succeeds
 func (c *Client) checkIdemixEnrollment() error {
-	log.Debugf("CheckIdemixEnrollment - ipkFile: %s, idemixCredFrile: %s", c.ipkFile, c.idemixCredFile)
+	log.Debugf("CheckIdemixEnrollment - ipkFile: %s, idemixCredFile: %s", c.ipkFile, c.idemixCredFile)
 
 	idemixIssuerPubKeyExists := util.FileExists(c.ipkFile)
 	idemixCredExists := util.FileExists(c.idemixCredFile)

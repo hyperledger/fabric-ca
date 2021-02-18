@@ -590,13 +590,13 @@ func (u *Impl) migrateUserToLevel2(tx userDB) error {
 	return nil
 }
 
-// Affilation is interface that defines functions needed to get a user's affiliation
-type Affilation interface {
+// Affiliation is interface that defines functions needed to get a user's affiliation
+type Affiliation interface {
 	GetAffiliationPath() []string
 }
 
 // GetAffiliation return a joined version version of the affiliation path with '.' as the seperator
-func GetAffiliation(user Affilation) string {
+func GetAffiliation(user Affiliation) string {
 	return strings.Join(user.GetAffiliationPath(), ".")
 }
 

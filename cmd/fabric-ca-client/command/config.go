@@ -65,7 +65,7 @@ const (
 #   For example, see "tls.certfiles" and "tls.client.certfile".
 #   The value of each of these fields can be a simple filename, a
 #   relative path, or an absolute path.  If the value is not an
-#   absolute path, it is interpretted as being relative to the location
+#   absolute path, it is interpreted as being relative to the location
 #   of this configuration file.
 #
 #############################################################################
@@ -289,7 +289,7 @@ func (c *ClientCmd) ConfigInit() error {
 		return err
 	}
 
-	// Check for separaters and insert values back into slice
+	// Check for separators and insert values back into slice
 	normalizeStringSlices(c.clientCfg)
 
 	// Commands other than 'enroll' and 'getcacert' require that client already
@@ -305,7 +305,7 @@ func (c *ClientCmd) ConfigInit() error {
 }
 
 func (c *ClientCmd) createDefaultConfigFile() error {
-	// Create a default config, if URL provided via CLI or envar update config files
+	// Create a default config, if URL provided via CLI or env variable update config files
 	var cfg string
 	fabricCAServerURL := c.myViper.GetString("url")
 	if fabricCAServerURL == "" {
@@ -320,7 +320,7 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 
 	myhost := c.myViper.GetString("myhost")
 
-	// Do string subtitution to get the default config
+	// Do string substitution to get the default config
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	cfg = strings.Replace(cfg, "<<<MSPDIR>>>", c.clientCfg.MSPDir, 1)

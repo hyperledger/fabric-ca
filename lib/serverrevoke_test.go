@@ -130,7 +130,7 @@ func TestRevokeSelf(t *testing.T) {
 
 	db := srv.CA.CertDBAccessor()
 	cert, err := db.GetCertificatesByID("testuser")
-	util.FatalError(t, err, "Failed to get certificvate for 'testuser'")
+	util.FatalError(t, err, "Failed to get certificate for 'testuser'")
 
 	_, err = testuser.Revoke(&api.RevocationRequest{
 		Serial: cert[0].Serial,

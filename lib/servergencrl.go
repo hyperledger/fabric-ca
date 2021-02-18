@@ -104,8 +104,8 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 
 	caCert, err := getCACert(ca)
 	if err != nil {
-		log.Errorf("Failed to get certficate for CA '%s': %s", ca.HomeDir, err)
-		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGetCACert, "Failed to get certficate for CA '%s'", ca.HomeDir)
+		log.Errorf("Failed to get certificate for CA '%s': %s", ca.HomeDir, err)
+		return nil, caerrors.NewHTTPErr(500, caerrors.ErrGetCACert, "Failed to get certificate for CA '%s'", ca.HomeDir)
 	}
 
 	if !canSignCRL(caCert) {

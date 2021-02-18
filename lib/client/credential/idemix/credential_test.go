@@ -169,5 +169,5 @@ func TestIdemixCredential(t *testing.T) {
 	assert.NoError(t, err, "CreateToken should not return error as Idemix credential has been loaded")
 
 	_, err = idemixCred.RevokeSelf()
-	assert.Error(t, err, "RevokeSelf should fail as it is not implmented for Idemix credential")
+	assert.Error(t, err, "RevokeSelf should fail as it is not implemented for Idemix credential")
 }

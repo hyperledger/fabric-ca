@@ -963,7 +963,7 @@ func (ca *CA) getUserAttrValue(username, attrname string) (string, error) {
 
 // getUserAffiliation returns a user's affiliation
 func (ca *CA) getUserAffiliation(username string) (string, error) {
-	log.Debugf("getUserAffilliation identity=%s", username)
+	log.Debugf("getUserAffiliation identity=%s", username)
 	user, err := ca.registry.GetUser(username, nil)
 	if err != nil {
 		return "", err
@@ -995,7 +995,7 @@ func (ca *CA) fillCAInfo(info *api.CAInfoResponseNet) error {
 	return nil
 }
 
-// Perfroms checks on the provided CA cert to make sure it's valid
+// Performs checks on the provided CA cert to make sure it's valid
 func (ca *CA) validateCertAndKey(certFile string, keyFile string) error {
 	log.Debug("Validating the CA certificate and key")
 	var err error

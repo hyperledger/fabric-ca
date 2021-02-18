@@ -657,7 +657,7 @@ MySQL SSL Configuration
    lines below in the [mysqld] section. These should point to the key and
    certificates for the server, and the root CA cert.
 
-   Instructions on creating server and client-side certficates:
+   Instructions on creating server and client-side certificates:
    http://dev.mysql.com/doc/refman/5.7/en/creating-ssl-files-using-openssl.html
 
    [mysqld] ssl-ca=ca-cert.pem ssl-cert=server-cert.pem ssl-key=server-key.pem
@@ -1699,7 +1699,7 @@ folder of the MSP. The ``fabric-ca-client gencrl`` command can be used to genera
 with ``hf.GenCRL`` attribute can create a CRL that contains serial numbers of all certificates that were revoked
 during a certain period. The created CRL is stored in the `<msp folder>/crls/crl.pem` file.
 
-The following command will create a CRL containing all the revoked certficates (expired and unexpired) and
+The following command will create a CRL containing all the revoked certificates (expired and unexpired) and
 store the CRL in the `~/msp/crls/crl.pem` file.
 
 .. code:: bash

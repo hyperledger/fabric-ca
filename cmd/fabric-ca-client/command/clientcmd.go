@@ -42,11 +42,11 @@ type Command interface {
 	GetCfgFileName() string
 	// Loads the credentials of an identity that are in the msp directory specified to this command
 	LoadMyIdentity() (*lib.Identity, error)
-	// Returns lib.ClientCfg instance associated with this comamnd
+	// Returns lib.ClientCfg instance associated with this command
 	GetClientCfg() *lib.ClientConfig
-	// Returns viper instance associated with this comamnd
+	// Returns viper instance associated with this command
 	GetViper() *viper.Viper
-	// Returns the client's home directoty
+	// Returns the client's home directory
 	GetHomeDirectory() string
 	// Set the default level to be something other than 'info'
 	SetDefaultLogLevel(string)
@@ -128,8 +128,8 @@ func (c *ClientCmd) Execute() error {
 }
 
 // init initializes the ClientCmd instance
-// It intializes the cobra root and sub commands and
-// registers command flgs with viper
+// It initializes the cobra root and sub commands and
+// registers command flags with viper
 func (c *ClientCmd) init() {
 	c.rootCmd = &cobra.Command{
 		Use:   cmdName,
@@ -214,7 +214,7 @@ func (c *ClientCmd) registerFlags() {
 }
 
 // checkAndEnableProfiling checks for the FABRIC_CA_CLIENT_PROFILE_MODE
-// env variable, if it is set to "cpu", cpu profiling is enbled;
+// env variable, if it is set to "cpu", cpu profiling is enabled;
 // if it is set to "heap", heap profiling is enabled
 func (c *ClientCmd) checkAndEnableProfiling() error {
 	c.profileMode = strings.ToLower(os.Getenv(fabricCAClientProfileMode))

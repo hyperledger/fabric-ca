@@ -148,7 +148,7 @@ func testValidCA(cert *x509.Certificate, t *testing.T) {
 func testValidKeyType(cert *x509.Certificate, t *testing.T) {
 	err := validateKeyType(cert)
 	if err != nil {
-		t.Error("Error occured during validation of a supported key type: ", err)
+		t.Error("Error occurred during validation of a supported key type: ", err)
 	}
 
 	cert, err = getCertFromFile(dsacert)
@@ -166,7 +166,7 @@ func testValidKeyType(cert *x509.Certificate, t *testing.T) {
 func testValidKeySize(cert *x509.Certificate, t *testing.T) {
 	err := validateKeySize(cert)
 	if err != nil {
-		t.Error("Failed to pass a ceritificate with valid key size: ", err)
+		t.Error("Failed to pass a certificate with valid key size: ", err)
 	}
 
 	cert, err = getCertFromFile(lowbitcert)
@@ -346,7 +346,7 @@ func TestCAgetUserAttrValue(t *testing.T) {
 	_, err = ca.getUserAttrValue("maryjokopechne", "delmont")
 	t.Log("getUserAttrValue err: ", err)
 	if err == nil {
-		t.Error("getUserAttrValue sould have failed: no such user")
+		t.Error("getUserAttrValue should have failed: no such user")
 	}
 	CAclean(ca, t)
 }
@@ -372,7 +372,7 @@ func TestCAaddIdentity(t *testing.T) {
 	err = ca.addIdentity(id, true)
 	t.Log("ca.addIdentity err: ", err)
 	if err == nil {
-		t.Error("getUserAttrValue sould have failed: duplicate id")
+		t.Error("getUserAttrValue should have failed: duplicate id")
 	}
 	CAclean(ca, t)
 }

@@ -80,7 +80,7 @@ func TestMain(m *testing.M) {
 func TestNoArguments(t *testing.T) {
 	err := RunMain([]string{cmdName})
 	if err == nil {
-		assert.Error(t, errors.New("Should have resulted in an error as no agruments provided"))
+		assert.Error(t, errors.New("Should have resulted in an error as no arguments provided"))
 	}
 }
 
@@ -284,7 +284,7 @@ func TestMultiCA(t *testing.T) {
 	}
 }
 
-// Tests to see that the bootstrap by default has permission to register any attibute
+// Tests to see that the bootstrap by default has permission to register any attribute
 func TestRegistrarAttribute(t *testing.T) {
 	var err error
 	blockingStart = false

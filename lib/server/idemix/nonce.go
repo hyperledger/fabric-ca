@@ -131,7 +131,7 @@ func (nm *nonceManager) SweepExpiredNonces() error {
 }
 
 // StartNonceSweeper starts a separate thread that will remove expired
-// nonces at the interval speciifed by the idemix.noncesweepinterval. This
+// nonces at the interval specified by the idemix.noncesweepinterval. This
 // function should be called while initializing the server.
 func (nm *nonceManager) StartNonceSweeper() {
 	go func() {

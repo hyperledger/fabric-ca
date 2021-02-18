@@ -62,7 +62,7 @@ const (
 #   For example, see "tls.certfile" and "tls.clientauth.certfiles".
 #   The value of each of these fields can be a simple filename, a
 #   relative path, or an absolute path.  If the value is not an
-#   absolute path, it is interpretted as being relative to the location
+#   absolute path, it is interpreted as being relative to the location
 #   of this configuration file.
 #
 #############################################################################
@@ -524,11 +524,11 @@ metrics:
         # statsd server address
         address: 127.0.0.1:8125
 
-        # the interval at which locally cached counters and gauges are pushsed
+        # the interval at which locally cached counters and gauges are pushed
         # to statsd; timings are pushed immediately
         writeInterval: 10s
 
-        # prefix is prepended to all emitted statsd merics
+        # prefix is prepended to all emitted statsd metrics
         prefix: server
 `
 )
@@ -654,7 +654,7 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 		return err
 	}
 
-	// Do string subtitution to get the default config
+	// Do string substitution to get the default config
 	cfg := strings.Replace(defaultCfgTemplate, "<<<VERSION>>>", metadata.Version, 1)
 	cfg = strings.Replace(cfg, "<<<ADMIN>>>", user, 1)
 	cfg = strings.Replace(cfg, "<<<ADMINPW>>>", pass, 1)
