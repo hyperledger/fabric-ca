@@ -29,7 +29,6 @@ import (
 	"github.com/felixge/httpsnoop"
 	ghandlers "github.com/gorilla/handlers"
 	gmux "github.com/gorilla/mux"
-	calog "github.com/hyperledger/fabric-ca/internal/pkg/log"
 	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
@@ -112,10 +111,6 @@ func (s *Server) init(renew bool) (err error) {
 	s.initMetrics()
 
 	serverVersion := metadata.GetVersion()
-	err = calog.SetLogLevel(s.Config.LogLevel, s.Config.Debug)
-	if err != nil {
-		return err
-	}
 	log.Infof("Server Version: %s", serverVersion)
 	s.levels, err = metadata.GetLevels(serverVersion)
 	if err != nil {
