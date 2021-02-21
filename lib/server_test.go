@@ -2684,10 +2684,6 @@ func cleanTestSlateSRV(t *testing.T) {
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
 	}
-	err = os.RemoveAll(serversDir)
-	if err != nil {
-		t.Errorf("RemoveAll failed: %s", err)
-	}
 	err = os.RemoveAll("../testdata/msp")
 	if err != nil {
 		t.Errorf("RemoveAll failed: %s", err)
