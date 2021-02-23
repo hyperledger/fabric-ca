@@ -29,12 +29,12 @@ const (
 	affiliationName = "org1"
 )
 
-// TestGetAffliation checks if there is one record for the
+// TestServerGetAllAffiliations checks if there is one record for the
 // affilition 'org1' in the database after starting the server
 // two times. This test is to make sure server does not create
 // duplicate affiliations in the database every time it is
 // started.
-func TestGetAffliation(t *testing.T) {
+func TestServerGetAllAffiliations(t *testing.T) {
 	defer func() {
 		err := os.RemoveAll("../testdata/ca-cert.pem")
 		if err != nil {
