@@ -31,8 +31,7 @@
 PROJECT_NAME = fabric-ca
 ALPINE_VER ?= 3.13
 DEBIAN_VER ?= stretch
-BASE_VERSION = 2.0.0
-PREV_VERSION = 2.0.0-alpha
+BASE_VERSION = 1.5.0
 IS_RELEASE = false
 
 ARCH=$(shell go env GOARCH)
@@ -79,9 +78,6 @@ include gotools.mk
 docker: $(patsubst %,build/image/%/$(DUMMY), $(IMAGES))
 
 docker-fvt: $(patsubst %,build/image/%/$(DUMMY), $(FVTIMAGE))
-
-changelog:
-	./scripts/changelog.sh v$(PREV_VERSION) v$(BASE_VERSION)
 
 checks: license vet lint format imports
 
