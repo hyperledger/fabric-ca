@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
-	github.com/hyperledger/fabric v1.4.9
+	github.com/hyperledger/fabric v1.4.11
 	github.com/hyperledger/fabric-amcl v0.0.0-20200424173818-327c9e2cf77a
 	github.com/hyperledger/fabric-lib-go v1.0.0
 	github.com/jmoiron/sqlx v1.2.0
@@ -34,7 +34,7 @@ require (
 	github.com/prometheus/client_golang v0.9.2
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.2.0 // indirect
-	github.com/spf13/cast v1.3.1
+	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.3.2
