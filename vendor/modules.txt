@@ -95,7 +95,7 @@ github.com/hashicorp/hcl/hcl/token
 github.com/hashicorp/hcl/json/parser
 github.com/hashicorp/hcl/json/scanner
 github.com/hashicorp/hcl/json/token
-# github.com/hyperledger/fabric v1.4.9
+# github.com/hyperledger/fabric v1.4.11
 ## explicit
 github.com/hyperledger/fabric/bccsp
 github.com/hyperledger/fabric/bccsp/factory

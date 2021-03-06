@@ -16,6 +16,7 @@ function filterExcludedAndGeneratedFiles() {
         '\.key$'
         '(^|/)LICENSE$'
         '\.md$'
+        '\.mod$'
         '\.pb\.go$'
         '\.pem$'
         '\.png$'

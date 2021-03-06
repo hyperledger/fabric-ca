@@ -43,7 +43,6 @@ func testMain(m *testing.M) int {
 
 	opts := factory.GetDefaultOpts()
 	opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: tmpDir}
-	opts.SwOpts.Ephemeral = false
 	csp, err = factory.GetBCCSPFromOpts(opts)
 	if err != nil {
 		fmt.Printf("Could not initialize BCCSP Factories [%s]", err)
