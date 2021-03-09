@@ -205,11 +205,11 @@ docker-thirdparty:
 dist: dist-clean release
 	cd release/$(MARCH) && tar -czvf hyperledger-fabric-ca-$(MARCH)-$(PROJECT_VERSION).tar.gz *
 dist-all: dist-clean release-all $(patsubst %,dist/%, $(RELEASE_PLATFORMS))
-dist/windows-amd64:
+dist/windows-amd64: release/windows-amd64
 	cd release/windows-amd64 && tar -czvf hyperledger-fabric-ca-windows-amd64-$(PROJECT_VERSION).tar.gz *
-dist/darwin-amd64:
+dist/darwin-amd64: release/darwin-amd64
 	cd release/darwin-amd64 && tar -czvf hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz *
-dist/linux-amd64:
+dist/linux-amd64: release/linux-amd64
 	cd release/linux-amd64 && tar -czvf hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz *
 
 .PHONY: clean
