@@ -7,7 +7,7 @@ characteristics of the item being measured. Five different labels are used.
   api_name
     For API requests, this is the path of the requested resource with the version
     prefix removed. The list of resource paths can be found in the
-    `Swagger API Documentation <https://github.com/hyperledger/fabric-ca/blob/master/swagger/swagger-fabric-ca.json>`_.
+    `Swagger API Documentation <https://github.com/hyperledger/fabric-ca/blob/main/swagger/swagger-fabric-ca.json>`_.
     Examples include ``cainfo``, register``, and ``enroll``.
 
   ca_name
