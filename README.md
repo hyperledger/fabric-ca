@@ -6,7 +6,7 @@ See [User's Guide for Fabric CA](https://hyperledger-fabric-ca.readthedocs.io) f
 
 ## Prerequisites
 
-* Go 1.13+ installation or later
+* Go 1.15+ installation or later
 * **GOPATH** environment variable is set correctly
 * docker version 17.03 or later
 * docker-compose version 1.11 or later
@@ -94,10 +94,6 @@ Following are the steps to update cfssl package using version 1.0.8 of govendor 
    * rm -rf github.com/cloudflare/cfssl/vendor/github.com/jmoiron/sqlx
 
 * Remove the packages that are added to the fabric-ca vendor folder that are not needed by fabric-ca
-
-## Continuous Integration
-
-Please have a look at [Continuous Integration Process](docs/source/ca-ci.md)
 
 
 ## License <a name="license"></a>
