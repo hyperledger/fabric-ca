@@ -555,6 +555,10 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo, id string) *csr.Certifi
 		}
 		cr.KeyRequest = newCfsslBasicKeyRequest(keyRequest)
 
+		if req.CN != "" {
+			cr.CN = req.CN
+		}
+
 		return cr
 	}
 
