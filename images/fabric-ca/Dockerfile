@@ -12,6 +12,7 @@ ARG GO_TAGS
 
 RUN apk add --no-cache \
 	gcc \
+	binutils-gold \
 	git \
 	musl-dev;
 
