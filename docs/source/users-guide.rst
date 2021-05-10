@@ -832,7 +832,7 @@ For example, the following is NOT a valid expression:
 
 .. code:: yaml
 
-     value: attr("gidNumber) >= 10000 && attr("gidNumber) < 10006
+     value: attr("gidNumber") >= 10000 && attr("gidNumber") < 10006
 
 Alternatively, a regular expression enclosed in quotes as shown below may be used
 to return an equivalent result:
