@@ -451,7 +451,7 @@ Elliptic Curve (ECDSA) offers the following key size options:
 +--------+--------------+-----------------------+
 | 384    | secp384r1    | ecdsa-with-SHA384     |
 +--------+--------------+-----------------------+
-| 521    | secp521r1    | ecdsa-with-SHA512     |
+| 512    | secp512r1    | ecdsa-with-SHA512     |
 +--------+--------------+-----------------------+
 
 Starting the server
