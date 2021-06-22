@@ -49,6 +49,8 @@ ca:
   certfile: ca-cert.pem
   # The CA key file
   keyfile: ca-key.pem
+  # Ignore Certificate Expiration in the case of re-enroll
+  ignoreCertExpiry: false
 
 #############################################################################
 #  Database section
@@ -116,10 +118,11 @@ type affiliationsOptions struct {
 
 // CAInfo is the CA information on a fabric-ca-server
 type CAInfo struct {
-	Name      string `opt:"n" help:"Certificate Authority name"`
-	Keyfile   string `help:"PEM-encoded CA key file"`
-	Certfile  string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
-	Chainfile string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
+	Name             string `opt:"n" help:"Certificate Authority name"`
+	Keyfile          string `help:"PEM-encoded CA key file"`
+	Certfile         string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
+	Chainfile        string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
+	IgnoreCertExpiry bool   `def:"false" help:"Ignore Certificate Expirty for re-enroll"`
 }
 
 // CAConfigDB is the database part of the server's config

@@ -188,11 +188,13 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr, method, ur
 	if err2 != nil {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrInvalidToken, "Invalid token in authorization header: %s", err2)
 	}
+
 	// Make sure the caller's cert was issued by this CA
-	err2 = ca.VerifyCertificate(cert)
+	err2 = ca.VerifyCertificate(cert, (ctx.endpoint.Path == "reenroll" && ctx.ca.Config.CA.IgnoreCertExpiry))
 	if err2 != nil {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrUntrustedCertificate, "Untrusted certificate: %s", err2)
 	}
+
 	id := util.GetEnrollmentIDFromX509Certificate(cert)
 	log.Debugf("Checking for revocation/expiration of certificate owned by '%s'", id)
 
@@ -202,10 +204,17 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr, method, ur
 	if !checked {
 		return "", caerrors.NewHTTPErr(401, caerrors.ErrCertRevokeCheckFailure, "Failed while checking for revocation")
 	}
+
 	if expired {
-		return "", caerrors.NewAuthenticationErr(caerrors.ErrCertExpired,
-			"The certificate in the authorization header is a revoked or expired certificate")
+		log.Debugf("Expired Certificate")
+		if ctx.endpoint.Path == "reenroll" && ctx.ca.Config.CA.IgnoreCertExpiry {
+			log.Infof("Ignoring expired certificate for re-endroll operation")
+		} else {
+			return "", caerrors.NewAuthenticationErr(caerrors.ErrCertExpired,
+				"The certificate in the authorization header is a revoked or expired certificate")
+		}
 	}
+
 	aki := hex.EncodeToString(cert.AuthorityKeyId)
 	serial := util.GetSerialAsHex(cert.SerialNumber)
 	aki = strings.ToLower(strings.TrimLeft(aki, "0"))
@@ -215,6 +224,7 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr, method, ur
 	if err != nil {
 		return "", err
 	}
+
 	if certificate.Status == "revoked" {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrCertRevoked, "The certificate in the authorization header is a revoked certificate")
 	}

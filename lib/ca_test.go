@@ -591,14 +591,14 @@ func TestCAVerifyCertificate(t *testing.T) {
 	ca.Config.CA.Keyfile = caKey
 	ca.Config.CA.Certfile = caCert
 	ca.Config.CA.Chainfile = "../testdata/empty.json"
-	err = ca.VerifyCertificate(cert)
+	err = ca.VerifyCertificate(cert, false)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
 	}
 
 	ca.Config.CA.Chainfile = "../testdata/crl.pem"
-	err = ca.VerifyCertificate(cert)
+	err = ca.VerifyCertificate(cert, false)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
@@ -612,7 +612,7 @@ func TestCAVerifyCertificate(t *testing.T) {
 	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0644)
 	assert.NoError(t, err, "failed to write ca-chainfile.pem")
 	ca.Config.CA.Chainfile = filepath.Join(os.TempDir(), "ca-chainfile.pem")
-	err = ca.VerifyCertificate(cert)
+	err = ca.VerifyCertificate(cert, false)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
@@ -625,13 +625,13 @@ func TestCAVerifyCertificate(t *testing.T) {
 	ca.Config.CA.Chainfile = "doesNotExist"
 	ca.Config.CA.Certfile = "doesNotExist"
 	ca.Config.Intermediate.ParentServer.URL = "http://127.0.0.1:" + caPort
-	err = ca.VerifyCertificate(cert)
+	err = ca.VerifyCertificate(cert, false)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")
 	}
 	ca.Config.CA.Chainfile = noUsageCert
-	err = ca.VerifyCertificate(cert)
+	err = ca.VerifyCertificate(cert, false)
 	t.Log("ca.VerifyCertificate error: ", err)
 	if err == nil {
 		t.Error("VerifyCertificate should have failed")

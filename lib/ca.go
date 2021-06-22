@@ -471,11 +471,21 @@ func (ca *CA) initConfig() (err error) {
 
 // VerifyCertificate verifies that 'cert' was issued by this CA
 // Return nil if successful; otherwise, return an error.
-func (ca *CA) VerifyCertificate(cert *x509.Certificate) error {
+func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
+
+	log.Debugf("Certicate Dates: NotAfter = %s\n Cert NotBefore = %s \n", cert.NotAfter.String(), cert.NotBefore.String())
+
 	opts, err := ca.getVerifyOptions()
 	if err != nil {
 		return errors.WithMessage(err, "Failed to get verify options")
 	}
+
+	// force time to be 30seconds after start to ensure expiry doesn't get flaged
+	// this is one of the checks that made on the certificate
+	if forceTime {
+		opts.CurrentTime = cert.NotBefore.Add(time.Duration(time.Second * 30))
+	}
+
 	_, err = cert.Verify(*opts)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to verify certificate")
