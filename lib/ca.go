@@ -473,7 +473,7 @@ func (ca *CA) initConfig() (err error) {
 // Return nil if successful; otherwise, return an error.
 func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
 
-	log.Debugf("Certicate Dates: NotAfter = %s\n Cert NotBefore = %s \n", cert.NotAfter.String(), cert.NotBefore.String())
+	log.Debugf("Certicate Dates: NotAfter = %s NotBefore = %s \n", cert.NotAfter.String(), cert.NotBefore.String())
 
 	opts, err := ca.getVerifyOptions()
 	if err != nil {
