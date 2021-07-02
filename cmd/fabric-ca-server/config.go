@@ -123,6 +123,8 @@ ca:
   certfile:
   # Chain file
   chainfile:
+  # Ignore Certificate Expiration in the case of re-enroll
+  reenrollIgnoreCertExpiry: false
 
 #############################################################################
 #  The gencrl REST endpoint is used to generate a CRL that contains revoked
