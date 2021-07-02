@@ -20,9 +20,9 @@ Fabric-CA Server's CLI
       -b, --boot string                               The user:pass for bootstrap admin which is required to build default config file
           --ca.certfile string                        PEM-encoded CA certificate file (default "ca-cert.pem")
           --ca.chainfile string                       PEM-encoded CA chain file (default "ca-chain.pem")
-          --ca.ignorecertexpiry                       Ignore Certificate Expirty for re-enroll
           --ca.keyfile string                         PEM-encoded CA key file
       -n, --ca.name string                            Certificate Authority name
+          --ca.reenrollignorecertexpiry               Ignore Certificate Expirty for re-enroll
           --cacount int                               Number of non-default CA instances
           --cafiles strings                           A list of comma-separated CA configuration files
           --cfg.affiliations.allowremove              Enables removal of affiliations dynamically
