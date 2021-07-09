@@ -14,6 +14,7 @@
 #   - int-tests - runs the go-test based integration tests
 #   - unit-tests - runs the go-test based unit tests
 #   - checks - runs all check conditions (license, format, imports, lint and vet)
+#   - native - ensures all native binaries are available
 #   - docker[-clean] - builds/cleans the fabric-ca docker image
 #   - docker-fvt[-clean] - builds/cleans the fabric-ca functional verification testing image
 #   - release - builds fabric-ca-client binary for the host platform. Binary built with this target will not support pkcs11
