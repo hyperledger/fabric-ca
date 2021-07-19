@@ -22,7 +22,7 @@ Fabric-CA Server's CLI
           --ca.chainfile string                       PEM-encoded CA chain file (default "ca-chain.pem")
           --ca.keyfile string                         PEM-encoded CA key file
       -n, --ca.name string                            Certificate Authority name
-          --ca.reenrollignorecertexpiry               Ignore Certificate Expirty for re-enroll
+          --ca.reenrollignorecertexpiry               Ignore Certificate Expiry for re-enroll
           --cacount int                               Number of non-default CA instances
           --cafiles strings                           A list of comma-separated CA configuration files
           --cfg.affiliations.allowremove              Enables removal of affiliations dynamically

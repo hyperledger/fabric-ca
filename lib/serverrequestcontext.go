@@ -189,8 +189,11 @@ func (ctx *serverRequestContextImpl) verifyX509Token(ca *CA, authHdr, method, ur
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrInvalidToken, "Invalid token in authorization header: %s", err2)
 	}
 
-	// Make sure the caller's cert was issued by this CA
+	// determine if this being called for a reenroll and the ignore cert expiry property isset
+	// passed to the verify certificate to force it's checking of expiry time to be effectively ignored
 	reenrollIgnoreCertExpiry := ctx.endpoint.Path == "reenroll" && ctx.ca.Config.CA.ReenrollIgnoreCertExpiry
+
+	// Make sure the caller's cert was issued by this CA
 	err2 = ca.VerifyCertificate(cert, reenrollIgnoreCertExpiry)
 	if err2 != nil {
 		return "", caerrors.NewAuthenticationErr(caerrors.ErrUntrustedCertificate, "Untrusted certificate: %s", err2)

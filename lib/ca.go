@@ -471,6 +471,10 @@ func (ca *CA) initConfig() (err error) {
 
 // VerifyCertificate verifies that 'cert' was issued by this CA
 // Return nil if successful; otherwise, return an error.
+// 'forceTime' if false, certificate expiry times will be checked based
+// on the current time.
+// if true, it will force the time to be used to check for expiry to be 30 seconds
+// after the certificate start time.  (this is to support reenrollIgnoreCertExpiry)
 func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
 
 	log.Debugf("Certicate Dates: NotAfter = %s NotBefore = %s \n", cert.NotAfter.String(), cert.NotBefore.String())
@@ -480,8 +484,8 @@ func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
 		return errors.WithMessage(err, "Failed to get verify options")
 	}
 
-	// force time to be 30seconds after start to ensure expiry doesn't get flaged
-	// this is one of the checks that made on the certificate
+	// force check time to be 30 seconds after certificate start time to ensure expiry doesn't get flagged
+	// this is one of the checks that is made on the certificate in Verify()
 	if forceTime {
 		opts.CurrentTime = cert.NotBefore.Add(time.Duration(time.Second * 30))
 	}

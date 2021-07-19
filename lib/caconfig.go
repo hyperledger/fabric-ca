@@ -120,7 +120,7 @@ type CAInfo struct {
 	Keyfile                  string `help:"PEM-encoded CA key file"`
 	Certfile                 string `def:"ca-cert.pem" help:"PEM-encoded CA certificate file"`
 	Chainfile                string `def:"ca-chain.pem" help:"PEM-encoded CA chain file"`
-	ReenrollIgnoreCertExpiry bool   `def:"false" help:"Ignore Certificate Expirty for re-enroll"`
+	ReenrollIgnoreCertExpiry bool   `def:"false" help:"Ignore Certificate Expiry for re-enroll"`
 }
 
 // CAConfigDB is the database part of the server's config
