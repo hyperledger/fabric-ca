@@ -24,7 +24,9 @@ jobs:
     displayName: Checkout Fabric CA Code
   - script: make dist-all checks all-tests docs
     displayName: Run Unit and Integration Tests
-
+  - publish: 'release'
+    displayName: 'built binaries'
+    
 - job: FVTTests
   pool:
     vmImage: ubuntu-16.04
