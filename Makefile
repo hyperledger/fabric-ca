@@ -104,7 +104,7 @@ fabric-ca-server: bin/fabric-ca-server
 
 bin/%: $(GO_SOURCE)
 	@echo "Building ${@F} in bin directory ..."
-	@mkdir -p bin && go build -o bin/${@F} -tags "pkcs11" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
+	mkdir -p bin && go build -o bin/${@F} -tags "pkcs11" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.${@F})
 	@echo "Built bin/${@F}"
 
 build/image/fabric-ca/$(DUMMY):
