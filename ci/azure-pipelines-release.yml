@@ -22,13 +22,13 @@ stages:
         strategy:
           matrix:
             Linux:
-              IMAGE: ubuntu-20.04
+              IMAGE: ubuntu-latest
               TARGET: linux
             Mac:
-              IMAGE: macOS-10.15
+              IMAGE: macOS-latest
               TARGET: darwin
             Windows:
-              IMAGE: windows-2019
+              IMAGE: windows-latest
               TARGET: windows
         pool:
           vmImage: $(IMAGE)
@@ -51,7 +51,7 @@ stages:
     jobs:
       - job: Docker
         pool:
-          vmImage: ubuntu-16.04
+          vmImage: ubuntu-latest
         steps:
           - template: install_deps.yml
           - checkout: self
@@ -71,7 +71,7 @@ stages:
     jobs:
       - job: Release
         pool:
-          vmImage: ubuntu-20.04
+          vmImage: ubuntu-latest
         steps:
           - download: current
             patterns: '*.tar.gz'
