@@ -19,25 +19,30 @@ stages:
     displayName: "Build Fabric CA Binaries"
     jobs:
       - job: Build
-        pool:
-          vmImage: ubuntu-16.04
-        container: golang:$(GOVER)
         strategy:
           matrix:
-            Linux-amd64:
-              TARGET: linux-amd64
-            MacOS-amd64:
-              TARGET: darwin-amd64
-            Windows-amd64:
-              TARGET: windows-amd64
+            Linux:
+              IMAGE: ubuntu-20.04
+              TARGET: linux
+            Mac:
+              IMAGE: macOS-10.15
+              TARGET: darwin
+            Windows:
+              IMAGE: windows-2019
+              TARGET: windows
+        pool:
+          vmImage: $(IMAGE)
         steps:
+          - task: GoTool@0
+            inputs:
+              version: $(GOVER)
           - checkout: self
             path: 'go/src/github.com/hyperledger/fabric-ca'
             displayName: Checkout Fabric CA Code
-          - script: make dist/$(TARGET)
+          - script: make dist
             displayName: Compile Binary and Create Tarball
-          - publish: release/$(TARGET)/hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
-            artifact: hyperledger-fabric-ca-$(TARGET)-$(RELEASE).tar.gz
+          - publish: release/$(TARGET)-amd64/hyperledger-fabric-ca-$(TARGET)-amd64-$(RELEASE).tar.gz
+            artifact: hyperledger-fabric-ca-$(TARGET)-amd64-$(RELEASE).tar.gz
             displayName: Publish Release Artifact
 
   - stage: BuildAndPushDockerImages
@@ -66,7 +71,7 @@ stages:
     jobs:
       - job: Release
         pool:
-          vmImage: ubuntu-16.04
+          vmImage: ubuntu-20.04
         steps:
           - download: current
             patterns: '*.tar.gz'
