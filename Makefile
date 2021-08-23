@@ -32,8 +32,8 @@
 PROJECT_NAME = fabric-ca
 ALPINE_VER ?= 3.13
 DEBIAN_VER ?= stretch
-BASE_VERSION = 1.5.1
-IS_RELEASE = true
+BASE_VERSION = 1.5.2
+IS_RELEASE = false
 
 ARCH=$(shell go env GOARCH)
 MARCH=$(shell go env GOOS)-$(shell go env GOARCH)
