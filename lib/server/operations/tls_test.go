@@ -60,7 +60,8 @@ var _ = Describe("TLS", func() {
 
 		tlsConfig, err := opsTLS.Config()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(tlsConfig).To(Equal(&tls.Config{
+
+		expectedConfig := &tls.Config{
 			Certificates: []tls.Certificate{cert},
 			CipherSuites: []uint16{
 				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -72,7 +73,14 @@ var _ = Describe("TLS", func() {
 			},
 			ClientCAs:  clientCAPool,
 			ClientAuth: tls.RequireAndVerifyClientCert,
-		}))
+		}
+
+		// Can't compare entire tlsConfig due to new CertPool struct (ClientCAs) in Go 1.16 and above
+		// Compare ClientCAs.Subjects() instead
+		Expect(tlsConfig.Certificates).To(Equal(expectedConfig.Certificates))
+		Expect(tlsConfig.CipherSuites).To(Equal(expectedConfig.CipherSuites))
+		Expect(tlsConfig.ClientAuth).To(Equal(expectedConfig.ClientAuth))
+		Expect(tlsConfig.ClientCAs.Subjects()).To(Equal(expectedConfig.ClientCAs.Subjects()))
 	})
 
 	Context("when TLS is not enabled", func() {
