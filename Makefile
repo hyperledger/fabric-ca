@@ -30,7 +30,7 @@
 #   - vendor - vendors third-party packages
 
 PROJECT_NAME = fabric-ca
-ALPINE_VER ?= 3.13
+ALPINE_VER ?= 3.14
 DEBIAN_VER ?= stretch
 BASE_VERSION = 1.5.2
 IS_RELEASE = false
