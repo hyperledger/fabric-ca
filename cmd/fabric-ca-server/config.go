@@ -335,6 +335,8 @@ signing:
 #  3) pathlength == 0 means a limit of 0 is requested;
 #     this is the default for an intermediate CA, which means it can not issue
 #     CA certificates though it can still issue end entity certificates.
+#  The "hosts" field will be used to specify Subject Alternative Names
+#  if the server creates a self-signed TLS certificate.
 ###########################################################################
 csr:
    cn: <<<COMMONNAME>>>

@@ -142,7 +142,7 @@ At a minimum you should do the following:
 - `port` - Enter the port that you want to use for this server. These instructions use `7054`, but you can choose your port.
 - `tls.enabled` - Recall that TLS is disabled in the default configuration file. Since this is a production server, enable it by setting this value to `true`. Setting this value to `true` causes the TLS signed certificate `tls-cert.pem` file to be generated when the server is started in the next step. The `tls-cert.pem` is the certificate the server will present to the client during a TLS handshake, which the client will then verify using the TLS CA’s `ca-cert.pem`.
 - `ca.name` - Give the CA a name by editing the parameter, for example `tls-ca`.
-- `csr.hosts` - Update this parameter to include this hostname and ip address where this server is running, if it is different than what is already in this file.
+- `csr.hosts` - Update this parameter to include this hostname and ip address where this server is running, if it is different than what is already in this file. The host names will be used to specify Subject Alternative Names when the server creates its self-signed TLS certificate tls-cert.pem when you start the server in the next step.
 - `signing.profiles.ca` - Since this is a TLS CA that will not issue CA certificates, the `ca` profiles section can be removed. The `signing.profiles` block should only contain `tls` profile.
 - `operations.listenAddress:` -  In the unlikely case that there is another node running on this host and port, then you need to update this parameter to use a different port.
 
@@ -160,7 +160,7 @@ When the server starts successfully you will see something similar to:
 ```
 [INFO] Listening on https://0.0.0.0:7054
 ```
-Because you have enabled TLS communications, notice that the TLS signed certificate `tls-cert.pem` file is generated under the `FABRIC_CA_HOME` location.
+Because you have enabled TLS communications but have not specified a TLS certfile, notice that the TLS signed certificate `tls-cert.pem` file is generated under the `FABRIC_CA_HOME` location.
 
 **Tip:** The CA `ADMIN_USER` and `ADMIN_PWD` that were set on the `init` command cannot be overridden with the `-b` flag on this `start` command. When you need to modify the CA admin password, use the Fabric CA client [identity](../clientcli.html#identity-command) command.
 
@@ -168,11 +168,11 @@ Because you have enabled TLS communications, notice that the TLS signed certific
 - `-d` - If you want to run the server in DEBUG mode which facilitates problem diagnosis, you can include the `-d` flag on the start command. However, in general it is not recommended to run a server with debug enabled as this will cause the server to perform slower.
 - `-p` - If you want the server to run on a port different than what is specified in the configuration .yaml file, you can override the existing port.
 
-### Enroll bootstrap user with TLS CA
+### Enroll bootstrap admin identity with TLS CA
 
-Now that your TLS CA is configured and before you can deploy any other nodes for your organization, you need to enroll the bootstrap (admin) user of the TLS CA. Since the CA server is up and running, instead of using the **Fabric CA server CLI commands** we now use the **Fabric CA client CLI commands** to submit an enrollment request to the server.
+Now that your TLS CA is configured and before you can deploy any other nodes for your organization, you need to enroll the bootstrap admin identity of the TLS CA. Since the CA server is up and running, instead of using the **Fabric CA server CLI commands** we now use the **Fabric CA client CLI commands** to submit an enrollment request to the TLS CA server.
 
-Performed by using the Fabric CA client, the enrollment process is used to generate the certificate and private key pair which forms the node identity. You should have already setup the required folders in the [Fabric CA client](#fabric-ca-client) section.
+Performed by using the Fabric CA client, the enrollment process is used to generate the certificate and private key pair which forms the TLS CA bootstrap admin identity. You should have already setup the required folders in the [Fabric CA client](#fabric-ca-client) section.
 
 The folder structure that we are using for these Fabric CA client commands is:
   ```
@@ -181,7 +181,7 @@ The folder structure that we are using for these Fabric CA client commands is:
     └── tls-root-cert
   ```
   These folders are used by the Fabric CA client to:
-   - Store the certificates that are issued when the Fabric CA client enroll command is run against the TLS CA server to enroll the TLS CA bootstrap identity. (**tls-ca** folder)
+   - Store the certificates that are issued when the Fabric CA client enroll command is run against the TLS CA server to enroll the TLS CA bootstrap admin identity. (**tls-ca** folder)
    - Know where the TLS CA root certificate resides that allows the Fabric CA client to communicate with the TLS CA server. (**tls-root-cert** folder)
 
 1. Copy the TLS CA root certificate file `fabric-ca-server-tls/ca-cert.pem`, that was generated when the TLS CA server was started, to the `fabric-ca-client/tls-root-cert/tls-ca-cert.pem` folder. Notice the file name is changed to `tls-ca-cert.pem` to make it clear this is the root certificate from the TLS CA. **Important:** This TLS CA root certificate will need to be available on each client system that will run commands against the TLS CA.
@@ -195,9 +195,9 @@ The folder structure that we are using for these Fabric CA client commands is:
    ```
    export FABRIC_CA_CLIENT_HOME=$PWD
    ```
-3. You are ready to use the Fabric CA client CLI to enroll the TLS CA admin user. Run the command:
+3. You are ready to use the Fabric CA client CLI to enroll the TLS CA bootstrap admin identity. Run the command:
    ```
-   ./fabric-ca-client enroll -d -u https://<ADMIN>:<ADMIN-PWD>@<CA-URL>:<PORT> --tls.certfiles <RELATIVE-PATH-TO-TLS-CERT> --enrollment.profile tls --csr.hosts '<CA_HOSTNAME>' --mspdir tls-ca/tlsadmin/msp
+   ./fabric-ca-client enroll -d -u https://<ADMIN>:<ADMIN-PWD>@<CA-URL>:<PORT> --tls.certfiles <RELATIVE-PATH-TO-TLS-CERT> --enrollment.profile tls --mspdir tls-ca/tlsadmin/msp
    ```
    Replace:
    - `<ADMIN>` - with the TLS CA admin specified on the `init` command.
@@ -205,11 +205,10 @@ The folder structure that we are using for these Fabric CA client commands is:
    - `<CA-URL>` - with the hostname specified in the `csr` section of the TLS CA configuration .yaml file.
    - `<PORT>` - with the port that the TLS CA is listening on.
    - `<RELATIVE-PATH-TO-TLS-CERT>` - with the path and name of the root TLS certificate file that you copied from your TLS CA. This path is relative to `FABRIC_CA_CLIENT_HOME`. If you are following the folder structure in this tutorial it would be `tls-root-cert/tls-ca-cert.pem`.
-   - `<CA_HOSTNAME>` - with a comma-separated list of host names for which the certificate should be valid. If not specified, the default value from the `fabric-ca-client-config.yaml` is used. You can specify a wildcard for the domain. For example, when you include the flag `--csr.hosts 'host1,*.example.com'` it means that the hostname `host1` is recognized as well as any host from the `example.com` domain. These values are inserted into the generated certificate Subject Alternative Name (SAN) attribute. The value specified here corresponds to the `csr.hosts` parameter that you specified for the CA server.
 
    For example:
    ```
-   ./fabric-ca-client enroll -d -u https://tls-admin:tls-adminpw@my-machine.example.com:7054 --tls.certfiles tls-root-cert/tls-ca-cert.pem --enrollment.profile tls --csr.hosts 'host1,*.example.com' --mspdir tls-ca/tlsadmin/msp
+   ./fabric-ca-client enroll -d -u https://tls-admin:tls-adminpw@my-machine.example.com:7054 --tls.certfiles tls-root-cert/tls-ca-cert.pem --enrollment.profile tls --mspdir tls-ca/tlsadmin/msp
    ```
 
    In this case, the `-d` parameter runs the client in DEBUG mode which is useful for debugging enrollment failures.
@@ -218,33 +217,33 @@ The folder structure that we are using for these Fabric CA client commands is:
 
    The `--enrollment.profile tls` flag is specified because we are enrolling against the TLS CA. Use of this flag means that the enrollment is performed according to the `usage` and `expiry` settings of the TLS profile that is defined in the `signing` section of the configuration .yaml file. **Note:** If you removed the `signing.profiles.ca` block from the TLS CA configuration .yaml file, you could omit the `--enrollment.profile tls` flag.
 
-   When this command completes successfully, the `fabric-ca-client/tls-ca/tlsadmin/msp` folder is generated and contains the signed cert and private key for the TLS CA admin identity. If the enroll command fails for some reason, to avoid confusion later, you should remove the generated private key from the `fabric-ca-client/tls-ca/admin/msp/keystore` folder before reattempting the enroll command. We will reference this crypto material later when it is required to register other identities with the TLS CA.
+   When this command completes successfully, the `fabric-ca-client/tls-ca/tlsadmin/msp` folder is generated and contains the signed cert and private key for the TLS CA bootstrap admin identity. If the enroll command fails for some reason, to avoid confusion later, you should remove the generated private key from the `fabric-ca-client/tls-ca/admin/msp/keystore` folder before reattempting the enroll command. We will reference this crypto material later when it is required to register other identities with the TLS CA.
 
    **Tip:** After you issue this first `enroll` command from the Fabric CA client, examine the contents of the generated  `fabric-ca-client/fabric-ca-client-config.yaml` file to become familiar with the default settings that are used by the Fabric CA client. Because we are using a single Fabric CA client to interact with multiple CA servers, we need to use the `-u` flags on the client CLI commands to target the correct CA server. In conjunction, the `--mspdir` flag indicates the location of the cryptographic material to use on a `register` command or where to store the generated certificates on an `enroll` command.
 
-The following diagram is a conceptual summary of the steps you perform to create a TLS CA server and enroll the bootstrap identity using the Fabric CA client:
+The following diagram is a conceptual summary of the steps you perform to create a TLS CA server and enroll the bootstrap admin identity using the Fabric CA client:
 
 ![ca-tls-flow](./ca-tls-flow.png)
 
 ### Register and enroll the organization CA bootstrap identity with the TLS CA
 
-The TLS CA server was started with a bootstrap identity which has full admin privileges for the server. One of the key abilities of the admin is the ability to register new identities. Each node in the organization that transacts on the network needs to register with the TLS CA. Therefore, before we set up the organization CA, we need to use the TLS CA to register and enroll the organization CA bootstrap identity to get its TLS certificate and private key.  The following command registers the organization CA bootstrap identity `rcaadmin` and `rcaadminpw` with the TLS CA.
+The TLS CA server was started with a bootstrap admin identity (tlsadmin) which has full admin privileges for the server. One of the key abilities of the admin is the ability to register new identities. Each node in the organization (orderers, peers, organization CAs) that will transact on the network needs to be registered with the TLS CA, so that each node can then enroll to get their TLS certificate. Therefore, before we set up the organization CA, we need to use the TLS CA to register and enroll the organization CA bootstrap identity to get its TLS certificate and private key. The organization CA bootstrap admin user will be named `rcaadmin` in the next step, therefore we will generate the TLS identity for the organization CA using the same name. The following command registers the organization CA bootstrap identity `rcaadmin` with password `rcaadminpw` with the TLS CA.
 
 ```
 ./fabric-ca-client register -d --id.name rcaadmin --id.secret rcaadminpw -u https://my-machine.example.com:7054  --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir tls-ca/tlsadmin/msp
 ```
 
-Notice that the `--mspdir` flag on the command points to the location of TLS CA admin msp certificates that we generated in the previous step. This crypto material is required to be able to register other users with the TLS CA.
+Notice that the `--mspdir` flag on the command points to the location of TLS CA admin msp certificates that we generated in the previous step. This crypto material is required to be able to register nodes with the TLS CA.
 
-Next, we need to enroll the `rcaadmin` user to generate the TLS certificates for the identity. In this case, we use the `--mspdir` flag on the enroll command to designate where the generated organization CA TLS certificates should be stored for the `rcaadmin` user. Because these certificates are for a different identity, it is a best practice to put them in their own folder. Therefore, instead of generating them in the default `msp` folder, we will put them in a new folder named `rcaadmin` that resides along side the `tlsadmin` folder.
+Next, we need to enroll the `rcaadmin` identity to the TLS CA to generate the TLS certificates for the organization CA server. In this case, we use the `--mspdir` flag on the enroll command to designate where the generated organization CA TLS certificates should be stored for the `rcaadmin` identity. Because these certificates are for a different identity, it is a best practice to put them in their own folder. Therefore, instead of generating them in the default `msp` folder, we will put them in a new folder named `rcaadmin` that resides along side the `tlsadmin` folder. Also note that because we are generating a TLS certificate, we must pass `--csr.hosts` to specify the Subject Alternative Name in the generated TLS certificate. The hosts must match the host names that clients will use when communicating to the organization CA server in order for the TLS handshake to succeed.
 
 ```
 ./fabric-ca-client enroll -d -u https://rcaadmin:rcaadminpw@my-machine.example.com:7054 --tls.certfiles tls-root-cert/tls-ca-cert.pem --enrollment.profile tls --csr.hosts 'host1,*.example.com' --mspdir tls-ca/rcaadmin/msp
 ```
 
-In this case, the `--mspdir` flag works a little differently. For the enroll command, the `--mspdir` flag indicates where to store the generated certificates for the `rcaadmin` identity.
+In this case, the `--mspdir` flag works a little differently. For the enroll command, the `--mspdir` flag indicates where to store the generated TLS certificates for the `rcaadmin` identity.
 
-**Important:** The organization CA TLS signed certificate is generated under `fabric-ca-client/tls-ca/rcaadmin/msp/signcert` and the private key is available under `fabric-ca-client/tls-ca/rcaadmin/msp/keystore`. When you deploy the organization CA you will need to point to the location of these two files in the `tls` section of the CA configuration .yaml file. For ease of reference, you can rename the file in the `keystore` folder to `key.pem`.
+**Important:** The organization CA TLS signed certificate is generated under `fabric-ca-client/tls-ca/rcaadmin/msp/signcert` and the private key is available under `fabric-ca-client/tls-ca/rcaadmin/msp/keystore`. When you deploy the organization CA in the next step you will need to copy these files under the organization CA directory and reference them in the `tls` section of the organization CA configuration .yaml file. For ease of reference, you can rename the file in the `keystore` folder to `key.pem`.
 
 ### (Optional) Register and enroll the Intermediate CA admin with the TLS CA
 
@@ -285,7 +284,7 @@ fabric-ca-client
 
 The deployment process overview describes the need for both an organization CA and a TLS CA for every organization. The TLS CA issues the TLS certificates that allow for secure transactions within the organization. The organization CA, also referred to as the "enrollment CA" or the "eCert CA" is used to issue identities for the organization. You deployed the TLS CA in the previous set of steps, now we are ready to deploy the organization CA. Later in this topic you can optionally create an intermediate CA; therefore, this CA serves as the "root CA" in that chain of trust.
 
-Because you've already registered and enrolled your organization CA bootstrap identity `rcaadmin` with the TLS CA in the previous step, you are ready to deploy the CA following the same pattern of steps that were used when you deployed the TLS CA.
+Because you've already registered and enrolled your organization CA bootstrap identity `rcaadmin` with the TLS CA in the previous step, you already have the TLS certificate for the organization CA and you are ready to deploy the organization CA following the same pattern of steps that were used when you deployed the TLS CA.
 
 ### Before you begin
 
@@ -346,11 +345,10 @@ At a minimum, you should edit the following fields:
 - `tls.enabled` - Enable TLS by setting this value to `true`.
 - `tls.certfile` and `tls.keystore`- Enter the relative path and filenames for the TLS CA signed certificate and private key that were generated when the bootstrap admin for this CA was enrolled with the TLS CA. The signed certificate, `cert.pem`, was generated using the Fabric CA client and can be found under `fabric-ca-client/tls-ca/rcaadmin/msp/signcerts/cert.pem`. The private key is located under `fabric-ca-client/tls-ca/rcaadmin/msp/keystore`. The specified path name is relative to `FABRIC_CA_CLIENT_HOME` therefore if you are following the folder structure that is used throughout these instructions you can simply specify `tls/cert.pem` for the `tls.certfile` and `tls/key.pem` for the `tls.keystore` or you can specify the fully qualified path name.
 - `ca.name` - Give the organization CA a name by specifying a value in this parameter, for example `org1-ca`.
-- `csr.hosts` - Update this parameter to include this hostname and ip address where this server is running if it is different than what is already in the file.
-- `operations.listenAddress:` - If there is another CA running on this host, then you need to update this parameter to use a different port.
+- `csr.hosts` - Typically this parameter should be the hostname and ip address where this server is running so that it can be injected into the TLS certificate Subject Alternative Name, however in this case the server will not generate its own TLS certificate (it was generated already from the TLS CA) and therefore no configuration is needed.
 - `csr.ca.pathlength`: This field is used to limit CA certificate hierarchy. Setting this value to `1` for the root CA means the root CA can issue intermediate CA certificates, but these intermediate CAs cannot in turn issue other **CA** certificates. In other words the intermediate CA cannot enroll other intermediate CAs, but it can issue enrollment certificates for users. The default value is `1`.
 - `signing.profiles.ca.caconstraint.maxpathlen` - This field represents the maximum number of non-self-issued intermediate certificates that can follow this certificate in a certificate chain. **If this will be a parent server for an intermediate CA, and you want that intermediate CA to act as a parent CA for another intermediate CA, this root CA needs to set this value to greater than 0 in the configuration .yaml file.** See the instructions for the [signing](ca-config.html#signing) section. The default value is `0`.
-- `operations.listenAddress:` -  In the unlikely case that there is another node running on this host and port, then you need to update this parameter to use a different port.
+- `operations.listenAddress:` - If there is another CA running on this host, then you need to update this parameter to use a different port.
 
 ### Delete the CA server certificates
 
@@ -365,7 +363,7 @@ Run the following command to start the CA server:
 
 ### Enroll the CA admin
 
-The final step for deploying the CA is to enroll the CA admin bootstrap identity which generates the node signed certificate and private key. The key-pair is required for this admin identity to be able to enroll other identities. Again we will use the Fabric CA client CLI to enroll the admin. You should have already setup the required folders in the [Fabric CA client](#fabric-ca-client) section.
+The final step for deploying the CA is to enroll the CA admin bootstrap identity (rcaadmin user). This will generate the rcaadmin user's signed certificate and private key. The key-pair is required so that the rcaadmin user can then register and enroll other identities in the organization. Again we will use the Fabric CA client CLI to enroll the admin. You should have already setup the required folders in the [Fabric CA client](#fabric-ca-client) section.
 
 The folder structure we are using for these commands is:
   ```
@@ -374,8 +372,8 @@ The folder structure we are using for these commands is:
     └── tls-root-cert
   ```
   These folders are used by the Fabric CA client to:
-   - Store the certificates that are issued when the Fabric CA client enroll command is run against the TLS CA server. (**org1-ca** folder)
-   -  Know where the TLS certificate resides that allows the Fabric CA client to communicate with the TLS CA server. (**tls-root-cert** folder)
+   - Store the certificates that are issued when the Fabric CA client enroll command is run against the organization CA server. (**org1-ca** folder)
+   - Know where the TLS certificate resides that allows the Fabric CA client to communicate with the TLS CA server. (**tls-root-cert** folder)
 
 
 1. When you previously used the Fabric CA client to generate certificates for the TLS CA, you designated the value of the `FABRIC_CA_CLIENT_HOME`. Assuming that is still set you can proceed to the next step. Otherwise, you should be in the directory where the Fabric CA client binary resides and run the command:
@@ -386,21 +384,20 @@ The folder structure we are using for these commands is:
 
 2. Now you can use the Fabric CA client to generate the CA admin certificate and private key. You need this certificate and private key to be able to issue identities using this CA. We use the `--mspdir` flag on the enroll command to designate where to store the generated certificates. Run the command:
    ```
-   ./fabric-ca-client enroll -d -u https://<ADMIN>:<ADMIN-PWD>@<CA-URL>:<PORT> --tls.certfiles <RELATIVE-PATH-TO-TLS-CERT> --csr.hosts '<CA_HOSTNAME>' --mspdir org1-ca/rcaadmin/msp
+   ./fabric-ca-client enroll -d -u https://<ADMIN>:<ADMIN-PWD>@<CA-URL>:<PORT> --tls.certfiles <RELATIVE-PATH-TO-TLS-CERT> --mspdir org1-ca/rcaadmin/msp
    ```
    Replace:
    - `<ADMIN>` - with the organization CA admin specified on the `init` command.
    - `<ADMIN-PWD>` - with the organization CA admin password specified on the `init` command.
-   - `<CA-URL>` - with the hostname specified in the `csr` section of the organization CA configuration .yaml file.
+   - `<CA-URL>` - with the hostname for the organization CA.
    - `<PORT>` - with the port that the organization CA is listening on.
    - `<RELATIVE-PATH-TO-TLS-CERT>` - with the path to the tls-ca-cert.pem file that you copied from your TLS CA. This is the path relative to `FABRIC_CA_CLIENT_HOME`.
-   - `<CA_HOSTNAME>` - with a comma-separated list of host names for which the certificate should be valid. If not specified, the default value from the `fabric-ca-client-config.yaml` is used. If a host name is dynamic you can specify a wildcard for the domain. For example, when you include the flag `--csr.hosts 'host1,*.example.com'` it means that the hostname `host1` is recognized as well as any host from the `example.com` domain.
 
    In this case, the `-d` parameter runs the client in DEBUG mode which is useful for debugging command failures.
 
    For example:
    ```
-   ./fabric-ca-client enroll -d -u https://rcaadmin:rcaadminpw@my-machine.example.com:7055 --tls.certfiles tls-root-cert/tls-ca-cert.pem --csr.hosts 'host1,*.example.com' --mspdir org1-ca/rcaadmin/msp
+   ./fabric-ca-client enroll -d -u https://rcaadmin:rcaadminpw@my-machine.example.com:7055 --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir org1-ca/rcaadmin/msp
    ```
 
    When this command runs, the enroll command creates the `fabric-ca-client/org1-ca/rcaadmin/msp` folder and contains the signed cert and private key for the organization CA and looks similar to:
