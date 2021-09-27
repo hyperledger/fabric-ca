@@ -1,0 +1,2048 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Fabric CA Server API",
+    "description": "Hyperledger Fabric CA Server APIs provides certificate authority services for the blockchain.",
+    "version": "0.7.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "fabric-ca-server",
+      "description": "Fabric CA server APIs"
+    }
+  ],
+  "paths": {
+    "/api/v1/cainfo": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get CA information.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved server information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "CAName": {
+                          "type": "string",
+                          "description": "The name of the root CA associated with this server"
+                        },
+                        "CAChain": {
+                          "type": "string",
+                          "description": "Base 64 encoded PEM-encoded certificate chain of the server's signing certificate"
+                        },
+                        "IssuerPublicKey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
+                        },
+                        "IssuerRevocationPublicKey": {
+                          "type": "string",
+                          "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
+                        },
+                        "Version": {
+                          "type": "string",
+                          "description": "Version of the server"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/enroll": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Enroll a new identity and return an enrollment certificate.",
+        "security": [
+          {
+            "basic_auth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "certificate_request"
+                ],
+                "type": "object",
+                "properties": {
+                  "certificate_request": {
+                    "type": "string",
+                    "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
+                  },
+                  "profile": {
+                    "type": "string",
+                    "description": "The name of the signing profile to use when issuing the certificate."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "The label used in HSM operations"
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  },
+                  "attr_reqs": {
+                    "type": "array",
+                    "description": "An array of attribute requests to be placed into the enrollment certificate",
+                    "items": {
+                      "required": [
+                        "name"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the attribute being requested to put into the enrollment certificate."
+                        },
+                        "optional": {
+                          "type": "boolean",
+                          "description": "Boolean indicating whether the attribute is optional. An error is returned if the attribute is required but not found. The default value is false."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully enrolled a new identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "Cert": {
+                          "type": "string",
+                          "description": "The enrollment certificate in base 64 encoded format."
+                        },
+                        "ServerInfo": {
+                          "required": [
+                            "CAChain",
+                            "CAName",
+                            "IssuerPublicKey",
+                            "IssuerRevocationPublicKey",
+                            "Version"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "CAName": {
+                              "type": "string",
+                              "description": "The name of the CA that issued the credential"
+                            },
+                            "CAChain": {
+                              "type": "string",
+                              "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                            },
+                            "IssuerPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
+                            },
+                            "IssuerRevocationPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
+                            },
+                            "Version": {
+                              "type": "string",
+                              "description": "Version of the server"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/idemix/credential": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get an Identity Mixer credential. Identity Mixer credential issuance is a two step process. First, a request with empty request body is sent to this endpoint. The Fabric CA server will respond back with a nonce. This nonce should be used to create a credential request. Next, a request with the credential request in the request body is sent to this endpoint. The server will respond back with a credential.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "**basic** <base64 encoding of userid:password> (OR) **token** <An enrollment token consisting of two base 64 encoded parts separated by a period:  an enrollment certificate; a signature over the certificate and body of request>",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "request"
+                ],
+                "type": "object",
+                "properties": {
+                  "request": {
+                    "type": "string",
+                    "description": "JSON encoding idemix.CredentialRequest struct"
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct this request to within the Fabric CA server"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully returned a nonce or Identity Mixer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "Credential": {
+                          "type": "string",
+                          "description": "The credential in base64 encoding of the bytes of the idemix.Credential proto buffer"
+                        },
+                        "Nonce": {
+                          "type": "string",
+                          "description": "The nonce in base 64 encoded format"
+                        },
+                        "Attrs": {
+                          "required": [
+                            "EnrollmentID",
+                            "OU",
+                            "Role"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "OU": {
+                              "type": "string",
+                              "description": "The Organizational Unit of the identity that requested the credential"
+                            },
+                            "Role": {
+                              "type": "integer",
+                              "description": "Represent the role value of an identity"
+                            },
+                            "EnrollmentID": {
+                              "type": "string",
+                              "description": "The enrollment ID of the identity that requested the credential"
+                            }
+                          }
+                        },
+                        "CRI": {
+                          "type": "string",
+                          "description": "The cri base64 encoding of the bytes of the idemix.CredentialRevocationInformation proto buffer"
+                        },
+                        "CAInfo": {
+                          "required": [
+                            "CAChain",
+                            "CAName",
+                            "IssuerPublicKey",
+                            "IssuerRevocationPublicKey",
+                            "Version"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "CAName": {
+                              "type": "string",
+                              "description": "The name of the CA that issued the credential"
+                            },
+                            "CAChain": {
+                              "type": "string",
+                              "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                            },
+                            "IssuerPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
+                            },
+                            "IssuerRevocationPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
+                            },
+                            "Version": {
+                              "type": "string",
+                              "description": "Version of the server"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/idemix/cri": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Gets an Idemix Credential Revocation Information (CRI)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "An authorization token based on Idemix credential or X509 certificate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to send the request to within the Fabric CA server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully returned CRI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "cri"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "cri": {
+                          "type": "string",
+                          "description": "base64 encoding of the proto bytes of idemix.CredentialRevocationInformation"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/reenroll": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Reenroll an enrollment certificate.  This is useful for renewing an enrollment certificate before it expires or because it has been compromised.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "request"
+                ],
+                "type": "object",
+                "properties": {
+                  "request": {
+                    "type": "string",
+                    "description": "A PEM-encoded string containing the CSR (Certificate Signing Request) based on PKCS #10."
+                  },
+                  "profile": {
+                    "type": "string",
+                    "description": "The name of the signing profile to use when issuing the certificate."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "The label used in HSM operations"
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  },
+                  "attr_reqs": {
+                    "type": "array",
+                    "description": "An array of attribute requests to be placed into the enrollment certificate",
+                    "items": {
+                      "required": [
+                        "name"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the attribute being requested to put into the enrollment certificate."
+                        },
+                        "optional": {
+                          "type": "boolean",
+                          "description": "Boolean indicating whether the attribute is optional. An error is returned if the attribute is required but not found. The default value is false."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully reenrolled identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "Cert": {
+                          "type": "string",
+                          "description": "The enrollment certificate in base 64 encoded format."
+                        },
+                        "ServerInfo": {
+                          "required": [
+                            "CAChain",
+                            "CAName",
+                            "IssuerPublicKey",
+                            "IssuerRevocationPublicKey",
+                            "Version"
+                          ],
+                          "type": "object",
+                          "properties": {
+                            "CAName": {
+                              "type": "string",
+                              "description": "The name of the CA that issued the credential"
+                            },
+                            "CAChain": {
+                              "type": "string",
+                              "description": "Base 64 encoded PEM-encoded certificate chain of the CA's signing certificate"
+                            },
+                            "IssuerPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of proto bytes of the CA's Idemix issuer public key"
+                            },
+                            "IssuerRevocationPublicKey": {
+                              "type": "string",
+                              "description": "Base 64 encoding of PEM-encoded bytes of the CA's Idemix issuer revocation public key"
+                            },
+                            "Version": {
+                              "type": "string",
+                              "description": "Version of the server"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/register": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Register a new identity with the Fabric CA server.   \nAn enrollment secret is returned which can then be used, along with the enrollment ID, to enroll a new identity.   \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "attrs",
+                  "id"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "The enrollment ID which uniquely identifies an identity"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "description": "The enrollment secret.  If not provided, a random secret is generated."
+                  },
+                  "max_enrollments": {
+                    "type": "integer",
+                    "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                  },
+                  "affiliation": {
+                    "type": "string",
+                    "description": "The affiliation of the new identity.\n If no affliation is provided, the affiliation of the registrar is used."
+                  },
+                  "attrs": {
+                    "type": "array",
+                    "description": "An array of attribute names and values to give to the registered identity.",
+                    "items": {
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Attribute name"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "Value of attribute"
+                        },
+                        "ecert": {
+                          "type": "boolean",
+                          "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                        }
+                      }
+                    }
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully registered identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "secret"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "secret": {
+                          "type": "string",
+                          "description": "The base64 encoded enrollment secret of the newly registered identity."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/revoke": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Perform revocation of one of the following:  \n* a specific certificate identified by a serial number and AKI (Authority Key Identitifer), or   \n* all certificates associated with the identity and prevent any future enrollments for this identity.   \nThe caller must have the **hf.Revoker** attribute.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "The enrollment ID of the identity whose certificates are to be revoked, including both enrollment certificates and transaction certificates. \nAll future enrollment attempts for this identity will be rejected.   \nIf this field is specified, the *serial* and *aki* fields are ignored."
+                  },
+                  "aki": {
+                    "type": "string",
+                    "description": "The Authority Key Identifier of the certificate which is to be revoked.   \nThe *serial* field must also be specified."
+                  },
+                  "serial": {
+                    "type": "string",
+                    "description": "The serial number of the certificate which is to be revoked.   \nThe *aki* (Authority Key Identifier) field must also be specified."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "The reason for revocation.   \nSee https://godoc.org/golang.org/x/crypto/ocsp for valid values.   \nThe default value is 0 (ocsp.Unspecified)."
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  },
+                  "gencrl": {
+                    "type": "boolean",
+                    "description": "When this request results in revoking one or more certificates, this boolean indicates whether to generate a CRL and return it in the response"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully completed the revocation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "RevokedCerts": {
+                          "type": "array",
+                          "description": "An array of revoked certificates",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "Serial": {
+                                "type": "string",
+                                "description": "Serial number of the revoked certificate"
+                              },
+                              "AKI": {
+                                "type": "string",
+                                "description": "Authority Key Identifier (AKI) of the revoked certificate"
+                              }
+                            },
+                            "description": "A revoked certificate"
+                          }
+                        },
+                        "CRL": {
+                          "type": "string",
+                          "description": "base64 encoded PEM-encoded CRL"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/gencrl": {
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Generates a Certifcate Revocation List (CRL)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revokedafter": {
+                    "type": "string",
+                    "description": "Include certificates that were revoked after this UTC timestamp (in RFC3339 format) in the CRL"
+                  },
+                  "revokedbefore": {
+                    "type": "string",
+                    "description": "Include certificates that were revoked before this UTC timestamp (in RFC3339 format) in the CRL"
+                  },
+                  "expireafter": {
+                    "type": "string",
+                    "description": "Include revoked certificates that expire after this UTC timestamp (in RFC3339 format) in the CRL"
+                  },
+                  "expirebefore": {
+                    "type": "string",
+                    "description": "Include revoked certificates that expire before this UTC timestamp (in RFC3339 format) in the CRL"
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to send the request to within the Fabric CA server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully generated the CRL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "CRL"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "CRL": {
+                          "type": "string",
+                          "description": "base64 encoded PEM-encoded CRL"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/affiliations": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "List all affiliations equal to and below the caller's affiliation.  \nThe caller must have **hf.AffiliationMgr** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List all affiliations equal to and below the caller's affiliation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/affiliationResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Create a new affiliation.  \nThe caller must have **hf.AffiliationMgr** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If any of the parent affiliations do not exist and **force** is true, create all parent affiliations also",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "name"
+                ],
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The affiliation path to create."
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to send the request to within the Fabric CA server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully created the affiliation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "caname",
+                        "name"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The affiliation path that was created."
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing this affiliation."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/affiliations/{affiliation}": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "List a specific affiliation at or below the caller's affinity.  \nThe caller must have **hf.AffiliationMgr** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "affiliation",
+            "in": "path",
+            "description": "An affiliation path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List a specific affiliation equal to and below the caller's affiliation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/affiliationResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Rename an affiliation.  \nThe caller must have **hf.AffiliationMgr** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "affiliation",
+            "in": "path",
+            "description": "An affiliation path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If any identities are associated with this affiliation, force causes these identities' affiliations to be renamed; otherwise, an error is returned",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "name"
+                ],
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The new affiliation path."
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to send the request to within the Fabric CA server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "List a specific affiliation equal to and below the caller's affiliation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/affiliationResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "delete": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Delete an affiliation.  \nThe caller must have **hf.AffiliationMgr** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "affiliation",
+            "in": "path",
+            "description": "An affiliation path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "If there are any child affiliations or any identities are associated with this affiliation or child affiliations, force causes these identities and child affiliations to be deleted; otherwise, an error is returned",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List the affiliation(s) and any identities which were deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/affiliationResponse"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identities": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "List all identities that the caller is entitled to see.  \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of identities visible to the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "caname",
+                        "identities"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "identities": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "The enrollment ID which uniquely identifies an identity"
+                              },
+                              "type": {
+                                "type": "string",
+                                "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                              },
+                              "max_enrollments": {
+                                "type": "integer",
+                                "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "The affiliation path of the new identity.\n"
+                              },
+                              "attrs": {
+                                "type": "array",
+                                "description": "An array of attribute names and values to give to the new identity.",
+                                "items": {
+                                  "required": [
+                                    "name",
+                                    "value"
+                                  ],
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "Attribute name"
+                                    },
+                                    "value": {
+                                      "type": "string",
+                                      "description": "Value of attribute"
+                                    },
+                                    "ecert": {
+                                      "type": "boolean",
+                                      "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing these identities."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Create a new identity with the Fabric CA server.   \nAn enrollment secret is returned which can then be used, along with the enrollment ID, to enroll a new identity.   \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "affiliation",
+                  "attrs",
+                  "id"
+                ],
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "The enrollment ID which uniquely identifies an identity"
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "description": "The enrollment secret.  If not provided, a random secret is generated."
+                  },
+                  "max_enrollments": {
+                    "type": "integer",
+                    "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                  },
+                  "affiliation": {
+                    "type": "string",
+                    "description": "The affiliation path of the new identity.\n"
+                  },
+                  "attrs": {
+                    "type": "array",
+                    "description": "An array of attribute names and values to give to the new identity.",
+                    "items": {
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Attribute name"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "Value of attribute"
+                        },
+                        "ecert": {
+                          "type": "boolean",
+                          "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                        }
+                      }
+                    }
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully created identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The enrollment ID which uniquely identifies an identity"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                        },
+                        "secret": {
+                          "type": "string",
+                          "description": "The enrollment secret."
+                        },
+                        "max_enrollments": {
+                          "type": "integer",
+                          "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                        },
+                        "affiliation": {
+                          "type": "string",
+                          "description": "The affiliation path of the new identity.\n"
+                        },
+                        "attrs": {
+                          "type": "array",
+                          "description": "An array of attribute names and values to give to the new identity.",
+                          "items": {
+                            "required": [
+                              "name",
+                              "value"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Attribute name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "Value of attribute"
+                              },
+                              "ecert": {
+                                "type": "boolean",
+                                "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                              }
+                            }
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing this identity."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      }
+    },
+    "/api/v1/identities/{id}": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get an identity.  \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "An enrollment ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The identity information associated with the ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The enrollment ID which uniquely identifies an identity"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                        },
+                        "max_enrollments": {
+                          "type": "integer",
+                          "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                        },
+                        "affiliation": {
+                          "type": "string",
+                          "description": "The affiliation path of the new identity.\n"
+                        },
+                        "attrs": {
+                          "type": "array",
+                          "description": "An array of attribute names and values to give to the new identity.",
+                          "items": {
+                            "required": [
+                              "name",
+                              "value"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Attribute name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "Value of attribute"
+                              },
+                              "ecert": {
+                                "type": "boolean",
+                                "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                              }
+                            }
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing this identity."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Update an existing identity.   \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "An enrollment ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "requestBody": {
+          "description": "The request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "The new type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                  },
+                  "secret": {
+                    "type": "string",
+                    "description": "The new enrollment secret."
+                  },
+                  "max_enrollments": {
+                    "type": "integer",
+                    "description": "The new maximum number of times that the secret can be used to enroll.   \nIf -1, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                  },
+                  "affiliation": {
+                    "type": "string",
+                    "description": "The affiliation path of the identity.\n"
+                  },
+                  "attrs": {
+                    "type": "array",
+                    "description": "An array of attribute names and values to add or modify for the identity.  If the value is omitted, delete the attribute.",
+                    "items": {
+                      "required": [
+                        "name"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Attribute name"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "Value of attribute"
+                        },
+                        "ecert": {
+                          "type": "boolean",
+                          "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                        }
+                      }
+                    }
+                  },
+                  "caname": {
+                    "type": "string",
+                    "description": "Name of the CA to direct traffic to within server."
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The enrollment ID which uniquely identifies an identity"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                        },
+                        "secret": {
+                          "type": "string",
+                          "description": "The enrollment secret which is only present if the secret was updated in this request."
+                        },
+                        "max_enrollments": {
+                          "type": "integer",
+                          "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                        },
+                        "affiliation": {
+                          "type": "string",
+                          "description": "The affiliation path of the identity.\n"
+                        },
+                        "attrs": {
+                          "type": "array",
+                          "description": "An array of attribute names and values to give to the new identity.",
+                          "items": {
+                            "required": [
+                              "name",
+                              "value"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Attribute name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "Value of attribute"
+                              },
+                              "ecert": {
+                                "type": "boolean",
+                                "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                              }
+                            }
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing this identity."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codegen-request-body-name": "body"
+      },
+      "delete": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Delete an existing identity.   \nThe caller must have **hf.Registrar** authority.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ca"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "An enrollment ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "description": "Required to delete your own identity",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully deleted identity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "result": {
+                      "required": [
+                        "affiliation",
+                        "attrs",
+                        "id"
+                      ],
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "The enrollment ID which uniquely identifies an identity"
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+                        },
+                        "max_enrollments": {
+                          "type": "integer",
+                          "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments;   \nIf > configured max enrollments of the fabric-ca-server, error."
+                        },
+                        "affiliation": {
+                          "type": "string",
+                          "description": "The affiliation path of the identity.\n"
+                        },
+                        "attrs": {
+                          "type": "array",
+                          "description": "An array of attribute names and values to give to the new identity.",
+                          "items": {
+                            "required": [
+                              "name",
+                              "value"
+                            ],
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Attribute name"
+                              },
+                              "value": {
+                                "type": "string",
+                                "description": "Value of attribute"
+                              },
+                              "ecert": {
+                                "type": "boolean",
+                                "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                              }
+                            }
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing the deleted identity."
+                        }
+                      },
+                      "description": "The identity that was deleted."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/certificates": {
+      "get": {
+        "tags": [
+          "fabric-ca-server"
+        ],
+        "description": "Get certificate(s).  \nThe caller will be able to view certificates that it owns. In addition, if the caller has **hf.Registrar.Roles** or **hf.Revoker** attribute, it will be able to view certificates for identities that have affiliations equal to or below the caller's affiliation.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/enrollmentToken"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "The enrollment ID that uniquely identifies an identity",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "aki",
+            "in": "query",
+            "description": "The AKI for a certificate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "serial",
+            "in": "query",
+            "description": "The serial number for a certificate",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revoked_start",
+            "in": "query",
+            "description": "Get revoked certificates starting at the specified time, either as timestamp (RFC3339 format) or duration (-30d)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "revoked_end",
+            "in": "query",
+            "description": "Get revoked certificates before the specified time, either as timestamp (RFC3339 format) or duration (-15d)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expired_start",
+            "in": "query",
+            "description": "Get expired certificates starting at the specified time, either as timestamp (RFC3339 format) or duration (-30d)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expired_end",
+            "in": "query",
+            "description": "Get expired certificates before the specified time, either as timestamp (RFC3339 format) or duration (-15d)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "notexpired",
+            "in": "query",
+            "description": "Don't return expired certificates",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "notrevoked",
+            "in": "query",
+            "description": "Don't return revoked certificates",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ca"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The certificates that were retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/responseBase"
+                    }
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Boolean indicating if the request was successful."
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "certs": {
+                          "type": "array",
+                          "description": "An array of base64 encoded PEM-encoded certificates",
+                          "items": {
+                            "type": "string",
+                            "description": "base64 encoded PEM-encoded CRL"
+                          }
+                        },
+                        "caname": {
+                          "type": "string",
+                          "description": "Name of the CA containing this identity."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "identityInfo": {
+        "required": [
+          "affiliation",
+          "id",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The enrollment ID which uniquely identifies an identity"
+          },
+          "type": {
+            "type": "string",
+            "description": "The type of the identity (e.g. *user*, *app*, *peer*, *orderer*, etc)"
+          },
+          "max_enrollments": {
+            "type": "integer",
+            "description": "The maximum number of times that the secret can be used to enroll.   \nIf 0, use the configured max_enrollments of the fabric-ca-server; \nIf > 0 and <= configured max enrollments of the fabric-ca-server, use max_enrollments; \nIf -1, infinite max enrollments. \nIf > configured max enrollments of the Fabric CA server, error."
+          },
+          "affiliation": {
+            "type": "string",
+            "description": "The affiliation path of the new identity.\n"
+          },
+          "attrs": {
+            "type": "array",
+            "description": "An array of attribute names and values to give to the new identity.",
+            "items": {
+              "required": [
+                "name",
+                "value"
+              ],
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Attribute name"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Value of attribute"
+                },
+                "ecert": {
+                  "type": "boolean",
+                  "description": "A value of true indicates that this attribute should be included in an enrollment certificate by default"
+                }
+              }
+            }
+          }
+        }
+      },
+      "affiliationInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The affiliation path"
+          },
+          "affiliations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/affiliationInfo"
+            }
+          },
+          "identities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/identityInfo"
+            }
+          }
+        }
+      },
+      "affiliationResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The affiliation path"
+          },
+          "affiliations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/affiliationInfo"
+            }
+          },
+          "identities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/identityInfo"
+            }
+          },
+          "caname": {
+            "type": "string",
+            "description": "The name of the root CA associated with this server."
+          }
+        }
+      },
+      "errors": {
+        "type": "array",
+        "description": "An array of error messages (code and message)",
+        "items": {
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "description": "Integer code denoting the type of error."
+            },
+            "message": {
+              "type": "string",
+              "description": "An error message"
+            }
+          }
+        }
+      },
+      "messages": {
+        "type": "array",
+        "description": "An array of information messages (code and message)",
+        "items": {
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "integer",
+              "description": "Integer code denoting the type of message."
+            },
+            "message": {
+              "type": "string",
+              "description": "A more specific message."
+            }
+          }
+        }
+      },
+      "responseBase": {
+        "type": "object",
+        "required": [
+          "errors",
+          "messages",
+          "result",
+          "success"
+        ],
+        "properties": {
+          "result": {
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Boolean indicating if the request was successful."
+          },
+          "errors": {
+            "$ref": "#/components/schemas/errors"
+          },
+          "messages": {
+            "$ref": "#/components/schemas/messages"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "enrollmentToken": {
+        "name": "Authorization",
+        "in": "header",
+        "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ca": {
+        "name": "ca",
+        "in": "query",
+        "description": "The name of the CA to direct this request to within the server, or the default CA if not specified",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "securitySchemes": {
+      "basic_auth": {
+        "type": "http",
+        "scheme": "Basic",
+        "description": "An HTTP basic authorization header where:  \n*  *user* is the enrollment ID;  \n*  *password* is the enrollment secret."
+      }
+    }
+  }
+}
