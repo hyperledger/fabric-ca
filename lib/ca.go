@@ -275,8 +275,6 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		clientCfg.Enrollment = ca.Config.Intermediate.Enrollment
 		clientCfg.CAName = ca.Config.Intermediate.ParentServer.CAName
 		clientCfg.CSP = ca.Config.CSP
-		clientCfg.CSR = ca.Config.CSR
-		clientCfg.CSP = ca.Config.CSP
 		if ca.Config.CSR.CN != "" {
 			return nil, errors.Errorf("CN '%s' cannot be specified for an intermediate CA. Remove CN from CSR section for enrollment of intermediate CA to be successful", ca.Config.CSR.CN)
 		}
