@@ -1,7 +1,24 @@
 #!/bin/bash
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
 RC=0
 arch=$(uname -m)
 
+<<<<<<< HEAD
+=======
+export DEBIAN_FRONTEND=noninteractive
+
+# Latest mysql version number can be found at https://dev.mysql.com/downloads/repo/apt/
+echo mysql-apt-config mysql-apt-config/select-server select mysql-5.7 | debconf-set-selections
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.22-1_all.deb
+dpkg -i mysql-apt-config_0.8.22-1_all.deb
+apt-get update
+apt-get install mysql-server -y
+service mysql start
+mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mysql'"
+
+>>>>>>> bb858908 (Bump fvt mysql to 0.8.22-1)
 mkdir -p /var/run/mysqld
 chown mysql:mysql /var/run/mysqld
 
