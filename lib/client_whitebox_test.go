@@ -20,7 +20,6 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/internal/pkg/api"
 	"github.com/hyperledger/fabric-ca/internal/pkg/util"
-	cax509 "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
@@ -297,13 +296,11 @@ func testImpersonation(id *Identity, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed converting raw to ECDSA.PublicKey [%s]", err)
 	}
-	fakeCertBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, pub, cspSigner)
-	if err != nil {
-		t.Fatalf("Failed to create self-signed fake cert: %s", err)
-	}
-	_, err = cax509.NewSigner(privateKey, fakeCertBytes)
+
+	//As of Go 1.17, CreateCertificate now returns an error if the provided private key doesn't match the parent's public key, if any.
+	_, err = x509.CreateCertificate(rand.Reader, cert, cert, pub, cspSigner)
 	if err == nil {
-		t.Fatalf("Should have failed to create signer with fake certificate")
+		t.Fatalf("Should have failed to create self-signed fake cert")
 	}
 }
 
