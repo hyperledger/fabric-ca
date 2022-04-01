@@ -621,7 +621,7 @@ Enroll Peer2
 
 You will issue the commands below to get Peer2 enrolled. In the commands below,
 we will assume the trusted root certificate of Org2 is available at
-``/tmp/hyperledger/org2/peer2/tls/org2-ca-cert.pem`` on Peer2's host machine.
+``/tmp/hyperledger/org2/peer2/assets/ca/org2-ca-cert.pem`` on Peer2's host machine.
 
 .. code:: bash
 
