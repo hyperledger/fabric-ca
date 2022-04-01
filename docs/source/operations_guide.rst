@@ -420,7 +420,7 @@ on Peer1's host machine.
 
     export FABRIC_CA_CLIENT_MSPDIR=tls-msp
     export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/org1/peer1/assets/tls-ca/tls-ca-cert.pem
-    fabric-ca-client enroll -d -u https://peer1-org1:peer1PW@0.0.0.0:7052 --enrollment.profile tls --csr.hosts peer1-org1
+    fabric-ca-client enroll -d -u https://peer1-org1:peer1PW@0.0.0.0:7054 --enrollment.profile tls --csr.hosts peer1-org1
 
 Go to path ``/tmp/hyperledger/org1/peer1/tls-msp/keystore`` and change the name of
 the key to ``key.pem``. This will make it easy to be able to refer to in
