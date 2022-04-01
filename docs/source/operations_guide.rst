@@ -716,7 +716,7 @@ will see the following line:
    serve -> INFO 020 Started peer with ID=[name:"peer1-org2" ], network ID=[dev], address=[peer1-org2:7051]
 
 A docker service, such as the one below can be used to a launch a container for
-the peer1.
+the peer2.
 
 .. code:: yaml
 
