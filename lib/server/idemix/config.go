@@ -9,7 +9,7 @@ package idemix
 import (
 	"path/filepath"
 
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (

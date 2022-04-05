@@ -15,9 +15,9 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/gorilla/mux"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/metrics"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
 	"github.com/jmoiron/sqlx"
 	. "github.com/onsi/gomega"
