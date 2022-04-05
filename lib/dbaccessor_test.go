@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/api"
 	. "github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"

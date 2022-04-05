@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 package lib
 
-import "github.com/hyperledger/fabric-ca/internal/pkg/api"
+import "github.com/hyperledger/fabric-ca/api"
 
 // GetKeyRequest constructs and returns api.KeyRequest object based on the bccsp
 // configuration options

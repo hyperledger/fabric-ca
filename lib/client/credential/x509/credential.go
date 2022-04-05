@@ -12,9 +12,9 @@ import (
 	"net/http"
 
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 )

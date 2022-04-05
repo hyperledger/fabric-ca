@@ -34,7 +34,7 @@ import (
 	"time"
 
 	"github.com/cloudflare/cfssl/config"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (

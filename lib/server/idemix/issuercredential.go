@@ -11,7 +11,7 @@ import (
 
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )

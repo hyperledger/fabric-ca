@@ -28,8 +28,7 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib"
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/attrmgr"
@@ -37,6 +36,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	cadbuser "github.com/hyperledger/fabric-ca/lib/server/user"
+	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
 

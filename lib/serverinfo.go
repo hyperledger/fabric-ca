@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package lib
 
 import (
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 )
 

@@ -23,8 +23,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/util"
 )
 
 const (

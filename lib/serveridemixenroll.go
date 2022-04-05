@@ -8,7 +8,7 @@ package lib
 
 import (
 	"github.com/cloudflare/cfssl/log"
-	"github.com/hyperledger/fabric-ca/internal/pkg/api"
+	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 )

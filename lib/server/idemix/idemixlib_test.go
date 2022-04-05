@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-amcl/amcl/FP256BN"
-	"github.com/hyperledger/fabric-ca/internal/pkg/util"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
+	"github.com/hyperledger/fabric-ca/util"
 	fabidemix "github.com/hyperledger/fabric/idemix"
 )
 
