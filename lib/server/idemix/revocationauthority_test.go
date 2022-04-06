@@ -9,7 +9,6 @@ package idemix_test
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -43,12 +42,8 @@ func TestLongTermKeyError(t *testing.T) {
 	}
 }
 func TestRevocationKeyLoadError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "revokekeyloaderrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
-	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	homeDir := t.TempDir()
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -80,12 +75,8 @@ func TestRevocationKeyLoadError(t *testing.T) {
 }
 
 func TestGetRAInfoFromDBError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rainfodberrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
-	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	homeDir := t.TempDir()
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -111,12 +102,8 @@ func TestGetRAInfoFromDBError(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rainfodberrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
-	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	homeDir := t.TempDir()
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -143,12 +130,8 @@ func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
 }
 
 func TestGetRAInfoFromExistingDB(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "newraexistingdbtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
-	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	homeDir := t.TempDir()
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -182,11 +165,7 @@ func TestGetRAInfoFromExistingDB(t *testing.T) {
 }
 
 func TestRevocationKeyStoreFailure(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rkstoretesthome")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	os.RemoveAll(path.Join(homeDir, "msp/keystore"))
 	rainfo := RevocationAuthorityInfo{
@@ -200,7 +179,7 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 	db.On("NamedExec", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
 	keystoreDir := path.Join(homeDir, "msp/keystore")
-	err = os.MkdirAll(keystoreDir, 4444)
+	err := os.MkdirAll(keystoreDir, 4444)
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
@@ -215,11 +194,7 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
@@ -234,7 +209,7 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to insert the revocation authority info record; no rows affected")
@@ -242,15 +217,11 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	err = os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	homeDir := t.TempDir()
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
-	defer os.RemoveAll(homeDir)
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
@@ -273,11 +244,7 @@ func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rainfoinserttest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
@@ -291,7 +258,7 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
 		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err := NewRevocationAuthority(issuer, 1)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to insert revocation authority info into database")
@@ -299,11 +266,7 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleSelectError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "selecterrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetNextRevocationHandle", homeDir, db, nil, 0, false, false, selectFnc)
@@ -320,7 +283,7 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 	tx.On("Select", "GetNextRevocationHandle", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
-	_, err = ra.GetNewRevocationHandle()
+	_, err := ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to get revocation authority info from database")
@@ -328,11 +291,7 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleNoData(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "rhnodatatest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -348,7 +307,7 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(fnc)
 
 	db.On("BeginTx").Return(tx)
-	_, err = ra.GetNewRevocationHandle()
+	_, err := ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "No revocation authority info found in database")
@@ -356,11 +315,7 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleExecError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "nextrhexecerrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -376,7 +331,7 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 	tx.On("Rollback", "GetNextRevocationHandle").Return(nil)
 
 	db.On("BeginTx").Return(tx)
-	_, err = ra.GetNewRevocationHandle()
+	_, err := ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to update revocation authority info")
@@ -384,11 +339,7 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleRollbackError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "nextrhrollbackerrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -404,7 +355,7 @@ func TestGetNewRevocationHandleRollbackError(t *testing.T) {
 	tx.On("Rollback", "GetNextRevocationHandle").Return(errors.New("Rollback error"))
 
 	db.On("BeginTx").Return(tx)
-	_, err = ra.GetNewRevocationHandle()
+	_, err := ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Error encountered while rolling back transaction")
@@ -412,11 +363,7 @@ func TestGetNewRevocationHandleRollbackError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleCommitError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "nextrhcommiterrortest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -432,17 +379,13 @@ func TestGetNewRevocationHandleCommitError(t *testing.T) {
 	tx.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(f1)
 
 	db.On("BeginTx").Return(tx)
-	_, err = ra.GetNewRevocationHandle()
+	_, err := ra.GetNewRevocationHandle()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Error encountered while committing transaction")
 }
 
 func TestGetNewRevocationHandle(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "nextrhtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	rc := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -464,11 +407,7 @@ func TestGetNewRevocationHandle(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleLastHandle(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "nextlastrhtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -493,11 +432,7 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 }
 
 func TestGetEpoch(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "getepochtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
 	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
@@ -512,11 +447,7 @@ func TestGetEpoch(t *testing.T) {
 }
 
 func TestGetEpochRAInfoError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "createcritest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
@@ -530,11 +461,7 @@ func TestGetEpochRAInfoError(t *testing.T) {
 }
 
 func TestCreateCRIGetRAInfoError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "createcritest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
@@ -548,11 +475,7 @@ func TestCreateCRIGetRAInfoError(t *testing.T) {
 }
 
 func TestCreateCRIGetRevokeCredsError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "createcritest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
@@ -567,11 +490,7 @@ func TestCreateCRIGetRevokeCredsError(t *testing.T) {
 }
 
 func TestIdemixCreateCRIError(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "createcritest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -586,11 +505,7 @@ func TestIdemixCreateCRIError(t *testing.T) {
 }
 
 func TestEpochValuesInCRI(t *testing.T) {
-	homeDir, err := ioutil.TempDir(".", "createcritest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(homeDir)
+	homeDir := t.TempDir()
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")

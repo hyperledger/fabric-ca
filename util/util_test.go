@@ -203,9 +203,7 @@ func TestRandomString(t *testing.T) {
 }
 
 func TestCreateHome(t *testing.T) {
-	tempDir, err := ioutil.TempDir("", "test")
-	assert.NoError(t, err, "failed to create temporary directory")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	os.Setenv("HOME", tempDir)
 	dir, err := CreateClientHome()
@@ -286,12 +284,10 @@ func TestReadFile(t *testing.T) {
 }
 
 func TestWriteFile(t *testing.T) {
-	testdir, err := ioutil.TempDir("", "writefiletest")
-	assert.NoError(t, err)
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
 	testData := []byte("foo")
-	err = WriteFile(filepath.Join(testdir, "test.txt"), testData, 0777)
+	err := WriteFile(filepath.Join(testdir, "test.txt"), testData, 0777)
 	assert.NoError(t, err)
 
 	readOnlyDir := filepath.Join(testdir, "readonlydir")

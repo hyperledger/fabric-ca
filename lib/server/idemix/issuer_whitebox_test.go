@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,12 +23,8 @@ const (
 
 // TestIssuer tests issuer
 func TestIssuer(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerinittest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	testdir := t.TempDir()
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -68,12 +63,8 @@ func TestIssuer(t *testing.T) {
 }
 
 func TestIssuerPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerinittest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	testdir := t.TempDir()
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}

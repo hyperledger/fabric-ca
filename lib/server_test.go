@@ -105,16 +105,7 @@ func TestSRVServerInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get cwd: %s", err)
 	}
-	td, err := ioutil.TempDir("", "ServerInitStat")
-	if err != nil {
-		t.Fatalf("failed to get tmp dir: %s", err)
-	}
-	defer func() {
-		err = os.RemoveAll(td)
-		if err != nil {
-			t.Fatalf("RemoveAll failed: %s", err)
-		}
-	}()
+	td := t.TempDir()
 	server.HomeDir = ""
 	err = os.Chdir(td)
 	if err != nil {

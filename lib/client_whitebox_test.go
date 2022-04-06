@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -562,16 +561,7 @@ func TestCWBCAConfigStat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get cwd: %s", err)
 	}
-	td, err := ioutil.TempDir("", "CAConfigStat")
-	if err != nil {
-		t.Fatalf("failed to get tmp dir: %s", err)
-	}
-	defer func() {
-		err = os.RemoveAll(td)
-		if err != nil {
-			t.Errorf("RemoveAll failed: %s", err)
-		}
-	}()
+	td := t.TempDir()
 	err = os.Chdir(td)
 	if err != nil {
 		t.Fatalf("failed to cd to %v: %s", td, err)

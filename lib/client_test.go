@@ -46,16 +46,7 @@ func TestClientConfigStat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get cwd: %s", err)
 	}
-	td, err := ioutil.TempDir("", "ClientConfigStat")
-	if err != nil {
-		t.Fatalf("failed to get tmp dir: %s", err)
-	}
-	defer func() {
-		err = os.RemoveAll(td)
-		if err != nil {
-			t.Errorf("RemoveAll failed: %s", err)
-		}
-	}()
+	td := t.TempDir()
 	err = os.Chdir(td)
 	if err != nil {
 		t.Fatalf("failed to cd to %v: %s", td, err)
@@ -1474,14 +1465,11 @@ func TestGenCSR(t *testing.T) {
 // Test to make sure that once an identity is revoked, all subsequent commands
 // invoked by revoked user should be rejected by server for all its issued certificates
 func TestRevokedIdentity(t *testing.T) {
-	testHome, err := ioutil.TempDir(".", "revoketesthome")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testHome := t.TempDir()
 	serverdir := filepath.Join(testdataDir, "server")
 
 	srv := TestGetServer(ctport1, serverdir, "", -1, t)
-	err = srv.Start()
+	err := srv.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
