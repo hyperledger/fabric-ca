@@ -27,15 +27,11 @@ const (
 )
 
 func TestLoadEmptyIdemixPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerkeyloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
 	ic := NewIssuerCredential(pubkeyfile.Name(), testSecretKeyFile, idemixLib)
 	err = ic.Load()
@@ -46,10 +42,7 @@ func TestLoadEmptyIdemixPublicKey(t *testing.T) {
 }
 
 func TestLoadFakeIdemixPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerkeyloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
@@ -58,7 +51,6 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	defer os.RemoveAll(testdir)
 	_, err = pubkeyfile.WriteString("foo")
 	if err != nil {
 		t.Fatalf("Failed to write to the file %s", pubkeyfile.Name())
@@ -73,15 +65,11 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 }
 
 func TestLoadEmptyIdemixSecretKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerkeyloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testdir := t.TempDir()
 	privkeyfile, err := ioutil.TempFile(testdir, "IdemixSecretKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
 	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile.Name(), idemixLib)
 	err = ik.Load()
@@ -92,14 +80,10 @@ func TestLoadEmptyIdemixSecretKey(t *testing.T) {
 }
 
 func TestLoadNonExistentIdemixSecretKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerkeyloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 	idemixLib := new(mocks.Lib)
 	ik := NewIssuerCredential(testPublicKeyFile, filepath.Join(testdir, "IdemixSecretKey"), idemixLib)
-	err = ik.Load()
+	err := ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer secret key")
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to read Issuer secret key")
@@ -138,11 +122,7 @@ func TestStoreNilIdemixPublicKey(t *testing.T) {
 }
 
 func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerpubkeytest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
 	pubkeyfile := path.Join(testdir, "testdata1/IdemixPublicKey")
 
@@ -173,11 +153,7 @@ func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
 }
 
 func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerkeystoreTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
 	// foo directory is non-existent
 	privkeyfile := filepath.Join(testdir, "foo/IdemixSecretKey")

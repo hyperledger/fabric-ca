@@ -262,12 +262,10 @@ func TestServerGetCertificates(t *testing.T) {
 }
 
 func TestStoreCert(t *testing.T) {
-	dir, err := ioutil.TempDir("", "testStoreCert")
-	assert.NoError(t, err, "failed to create temp directory")
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	cd := NewCertificateDecoder(dir)
-	err = cd.storeCert("testID", dir, []byte("testing store cert function"))
+	err := cd.storeCert("testID", dir, []byte("testing store cert function"))
 	assert.NoError(t, err, "failed to store cert")
 
 	filePath := filepath.Join(dir, "testID.pem")

@@ -11,7 +11,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,12 +39,8 @@ func TestNewIssuer(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerinittest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	testdir := t.TempDir()
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -89,12 +84,8 @@ func TestInitDBNotInitialized(t *testing.T) {
 }
 
 func TestInitExistingIssuerCredential(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerinittest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	testdir := t.TempDir()
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -131,15 +122,11 @@ func TestInitExistingIssuerCredential(t *testing.T) {
 	assert.NoError(t, err)
 }
 func TestInitRenewTrue(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "issuerinittest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 	db, issuer := getIssuer(t, testdir, true, false)
 	assert.NotNil(t, issuer)
 
-	err = issuer.Init(true, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
+	err := issuer.Init(true, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.Error(t, err, "Init should fail if it fails to generate random number")
 
 	db, issuer = getIssuer(t, testdir, false, true)
@@ -170,13 +157,9 @@ func TestInitRenewTrue(t *testing.T) {
 }
 
 func TestVerifyTokenError(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "verifytokentesterror")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -214,13 +197,9 @@ func TestVerifyTokenError(t *testing.T) {
 }
 
 func TestVerifyTokenNoCreds(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "verifytokentestnocreds")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -250,13 +229,9 @@ func TestVerifyTokenNoCreds(t *testing.T) {
 }
 
 func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "verifytokentestbadsigencoding")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -287,13 +262,9 @@ func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
 }
 
 func TestVerifyTokenBadSignature(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "verifytokentestbadsig")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -340,13 +311,9 @@ func TestIsToken(t *testing.T) {
 }
 
 func TestRevocationPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "revocationpubkeytest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
-	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}

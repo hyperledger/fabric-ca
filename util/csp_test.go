@@ -53,12 +53,10 @@ func testMain(m *testing.M) int {
 }
 
 func TestInitBCCSP(t *testing.T) {
-	mspDir, err := ioutil.TempDir("", "util-bccsp-msp")
-	assert.NoError(t, err)
-	defer os.RemoveAll(mspDir)
+	mspDir := t.TempDir()
 
 	var opts *factory.FactoryOpts
-	_, err = InitBCCSP(&opts, "", mspDir)
+	_, err := InitBCCSP(&opts, "", mspDir)
 	assert.NoError(t, err, "first initialization of BCCSP failed")
 
 	cfg := &factory.FactoryOpts{ProviderName: "SW"}

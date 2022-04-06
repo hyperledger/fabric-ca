@@ -27,15 +27,11 @@ const (
 )
 
 func TestLoadNonExistentRevocationPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(path.Join(testdir, DefaultRevocationPublicKeyFile),
 		path.Join(testdir, "msp/keystore", DefaultRevocationPrivateKeyFile), idemixLib)
-	err = rk.Load()
+	err := rk.Load()
 	assert.Error(t, err, "Should have failed to load non existent revocation public key")
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to read revocation public key")
@@ -43,12 +39,8 @@ func TestLoadNonExistentRevocationPublicKey(t *testing.T) {
 }
 
 func TestLoadEmptyRevocationPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
+	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPublicKeyFile)
-	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(pubkeyfile.Name(), path.Join(testdir, "msp/keystore", DefaultRevocationPrivateKeyFile), idemixLib)
 	err = rk.Load()
@@ -59,11 +51,7 @@ func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 }
 
 func TestLoadFakeRevocationPublicKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPublicKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
@@ -99,11 +87,10 @@ func TestLoadFakeRevocationPublicKey(t *testing.T) {
 }
 
 func TestLoadNonExistentRevocationPrivateKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadtest")
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, filepath.Join(testdir, "IdemixRevocationPrivateKey"), idemixLib)
-	err = rk.Load()
+	err := rk.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer revocation private key")
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to read revocation private key")
@@ -111,9 +98,8 @@ func TestLoadNonExistentRevocationPrivateKey(t *testing.T) {
 }
 
 func TestLoadEmptyRevocationPrivateKey(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadtest")
+	testdir := t.TempDir()
 	privkeyfile, err := ioutil.TempFile(testdir, "")
-	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, privkeyfile.Name(), idemixLib)
 	err = rk.Load()
@@ -189,11 +175,7 @@ func TestEncodeKeys(t *testing.T) {
 }
 
 func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
-	testdir, err := ioutil.TempDir(".", "rkloadTest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(testdir)
+	testdir := t.TempDir()
 
 	privkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPrivateKeyFile)
 	if err != nil {
