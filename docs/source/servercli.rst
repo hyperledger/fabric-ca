@@ -38,6 +38,7 @@ Fabric-CA Server's CLI
           --csr.keyrequest.reusekey                   Reuse existing key during reenrollment
           --csr.keyrequest.size int                   Specify key size
           --csr.serialnumber string                   The serial number in a certificate signing request to a parent fabric-ca-server
+      -d, --debug bool                                Enable debug level logging (slows server) (default false)
           --db.datasource string                      Data source which is database specific (default "fabric-ca-server.db")
           --db.tls.certfiles strings                  A list of comma-separated PEM-encoded trusted certificate files (e.g. root1.pem,root2.pem)
           --db.tls.client.certfile string             PEM-encoded certificate file when mutual authenticate is enabled

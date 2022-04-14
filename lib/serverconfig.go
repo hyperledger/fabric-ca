@@ -34,7 +34,7 @@ type ServerConfig struct {
 	// Cross-Origin Resource Sharing settings for the server
 	CORS CORS
 	// Enables debug logging
-	Debug bool `def:"false" opt:"d" help:"Enable debug level logging" hide:"true"`
+	Debug bool `def:"false" opt:"d" help:"Enable debug level logging (slows server)"`
 	// Sets the logging level on the server
 	LogLevel string `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
 	// TLS for the server's listening endpoint
