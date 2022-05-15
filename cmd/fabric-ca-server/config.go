@@ -68,7 +68,7 @@ const (
 #############################################################################
 
 # Version of config file
-version: <<<VERSION>>>
+version: "<<<VERSION>>>"
 
 # Server's listening port (default: 7054)
 port: 7054
@@ -159,8 +159,8 @@ registry:
 
   # Contains identity information which is used when LDAP is disabled
   identities:
-     - name: <<<ADMIN>>>
-       pass: <<<ADMINPW>>>
+     - name: "<<<ADMIN>>>"
+       pass: "<<<ADMINPW>>>"
        type: client
        affiliation: ""
        attrs:
@@ -339,7 +339,7 @@ signing:
 #  if the server creates a self-signed TLS certificate.
 ###########################################################################
 csr:
-   cn: <<<COMMONNAME>>>
+   cn: "<<<COMMONNAME>>>"
    keyrequest:
      algo: ecdsa
      size: 256
@@ -350,11 +350,11 @@ csr:
         O: Hyperledger
         OU: Fabric
    hosts:
-     - <<<MYHOST>>>
+     - "<<<MYHOST>>>"
      - localhost
    ca:
       expiry: 131400h
-      pathlength: <<<PATHLENGTH>>>
+      pathlength: "<<<PATHLENGTH>>>"
 
 ###########################################################################
 # Each CA can issue both X509 enrollment certificate as well as Idemix
