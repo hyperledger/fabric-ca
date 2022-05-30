@@ -9,11 +9,14 @@ package idemix_test
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"fmt"
 	"os"
 	"path"
 	"testing"
 
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+	idmx "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
@@ -24,50 +27,71 @@ import (
 )
 
 func TestLongTermKeyError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLongTermKeyError(t, curve)
+		})
+	}
+}
+
+func testLongTermKeyError(t *testing.T, curveID cidemix.CurveID) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(".")
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(".", DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join("./msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(".", DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join("./msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
 	lib := new(mocks.Lib)
 	lib.On("GenerateLongTermRevocationKey").Return(nil, errors.New("Failed to create revocation key"))
 	issuer.On("IdemixLib").Return(lib)
 	db := new(dmocks.FabricCADB)
 	issuer.On("DB").Return(db)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err := NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to generate revocation key for issuer")
 	}
 }
+
 func TestRevocationKeyLoadError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testRevocationKeyLoadError(t, curve)
+		})
+	}
+}
+
+func testRevocationKeyLoadError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 	revocationpubkeyfile := path.Join(homeDir, DefaultRevocationPublicKeyFile)
 	revocationprivkeyfile := path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)
-	err = util.WriteFile(revocationprivkeyfile, []byte(""), 0666)
+	err = util.WriteFile(revocationprivkeyfile, []byte(""), 0o666)
 	if err != nil {
 		t.Fatalf("Failed to write to file: %s", err.Error())
 	}
-	err = util.WriteFile(revocationpubkeyfile, []byte(""), 0666)
+	err = util.WriteFile(revocationpubkeyfile, []byte(""), 0o666)
 	if err != nil {
 		t.Fatalf("Failed to write to file: %s", err.Error())
 	}
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(homeDir)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: revocationpubkeyfile,
-		RevocationPrivateKeyfile: revocationprivkeyfile}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: revocationpubkeyfile,
+		RevocationPrivateKeyfile: revocationprivkeyfile,
+	}
 	issuer.On("Config").Return(opts)
 	lib := new(mocks.Lib)
 	issuer.On("IdemixLib").Return(lib)
 	db := new(dmocks.FabricCADB)
 	issuer.On("DB").Return(db)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to load revocation key for issuer")
@@ -75,8 +99,16 @@ func TestRevocationKeyLoadError(t *testing.T) {
 }
 
 func TestGetRAInfoFromDBError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromDBError(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromDBError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -94,16 +126,26 @@ func TestGetRAInfoFromDBError(t *testing.T) {
 	db.On("Select", "GetRAInfo", &rainfos, "SELECT * FROM revocation_authority_info").
 		Return(errors.New("Failed to execute select query"))
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 }
 
 func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromNewDBSelectError(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromNewDBSelectError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -122,16 +164,26 @@ func TestGetRAInfoFromNewDBSelectError(t *testing.T) {
 	f := getSelectFunc(t, true, true)
 	db.On("Select", "GetRAInfo", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 }
 
 func TestGetRAInfoFromExistingDB(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromExistingDB(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromExistingDB(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -156,15 +208,25 @@ func TestGetRAInfoFromExistingDB(t *testing.T) {
 	f := getSelectFunc(t, false, false)
 	db.On("Select", "GetRAInfo", &raInfos, SelectRAInfo).Return(f)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100,
+	opts := &Config{
+		RHPoolSize:               100,
 		RevocationPublicKeyfile:  path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.NoError(t, err)
 }
 
 func TestRevocationKeyStoreFailure(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testRevocationKeyStoreFailure(t, curve)
+		})
+	}
+}
+
+func testRevocationKeyStoreFailure(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	os.RemoveAll(path.Join(homeDir, "msp/keystore"))
@@ -183,10 +245,12 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(keystoreDir, DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(keystoreDir, DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to store revocation key of issuer")
@@ -194,6 +258,14 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromNewDBInsertFailure(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromNewDBInsertFailure(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
@@ -206,10 +278,12 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 	result.On("RowsAffected").Return(int64(0), nil)
 	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err := NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to insert the revocation authority info record; no rows affected")
@@ -217,11 +291,20 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromNewDBInsertFailure1(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromNewDBInsertFailure1(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0777)
+	err := os.MkdirAll(path.Join(homeDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
+	defer os.RemoveAll(homeDir)
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
@@ -233,10 +316,12 @@ func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
 	result.On("RowsAffected").Return(int64(2), nil)
 	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err = NewRevocationAuthority(issuer, 1)
+	_, err = NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Expected to affect 1 entry in revocation authority info table but affected")
@@ -244,6 +329,14 @@ func TestGetRAInfoFromNewDBInsertFailure1(t *testing.T) {
 }
 
 func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetRAInfoFromNewDBInsertError(t, curve)
+		})
+	}
+}
+
+func testGetRAInfoFromNewDBInsertError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	issuer, db, _ := setupForInsertTests(t, homeDir)
 	rainfo := RevocationAuthorityInfo{
@@ -255,10 +348,12 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rainfo).Return(nil,
 		errors.New("Inserting revocation authority info into DB failed"))
 	issuer.On("DB").Return(db)
-	opts := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	opts := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(opts)
-	_, err := NewRevocationAuthority(issuer, 1)
+	_, err := NewRevocationAuthority(issuer, 1, curveID)
 	assert.Error(t, err)
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to insert revocation authority info into database")
@@ -266,10 +361,18 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleSelectError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleSelectError(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleSelectError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetNextRevocationHandle", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetNextRevocationHandle", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
@@ -291,10 +394,18 @@ func TestGetNewRevocationHandleSelectError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleNoData(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleNoData(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleNoData(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
@@ -315,10 +426,18 @@ func TestGetNewRevocationHandleNoData(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleExecError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleExecError(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleExecError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
@@ -339,10 +458,18 @@ func TestGetNewRevocationHandleExecError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleRollbackError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleRollbackError(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleRollbackError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	rcInfos := []RevocationAuthorityInfo{}
@@ -363,10 +490,18 @@ func TestGetNewRevocationHandleRollbackError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandleCommitError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleCommitError(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleCommitError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit", "GetNextRevocationHandle").Return(errors.New("Error commiting"))
@@ -385,10 +520,18 @@ func TestGetNewRevocationHandleCommitError(t *testing.T) {
 }
 
 func TestGetNewRevocationHandle(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandle(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandle(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	rc := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	rc := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
@@ -403,14 +546,25 @@ func TestGetNewRevocationHandle(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	rh, err := rc.GetNewRevocationHandle()
 	assert.NoError(t, err)
-	assert.Equal(t, 0, bytes.Compare(idemix.BigToBytes(fp256bn.NewBIGint(1)), idemix.BigToBytes(rh)), "Expected next revocation handle to be 1")
+
+	curve := cidemix.CurveByID(curveID)
+
+	assert.Equal(t, 0, bytes.Compare(curve.NewZrFromInt(1).Bytes(), rh.Bytes()), "Expected next revocation handle to be 1")
 }
 
 func TestGetNewRevocationHandleLastHandle(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetNewRevocationHandleLastHandle(t, curve)
+		})
+	}
+}
+
+func testGetNewRevocationHandleLastHandle(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	tx := new(dmocks.FabricCATx)
 	tx.On("Commit", "GetNextRevocationHandle").Return(nil)
@@ -425,17 +579,27 @@ func TestGetNewRevocationHandleLastHandle(t *testing.T) {
 	db.On("BeginTx").Return(tx)
 	rh, err := ra.GetNewRevocationHandle()
 	assert.NoError(t, err)
-	assert.Equal(t, 0, bytes.Compare(idemix.BigToBytes(fp256bn.NewBIGint(100)), idemix.BigToBytes(rh)),
+
+	curve := cidemix.CurveByID(curveID)
+	assert.Equal(t, 0, bytes.Compare(curve.NewZrFromInt(100).Bytes(), rh.Bytes()),
 		"Expected next revocation handle to be 100")
-	assert.Equal(t, util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(100))), util.B64Encode(idemix.BigToBytes(rh)),
+	assert.Equal(t, util.B64Encode(curve.NewZrFromInt(100).Bytes()), util.B64Encode(rh.Bytes()),
 		"Expected next revocation handle to be 100")
 }
 
 func TestGetEpoch(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetEpoch(t, curve)
+		})
+	}
+}
+
+func testGetEpoch(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFunc(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, nil, 0, false, false, curveID, selectFnc)
 
 	rcInfos := []RevocationAuthorityInfo{}
 	db.On("Select", "GetRAInfo", &rcInfos, SelectRAInfo).Return(selectFnc)
@@ -447,6 +611,14 @@ func TestGetEpoch(t *testing.T) {
 }
 
 func TestGetEpochRAInfoError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetEpochRAInfoError(t, curve)
+		})
+	}
+}
+
+func testGetEpochRAInfoError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
@@ -455,12 +627,20 @@ func TestGetEpochRAInfoError(t *testing.T) {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, true)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, curveID, selectFnc)
 	_, err = ra.Epoch()
 	assert.Error(t, err, "Epoch should fail if there is an error getting revocation info from DB")
 }
 
 func TestCreateCRIGetRAInfoError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCreateCRIGetRAInfoError(t, curve)
+		})
+	}
+}
+
+func testCreateCRIGetRAInfoError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
@@ -469,12 +649,20 @@ func TestCreateCRIGetRAInfoError(t *testing.T) {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, true)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, curveID, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if there is an error getting revocation info from DB")
 }
 
 func TestCreateCRIGetRevokeCredsError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCreateCRIGetRevokeCredsError(t, curve)
+		})
+	}
+}
+
+func testCreateCRIGetRevokeCredsError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
 
@@ -484,12 +672,20 @@ func TestCreateCRIGetRevokeCredsError(t *testing.T) {
 	}
 
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, true, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, true, false, curveID, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if there is an error getting revoked credentials")
 }
 
 func TestIdemixCreateCRIError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testIdemixCreateCRIError(t, curve)
+		})
+	}
+}
+
+func testIdemixCreateCRIError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
@@ -499,12 +695,20 @@ func TestIdemixCreateCRIError(t *testing.T) {
 
 	db := new(dmocks.FabricCADB)
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, true, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, true, curveID, selectFnc)
 	_, err = ra.CreateCRI()
 	assert.Error(t, err, "CreateCRI should fail if idemix.CreateCRI returns an error")
 }
 
 func TestEpochValuesInCRI(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testEpochValuesInCRI(t, curve)
+		})
+	}
+}
+
+func testEpochValuesInCRI(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -512,7 +716,7 @@ func TestEpochValuesInCRI(t *testing.T) {
 	}
 	selectFnc := getSelectFuncForCreateCRI(t, true, false)
 	db := new(dmocks.FabricCADB)
-	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, selectFnc)
+	ra := getRevocationAuthority(t, "GetRAInfo", homeDir, db, revocationKey, 0, false, false, curveID, selectFnc)
 	cri, err := ra.CreateCRI()
 	assert.NoError(t, err)
 
@@ -528,7 +732,7 @@ func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(homeDir)
 	keystore := path.Join(homeDir, "msp/keystore")
-	err := os.MkdirAll(keystore, 0777)
+	err := os.MkdirAll(keystore, 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory %s: %s", keystore, err.Error())
 	}
@@ -547,12 +751,12 @@ func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks
 }
 
 func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.FabricCADB, revocationKey *ecdsa.PrivateKey, revokedCred int,
-	getRevokedCredsError bool, idemixCreateCRIError bool, selectFnc func(string, interface{}, string, ...interface{}) error) RevocationAuthority {
+	getRevokedCredsError bool, idemixCreateCRIError bool, curveID cidemix.CurveID, selectFnc func(string, interface{}, string, ...interface{}) error) RevocationAuthority {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 	issuer.On("HomeDir").Return(homeDir)
 	keystore := path.Join(homeDir, "msp/keystore")
-	err := os.MkdirAll(keystore, 0777)
+	err := os.MkdirAll(keystore, 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory %s: %s", keystore, err.Error())
 	}
@@ -580,15 +784,19 @@ func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.F
 	result.On("RowsAffected").Return(int64(1), nil)
 	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rcinfo).Return(result, nil)
 	issuer.On("DB").Return(db)
-	cfg := &Config{RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
-		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile)}
+	cfg := &Config{
+		RHPoolSize: 100, RevocationPublicKeyfile: path.Join(homeDir, DefaultRevocationPublicKeyFile),
+		RevocationPrivateKeyfile: path.Join(homeDir, "msp/keystore", DefaultRevocationPrivateKeyFile),
+	}
 	issuer.On("Config").Return(cfg)
 
-	rnd, err := idemix.GetRand()
+	curve := cidemix.CurveByID(curveID)
+
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Failed generate random number: %s", err.Error())
 	}
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 
 	credDBAccessor := new(mocks.CredDBAccessor)
 	if getRevokedCredsError {
@@ -596,7 +804,7 @@ func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.F
 	} else {
 		revokedCreds := []CredRecord{}
 		if revokedCred > 0 {
-			rh := util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(revokedCred)))
+			rh := util.B64Encode(curve.NewZrFromInt(int64(revokedCred)).Bytes())
 			cr := CredRecord{
 				RevocationHandle: rh,
 				Cred:             "",
@@ -610,22 +818,24 @@ func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.F
 
 	issuer.On("CredDBAccessor").Return(credDBAccessor)
 
-	validHandles := []*fp256bn.BIG{}
+	idemix := cidemix.InstanceForCurve(curveID)
+
+	var validHandles []*math.Zr
 	for i := 1; i <= 100; i = i + 1 {
-		validHandles = append(validHandles, fp256bn.NewBIGint(i))
+		validHandles = append(validHandles, curve.NewZrFromInt(int64(i)))
 	}
-	alg := idemix.ALG_NO_REVOCATION
+	alg := idmx.ALG_NO_REVOCATION
 	if idemixCreateCRIError {
-		lib.On("CreateCRI", revocationKey, validHandles, 1, alg, rnd).Return(nil, errors.New("Idemix lib create CRI error"))
+		lib.On("CreateCRI", revocationKey, validHandles, 1, alg).Return(nil, errors.New("Idemix lib create CRI error"))
 	} else {
-		cri, err := idemix.CreateCRI(revocationKey, validHandles, 1, alg, rnd)
+		cri, err := idemix.CreateCRI(revocationKey, validHandles, 1, alg, rand, idemix.Translator)
 		if err != nil {
 			t.Fatalf("Failed to create CRI: %s", err.Error())
 		}
-		lib.On("CreateCRI", revocationKey, validHandles, 1, alg, rnd).Return(cri, nil)
+		lib.On("CreateCRI", revocationKey, validHandles, 1, alg).Return(cri, nil)
 	}
 
-	ra, err := NewRevocationAuthority(issuer, 1)
+	ra, err := NewRevocationAuthority(issuer, 1, curveID)
 	if err != nil {
 		t.Fatalf("Failed to get revocation authority instance: %s", err.Error())
 	}

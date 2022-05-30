@@ -16,36 +16,52 @@ import (
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/kisielk/sqlstruct"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewIssuer(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testNewIssuer(t, curve)
+		})
+	}
+}
+
+func testNewIssuer(t *testing.T, curveID cidemix.CurveID) {
 	lib := new(mocks.Lib)
 	cfg := &Config{
 		NonceExpiration:    "15",
 		NonceSweepInterval: "15",
 	}
-	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), lib)
+	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), lib, curveID)
 	assert.NotNil(t, issuer)
 }
 
 func TestInit(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testInit(t, curve)
+		})
+	}
+}
+
+func testInit(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 	err = issuer.Init(false, nil, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err, "Init should not return an error if db is nil")
@@ -67,25 +83,45 @@ func TestInit(t *testing.T) {
 }
 
 func TestInitDBNotInitialized(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testInitDBNotInitialized(t, curve)
+		})
+	}
+}
+
+func testInitDBNotInitialized(t *testing.T, curveID cidemix.CurveID) {
 	cfg := &Config{
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
 	var db *dmocks.FabricCADB
-	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib())
+	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib(curveID), curveID)
 	err := issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 
 	db = new(dmocks.FabricCADB)
 	db.On("IsInitialized").Return(false)
-	issuer = NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib())
+	issuer = NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib(curveID), curveID)
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 }
 
 func TestInitExistingIssuerCredential(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testInitExistingIssuerCredential(t, curve)
+		})
+	}
+}
+
+func testInitExistingIssuerCredential(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	testdir := t.TempDir()
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -98,7 +134,7 @@ func TestInitExistingIssuerCredential(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	secrekeyfile := filepath.Join(testdir, "msp/keystore/IssuerSecretKey")
@@ -107,7 +143,7 @@ func TestInitExistingIssuerCredential(t *testing.T) {
 		t.Fatalf("os.Stat failed on test dir: %s", err)
 	}
 	oldmode := secrekeyFileInfo.Mode()
-	err = os.Chmod(secrekeyfile, 0000)
+	err = os.Chmod(secrekeyfile, 0o000)
 	if err != nil {
 		t.Fatalf("Chmod on %s failed: %s", secrekeyFileInfo.Name(), err)
 	}
@@ -121,20 +157,26 @@ func TestInitExistingIssuerCredential(t *testing.T) {
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 }
+
 func TestInitRenewTrue(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testInitRenewTrue(t, curve)
+		})
+	}
+}
+
+func testInitRenewTrue(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
-	db, issuer := getIssuer(t, testdir, true, false)
+	db, issuer := getIssuer(t, testdir, true, false, curveID)
 	assert.NotNil(t, issuer)
 
+	db, issuer = getIssuer(t, testdir, false, true, curveID)
+	assert.NotNil(t, issuer)
 	err := issuer.Init(true, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
-	assert.Error(t, err, "Init should fail if it fails to generate random number")
-
-	db, issuer = getIssuer(t, testdir, false, true)
-	assert.NotNil(t, issuer)
-	err = issuer.Init(true, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.Error(t, err, "Init should fail if it fails to create new issuer key")
 
-	db, issuer = getIssuer(t, testdir, false, false)
+	db, issuer = getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	testdataInfo, err := os.Stat(testdir)
@@ -142,7 +184,7 @@ func TestInitRenewTrue(t *testing.T) {
 		t.Fatalf("os.Stat failed on test dir: %s", err)
 	}
 	oldmode := testdataInfo.Mode()
-	err = os.Chmod(testdir, 0000)
+	err = os.Chmod(testdir, 0o000)
 	if err != nil {
 		t.Fatalf("Chmod on %s failed: %s", testdataInfo.Name(), err)
 	}
@@ -157,9 +199,21 @@ func TestInitRenewTrue(t *testing.T) {
 }
 
 func TestVerifyTokenError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testVerifyTokenError(t, curve)
+		})
+	}
+}
+
+func testVerifyTokenError(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	testdir := t.TempDir()
 
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -172,7 +226,7 @@ func TestVerifyTokenError(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	_, err = issuer.VerifyToken("idemix.1.foo.blah", "", "", []byte{})
@@ -197,9 +251,20 @@ func TestVerifyTokenError(t *testing.T) {
 }
 
 func TestVerifyTokenNoCreds(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testVerifyTokenNoCreds(t, curve)
+		})
+	}
+}
 
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+func testVerifyTokenNoCreds(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -212,7 +277,7 @@ func TestVerifyTokenNoCreds(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -229,9 +294,20 @@ func TestVerifyTokenNoCreds(t *testing.T) {
 }
 
 func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testVerifyTokenBadSignatureEncoding(t, curve)
+		})
+	}
+}
 
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+func testVerifyTokenBadSignatureEncoding(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -244,7 +320,7 @@ func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -262,9 +338,20 @@ func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
 }
 
 func TestVerifyTokenBadSignature(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testVerifyTokenBadSignature(t, curve)
+		})
+	}
+}
 
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+func testVerifyTokenBadSignature(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -277,7 +364,7 @@ func TestVerifyTokenBadSignature(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -311,9 +398,20 @@ func TestIsToken(t *testing.T) {
 }
 
 func TestRevocationPublicKey(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testRevocationPublicKey(t, curve)
+		})
+	}
+}
 
-	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0777)
+func testRevocationPublicKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
+	err = os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -326,7 +424,7 @@ func TestRevocationPublicKey(t *testing.T) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false)
+	db, issuer := getIssuer(t, testdir, false, false, curveID)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -336,8 +434,8 @@ func TestRevocationPublicKey(t *testing.T) {
 	assert.NoError(t, err, "RevocationPublicKey should not return an error")
 }
 
-func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror bool) (*dmocks.FabricCADB, Issuer) {
-	err := os.MkdirAll(filepath.Join(testDir, "msp/keystore"), 0777)
+func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror bool, curveID cidemix.CurveID) (*dmocks.FabricCADB, Issuer) {
+	err := os.MkdirAll(filepath.Join(testDir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
@@ -358,11 +456,14 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	db.On("IsInitialized").Return(true)
 
 	lib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+
+	idemix := cidemix.InstanceForCurve(curveID)
+	curve := cidemix.CurveByID(curveID)
+	rnd, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Failed to get random number: %s", err.Error())
 	}
-	ik, err := idemix.NewIssuerKey(GetAttributeNames(), rnd)
+	ik, err := idemix.NewIssuerKey(GetAttributeNames(), rnd, idemix.Translator)
 	if err != nil {
 		t.Fatalf("Failed to generate issuer key: %s", err.Error())
 	}
@@ -373,9 +474,9 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 	}
 
 	if newIssuerKeyerror {
-		lib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(nil, errors.New("Failed to generate new issuer key"))
+		lib.On("NewIssuerKey", GetAttributeNames()).Return(nil, errors.New("Failed to generate new issuer key"))
 	} else {
-		lib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(ik, nil)
+		lib.On("NewIssuerKey", GetAttributeNames()).Return(ik, nil)
 	}
 
 	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
@@ -389,7 +490,7 @@ func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror boo
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
-	issuer := NewIssuer("ca1", testDir, cfg, util.GetDefaultBCCSP(), lib)
+	issuer := NewIssuer("ca1", testDir, cfg, util.GetDefaultBCCSP(), lib, curveID)
 
 	f := getSelectFunc(t, true, false)
 

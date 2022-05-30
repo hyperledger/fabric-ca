@@ -9,15 +9,18 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
+	"os"
 	"testing"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	proto "github.com/golang/protobuf/proto"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -30,6 +33,7 @@ func TestIdemixEnrollInvalidBasicAuth(t *testing.T) {
 	_, err := handler.HandleRequest()
 	assert.Error(t, err, "Idemix enroll should fail if basic auth credentials are invalid")
 }
+
 func TestIdemixEnrollInvalidTokenAuth(t *testing.T) {
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("TokenAuthentication").Return("", errors.New("bad credentials"))
@@ -38,6 +42,7 @@ func TestIdemixEnrollInvalidTokenAuth(t *testing.T) {
 	_, err := handler.HandleRequest()
 	assert.Error(t, err, "Idemix enroll should fail if token auth credentials are invalid")
 }
+
 func TestIdemixEnrollBadReqBody(t *testing.T) {
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("BasicAuthentication").Return("foo", nil)
@@ -51,43 +56,64 @@ func TestIdemixEnrollBadReqBody(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollForNonce(t *testing.T) {
+	for _, curveID := range cidemix.Curves {
+		testHandleIdemixEnrollForNonce(t, curveID)
+	}
+}
+
+func testHandleIdemixEnrollForNonce(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("BasicAuthentication").Return("foo", nil)
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo)
 	ctx.On("IsBasicAuth").Return(true)
 	req := api.IdemixEnrollmentRequestNet{}
 	req.CredRequest = nil
 	ctx.On("ReadBody", &req).Return(nil)
 
 	issuer := new(mocks.MyIssuer)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 
 	nm := new(mocks.NonceManager)
-	nm.On("GetNonce").Return(fp256bn.NewBIG(), nil)
+	nm.On("GetNonce").Return(curve.NewRandomZr(rand), nil)
 	issuer.On("NonceManager").Return(nm)
 	handler := EnrollRequestHandler{Ctx: ctx, Issuer: issuer, IdmxLib: idemixlib}
 	_, err = handler.HandleRequest()
 	assert.NoError(t, err, "Idemix enroll should return a valid nonce")
 }
+
 func TestHandleIdemixEnrollForNonceTokenAuth(t *testing.T) {
+	for _, curveID := range cidemix.Curves {
+		testHandleIdemixEnrollForNonceTokenAuth(t, curveID)
+	}
+}
+
+func testHandleIdemixEnrollForNonceTokenAuth(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("TokenAuthentication").Return("foo", nil)
 
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo)
 
 	ctx.On("IsBasicAuth").Return(false)
 
@@ -95,10 +121,10 @@ func TestHandleIdemixEnrollForNonceTokenAuth(t *testing.T) {
 	req.CredRequest = nil
 	ctx.On("ReadBody", &req).Return(nil)
 	issuer := new(mocks.MyIssuer)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 
 	nm := new(mocks.NonceManager)
-	nm.On("GetNonce").Return(fp256bn.NewBIG(), nil)
+	nm.On("GetNonce").Return(curve.NewRandomZr(rand), nil)
 	issuer.On("NonceManager").Return(nm)
 
 	ctx.On("GetIssuer").Return(issuer, nil)
@@ -108,17 +134,28 @@ func TestHandleIdemixEnrollForNonceTokenAuth(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollForNonceError(t *testing.T) {
+	for _, curveID := range cidemix.Curves {
+		testHandleIdemixEnrollForNonceError(t, curveID)
+	}
+}
+
+func testHandleIdemixEnrollForNonceError(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("TokenAuthentication").Return("foo", nil)
 
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo)
 
 	ctx.On("IsBasicAuth").Return(false)
 
@@ -126,7 +163,7 @@ func TestHandleIdemixEnrollForNonceError(t *testing.T) {
 	req.CredRequest = nil
 	ctx.On("ReadBody", &req).Return(nil)
 	issuer := new(mocks.MyIssuer)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 
 	nm := new(mocks.NonceManager)
 	nm.On("GetNonce").Return(nil, errors.New("Failed to generate nonce"))
@@ -139,33 +176,50 @@ func TestHandleIdemixEnrollForNonceError(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollForCredentialError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testHandleIdemixEnrollForCredentialError(t, curve)
+		})
+	}
+}
+
+func testHandleIdemixEnrollForCredentialError(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("BasicAuthentication").Return("foo", nil)
 
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo, nil)
 
-	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixlib)
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo, nil)
+
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixlib, curveID)
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("IssuerCredential").Return(issuerCred)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 
 	ctx.On("GetIssuer").Return(issuer, nil)
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 	nonce, err := handler.GenerateNonce()
 	if err != nil {
 		t.Fatalf("Failed to generate nonce: %s", err.Error())
 	}
 
-	credReq, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce, curveID, testPublicKeyFile, testSecretKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create credential request: %s", err.Error())
 	}
@@ -192,37 +246,56 @@ func TestHandleIdemixEnrollForCredentialError(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollCheckNonceError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			tstHandleIdemixEnrollCheckNonceError(t, curve)
+		})
+	}
+}
+
+func tstHandleIdemixEnrollCheckNonceError(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+
 	ctx := new(mocks.ServerRequestCtx)
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rand, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo)
+
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
 	issuerCred := NewIssuerCredential(testPublicKeyFile,
-		testSecretKeyFile, idemixlib)
+		testSecretKeyFile, idemixlib, curveID)
 	err = issuerCred.Load()
 	if err != nil {
 		t.Fatalf("Failed to load issuer credential")
 	}
 
-	rh := fp256bn.NewBIGint(1)
+	rh := curve.NewZrFromInt(1)
 	ra := new(mocks.RevocationAuthority)
 	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("IssuerCredential").Return(issuerCred)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 	issuer.On("RevocationAuthority").Return(ra)
 
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 	nm := new(mocks.NonceManager)
-	nonce := idemix.RandModOrder(rnd)
+	nonce := curve.NewRandomZr(rand)
+	nonce.Mod(curve.GroupOrder)
+
 	nm.On("GetNonce").Return(nonce, nil)
 	nm.On("CheckNonce", nonce).Return(errors.New("Invalid nonce"))
 	issuer.On("NonceManager").Return(nm)
@@ -230,7 +303,7 @@ func TestHandleIdemixEnrollCheckNonceError(t *testing.T) {
 	caller := new(mocks.User)
 	caller.On("Name").Return("foo")
 
-	credReq, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce, curveID, testPublicKeyFile, testSecretKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -247,25 +320,39 @@ func TestHandleIdemixEnrollCheckNonceError(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollNewCredError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testHandleIdemixEnrollNewCredError(t, curve)
+		})
+	}
+}
+
+func testHandleIdemixEnrollNewCredError(t *testing.T, curveID cidemix.CurveID) {
 	ctx := new(mocks.ServerRequestCtx)
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	curve := cidemix.CurveByID(curveID)
+	rnd, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
+	rmo := curve.NewRandomZr(rnd)
+	rmo.Mod(curve.GroupOrder)
 	idemixlib.On("GetRand").Return(rnd, nil)
 	idemixlib.On("RandModOrder", rnd).Return(rmo)
 
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	issuerCred := NewIssuerCredential(testPublicKeyFile,
-		testSecretKeyFile, idemixlib)
+		testSecretKeyFile, idemixlib, curveID)
 	err = issuerCred.Load()
 	if err != nil {
 		t.Fatalf("Failed to load issuer credential")
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := fp256bn.NewBIGint(1)
+	rh := curve.NewZrFromInt(1)
 	ra := new(mocks.RevocationAuthority)
 	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
@@ -276,9 +363,16 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	issuer.On("RevocationAuthority").Return(ra)
 
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 	nm := new(mocks.NonceManager)
-	nonce := idemix.RandModOrder(rnd)
+	rand, err := curve.Rand()
+	if err != nil {
+		t.Fatalf("Failed to create randomness source")
+	}
+
+	nonce := curve.NewRandomZr(rand)
+	nonce.Mod(curve.GroupOrder)
+
 	nm.On("GetNonce").Return(nonce, nil)
 	nm.On("CheckNonce", nonce).Return(nil)
 	issuer.On("NonceManager").Return(nm)
@@ -289,7 +383,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce, curveID, testPublicKeyFile, testSecretKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -298,7 +392,7 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 		t.Fatalf("Failed to get attributes")
 	}
 
-	idemixlib.On("NewCredential", ik, credReq, attrs, rnd).Return(nil, errors.New("Failed to create credential"))
+	idemixlib.On("NewCredential", ik, credReq, attrs).Return(nil, errors.New("Failed to create credential"))
 
 	ctx.On("BasicAuthentication").Return("foo", nil)
 	f := getReadBodyFunc(t, credReq)
@@ -312,38 +406,55 @@ func TestHandleIdemixEnrollNewCredError(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testHandleIdemixEnrollInsertCredError(t, curve)
+		})
+	}
+}
+
+func testHandleIdemixEnrollInsertCredError(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+	rand, err := curve.Rand()
+	if err != nil {
+		t.Fatalf("Failed to create randomness source")
+	}
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
 	ctx := new(mocks.ServerRequestCtx)
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
-	if err != nil {
-		t.Fatalf("Error generating a random number")
-	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+	idemixlib.On("RandModOrder", rmo).Return(rmo)
+
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
 	issuerCred := NewIssuerCredential(testPublicKeyFile,
-		testSecretKeyFile, idemixlib)
+		testSecretKeyFile, idemixlib, curveID)
 	err = issuerCred.Load()
 	if err != nil {
 		t.Fatalf("Failed to load issuer credential")
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := fp256bn.NewBIGint(1)
+	rh := curve.NewZrFromInt(1)
 	ra := new(mocks.RevocationAuthority)
 	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("IssuerCredential").Return(issuerCred)
-	issuer.On("IdemixRand").Return(rnd)
 	issuer.On("RevocationAuthority").Return(ra)
 
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 	nm := new(mocks.NonceManager)
-	nonce := idemix.RandModOrder(rnd)
+
+	nonce := curve.NewRandomZr(rand)
+	nonce.Mod(curve.GroupOrder)
+
 	nm.On("GetNonce").Return(nonce, nil)
 	nm.On("CheckNonce", nonce).Return(nil)
 
@@ -353,7 +464,7 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce, curveID, testPublicKeyFile, testSecretKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -361,11 +472,12 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
-	cred, err := idemix.NewCredential(ik, credReq, attrs, rnd)
+
+	cred, err := cidemix.InstanceForCurve(curveID).NewCredential(ik, credReq, attrs, rand, cidemix.InstanceForCurve(curveID).Translator)
 	if err != nil {
-		t.Fatalf("Failed to create credential")
+		t.Fatalf("Failed to create credential: %v", err)
 	}
-	idemixlib.On("NewCredential", ik, credReq, attrs, rnd).Return(cred, nil)
+	idemixlib.On("NewCredential", ik, credReq, attrs).Return(cred, nil)
 
 	b64CredBytes, err := getB64EncodedCred(cred)
 	if err != nil {
@@ -373,9 +485,11 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 	}
 	credAccessor := new(mocks.CredDBAccessor)
 	credAccessor.On("InsertCredential",
-		CredRecord{RevocationHandle: util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(1))),
-			CALabel: "", ID: "foo", Status: "good",
-			Cred: b64CredBytes}).Return(errors.New("Failed to add credential to DB"))
+		CredRecord{
+			RevocationHandle: util.B64Encode(curve.NewZrFromInt(1).Bytes()),
+			CALabel:          "", ID: "foo", Status: "good",
+			Cred: b64CredBytes,
+		}).Return(errors.New("Failed to add credential to DB"))
 
 	issuer.On("CredDBAccessor").Return(credAccessor, nil)
 	issuer.On("NonceManager").Return(nm)
@@ -392,38 +506,55 @@ func TestHandleIdemixEnrollInsertCredError(t *testing.T) {
 }
 
 func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testHandleIdemixEnrollForCredentialSuccess(t, curve)
+		})
+	}
+}
+
+func testHandleIdemixEnrollForCredentialSuccess(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+	rand, err := curve.Rand()
+	if err != nil {
+		t.Fatalf("Failed to create randomness source")
+	}
+
 	ctx := new(mocks.ServerRequestCtx)
 	idemixlib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
-	if err != nil {
-		t.Fatalf("Error generating a random number")
-	}
-	rmo := idemix.RandModOrder(rnd)
-	idemixlib.On("GetRand").Return(rnd, nil)
-	idemixlib.On("RandModOrder", rnd).Return(rmo)
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
+	idemixlib.On("GetRand").Return(rand, nil)
+	idemixlib.On("RandModOrder", rand).Return(rmo)
+
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	defer os.RemoveAll(tmpDir)
 
 	issuerCred := NewIssuerCredential(testPublicKeyFile,
-		testSecretKeyFile, idemixlib)
+		testSecretKeyFile, idemixlib, curveID)
 	err = issuerCred.Load()
 	if err != nil {
 		t.Fatalf("Failed to load issuer credential")
 	}
 	ik, _ := issuerCred.GetIssuerKey()
 
-	rh := fp256bn.NewBIGint(1)
+	rh := curve.NewZrFromInt(1)
 	ra := new(mocks.RevocationAuthority)
 	ra.On("GetNewRevocationHandle").Return(rh, nil)
 
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("IssuerCredential").Return(issuerCred)
-	issuer.On("IdemixRand").Return(rnd)
+	issuer.On("IdemixRand").Return(rand)
 	issuer.On("RevocationAuthority").Return(ra)
 
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, Issuer: issuer, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 	nm := new(mocks.NonceManager)
-	nonce := idemix.RandModOrder(rnd)
+
+	nonce := curve.NewRandomZr(rand)
+	nonce.Mod(curve.GroupOrder)
 	nm.On("GetNonce").Return(nonce, nil)
 	nm.On("CheckNonce", nonce).Return(nil)
 
@@ -433,7 +564,7 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	caller.On("GetAttribute", "role").Return(&api.Attribute{Name: "role", Value: "2"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	credReq, _, err := newIdemixCredentialRequest(t, nonce)
+	credReq, _, err := newIdemixCredentialRequest(t, nonce, curveID, testPublicKeyFile, testSecretKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create test credential request")
 	}
@@ -441,11 +572,14 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get attributes")
 	}
-	cred, err := idemix.NewCredential(ik, credReq, attrs, rnd)
+
+	idemix := cidemix.InstanceForCurve(curveID)
+
+	cred, err := idemix.NewCredential(ik, credReq, attrs, rand, idemix.Translator)
 	if err != nil {
-		t.Fatalf("Failed to create credential")
+		t.Fatalf("Failed to create credential: %v", err)
 	}
-	idemixlib.On("NewCredential", ik, credReq, attrs, rnd).Return(cred, nil)
+	idemixlib.On("NewCredential", ik, credReq, attrs).Return(cred, nil)
 
 	b64CredBytes, err := getB64EncodedCred(cred)
 	if err != nil {
@@ -453,13 +587,14 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 	}
 	credAccessor := new(mocks.CredDBAccessor)
 	credAccessor.On("InsertCredential", CredRecord{
-		RevocationHandle: util.B64Encode(idemix.BigToBytes(fp256bn.NewBIGint(1))),
-		CALabel:          "", ID: "foo", Status: "good", Cred: b64CredBytes}).Return(nil)
+		RevocationHandle: util.B64Encode(curve.NewZrFromInt(1).Bytes()),
+		CALabel:          "", ID: "foo", Status: "good", Cred: b64CredBytes,
+	}).Return(nil)
 
 	issuer.On("CredDBAccessor").Return(credAccessor, nil)
 	issuer.On("NonceManager").Return(nm)
 
-	cri, err := createCRI(t)
+	cri, err := createCRI(t, curveID)
 	if err != nil {
 		t.Fatalf("Failed to create CRI: %s", err.Error())
 	}
@@ -477,10 +612,20 @@ func TestHandleIdemixEnrollForCredentialSuccess(t *testing.T) {
 }
 
 func TestGetAttributeValues(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetAttributeValues(t, curve)
+		})
+	}
+}
+
+func testGetAttributeValues(t *testing.T, curveID cidemix.CurveID) {
+	curve := cidemix.CurveByID(curveID)
+
 	ctx := new(mocks.ServerRequestCtx)
 	idemixlib := new(mocks.Lib)
 	ctx.On("IsBasicAuth").Return(true)
-	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib}
+	handler := EnrollRequestHandler{Ctx: ctx, IdmxLib: idemixlib, CurveID: curveID, Curve: curve, Translator: cidemix.InstanceForCurve(curveID).Translator}
 
 	caller := new(mocks.User)
 	caller.On("GetName").Return("foo")
@@ -489,7 +634,7 @@ func TestGetAttributeValues(t *testing.T) {
 	caller.On("GetAttribute", "type").Return(&api.Attribute{Name: "type", Value: "client"}, nil)
 	caller.On("LoginComplete").Return(nil)
 
-	rh := fp256bn.NewBIGint(1)
+	rh := curve.NewZrFromInt(1)
 
 	attrNames := GetAttributeNames()
 	attrNames = append(attrNames, "type")
@@ -498,16 +643,22 @@ func TestGetAttributeValues(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func createCRI(t *testing.T) (*idemix.CredentialRevocationInformation, error) {
+func createCRI(t *testing.T, curveID cidemix.CurveID) (*idemix.CredentialRevocationInformation, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		return nil, err
 	}
-	rnd, err := idemix.GetRand()
+
+	curve := cidemix.CurveByID(curveID)
+
+	rnd, err := curve.Rand()
 	if err != nil {
 		return nil, err
 	}
-	return idemix.CreateCRI(key, []*fp256bn.BIG{}, 1, idemix.ALG_NO_REVOCATION, rnd)
+
+	idemixInstance := cidemix.InstanceForCurve(curveID)
+
+	return idemixInstance.CreateCRI(key, []*math.Zr{}, 1, idemix.ALG_NO_REVOCATION, rnd, idemixInstance.Translator)
 }
 
 func getB64EncodedCred(cred *idemix.Credential) (string, error) {
@@ -530,9 +681,9 @@ func getReadBodyFunc(t *testing.T, credReq *idemix.CredRequest) func(body interf
 	}
 }
 
-func newIdemixCredentialRequest(t *testing.T, nonce *fp256bn.BIG) (*idemix.CredRequest, *fp256bn.BIG, error) {
+func newIdemixCredentialRequest(t *testing.T, nonce *math.Zr, curveID cidemix.CurveID, testPublicKeyFile, testSecretKeyFile string) (*idemix.CredRequest, *math.Zr, error) {
 	idmxlib := new(mocks.Lib)
-	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idmxlib)
+	issuerCred := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idmxlib, curveID)
 	err := issuerCred.Load()
 	if err != nil {
 		t.Fatalf("Failed to load issuer credential")
@@ -541,10 +692,18 @@ func newIdemixCredentialRequest(t *testing.T, nonce *fp256bn.BIG) (*idemix.CredR
 	if err != nil {
 		t.Fatalf("Issuer credential returned error while getting issuer key")
 	}
-	rng, err := idemix.GetRand()
+	curve := cidemix.InstanceForCurve(curveID).Curve
+
+	rand, err := curve.Rand()
 	if err != nil {
 		return nil, nil, err
 	}
-	sk := idemix.RandModOrder(rng)
-	return idemix.NewCredRequest(sk, idemix.BigToBytes(nonce), ik.Ipk, rng), sk, nil
+
+	sk := curve.NewRandomZr(rand)
+	sk.Mod(curve.GroupOrder)
+
+	idemix := cidemix.InstanceForCurve(curveID)
+
+	credReq, err := idemix.NewCredRequest(sk, nonce.Bytes(), ik.Ipk, rand, idemix.Translator)
+	return credReq, sk, err
 }

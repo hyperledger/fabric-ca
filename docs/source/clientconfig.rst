@@ -171,3 +171,10 @@ Fabric-CA Client's Configuration File
             filekeystore:
                 # The directory used for the software file-based keystore
                 keystore: msp/keystore
+    
+    #############################################################################
+    # Idemix curve ID specifies the Elliptic Curve used by Identity Mixer.
+    # It can be any of: {"amcl.Fp256bn", "gurvy.Bn254", "amcl.Fp256Miraclbn"}.
+    # If unspecified, it defaults to 'amcl.Fp256bn'.
+    #############################################################################
+    idemixCurveID: amcl.Fp256bn

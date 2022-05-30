@@ -46,6 +46,12 @@ type RegistrationResponse struct {
 	Secret string `json:"secret"`
 }
 
+// Idemix defines the Identity mixer configuration
+type Idemix struct {
+	// Curve defines which curve to use out of {"amcl.Fp256bn", "gurvy.Bn254", "amcl.Fp256Miraclbn"}
+	Curve string `def:"amcl.Fp256bn" help:"The identity mixer curve ID to use among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'}"`
+}
+
 // EnrollmentRequest is a request to enroll an identity
 type EnrollmentRequest struct {
 	// The identity name to enroll

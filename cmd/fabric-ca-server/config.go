@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hyperledger/fabric-ca/lib/common/idemix"
+
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/lib"
 	calog "github.com/hyperledger/fabric-ca/lib/common/log"
@@ -380,6 +382,11 @@ idemix:
   #  The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration)
   noncesweepinterval: 15m
 
+  # Specifies the Elliptic Curve used by Identity Mixer.
+  # It can be any of: {"amcl.Fp256bn", "gurvy.Bn254", "amcl.Fp256Miraclbn"}.
+  # If unspecified, it defaults to 'amcl.Fp256bn'.
+  curve: <<<IDEMIX_CURVE>>>
+
 #############################################################################
 # BCCSP (BlockChain Crypto Service Provider) section is used to select which
 # crypto library implementation to use
@@ -675,13 +682,19 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 		cfg = strings.Replace(cfg, "<<<PATHLENGTH>>>", "0", 1)
 	}
 
+	if curveID := s.myViper.GetString("idemix.curve"); curveID != "" {
+		cfg = strings.Replace(cfg, "<<<IDEMIX_CURVE>>>", curveID, 1)
+	} else {
+		cfg = strings.Replace(cfg, "<<<IDEMIX_CURVE>>>", idemix.DefaultIdemixCurve, 1)
+	}
+
 	// Now write the file
 	cfgDir := filepath.Dir(s.cfgFileName)
-	err = os.MkdirAll(cfgDir, 0755)
+	err = os.MkdirAll(cfgDir, 0o755)
 	if err != nil {
 		return err
 	}
 
 	// Now write the file
-	return ioutil.WriteFile(s.cfgFileName, []byte(cfg), 0644)
+	return ioutil.WriteFile(s.cfgFileName, []byte(cfg), 0o644)
 }

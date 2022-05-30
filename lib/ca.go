@@ -33,6 +33,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	idemix2 "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
@@ -132,8 +133,12 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 		return err
 	}
 	log.Debug("Initializing Idemix issuer...")
+	curveID, err := curveIDFromConfig(config.Idemix.Curve)
+	if err != nil {
+		return err
+	}
 	ca.issuer = idemix.NewIssuer(ca.Config.CA.Name, ca.HomeDir,
-		&ca.Config.Idemix, ca.csp, idemix.NewLib())
+		&ca.Config.Idemix, ca.csp, idemix.NewLib(curveID), curveID)
 	err = ca.issuer.Init(renew, ca.db, ca.levels)
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("Failed to initialize Idemix issuer for CA '%s'", err.Error()))
@@ -249,7 +254,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 		return err
 	}
 	// Store the certificate to file
-	err = writeFile(certFile, cert, 0644)
+	err = writeFile(certFile, cert, 0o644)
 	if err != nil {
 		return errors.Wrap(err, "Failed to store certificate")
 	}
@@ -308,11 +313,11 @@ func (ca *CA) getCACert() (cert []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-		err = os.MkdirAll(path.Dir(chainPath), 0755)
+		err = os.MkdirAll(path.Dir(chainPath), 0o755)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to create intermediate chain file directory")
 		}
-		err = util.WriteFile(chainPath, chain, 0644)
+		err = util.WriteFile(chainPath, chain, 0o644)
 		if err != nil {
 			return nil, errors.WithMessage(err, "Failed to create intermediate chain file")
 		}
@@ -475,7 +480,6 @@ func (ca *CA) initConfig() (err error) {
 // if true, it will force the time to be used to check for expiry to be 30 seconds
 // after the certificate start time.  (this is to support reenrollIgnoreCertExpiry)
 func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
-
 	log.Debugf("Certicate Dates: NotAfter = %s NotBefore = %s \n", cert.NotAfter.String(), cert.NotBefore.String())
 
 	opts, err := ca.getVerifyOptions()
@@ -833,7 +837,6 @@ func (ca *CA) addIdentity(id *CAConfigIdentity, errIfFound bool) error {
 	}
 
 	attrs, err := attr.ConvertAttrs(id.Attrs)
-
 	if err != nil {
 		return err
 	}
@@ -1231,7 +1234,7 @@ func (ca *CA) checkDBLevels() error {
 }
 
 func writeFile(file string, buf []byte, perm os.FileMode) error {
-	err := os.MkdirAll(filepath.Dir(file), 0755)
+	err := os.MkdirAll(filepath.Dir(file), 0o755)
 	if err != nil {
 		return err
 	}
@@ -1285,4 +1288,19 @@ func getMigrator(driverName string, tx cadb.FabricCATx, curLevels, srvLevels *db
 		return nil, errors.Errorf("Unsupported database type: %s", driverName)
 	}
 	return migrator, nil
+}
+
+func curveIDFromConfig(idemixCurveName string) (idemix2.CurveID, error) {
+	if idemixCurveName == "" {
+		idemixCurveName = idemix2.DefaultIdemixCurve
+		log.Debugf("CurveID for Idemix not specified, defaulting to %s", idemixCurveName)
+		return idemix2.Curves.ByName(idemixCurveName), nil
+	}
+
+	curveID := idemix2.Curves.ByName(idemixCurveName)
+	if curveID == idemix2.Undefined {
+		return 0, errors.Errorf("CurveID '%s' doesn't exist, expecting one of %s", idemixCurveName, idemix2.Curves.Names())
+	}
+	log.Debugf("Using curve %s for Idemix", idemixCurveName)
+	return curveID, nil
 }

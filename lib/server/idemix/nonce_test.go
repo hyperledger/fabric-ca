@@ -8,9 +8,11 @@ package idemix_test
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
+	idmx "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
@@ -46,20 +48,33 @@ func TestNewNonceManager(t *testing.T) {
 }
 
 func TestGetNonce(t *testing.T) {
+	for _, curve := range idmx.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCheckNonce(t, curve)
+		})
+	}
+}
+
+func testGetNonce(t *testing.T, curveID idmx.CurveID) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 
+	curve := idmx.CurveByID(curveID)
+
 	lib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rnd, err := curve.Rand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
+
+	rmo := curve.NewRandomZr(rnd)
+	rmo.Mod(curve.GroupOrder)
+
 	lib.On("RandModOrder", rnd).Return(rmo, nil)
 
 	issuer.On("IdemixRand").Return(rnd)
 
-	noncestr := util.B64Encode(idemix.BigToBytes(rmo))
+	noncestr := util.B64Encode(rmo.Bytes())
 	now := time.Now()
 	nonceObj := &Nonce{
 		Val:    noncestr,
@@ -113,6 +128,14 @@ func TestGetNonce(t *testing.T) {
 }
 
 func TestCheckNonce(t *testing.T) {
+	for _, curve := range idmx.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCheckNonce(t, curve)
+		})
+	}
+}
+
+func testCheckNonce(t *testing.T, curveID idmx.CurveID) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 
@@ -121,12 +144,21 @@ func TestCheckNonce(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
-	rmo := idemix.RandModOrder(rnd)
+
+	curve := idmx.CurveByID(curveID)
+	rand, err := curve.Rand()
+	if err != nil {
+		t.Fatalf("Error obtaining randomness source")
+	}
+
+	rmo := curve.NewRandomZr(rand)
+	rmo.Mod(curve.GroupOrder)
+
 	lib.On("RandModOrder", rnd).Return(rmo)
 
 	issuer.On("IdemixRand").Return(rnd)
 	issuer.On("GetIdemixLib").Return(lib)
-	noncestr := util.B64Encode(idemix.BigToBytes(rmo))
+	noncestr := util.B64Encode(rmo.Bytes())
 
 	db := new(dmocks.FabricCADB)
 	tx := new(dmocks.FabricCATx)
@@ -178,6 +210,14 @@ func TestCheckNonce(t *testing.T) {
 }
 
 func TestSweepExpiredNonces(t *testing.T) {
+	for _, curve := range idmx.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testSweepExpiredNonces(t, curve)
+		})
+	}
+}
+
+func testSweepExpiredNonces(t *testing.T, curveID idmx.CurveID) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 	now := time.Now()
@@ -219,9 +259,9 @@ func getResultForInsertNonceFunc(result sql.Result, numResultForInsertNonceCalls
 			return nil
 		}
 		return result
-
 	}
 }
+
 func getErrorForInsertNonceFunc(result sql.Result, numErrorForInsertNonceCalls *int) func(string, string, interface{}) error {
 	return func(funcName string, query string, args interface{}) error {
 		if *numErrorForInsertNonceCalls == 0 {
@@ -231,6 +271,7 @@ func getErrorForInsertNonceFunc(result sql.Result, numErrorForInsertNonceCalls *
 		return nil
 	}
 }
+
 func getResultForRowsAffectedFunc(numResultForRowsAffectedCalls *int) func() int64 {
 	return func() int64 {
 		if *numResultForRowsAffectedCalls == 0 {

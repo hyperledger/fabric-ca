@@ -9,10 +9,12 @@ package idemix
 import (
 	"io/ioutil"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -48,14 +50,18 @@ type caIdemixCredential struct {
 	secretKeyFile string
 	issuerKey     *idemix.IssuerKey
 	idemixLib     Lib
+	curve         *math.Curve
+	t             idemix.Translator
 }
 
 // NewIssuerCredential returns an instance of an object that implements IssuerCredential interface
-func NewIssuerCredential(pubKeyFile, secretKeyFile string, lib Lib) IssuerCredential {
+func NewIssuerCredential(pubKeyFile, secretKeyFile string, lib Lib, curveID cidemix.CurveID) IssuerCredential {
 	return &caIdemixCredential{
 		pubKeyFile:    pubKeyFile,
 		secretKeyFile: secretKeyFile,
 		idemixLib:     lib,
+		curve:         cidemix.CurveByID(curveID),
+		t:             cidemix.InstanceForCurve(curveID).Translator,
 	}
 }
 
@@ -74,7 +80,7 @@ func (ic *caIdemixCredential) Load() error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to unmarshal Issuer public key bytes")
 	}
-	err = pubKey.Check()
+	err = pubKey.Check(ic.curve, ic.t)
 	if err != nil {
 		return errors.Wrapf(err, "Issuer public key check failed")
 	}
@@ -89,7 +95,7 @@ func (ic *caIdemixCredential) Load() error {
 		Ipk: pubKey,
 		Isk: privKey,
 	}
-	//TODO: check if issuer key is valid by checking public and secret key pair
+	// TODO: check if issuer key is valid by checking public and secret key pair
 	return nil
 }
 
@@ -106,13 +112,13 @@ func (ic *caIdemixCredential) Store() error {
 		return errors.New("Failed to marshal Issuer public key")
 	}
 
-	err = util.WriteFile(ic.pubKeyFile, ipkBytes, 0644)
+	err = util.WriteFile(ic.pubKeyFile, ipkBytes, 0o644)
 	if err != nil {
 		log.Errorf("Failed to store Issuer public key: %s", err.Error())
 		return errors.New("Failed to store Issuer public key")
 	}
 
-	err = util.WriteFile(ic.secretKeyFile, ik.Isk, 0644)
+	err = util.WriteFile(ic.secretKeyFile, ik.Isk, 0o644)
 	if err != nil {
 		log.Errorf("Failed to store Issuer secret key: %s", err.Error())
 		return errors.New("Failed to store Issuer secret key")
@@ -139,10 +145,6 @@ func (ic *caIdemixCredential) SetIssuerKey(key *idemix.IssuerKey) {
 
 // NewIssuerKey creates new Issuer key
 func (ic *caIdemixCredential) NewIssuerKey() (*idemix.IssuerKey, error) {
-	rng, err := ic.idemixLib.GetRand()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error creating new issuer key")
-	}
 	// Currently, Idemix library supports these four attributes. The supported attribute names
 	// must also be known when creating issuer key. In the future, Idemix library will support
 	// arbitary attribute names, so removing the need to hardcode attribute names in the issuer
@@ -151,7 +153,7 @@ func (ic *caIdemixCredential) NewIssuerKey() (*idemix.IssuerKey, error) {
 	// Role - if the user is admin or member
 	// EnrollmentID - enrollment ID of the user
 	// RevocationHandle - revocation handle of a credential
-	ik, err := ic.idemixLib.NewIssuerKey(GetAttributeNames(), rng)
+	ik, err := ic.idemixLib.NewIssuerKey(GetAttributeNames())
 	if err != nil {
 		return nil, err
 	}

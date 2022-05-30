@@ -13,6 +13,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/mocks"
 	"github.com/hyperledger/fabric-ca/lib/server/certificaterequest"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
@@ -33,6 +35,14 @@ import (
 )
 
 func TestGetCertificatesDB(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetCertificatesDB(t, curve)
+		})
+	}
+}
+
+func testGetCertificatesDB(t *testing.T, curveID idemix.CurveID) {
 	os.RemoveAll("getCertDBTest")
 	defer os.RemoveAll("getCertDBTest")
 	log.Level = log.LevelDebug
@@ -269,7 +279,7 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, ca *CA) err
 	}
 
 	serial := new(big.Int)
-	serial.SetString(req.Serial, 10) //base 10
+	serial.SetString(req.Serial, 10) // base 10
 
 	template := x509.Certificate{
 		Subject: pkix.Name{
@@ -287,7 +297,7 @@ func testInsertCertificate(req *certdb.CertificateRecord, id string, ca *CA) err
 
 	cert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 
-	var record = &db.CertRecord{
+	record := &db.CertRecord{
 		ID: id,
 		CertificateRecord: certdb.CertificateRecord{
 			Serial:    req.Serial,

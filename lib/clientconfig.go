@@ -43,6 +43,7 @@ type ClientConfig struct {
 	CSP        *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
 	Debug      bool                 `opt:"d" help:"Enable debug level logging" hide:"true"`
 	LogLevel   string               `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
+	Idemix     api.Idemix
 }
 
 // Enroll a client given the server's URL and the client's home directory.
@@ -78,7 +79,6 @@ func (c *ClientConfig) Enroll(rawurl, home string) (*EnrollmentResponse, error) 
 
 // GenCSR generates a certificate signing request and writes the CSR to a file.
 func (c *ClientConfig) GenCSR(home string) error {
-
 	client := &Client{HomeDir: home, Config: c}
 	// Generate the CSR
 
@@ -97,7 +97,7 @@ func (c *ClientConfig) GenCSR(home string) error {
 	}
 
 	csrFile := path.Join(client.Config.MSPDir, "signcerts", fmt.Sprintf("%s.csr", c.CSR.CN))
-	err = util.WriteFile(csrFile, csrPEM, 0644)
+	err = util.WriteFile(csrFile, csrPEM, 0o644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to store the CSR")
 	}

@@ -665,6 +665,9 @@ cat > $runconfig <<EOF
          }
       }
    },
+   "idemix": {
+       "curve": ${IDEMIX_CURVE_ID}
+   },
    "affiliations": {
       "bank_a": [
          "department1"
@@ -972,6 +975,8 @@ csr:
   ca:
     expiry: 131400h
     pathlength: 1
+idemix:
+  curve: ${IDEMIX_CURVE_ID}
 bccsp:
   default: SW
   sw:

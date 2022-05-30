@@ -11,13 +11,14 @@ import (
 	"strconv"
 	"strings"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -39,6 +40,9 @@ type EnrollRequestHandler struct {
 	EnrollmentID string
 	Issuer       MyIssuer
 	IdmxLib      Lib
+	CurveID      cidemix.CurveID
+	Curve        *math.Curve
+	Translator   idemix.Translator
 }
 
 // HandleRequest handles processing for Idemix enroll
@@ -61,7 +65,7 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 		}
 
 		resp := &EnrollmentResponse{
-			Nonce: util.B64Encode(idemix.BigToBytes(nonce)),
+			Nonce: util.B64Encode(nonce.Bytes()),
 		}
 		return resp, nil
 	}
@@ -79,14 +83,16 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 		return nil, err
 	}
 
-	nonce := fp256bn.FromBytes(req.GetIssuerNonce())
+	nonce := h.Curve.NewZrFromBytes(req.GetIssuerNonce())
 	err = h.Issuer.NonceManager().CheckNonce(nonce)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Invalid nonce")
 	}
 
 	// Check the if credential request is valid
-	err = req.CredRequest.Check(ik.GetIpk())
+	curve := cidemix.CurveByID(h.CurveID)
+	translator := cidemix.InstanceForCurve(h.CurveID).Translator
+	err = req.CredRequest.Check(ik.GetIpk(), curve, translator)
 	if err != nil {
 		log.Errorf("Invalid Idemix credential request: %s", err.Error())
 		return nil, errors.WithMessage(err, "Invalid Idemix credential request")
@@ -104,7 +110,7 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 		return nil, err
 	}
 
-	cred, err := h.IdmxLib.NewCredential(ik, req.CredRequest, attrs, h.Issuer.IdemixRand())
+	cred, err := h.IdmxLib.NewCredential(ik, req.CredRequest, attrs)
 	if err != nil {
 		log.Errorf("Issuer '%s' failed to create new Idemix credential for identity '%s': %s",
 			h.Issuer.Name(), h.EnrollmentID, err.Error())
@@ -116,7 +122,7 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	}
 	b64CredBytes := util.B64Encode(credBytes)
 
-	rhstr := util.B64Encode(idemix.BigToBytes(rh))
+	rhstr := util.B64Encode(rh.Bytes())
 
 	// Store the credential in the database
 	err = h.Issuer.CredDBAccessor().InsertCredential(CredRecord{
@@ -177,29 +183,35 @@ func (h *EnrollRequestHandler) Authenticate() error {
 }
 
 // GenerateNonce generates a nonce for an Idemix enroll request
-func (h *EnrollRequestHandler) GenerateNonce() (*fp256bn.BIG, error) {
-	return h.IdmxLib.RandModOrder(h.Issuer.IdemixRand())
+func (h *EnrollRequestHandler) GenerateNonce() (*math.Zr, error) {
+	rand, err := h.Curve.Rand()
+	if err != nil {
+		return nil, errors.Errorf("failed obtaining randomness source: %v", err)
+	}
+	x := h.Curve.NewRandomZr(rand)
+	x.Mod(h.Curve.GroupOrder)
+	return x, nil
 }
 
 // GetAttributeValues returns attribute values of the caller of Idemix enroll request
 func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.IssuerPublicKey,
-	rh *fp256bn.BIG) (map[string]interface{}, []*fp256bn.BIG, error) {
-	rc := []*fp256bn.BIG{}
+	rh *math.Zr) (map[string]interface{}, []*math.Zr, error) {
+	var rc []*math.Zr
 	attrMap := make(map[string]interface{})
 	for _, attrName := range ipk.AttributeNames {
 		if attrName == AttrEnrollmentID {
 			idBytes := []byte(caller.GetName())
-			rc = append(rc, idemix.HashModOrder(idBytes))
+			rc = append(rc, h.Curve.HashToZr(idBytes))
 			attrMap[attrName] = caller.GetName()
 		} else if attrName == AttrOU {
 			ou := append([]string{}, caller.GetAffiliationPath()...)
 			ouVal := strings.Join(ou, ".")
 			ouBytes := []byte(ouVal)
-			rc = append(rc, idemix.HashModOrder(ouBytes))
+			rc = append(rc, h.Curve.HashToZr(ouBytes))
 			attrMap[attrName] = ouVal
 		} else if attrName == AttrRevocationHandle {
 			rc = append(rc, rh)
-			attrMap[attrName] = util.B64Encode(idemix.BigToBytes(rh))
+			attrMap[attrName] = util.B64Encode(rh.Bytes())
 		} else if attrName == AttrRole {
 			role := MEMBER.getValue()
 			attrObj, err := caller.GetAttribute("role")
@@ -209,7 +221,7 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.
 					log.Debugf("role attribute of user %s must be a integer value", caller.GetName())
 				}
 			}
-			rc = append(rc, fp256bn.NewBIGint(role))
+			rc = append(rc, h.Curve.NewZrFromInt(int64(role)))
 			attrMap[attrName] = role
 		} else {
 			attrObj, err := caller.GetAttribute(attrName)
@@ -217,7 +229,7 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.
 				log.Errorf("Failed to get attribute %s for user %s: %s", attrName, caller.GetName(), err.Error())
 			} else {
 				attrBytes := []byte(attrObj.GetValue())
-				rc = append(rc, idemix.HashModOrder(attrBytes))
+				rc = append(rc, h.Curve.HashToZr(attrBytes))
 				attrMap[attrName] = attrObj.GetValue()
 			}
 		}

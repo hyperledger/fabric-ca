@@ -11,13 +11,15 @@ import (
 	"fmt"
 	"net/http"
 
+	schemes "github.com/IBM/idemix/bccsp/schemes"
+	scheme "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/golang/protobuf/proto"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
+	idemix4 "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
-	idemix "github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -28,7 +30,7 @@ const (
 
 // Client represents a client that will load/store an Idemix credential
 type Client interface {
-	GetIssuerPubKey() (*idemix.IssuerPublicKey, error)
+	GetIssuerPubKey() (*scheme.IssuerPublicKey, error)
 	GetCSP() bccsp.BCCSP
 }
 
@@ -37,12 +39,14 @@ type Credential struct {
 	client           Client
 	signerConfigFile string
 	val              *SignerConfig
+	curve            *math.Curve
+	idemix           *scheme.Idemix
 }
 
 // NewCredential is constructor for idemix.Credential
-func NewCredential(signerConfigFile string, c Client) *Credential {
+func NewCredential(signerConfigFile string, c Client, id idemix4.CurveID) *Credential {
 	return &Credential{
-		c, signerConfigFile, nil,
+		c, signerConfigFile, nil, idemix4.CurveByID(id), idemix4.InstanceForCurve(id),
 	}
 }
 
@@ -88,7 +92,7 @@ func (cred *Credential) Store() error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal SignerConfig")
 	}
-	err = util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0644)
+	err = util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0o644)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to store the Idemix credential")
 	}
@@ -109,6 +113,9 @@ func (cred *Credential) Load() error {
 	if err != nil {
 		return errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
 	}
+	if val.CurveID == "" {
+		val.CurveID = idemix4.DefaultIdemixCurve
+	}
 	cred.val = &val
 	return nil
 }
@@ -119,12 +126,9 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	if err != nil {
 		return "", err
 	}
-	rng, err := idemix.GetRand()
-	if err != nil {
-		return "", errors.WithMessage(err, "Failed to get a random number while creating token")
-	}
 	// Get user's secret key
-	sk := fp256bn.FromBytes(cred.val.GetSk())
+
+	sk := cred.curve.NewZrFromBytes(cred.val.GetSk())
 
 	// Get issuer public key
 	ipk, err := cred.client.GetIssuerPubKey()
@@ -133,7 +137,16 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	}
 
 	// Generate a fresh Pseudonym (and a corresponding randomness)
-	nym, randNym := idemix.MakeNym(sk, ipk, rng)
+
+	rand, err := cred.curve.Rand()
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to get randomness source")
+	}
+
+	nym, randNym, err := cred.idemix.MakeNym(sk, ipk, rand, cred.idemix.Translator)
+	if err != nil {
+		return "", errors.WithMessage(err, "failed making Nym")
+	}
 
 	b64body := util.B64Encode(reqBody)
 	b64uri := util.B64Encode([]byte(req.URL.RequestURI()))
@@ -147,18 +160,18 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	// A disclosure vector is formed (indicating that only enrollment ID from the credential is revealed)
 	disclosure := []byte{0, 0, 1, 0}
 
-	credential := idemix.Credential{}
+	credential := scheme.Credential{}
 	err = proto.Unmarshal(cred.val.GetCred(), &credential)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to unmarshal Idemix credential while creating token")
 	}
-	cri := idemix.CredentialRevocationInformation{}
+	cri := scheme.CredentialRevocationInformation{}
 	err = proto.Unmarshal(cred.val.GetCredentialRevocationInformation(), &cri)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to unmarshal Idemix CRI while creating token")
 	}
 
-	sig, err := idemix.NewSignature(&credential, sk, nym, randNym, ipk, disclosure, digest, 3, &cri, rng)
+	sig, _, err := cred.idemix.NewSignature(&credential, sk, nym, randNym, ipk, disclosure, digest, 3, 0, &cri, rand, cred.idemix.Translator, schemes.Standard, nil)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to create signature while creating token")
 	}
@@ -172,5 +185,5 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 
 // RevokeSelf revokes this Idemix credential
 func (cred *Credential) RevokeSelf() (*api.RevocationResponse, error) {
-	return nil, errors.New("Not implemented") //TODO
+	return nil, errors.New("Not implemented") // TODO
 }

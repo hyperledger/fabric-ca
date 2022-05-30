@@ -44,6 +44,7 @@ Fabric-CA Client's CLI
           --id.name string               Unique name of the identity
           --id.secret string             The enrollment secret for the identity being registered
           --id.type string               Type of identity being registered (e.g. 'peer, app, user') (default "client")
+          --idemix.curve string          The identity mixer curve ID to use among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'} (default "amcl.Fp256bn")
           --loglevel string              Set logging level (info, warning, debug, error, fatal, critical)
       -M, --mspdir string                Membership Service Provider directory (default "msp")
       -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")

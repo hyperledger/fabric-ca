@@ -11,11 +11,12 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -38,7 +39,7 @@ const (
 type RevocationAuthority interface {
 	// GetNewRevocationHandle returns new revocation handle, which is required to
 	// create a new Idemix credential
-	GetNewRevocationHandle() (*fp256bn.BIG, error)
+	GetNewRevocationHandle() (*math.Zr, error)
 	// CreateCRI returns latest credential revocation information (CRI). CRI contains
 	// information that allows a prover to create a proof that the revocation handle associated
 	// with his credential is not revoked and by the verifier to verify the non-revocation
@@ -63,6 +64,7 @@ type RevocationAuthorityInfo struct {
 
 // revocationAuthority implements RevocationComponent interface
 type revocationAuthority struct {
+	curve      *math.Curve
 	issuer     MyIssuer
 	key        RevocationKey
 	db         db.FabricCADB
@@ -70,8 +72,9 @@ type revocationAuthority struct {
 }
 
 // NewRevocationAuthority constructor for revocation authority
-func NewRevocationAuthority(issuer MyIssuer, level int) (RevocationAuthority, error) {
+func NewRevocationAuthority(issuer MyIssuer, level int, curveID cidemix.CurveID) (RevocationAuthority, error) {
 	ra := &revocationAuthority{
+		curve:  cidemix.CurveByID(curveID),
 		issuer: issuer,
 		db:     issuer.DB(),
 	}
@@ -167,7 +170,7 @@ func (ra *revocationAuthority) CreateCRI() (*idemix.CredentialRevocationInformat
 	unrevokedHandles := ra.getUnRevokedHandles(info, revokedCreds)
 
 	alg := idemix.ALG_NO_REVOCATION
-	cri, err := ra.issuer.IdemixLib().CreateCRI(ra.key.GetKey(), unrevokedHandles, info.Epoch, alg, ra.issuer.IdemixRand())
+	cri, err := ra.issuer.IdemixLib().CreateCRI(ra.key.GetKey(), unrevokedHandles, info.Epoch, alg)
 	if err != nil {
 		return nil, err
 	}
@@ -176,13 +179,13 @@ func (ra *revocationAuthority) CreateCRI() (*idemix.CredentialRevocationInformat
 }
 
 // GetNewRevocationHandle returns a new revocation handle
-func (ra *revocationAuthority) GetNewRevocationHandle() (*fp256bn.BIG, error) {
+func (ra *revocationAuthority) GetNewRevocationHandle() (*math.Zr, error) {
 	h, err := ra.getNextRevocationHandle()
 	if err != nil {
 		return nil, err
 	}
-	rh := fp256bn.NewBIGint(h)
-	return rh, err
+
+	return ra.curve.NewZrFromInt(int64(h)), nil
 }
 
 // Epoch returns epoch value of the latest CRI
@@ -199,25 +202,24 @@ func (ra *revocationAuthority) PublicKey() *ecdsa.PublicKey {
 	return &ra.key.GetKey().PublicKey
 }
 
-func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo, revokedCreds []CredRecord) []*fp256bn.BIG {
+func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo, revokedCreds []CredRecord) []*math.Zr {
 	log.Debugf("RA '%s' is getting revoked revocation handles for epoch %d", ra.issuer.Name(), info.Epoch)
-	isRevokedHandle := func(rh *fp256bn.BIG) bool {
+	isRevokedHandle := func(rh *math.Zr) bool {
 		for i := 0; i <= len(revokedCreds)-1; i++ {
 			rrhBytes, err := util.B64Decode(revokedCreds[i].RevocationHandle)
 			if err != nil {
 				log.Debugf("Failed to Base64 decode revocation handle '%s': %s", revokedCreds[i].RevocationHandle, err.Error())
 				return false
 			}
-			rhBytes := idemix.BigToBytes(rh)
-			if bytes.Equal(rhBytes, rrhBytes) {
+			if bytes.Equal(rh.Bytes(), rrhBytes) {
 				return true
 			}
 		}
 		return false
 	}
-	validHandles := []*fp256bn.BIG{}
+	var validHandles []*math.Zr
 	for i := 1; i <= info.LastHandleInPool; i = i + 1 {
-		validHandles = append(validHandles, fp256bn.NewBIGint(i))
+		validHandles = append(validHandles, ra.curve.NewZrFromInt(int64(i)))
 	}
 	for i := len(validHandles) - 1; i >= 0; i-- {
 		isrevoked := isRevokedHandle(validHandles[i])

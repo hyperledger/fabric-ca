@@ -8,30 +8,63 @@ package idemix_test
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	scheme "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
+	"github.com/golang/protobuf/proto"
 	lib "github.com/hyperledger/fabric-ca/lib"
 	. "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testDataDir          = "../../../../testdata"
-	testSignerConfigFile = testDataDir + "/IdemixSignerConfig"
-	testIssuerPublicFile = testDataDir + "/IdemixPublicKey"
-)
-
 func TestIdemixCredential(t *testing.T) {
-	clientHome, err := ioutil.TempDir(testDataDir, "idemixcredtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
+	for _, curveID := range []cidemix.CurveID{cidemix.Gurvy} {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curveID), func(t *testing.T) {
+			testIdemixCredential(t, curveID)
+		})
 	}
-	defer os.RemoveAll(clientHome)
+}
+
+func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
+	testDataDir, err := os.MkdirTemp("", strings.Replace(t.Name(), "/", "-", -1))
+	assert.NoError(t, err)
+	defer os.RemoveAll(testDataDir)
+
+	testSignerConfigFile := testDataDir + "/IdemixSignerConfig"
+	testIssuerPublicFile := testDataDir + "/IdemixPublicKey"
+
+	signerConf, ipk := makeSignerConfigAndIPK(curveID, t)
+	rawSignerConf, err := json.Marshal(signerConf)
+	if err != nil {
+		t.Fatalf("Failed to marshal signer config: %s", err.Error())
+	}
+
+	err = ioutil.WriteFile(testSignerConfigFile, rawSignerConf, 0o644)
+	if err != nil {
+		t.Fatalf("Failed to write signer config to file: %s", err.Error())
+	}
+
+	rawIPK, err := proto.Marshal(ipk)
+	if err != nil {
+		t.Fatalf("Failed to marshal IPK: %s", err.Error())
+	}
+
+	err = ioutil.WriteFile(testIssuerPublicFile, rawIPK, 0o644)
+	if err != nil {
+		t.Fatalf("Failed to write IPK to file: %s", err.Error())
+	}
+
+	clientHome := t.TempDir()
 
 	signerConfig := filepath.Join(clientHome, "SignerConfig")
 	client := &lib.Client{
@@ -45,7 +78,7 @@ func TestIdemixCredential(t *testing.T) {
 		t.Fatalf("Failed to initialize client: %s", err.Error())
 	}
 
-	idemixCred := NewCredential(signerConfig, client)
+	idemixCred := NewCredential(signerConfig, client, curveID)
 
 	assert.Equal(t, idemixCred.Type(), CredType, "Type for a IdemixCredential instance must be Idemix")
 	_, err = idemixCred.Val()
@@ -78,7 +111,7 @@ func TestIdemixCredential(t *testing.T) {
 	err = idemixCred.Load()
 	assert.Errorf(t, err, "Load should fail as %s is not found", signerConfig)
 
-	err = ioutil.WriteFile(signerConfig, []byte("hello"), 0744)
+	err = ioutil.WriteFile(signerConfig, []byte("hello"), 0o744)
 	if err != nil {
 		t.Fatalf("Failed to write to file %s: %s", signerConfig, err.Error())
 	}
@@ -91,7 +124,7 @@ func TestIdemixCredential(t *testing.T) {
 	}
 
 	clientPubKeyFile := filepath.Join(clientHome, "msp/IssuerPublicKey")
-	err = os.MkdirAll(filepath.Join(clientHome, "msp"), 0744)
+	err = os.MkdirAll(filepath.Join(clientHome, "msp"), 0o744)
 	if err != nil {
 		t.Fatalf("Failed to create msp directory: %s", err.Error())
 	}
@@ -125,13 +158,13 @@ func TestIdemixCredential(t *testing.T) {
 	err = idemixCred.SetVal(val)
 	assert.NoError(t, err, "Setting the value that we got from the credential should not return an error")
 
-	if err = os.Chmod(signerConfig, 0000); err != nil {
+	if err = os.Chmod(signerConfig, 0o000); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", signerConfig, err)
 	}
 	err = idemixCred.Store()
 	assert.Errorf(t, err, "Store should fail as %s is not writable", signerConfig)
 
-	if err = os.Chmod(signerConfig, 0644); err != nil {
+	if err = os.Chmod(signerConfig, 0o644); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", signerConfig, err)
 	}
 	err = idemixCred.Store()
@@ -143,13 +176,13 @@ func TestIdemixCredential(t *testing.T) {
 	_, err = idemixCred.EnrollmentID()
 	assert.NoError(t, err, "EnrollmentID should not return error as Idemix credential has been loaded")
 
-	if err = os.Chmod(clientPubKeyFile, 0000); err != nil {
+	if err = os.Chmod(clientPubKeyFile, 0o000); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", clientPubKeyFile, err)
 	}
 	_, err = idemixCred.CreateToken(req, body)
 	assert.Errorf(t, err, "CreateToken should fail as %s is not readable", clientPubKeyFile)
 
-	if err = os.Chmod(clientPubKeyFile, 0644); err != nil {
+	if err = os.Chmod(clientPubKeyFile, 0o644); err != nil {
 		t.Fatalf("Failed to chmod SignerConfig file %s: %v", clientPubKeyFile, err)
 	}
 
@@ -170,4 +203,52 @@ func TestIdemixCredential(t *testing.T) {
 
 	_, err = idemixCred.RevokeSelf()
 	assert.Error(t, err, "RevokeSelf should fail as it is not implemented for Idemix credential")
+}
+
+func makeSignerConfigAndIPK(curveID cidemix.CurveID, t *testing.T) (SignerConfig, *scheme.IssuerPublicKey) {
+	curve := cidemix.CurveByID(curveID)
+	rand, err := curve.Rand()
+	assert.NoError(t, err)
+
+	attrs := []string{idemix.AttrOU, idemix.AttrRole, idemix.AttrEnrollmentID, idemix.AttrRevocationHandle}
+	var numericalAttrs []*math.Zr
+	for _, attr := range attrs {
+		numericalAttrs = append(numericalAttrs, curve.HashToZr([]byte(attr)))
+	}
+
+	idemix := cidemix.InstanceForCurve(curveID)
+	ik, err := idemix.NewIssuerKey(attrs, rand, idemix.Translator)
+	assert.NoError(t, err)
+
+	sk := curve.NewZrFromBytes(ik.Isk)
+
+	revKey, err := idemix.GenerateLongTermRevocationKey()
+	assert.NoError(t, err)
+
+	cri, err := idemix.CreateCRI(revKey, nil, 1, scheme.ALG_NO_REVOCATION, rand, idemix.Translator)
+	assert.NoError(t, err)
+
+	criBytes, err := proto.Marshal(cri)
+	assert.NoError(t, err)
+
+	nonce := curve.NewRandomZr(rand)
+
+	credReq, err := idemix.NewCredRequest(sk, nonce.Bytes(), ik.Ipk, rand, idemix.Translator)
+	assert.NoError(t, err)
+
+	cred, err := idemix.NewCredential(ik, credReq, numericalAttrs, rand, idemix.Translator)
+	assert.NoError(t, err)
+
+	credBytes, err := proto.Marshal(cred)
+	assert.NoError(t, err)
+
+	signerSK := curve.NewRandomZr(rand)
+
+	return SignerConfig{
+		CredentialRevocationInformation: criBytes,
+		Cred:                            credBytes,
+		EnrollmentID:                    "admin",
+		OrganizationalUnitIdentifier:    "MSPID",
+		Sk:                              signerSK.Bytes(),
+	}, ik.Ipk
 }
