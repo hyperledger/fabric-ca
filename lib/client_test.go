@@ -9,7 +9,6 @@ package lib_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -62,7 +61,7 @@ func TestClientConfigStat(t *testing.T) {
 		t.Fatalf("os.Stat failed on current dir: %s", err)
 	}
 	oldmode := fileInfo.Mode()
-	err = os.Chmod(".", 0000)
+	err = os.Chmod(".", 0o000)
 	if err != nil {
 		t.Fatalf("Chmod on %s failed: %s", td, err)
 	}
@@ -133,20 +132,14 @@ func TestClientInit(t *testing.T) {
 }
 
 func TestIdemixEnroll(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixenrollsrv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixenrollclient")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+	srvHome := t.TempDir()
+	clientHome := t.TempDir()
 
 	server := TestGetServer(ctport1, srvHome, "", 5, t)
 	if server == nil {
 		t.Fatal("Failed to create test server")
 	}
-	err = server.Start()
+	err := server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
@@ -171,7 +164,7 @@ func TestIdemixEnroll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get CA info: %s", err)
 	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
 	}
@@ -235,20 +228,14 @@ func TestIdemixEnroll(t *testing.T) {
 }
 
 func TestGetCRIUsingIdemixToken(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrisrv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcriclient")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+	srvHome := t.TempDir()
+	clientHome := t.TempDir()
 
 	server := TestGetServer(ctport1, srvHome, "", 5, t)
 	if server == nil {
 		t.Fatal("Failed to create test server")
 	}
-	err = server.Start()
+	err := server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
@@ -273,7 +260,7 @@ func TestGetCRIUsingIdemixToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get CA info: %s", err)
 	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
 	}
@@ -297,20 +284,14 @@ func TestGetCRIUsingIdemixToken(t *testing.T) {
 }
 
 func TestGetCRIUsingX509Token(t *testing.T) {
-	srvHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509srv")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
-	clientHome, err := ioutil.TempDir(testdataDir, "idemixgetcrix509client")
-	if err != nil {
-		t.Fatal("Failed to create server home directory")
-	}
+	srvHome := t.TempDir()
+	clientHome := t.TempDir()
 
 	server := TestGetServer(ctport1, srvHome, "", 5, t)
 	if server == nil {
 		t.Fatal("Failed to create test server")
 	}
-	err = server.Start()
+	err := server.Start()
 	if err != nil {
 		t.Fatalf("Failed to start server: %s", err)
 	}
@@ -335,7 +316,7 @@ func TestGetCRIUsingX509Token(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get CA info: %s", err)
 	}
-	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0644)
+	err = util.WriteFile(filepath.Join(clientHome, "msp/IssuerPublicKey"), cainfo.IssuerPublicKey, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to store CA's idemix public key: %s", err)
 	}
@@ -447,7 +428,6 @@ func testGetCAInfo(c *Client, t *testing.T) {
 }
 
 func testRegister(c *Client, t *testing.T) {
-
 	// Enroll admin
 	enrollReq := &api.EnrollmentRequest{
 		Name:   "admin",
@@ -521,8 +501,8 @@ func testRegister(c *Client, t *testing.T) {
 		Type:        "client",
 		Affiliation: "hyperledger",
 		Attributes: []api.Attribute{
-			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
-			api.Attribute{Name: "attr2", Value: "val2"},
+			{Name: "attr1", Value: "val1", ECert: true},
+			{Name: "attr2", Value: "val2"},
 		},
 	}
 	resp, err = adminID.Register(registerReq)
@@ -557,8 +537,8 @@ func testRegister(c *Client, t *testing.T) {
 		Type:        "client",
 		Affiliation: "hyperledger",
 		Attributes: []api.Attribute{
-			api.Attribute{Name: "attr1", Value: "val1", ECert: true},
-			api.Attribute{Name: "attr2", Value: "val2"},
+			{Name: "attr1", Value: "val1", ECert: true},
+			{Name: "attr2", Value: "val2"},
 		},
 	}
 	resp, err = adminID.Register(registerReq)
@@ -571,9 +551,9 @@ func testRegister(c *Client, t *testing.T) {
 		Name:   userName,
 		Secret: resp.Secret,
 		AttrReqs: []*api.AttributeRequest{
-			&api.AttributeRequest{Name: "hf.Type"},
-			&api.AttributeRequest{Name: "hf.Affiliation"},
-			&api.AttributeRequest{Name: "attr1"},
+			{Name: "hf.Type"},
+			{Name: "hf.Affiliation"},
+			{Name: "attr1"},
 		},
 	}
 	eresp, err = c.Enroll(req)
@@ -597,8 +577,8 @@ func testRegister(c *Client, t *testing.T) {
 		Name:   userName,
 		Secret: resp.Secret,
 		AttrReqs: []*api.AttributeRequest{
-			&api.AttributeRequest{Name: "attr1", Optional: true},
-			&api.AttributeRequest{Name: "attr3"},
+			{Name: "attr1", Optional: true},
+			{Name: "attr3"},
 		},
 	}
 	eresp, err = c.Enroll(req)
@@ -629,7 +609,6 @@ func testRegister(c *Client, t *testing.T) {
 	if err == nil {
 		t.Fatalf("Enroll to 'ca' profile should have failed because %s does not have the hf.IntermediateCA attribute", userName)
 	}
-
 }
 
 func checkAttrResult(t *testing.T, name, val string, attrs *attrmgr.Attributes) {
@@ -644,7 +623,6 @@ func checkAttrResult(t *testing.T, name, val string, attrs *attrmgr.Attributes) 
 }
 
 func testEnrollIncorrectPassword(c *Client, t *testing.T) {
-
 	req := &api.EnrollmentRequest{
 		Name:   "admin",
 		Secret: "incorrect",
@@ -657,7 +635,6 @@ func testEnrollIncorrectPassword(c *Client, t *testing.T) {
 }
 
 func testDoubleEnroll(c *Client, t *testing.T) {
-
 	req := &api.EnrollmentRequest{
 		Name:   "testUser",
 		Secret: "user1",
@@ -667,7 +644,6 @@ func testDoubleEnroll(c *Client, t *testing.T) {
 	if err == nil {
 		t.Error("Double enroll should have failed but passed")
 	}
-
 }
 
 func testEnrollMiscFailures(c *Client, t *testing.T) {
@@ -787,7 +763,7 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 		MaxEnrollments: 1,
 	}
 	if withPriv {
-		rr.Attributes = []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "true"}}
+		rr.Attributes = []api.Attribute{{Name: "hf.Revoker", Value: "true"}}
 	}
 	resp, err := adminID.Register(rr)
 	if err != nil {
@@ -834,9 +810,9 @@ func testRevocation(c *Client, t *testing.T, user string, withPriv, ecertOnly bo
 }
 
 func testRevocationErrors(c *Client, t *testing.T) {
-	var revoker = "erroneous_revoker"
-	var revoker2 = "erroneous_revoker2"
-	var user = "etuser"
+	revoker := "erroneous_revoker"
+	revoker2 := "erroneous_revoker2"
+	user := "etuser"
 
 	// register and enroll revoker
 	rr := &api.RegistrationRequest{
@@ -844,7 +820,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		Type:           "user",
 		Affiliation:    "org2",
 		MaxEnrollments: 1,
-		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "true"}},
+		Attributes:     []api.Attribute{{Name: "hf.Revoker", Value: "true"}},
 	}
 	resp, err := adminID.Register(rr)
 	if err != nil {
@@ -867,7 +843,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		Type:           "user",
 		Affiliation:    "org2",
 		MaxEnrollments: 1,
-		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "faux"}},
+		Attributes:     []api.Attribute{{Name: "hf.Revoker", Value: "faux"}},
 	}
 	_, err = adminID.Register(rr)
 	assert.Error(t, err, "Invalid value 'faux' provided for a boolean type attribute")
@@ -877,7 +853,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		Type:           "user",
 		Affiliation:    "org2",
 		MaxEnrollments: 1,
-		Attributes:     []api.Attribute{api.Attribute{Name: "hf.Revoker", Value: "false"}},
+		Attributes:     []api.Attribute{{Name: "hf.Revoker", Value: "false"}},
 	}
 	resp, err = adminID.Register(rr)
 	if err != nil {
@@ -900,7 +876,7 @@ func testRevocationErrors(c *Client, t *testing.T) {
 		Type:           "user",
 		Affiliation:    "hyperledger",
 		MaxEnrollments: 1,
-		Attributes:     []api.Attribute{api.Attribute{}},
+		Attributes:     []api.Attribute{{}},
 	}
 	resp, err = adminID.Register(rr)
 	if err != nil {
@@ -1423,7 +1399,7 @@ func TestGenCSR(t *testing.T) {
 	}
 
 	// Error cases
-	//CN is missing
+	// CN is missing
 	config.CSR.CN = ""
 	err = config.GenCSR(homeDir)
 	if err == nil {
@@ -1459,7 +1435,6 @@ func TestGenCSR(t *testing.T) {
 	if err == nil {
 		t.Error("ClientConfig.GenCSR should have failed to init client")
 	}
-
 }
 
 // Test to make sure that once an identity is revoked, all subsequent commands

@@ -17,6 +17,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hyperledger/fabric-ca/lib/common/idemix"
+
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
@@ -54,7 +56,7 @@ func TestAuthChecks(t *testing.T) {
 	assert.Error(t, err, "Caller does not possess the appropriate attributes to request manage certificates")
 
 	attributes := []api.Attribute{
-		api.Attribute{
+		{
 			Name:  "hf.Registrar.Roles",
 			Value: "peer,client",
 		},
@@ -71,7 +73,7 @@ func TestAuthChecks(t *testing.T) {
 	assert.NoError(t, err, "Should not fail, caller has 'hf.Registrar.Roles' attribute")
 
 	attributes = []api.Attribute{
-		api.Attribute{
+		{
 			Name:  "hf.Revoker",
 			Value: "true",
 		},
@@ -88,7 +90,7 @@ func TestAuthChecks(t *testing.T) {
 
 	ctx = new(serverRequestContextImpl)
 	attributes = []api.Attribute{
-		api.Attribute{
+		{
 			Name:  "hf.Revoker",
 			Value: "false",
 		},
@@ -135,7 +137,6 @@ func TestProcessCertificateRequest(t *testing.T) {
 	err = processCertificateRequest(ctx)
 	t.Log("Error: ", err)
 	util.ErrorContains(t, err, "Invalid request", "Should have failed to incorrect method type on HTTP request")
-
 }
 
 func TestProcessGetCertificateRequest(t *testing.T) {
@@ -200,6 +201,14 @@ func (m *mockHTTPWriter) Write(buf []byte) (int, error) {
 func (m *mockHTTPWriter) Flush() {}
 
 func TestServerGetCertificates(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testServerGetCertificates(t, curve)
+		})
+	}
+}
+
+func testServerGetCertificates(t *testing.T, curveID idemix.CurveID) {
 	os.RemoveAll("getCertTest")
 	defer os.RemoveAll("getCertTest")
 	var err error

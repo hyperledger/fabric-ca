@@ -20,12 +20,13 @@ type SignerConfig struct {
 	EnrollmentID string `protobuf:"bytes,5,opt,name=enrollment_id,json=enrollmentId" json:"enrollment_id,omitempty"`
 	// CRI contains a serialized Credential Revocation Information
 	CredentialRevocationInformation []byte `protobuf:"bytes,6,opt,name=credential_revocation_information,json=credentialRevocationInformation,proto3" json:"credential_revocation_information,omitempty"`
+	// CurveID specifies the name of the Idemix curve to use, defaults to 'amcl.Fp256bn'
+	CurveID string `protobuf:"bytes,7,opt,name=curve_id,json=curveID" json:"curveID,omitempty"`
 }
 
 // GetCred returns credential associated with this signer config
 func (s *SignerConfig) GetCred() []byte {
 	return s.Cred
-
 }
 
 // GetSk returns secret key associated with this signer config

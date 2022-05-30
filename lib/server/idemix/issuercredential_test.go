@@ -7,33 +7,43 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
 	proto "github.com/golang/protobuf/proto"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testPublicKeyFile = "../../../testdata/IdemixPublicKey"
-	testSecretKeyFile = "../../../testdata/IdemixSecretKey"
-)
-
 func TestLoadEmptyIdemixPublicKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLoadEmptyIdemixPublicKey(t, curve)
+		})
+	}
+}
+
+func testLoadEmptyIdemixPublicKey(t *testing.T, curveID cidemix.CurveID) {
+	_, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
+	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
-	ic := NewIssuerCredential(pubkeyfile.Name(), testSecretKeyFile, idemixLib)
+	ic := NewIssuerCredential(pubkeyfile.Name(), testSecretKeyFile, idemixLib, curveID)
 	err = ic.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer public key")
 	if err != nil {
@@ -42,6 +52,14 @@ func TestLoadEmptyIdemixPublicKey(t *testing.T) {
 }
 
 func TestLoadFakeIdemixPublicKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLoadFakeIdemixPublicKey(t, curve)
+		})
+	}
+}
+
+func testLoadFakeIdemixPublicKey(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
 	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
 	if err != nil {
@@ -51,12 +69,13 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
+	defer os.RemoveAll(testdir)
 	_, err = pubkeyfile.WriteString("foo")
 	if err != nil {
 		t.Fatalf("Failed to write to the file %s", pubkeyfile.Name())
 	}
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(pubkeyfile.Name(), privkeyfile.Name(), idemixLib)
+	ik := NewIssuerCredential(pubkeyfile.Name(), privkeyfile.Name(), idemixLib, curveID)
 	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer public key")
 	if err != nil {
@@ -65,13 +84,26 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 }
 
 func TestLoadEmptyIdemixSecretKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLoadEmptyIdemixSecretKey(t, curve)
+		})
+	}
+}
+
+func testLoadEmptyIdemixSecretKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, _, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	testdir := t.TempDir()
 	privkeyfile, err := ioutil.TempFile(testdir, "IdemixSecretKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
+	defer os.RemoveAll(testdir)
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile.Name(), idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile.Name(), idemixLib, curveID)
 	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer secret key")
 	if err != nil {
@@ -80,10 +112,22 @@ func TestLoadEmptyIdemixSecretKey(t *testing.T) {
 }
 
 func TestLoadNonExistentIdemixSecretKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLoadNonExistentIdemixSecretKey(t, curve)
+		})
+	}
+}
+
+func testLoadNonExistentIdemixSecretKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, _, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	testdir := t.TempDir()
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, filepath.Join(testdir, "IdemixSecretKey"), idemixLib)
-	err := ik.Load()
+	ik := NewIssuerCredential(testPublicKeyFile, filepath.Join(testdir, "IdemixSecretKey"), idemixLib, curveID)
+	err = ik.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer secret key")
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to read Issuer secret key")
@@ -91,9 +135,21 @@ func TestLoadNonExistentIdemixSecretKey(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testLoad(t, curve)
+		})
+	}
+}
+
+func testLoad(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
-	err := ik.Load()
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
+	err = ik.Load()
 	assert.NoError(t, err, "Failed to load Idemix issuer credential")
 
 	err = ik.Store()
@@ -101,9 +157,21 @@ func TestLoad(t *testing.T) {
 }
 
 func TestStoreNilIssuerKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testStoreNilIssuerKey(t, curve)
+		})
+	}
+}
+
+func testStoreNilIssuerKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
-	err := ik.Store()
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
+	err = ik.Store()
 	assert.Error(t, err, "Should fail if store is called without setting the issuer key or loading the issuer key from disk")
 	if err != nil {
 		assert.Equal(t, err.Error(), "Issuer credential is not set")
@@ -111,10 +179,22 @@ func TestStoreNilIssuerKey(t *testing.T) {
 }
 
 func TestStoreNilIdemixPublicKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testStoreNilIdemixPublicKey(t, curve)
+		})
+	}
+}
+
+func testStoreNilIdemixPublicKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
 	ik.SetIssuerKey(&idemix.IssuerKey{})
-	err := ik.Store()
+	err = ik.Store()
 	assert.Error(t, err, "Should fail if store is called with empty issuer public key byte array")
 	if err != nil {
 		assert.Equal(t, err.Error(), "Failed to marshal Issuer public key")
@@ -122,8 +202,19 @@ func TestStoreNilIdemixPublicKey(t *testing.T) {
 }
 
 func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testStoreReadonlyPublicKeyFilePath(t, curve)
+		})
+	}
+}
 
+func testStoreReadonlyPublicKeyFilePath(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
 	pubkeyfile := path.Join(testdir, "testdata1/IdemixPublicKey")
 
 	// Valid issuer public key
@@ -143,7 +234,7 @@ func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
-	ik := NewIssuerCredential(pubkeyfile, testSecretKeyFile, idemixLib)
+	ik := NewIssuerCredential(pubkeyfile, testSecretKeyFile, idemixLib, curveID)
 	ik.SetIssuerKey(&idemix.IssuerKey{Ipk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer public key is being stored to readonly directory")
@@ -153,8 +244,19 @@ func TestStoreReadonlyPublicKeyFilePath(t *testing.T) {
 }
 
 func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
-	testdir := t.TempDir()
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testStoreReadonlySecretKeyFilePath(t, curve)
+		})
+	}
+}
 
+func testStoreReadonlySecretKeyFilePath(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, _, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	testdir := t.TempDir()
 	// foo directory is non-existent
 	privkeyfile := filepath.Join(testdir, "foo/IdemixSecretKey")
 
@@ -174,7 +276,7 @@ func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
-	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile, idemixLib)
+	ik := NewIssuerCredential(testPublicKeyFile, privkeyfile, idemixLib, curveID)
 	ik.SetIssuerKey(&idemix.IssuerKey{Ipk: pubKey})
 	err = ik.Store()
 	assert.Error(t, err, "Should fail if issuer secret key is being stored to read-only directory")
@@ -184,9 +286,21 @@ func TestStoreReadonlySecretKeyFilePath(t *testing.T) {
 }
 
 func TestGetIssuerKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testGetIssuerKey(t, curve)
+		})
+	}
+}
+
+func testGetIssuerKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
-	_, err := ik.GetIssuerKey()
+	ik := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
+	_, err = ik.GetIssuerKey()
 	assert.Error(t, err, "GetIssuerKey should return an error if it is called without setting the issuer key or loading the issuer key from disk")
 	if err != nil {
 		assert.Equal(t, err.Error(), "Issuer credential is not set")
@@ -199,43 +313,58 @@ func TestGetIssuerKey(t *testing.T) {
 	assert.NoError(t, err, "GetIssuerKey should not return an error if the issuer key is set")
 }
 
-func TestNewIssuerKeyGetRandError(t *testing.T) {
-	idemixLib := new(mocks.Lib)
-	idemixLib.On("GetRand").Return(nil, errors.New("Failed to generate random number"))
-	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
-	_, err := ic.NewIssuerKey()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Error creating new issuer key")
+func TestNewIssuerKeyError(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testNewIssuerKeyError(t, curve)
+		})
+	}
 }
 
-func TestNewIssuerKeyError(t *testing.T) {
+func testNewIssuerKeyError(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	rnd, err := NewLib().GetRand()
+	rnd, err := cidemix.CurveByID(curveID).Rand()
 	if err != nil {
 		t.Fatalf("Failed to generate a random number: %s", err.Error())
 	}
 	idemixLib.On("GetRand").Return(rnd, nil)
-	idemixLib.On("NewIssuerKey", GetAttributeNames(), rnd).Return(nil, errors.New("Failed to create new issuer key"))
-	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	idemixLib.On("NewIssuerKey", GetAttributeNames()).Return(nil, errors.New("Failed to create new issuer key"))
+	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
 	_, err = ic.NewIssuerKey()
 	assert.Error(t, err)
 }
 
 func TestNewIssuerKey(t *testing.T) {
+	for _, curve := range cidemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testNewIssuerKey(t, curve)
+		})
+	}
+}
+
+func testNewIssuerKey(t *testing.T, curveID cidemix.CurveID) {
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
 	idemixLib := new(mocks.Lib)
-	idemix := NewLib()
-	rnd, err := idemix.GetRand()
+	idemix := NewLib(curveID)
+	rnd, err := cidemix.CurveByID(curveID).Rand()
 	if err != nil {
 		t.Fatalf("Failed to generate a random number: %s", err.Error())
 	}
 	attrNames := GetAttributeNames()
-	ik, err := idemix.NewIssuerKey(attrNames, rnd)
+	ik, err := idemix.NewIssuerKey(attrNames)
 	if err != nil {
 		t.Fatalf("Failed to create new issuer key: %s", err.Error())
 	}
 	idemixLib.On("GetRand").Return(rnd, nil)
-	idemixLib.On("NewIssuerKey", attrNames, rnd).Return(ik, nil)
-	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib)
+	idemixLib.On("NewIssuerKey", attrNames).Return(ik, nil)
+	ic := NewIssuerCredential(testPublicKeyFile, testSecretKeyFile, idemixLib, curveID)
 	_, err = ic.NewIssuerKey()
 	assert.NoError(t, err)
 }

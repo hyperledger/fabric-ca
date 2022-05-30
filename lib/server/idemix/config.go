@@ -27,6 +27,7 @@ const (
 
 // Config encapsulates Idemix related the configuration options
 type Config struct {
+	Curve                    string `def:"amcl.Fp256bn" help:"Name of the curve among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'}, defaults to 'amcl.Fp256bn'"`
 	IssuerPublicKeyfile      string `def:"IssuerPublicKey" skip:"true" help:"Name of the file that contains marshalled bytes of CA's Idemix issuer public key"`
 	IssuerSecretKeyfile      string `def:"IssuerSecretKey" skip:"true" help:"Name of the file that contains CA's Idemix issuer secret key"`
 	RevocationPublicKeyfile  string `def:"IssuerRevocationPublicKey" skip:"true" help:"Name of the file that contains Idemix issuer revocation public key"`

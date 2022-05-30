@@ -15,6 +15,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hyperledger/fabric-ca/lib/common/idemix"
+	"github.com/spf13/viper"
+
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
@@ -201,6 +204,13 @@ bccsp:
         filekeystore:
             # The directory used for the software file-based keystore
             keystore: msp/keystore
+
+#############################################################################
+# Idemix curve ID specifies the Elliptic Curve used by Identity Mixer.
+# It can be any of: {"amcl.Fp256bn", "gurvy.Bn254", "amcl.Fp256Miraclbn"}.
+# If unspecified, it defaults to 'amcl.Fp256bn'.
+#############################################################################
+idemixCurveID: <<<IDEMIX_CURVE_ID>>>
 `
 )
 
@@ -320,10 +330,16 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 
 	myhost := c.myViper.GetString("myhost")
 
+	idemixCurveID := viper.GetString("idemix.curve")
+	if idemixCurveID == "" {
+		idemixCurveID = idemix.DefaultIdemixCurve
+	}
+
 	// Do string substitution to get the default config
 	cfg = strings.Replace(defaultCfgTemplate, "<<<URL>>>", fabricCAServerURL, 1)
 	cfg = strings.Replace(cfg, "<<<MYHOST>>>", myhost, 1)
 	cfg = strings.Replace(cfg, "<<<MSPDIR>>>", c.clientCfg.MSPDir, 1)
+	cfg = strings.Replace(cfg, "<<<IDEMIX_CURVE_ID>>>", idemixCurveID, 1)
 
 	user := ""
 	var err error
@@ -336,13 +352,13 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	cfg = strings.Replace(cfg, "<<<ENROLLMENT_ID>>>", user, 1)
 
 	// Create the directory if necessary
-	err = os.MkdirAll(c.homeDirectory, 0755)
+	err = os.MkdirAll(c.homeDirectory, 0o755)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to create directory at '%s'", c.homeDirectory)
 	}
 
 	// Now write the file
-	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0755)
+	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0o755)
 }
 
 // processAttributes parses attributes from command line or env variable

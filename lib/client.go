@@ -22,21 +22,22 @@ import (
 	"strconv"
 	"strings"
 
+	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	math "github.com/IBM/mathlib"
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
 	proto "github.com/golang/protobuf/proto"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
 	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
 	x509cred "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/streamer"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
@@ -57,6 +58,9 @@ type Client struct {
 	httpClient *http.Client
 	// Public key of Idemix issuer
 	issuerPublicKey *idemix.IssuerPublicKey
+	idemix          *idemix.Idemix
+	curve           *math.Curve
+	curveID         cidemix.CurveID
 }
 
 // GetCAInfoResponse is the response from the GetCAInfo call
@@ -95,7 +99,7 @@ func (c *Client) Init() error {
 		cfg.MSPDir = mspDir
 		// Key directory and file
 		keyDir := path.Join(mspDir, "keystore")
-		err = os.MkdirAll(keyDir, 0700)
+		err = os.MkdirAll(keyDir, 0o700)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create keystore directory")
 		}
@@ -103,7 +107,7 @@ func (c *Client) Init() error {
 
 		// Cert directory and file
 		certDir := path.Join(mspDir, "signcerts")
-		err = os.MkdirAll(certDir, 0755)
+		err = os.MkdirAll(certDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create signcerts directory")
 		}
@@ -111,7 +115,7 @@ func (c *Client) Init() error {
 
 		// CA certs directory
 		c.caCertsDir = path.Join(mspDir, "cacerts")
-		err = os.MkdirAll(c.caCertsDir, 0755)
+		err = os.MkdirAll(c.caCertsDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create cacerts directory")
 		}
@@ -121,7 +125,7 @@ func (c *Client) Init() error {
 
 		// Idemix credentials directory
 		c.idemixCredsDir = path.Join(mspDir, "user")
-		err = os.MkdirAll(c.idemixCredsDir, 0755)
+		err = os.MkdirAll(c.idemixCredsDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Idemix credentials directory 'user'")
 		}
@@ -137,6 +141,14 @@ func (c *Client) Init() error {
 		if err != nil {
 			return err
 		}
+
+		curveID, err := curveIDFromConfig(cfg.Idemix.Curve)
+		if err != nil {
+			return err
+		}
+		c.curveID = curveID
+		c.curve = cidemix.CurveByID(curveID)
+		c.idemix = cidemix.InstanceForCurve(curveID)
 
 		// Successfully initialized the client
 		c.initialized = true
@@ -384,12 +396,12 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 		return nil, err
 	}
 	nonceBytes, err := util.B64Decode(result.Nonce)
-
 	if err != nil {
 		return nil, errors.WithMessage(err,
 			fmt.Sprintf("Failed to decode nonce that was returned by CA %s", req.CAName))
 	}
-	nonce := fp256bn.FromBytes(nonceBytes)
+
+	nonce := c.curve.NewZrFromBytes(nonceBytes)
 	log.Infof("Successfully got nonce from CA %s", req.CAName)
 
 	ipkBytes, err := util.B64Decode(result.CAInfo.IssuerPublicKey)
@@ -487,7 +499,7 @@ func (c *Client) newEnrollmentResponse(result *api.EnrollmentResponseNet, id str
 
 // newIdemixEnrollmentResponse creates a client idemix enrollment response from a network response
 func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.IdemixEnrollmentResponseNet,
-	sk *fp256bn.BIG, id string) (*EnrollmentResponse, error) {
+	sk *math.Zr, id string) (*EnrollmentResponse, error) {
 	log.Debugf("newIdemixEnrollmentResponse %s", id)
 	credBytes, err := util.B64Decode(result.Credential)
 	if err != nil {
@@ -505,8 +517,9 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	ou, _ := result.Attrs["OU"].(string)
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	signerConfig := &idemixcred.SignerConfig{
+		CurveID:                         cidemix.Curves.ByID(c.curveID),
 		Cred:                            credBytes,
-		Sk:                              idemix.BigToBytes(sk),
+		Sk:                              sk.Bytes(),
 		Role:                            role,
 		OrganizationalUnitIdentifier:    ou,
 		EnrollmentID:                    enrollmentID,
@@ -514,7 +527,7 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	}
 
 	// Create IdemixCredential object
-	cred := idemixcred.NewCredential(c.idemixCredFile, c)
+	cred := idemixcred.NewCredential(c.idemixCredFile, c, c.curveID)
 	err = cred.SetVal(signerConfig)
 	if err != nil {
 		return nil, err
@@ -569,18 +582,19 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo, id string) *csr.Certifi
 
 // newIdemixCredentialRequest returns CredentialRequest object, a secret key, and a random number used in
 // the creation of credential request.
-func (c *Client) newIdemixCredentialRequest(nonce *fp256bn.BIG, ipkBytes []byte) (*idemix.CredRequest, *fp256bn.BIG, error) {
-	rng, err := idemix.GetRand()
+func (c *Client) newIdemixCredentialRequest(nonce *math.Zr, ipkBytes []byte) (*idemix.CredRequest, *math.Zr, error) {
+	rand, err := c.curve.Rand()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Errorf("failed obtaining randomness source: %v", err)
 	}
-	sk := idemix.RandModOrder(rng)
+	sk := c.curve.NewRandomZr(rand)
 
 	issuerPubKey, err := c.getIssuerPubKey(ipkBytes)
 	if err != nil {
 		return nil, nil, err
 	}
-	return idemix.NewCredRequest(sk, idemix.BigToBytes(nonce), issuerPubKey, rng), sk, nil
+	credReq, err := c.idemix.NewCredRequest(sk, nonce.Bytes(), issuerPubKey, rand, c.idemix.Translator)
+	return credReq, sk, err
 }
 
 func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
@@ -628,7 +642,7 @@ func (c *Client) LoadIdentity(keyFile, certFile, idemixCredFile string) (*Identi
 		log.Debugf("No X509 credential found at %s, %s", keyFile, certFile)
 	}
 
-	idemixCred := idemixcred.NewCredential(idemixCredFile, c)
+	idemixCred := idemixcred.NewCredential(idemixCredFile, c, c.curveID)
 	err = idemixCred.Load()
 	if err == nil {
 		idemixFound = true
@@ -657,7 +671,7 @@ func (c *Client) NewIdentity(creds []credential.Credential) (*Identity, error) {
 		return NewIdentity(c, name, creds), nil
 	}
 
-	//TODO: Get the enrollment ID from the creds...they all should return same value
+	// TODO: Get the enrollment ID from the creds...they all should return same value
 	// for i := 1; i < len(creds); i++ {
 	// 	localid, err := creds[i].EnrollmentID()
 	// 	if err != nil {
@@ -762,7 +776,6 @@ func (c *Client) newPost(endpoint string, reqBody []byte) (*http.Request, error)
 
 // SendReq sends a request to the fabric-ca-server and fills in the result
 func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
-
 	reqStr := util.HTTPRequestToString(req)
 	log.Debugf("Sending request\n%s", reqStr)
 
@@ -828,7 +841,6 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 
 // StreamResponse reads the response as it comes back from the server
 func (c *Client) StreamResponse(req *http.Request, stream string, cb func(*json.Decoder) error) (err error) {
-
 	reqStr := util.HTTPRequestToString(req)
 	log.Debugf("Sending request\n%s", reqStr)
 
@@ -941,10 +953,10 @@ func (c *Client) verifyIdemixCredential() error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to unmarshal Idemix credential from signer config")
 	}
-	sk := fp256bn.FromBytes(signerConfig.GetSk())
+	sk := c.curve.NewZrFromBytes(signerConfig.GetSk())
 
 	// Verify that the credential is cryptographically valid
-	err = cred.Ver(sk, ipk)
+	err = cred.Ver(sk, ipk, c.curve, c.idemix.Translator)
 	if err != nil {
 		return errors.Wrap(err, "Idemix credential is not cryptographically valid")
 	}

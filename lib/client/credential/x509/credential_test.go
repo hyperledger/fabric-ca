@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/hex"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,17 +30,12 @@ const (
 )
 
 func TestX509Credential(t *testing.T) {
-	clientHome, err := ioutil.TempDir(testDataDir, "x509credtest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(clientHome)
-
-	err = lib.CopyFile(filepath.Join(testDataDir, "ec256-1-cert.pem"), filepath.Join(clientHome, "ec256-1-cert.pem"))
+	clientHome := t.TempDir()
+	err := lib.CopyFile(filepath.Join(testDataDir, "ec256-1-cert.pem"), filepath.Join(clientHome, "ec256-1-cert.pem"))
 	if err != nil {
 		t.Fatalf("Failed to copy ec256-1-cert.pem to %s: %s", clientHome, err.Error())
 	}
-	err = os.MkdirAll(filepath.Join(clientHome, "msp/keystore"), 0777)
+	err = os.MkdirAll(filepath.Join(clientHome, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create msp/keystore directory: %s", err.Error())
 	}
@@ -122,12 +116,12 @@ func TestX509Credential(t *testing.T) {
 	assert.NoError(t, err, "Load should not fail as both cert and key files exist and are valid")
 
 	// Should error if it fails to write cert to the specified file
-	if err = os.Chmod(certFile, 0000); err != nil {
+	if err = os.Chmod(certFile, 0o000); err != nil {
 		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}
 	err = x509Cred.Store()
 	assert.Errorf(t, err, "Store should fail as %s is not writable", certFile)
-	if err = os.Chmod(certFile, 0644); err != nil {
+	if err = os.Chmod(certFile, 0o644); err != nil {
 		t.Fatalf("Failed to chmod certificate file %s: %s", certFile, err.Error())
 	}
 
@@ -154,17 +148,12 @@ func TestX509Credential(t *testing.T) {
 }
 
 func TestRevokeSelf(t *testing.T) {
-	clientHome, err := ioutil.TempDir(testDataDir, "revokeselftest")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %s", err.Error())
-	}
-	defer os.RemoveAll(clientHome)
-
-	err = lib.CopyFile(filepath.Join(testDataDir, "ec256-1-cert.pem"), filepath.Join(clientHome, "ec256-1-cert.pem"))
+	clientHome := t.TempDir()
+	err := lib.CopyFile(filepath.Join(testDataDir, "ec256-1-cert.pem"), filepath.Join(clientHome, "ec256-1-cert.pem"))
 	if err != nil {
 		t.Fatalf("Failed to copy ec256-1-cert.pem to %s: %s", clientHome, err.Error())
 	}
-	err = os.MkdirAll(filepath.Join(clientHome, "msp/keystore"), 0777)
+	err = os.MkdirAll(filepath.Join(clientHome, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create msp/keystore directory: %s", err.Error())
 	}

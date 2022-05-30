@@ -45,6 +45,7 @@ Fabric-CA Server's CLI
           --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
       -h, --help                                      help for fabric-ca-server
       -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
+          --idemix.curve string                       Name of the curve among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'}, defaults to 'amcl.Fp256bn' (default "amcl.Fp256bn")
           --idemix.nonceexpiration string             Duration after which a nonce expires (default "15s")
           --idemix.noncesweepinterval string          Interval at which expired nonces are deleted (default "15m")
           --idemix.rhpoolsize int                     Specifies revocation handle pool size (default 100)

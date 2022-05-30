@@ -17,8 +17,8 @@ limitations under the License.
 package api
 
 import (
+	idemix2 "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
 	"github.com/cloudflare/cfssl/signer"
-	"github.com/hyperledger/fabric/idemix"
 )
 
 /*
@@ -46,8 +46,8 @@ type EnrollmentRequestNet struct {
 
 // IdemixEnrollmentRequestNet is a request to enroll an identity and get idemix credential
 type IdemixEnrollmentRequestNet struct {
-	*idemix.CredRequest `json:"request"`
-	CAName              string `json:"caname"`
+	*idemix2.CredRequest `json:"request"`
+	CAName               string `json:"caname"`
 }
 
 // ReenrollmentRequestNet is a request to reenroll an identity.

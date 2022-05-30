@@ -354,6 +354,11 @@ Fabric-CA Server's Configuration File
       #  The value is expressed in the time.Duration format (see https://golang.org/pkg/time/#ParseDuration)
       noncesweepinterval: 15m
     
+      # Specifies the Elliptic Curve used by Identity Mixer.
+      # It can be any of: {"amcl.Fp256bn", "gurvy.Bn254", "amcl.Fp256Miraclbn"}.
+      # If unspecified, it defaults to 'amcl.Fp256bn'.
+      curve: amcl.Fp256bn
+    
     #############################################################################
     # BCCSP (BlockChain Crypto Service Provider) section is used to select which
     # crypto library implementation to use

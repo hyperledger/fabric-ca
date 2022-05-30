@@ -17,6 +17,7 @@ import (
 
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/mocks"
 	"github.com/hyperledger/fabric-ca/lib/server/db/sqlite"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
@@ -47,14 +48,22 @@ const (
 	caPort                = "7054"
 )
 
+var configFile = serverCfgFile(testdir)
+
 var (
-	configFile = serverCfgFile(testdir)
+	cfg CAConfig
+	srv Server
 )
 
-var cfg CAConfig
-var srv Server
-
 func TestCABadCACertificates(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCABadCACertificates(t)
+		})
+	}
+}
+
+func testCABadCACertificates(t *testing.T) {
 	srv.levels = &dbutil.Levels{
 		Identity:    1,
 		Affiliation: 1,
@@ -221,7 +230,6 @@ func testValidMatchingKeys(t *testing.T) {
 	if err == nil {
 		t.Error("Should have failed to read bad file")
 	}
-
 }
 
 // Tests String method of CAConfigDB
@@ -289,11 +297,19 @@ func TestCAParseDuration(t *testing.T) {
 }
 
 func TestCAwriteFile(t *testing.T) {
-	err := writeFile("/invalid/", make([]byte, 1), 0777)
+	err := writeFile("/invalid/", make([]byte, 1), 0o777)
 	assert.Error(t, err)
 }
 
 func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAloadCNFromEnrollmentInfo(t)
+		})
+	}
+}
+
+func testCAloadCNFromEnrollmentInfo(t *testing.T) {
 	ca, err := newCA(serverCfgFile(os.TempDir()), &CAConfig{}, &srv, true)
 	assert.NoError(t, err, "failed to create new CA")
 	_, err = ca.loadCNFromEnrollmentInfo("does-not-exist")
@@ -310,6 +326,14 @@ func TestCAloadCNFromEnrollmentInfo(t *testing.T) {
 }
 
 func TestCAgetUserAffiliation(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAgetUserAffiliation(t)
+		})
+	}
+}
+
+func testCAgetUserAffiliation(t *testing.T) {
 	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
@@ -324,6 +348,14 @@ func TestCAgetUserAffiliation(t *testing.T) {
 }
 
 func TestCAuserHasAttribute(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAuserHasAttribute(t)
+		})
+	}
+}
+
+func testCAuserHasAttribute(t *testing.T) {
 	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
@@ -338,6 +370,14 @@ func TestCAuserHasAttribute(t *testing.T) {
 }
 
 func TestCAgetUserAttrValue(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAgetUserAttrValue(t)
+		})
+	}
+}
+
+func testCAgetUserAttrValue(t *testing.T) {
 	testDirClean(t)
 	ca, err := newCA(configFile, &CAConfig{}, &srv, false)
 	if err != nil {
@@ -352,6 +392,14 @@ func TestCAgetUserAttrValue(t *testing.T) {
 }
 
 func TestCAaddIdentity(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAaddIdentity(t)
+		})
+	}
+}
+
+func testCAaddIdentity(t *testing.T) {
 	testDirClean(t)
 	id := &CAConfigIdentity{
 		Name: "admin",
@@ -378,6 +426,14 @@ func TestCAaddIdentity(t *testing.T) {
 }
 
 func TestCAinitUserRegistry(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAinitUserRegistry(t)
+		})
+	}
+}
+
+func testCAinitUserRegistry(t *testing.T) {
 	testDirClean(t)
 	cfg = CAConfig{}
 	cfg.LDAP.Enabled = true
@@ -390,6 +446,14 @@ func TestCAinitUserRegistry(t *testing.T) {
 }
 
 func TestCAgetCaCert(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAgetCaCert(t)
+		})
+	}
+}
+
+func testCAgetCaCert(t *testing.T) {
 	testDirClean(t)
 	os.Remove(configFile)
 	cfg = CAConfig{}
@@ -429,6 +493,14 @@ func TestCAgetCaCert(t *testing.T) {
 }
 
 func TestCAinitEnrollmentSigner(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAinitEnrollmentSigner(t)
+		})
+	}
+}
+
+func testCAinitEnrollmentSigner(t *testing.T) {
 	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, true)
@@ -442,7 +514,7 @@ func TestCAinitEnrollmentSigner(t *testing.T) {
 		t.Fatal("newCA FAILED", err)
 	}
 
-	//Rely on default policy
+	// Rely on default policy
 	cfg.Signing = nil
 	ca.csp = nil
 	err = ca.initEnrollmentSigner()
@@ -454,6 +526,14 @@ func TestCAinitEnrollmentSigner(t *testing.T) {
 }
 
 func TestCADBinit(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCADBinit(t)
+		})
+	}
+}
+
+func testCADBinit(t *testing.T) {
 	orgwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal("failed to get cwd")
@@ -479,6 +559,14 @@ func TestCADBinit(t *testing.T) {
 }
 
 func TestCAloadAffiliationsTableR(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAloadAffiliationsTableR(t)
+		})
+	}
+}
+
+func testCAloadAffiliationsTableR(t *testing.T) {
 	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, true)
@@ -486,7 +574,7 @@ func TestCAloadAffiliationsTableR(t *testing.T) {
 		t.Fatal("newCA FAILED", err)
 	}
 
-	//Failure to write to DB; non-valid accessor
+	// Failure to write to DB; non-valid accessor
 	dbAccessor := &Accessor{}
 	ca.registry = dbAccessor
 
@@ -513,6 +601,14 @@ func TestCAloadAffiliationsTableR(t *testing.T) {
 }
 
 func TestCAloadUsersTable(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAloadUsersTable(t)
+		})
+	}
+}
+
+func testCAloadUsersTable(t *testing.T) {
 	testDirClean(t)
 	cfg = CAConfig{}
 	u := &CAConfigIdentity{Name: "a", MaxEnrollments: -10}
@@ -576,6 +672,14 @@ func TestCAloadUsersTable(t *testing.T) {
 }
 
 func TestCAVerifyCertificate(t *testing.T) {
+	for _, curve := range idemix.Curves {
+		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
+			testCAVerifyCertificate(t)
+		})
+	}
+}
+
+func testCAVerifyCertificate(t *testing.T) {
 	testDirClean(t)
 	cfg = CAConfig{}
 	ca, err := newCA(configFile, &cfg, &srv, false)
@@ -609,7 +713,7 @@ func TestCAVerifyCertificate(t *testing.T) {
 	caCert1, err := ioutil.ReadFile("../testdata/ec_cert.pem")
 	assert.NoError(t, err, "failed to read ec_cert.pem")
 	caCert2 := append(caCert1, util.RandomString(128)...)
-	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0644)
+	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0o644)
 	assert.NoError(t, err, "failed to write ca-chainfile.pem")
 	ca.Config.CA.Chainfile = filepath.Join(os.TempDir(), "ca-chainfile.pem")
 	err = ca.VerifyCertificate(cert, false)
@@ -646,7 +750,7 @@ func TestServerMigration(t *testing.T) {
 	dir := "migrationTest"
 	os.RemoveAll(dir)
 	defer os.RemoveAll(dir)
-	err := os.Mkdir(dir, 0777)
+	err := os.Mkdir(dir, 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}

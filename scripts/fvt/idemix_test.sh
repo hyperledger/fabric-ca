@@ -108,31 +108,36 @@ export FABRIC_CA_SERVER_IDEMIX_RHPOOLSIZE=$RHPOOLSIZE
 export FABRIC_CA_SERVER_IDEMIX_NONCEEXPIRATION=2s
 export FABRIC_CA_SERVER_IDEMIX_NONCESWEEPINTERVAL=4s
 
-for driver in postgres mysql; do
-    ##### Start Fabric CA Server with #####
-    $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d $driver 2>&1 | tee /tmp/serverlog.txt &
-    pollFabricCa "" "" $CA_DEFAULT_PORT
+for curveID in "amcl.Fp256bn" "gurvy.Bn254" "amcl.Fp256Miraclbn"; do
+  for driver in postgres mysql; do
+      ##### Start Fabric CA Server with #####
+      export FABRIC_CA_CLIENT_IDEMIX_CURVE=${curveID}
+      export IDEMIX_CURVE_ID="${curveID}"
+      $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d $driver 2>&1 | tee /tmp/serverlog.txt &
+      pollFabricCa "" "" $CA_DEFAULT_PORT
 
-    ###### Get Idemix Public Key ######
-    getCAInfo
+      ###### Get Idemix Public Key ######
+      getCAInfo
 
-    ###### Get Idemix Credential ######
-    getIdemixCred
+      ###### Get Idemix Credential ######
+      getIdemixCred
 
-    ###### Issue other client commands using Idemix Credential ######
-    runCommandsUsingIdemix
+      ###### Issue other client commands using Idemix Credential ######
+      runCommandsUsingIdemix
 
-    ###### Revoking an identity that has both x509 and Idemix credentials #######
-    testIdemixWithRevokedID
+      ###### Revoking an identity that has both x509 and Idemix credentials #######
+      testIdemixWithRevokedID
 
-    ###### Use up the RH Pool with idemix enrollments ######
-    testRHPool
+      ###### Use up the RH Pool with idemix enrollments ######
+      testRHPool
 
-    ###### Test that no sql errors seen related to deleting expired nonces #######
-    checkExpirationSQLExec
+      ###### Test that no sql errors seen related to deleting expired nonces #######
+      checkExpirationSQLExec
 
-    $SCRIPTDIR/fabric-ca_setup.sh -K
-    idemixCleanUp $driver
+      $SCRIPTDIR/fabric-ca_setup.sh -K
+      $SCRIPTDIR/fabric-ca_setup.sh -R
+      idemixCleanUp $driver
+  done
 done
 
 CleanUp $RC

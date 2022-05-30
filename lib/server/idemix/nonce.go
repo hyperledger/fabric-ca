@@ -10,11 +10,10 @@ import (
 	"fmt"
 	"time"
 
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
-	fp256bn "github.com/hyperledger/fabric-amcl/amcl/FP256BN"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -44,9 +43,9 @@ type Nonce struct {
 // getting a new nonce
 type NonceManager interface {
 	// GetNonce creates a nonce, stores it in the database and returns it
-	GetNonce() (*fp256bn.BIG, error)
+	GetNonce() (*math.Zr, error)
 	// CheckNonce checks if the specified nonce exists in the database and has not expired
-	CheckNonce(nonce *fp256bn.BIG) error
+	CheckNonce(nonce *math.Zr) error
 	// SweepExpiredNonces removes expired nonces from the database
 	SweepExpiredNonces() error
 }
@@ -88,13 +87,14 @@ func NewNonceManager(issuer MyIssuer, clock Clock, level int) (NonceManager, err
 }
 
 // GetNonce returns a new nonce
-func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
+func (nm *nonceManager) GetNonce() (*math.Zr, error) {
 	idmixLib := nm.issuer.IdemixLib()
-	nonce, err := idmixLib.RandModOrder(nm.issuer.IdemixRand())
+	nonce, err := idmixLib.RandModOrder()
 	if err != nil {
+		fmt.Println(">>>>>>>>>>>>>>>>>>>")
 		return nil, err
 	}
-	nonceBytes := idemix.BigToBytes(nonce)
+	nonceBytes := nonce.Bytes()
 	err = nm.insertNonceInDB(&Nonce{
 		Val:    util.B64Encode(nonceBytes),
 		Expiry: nm.clock.Now().UTC().Add(nm.nonceExpiration),
@@ -109,8 +109,8 @@ func (nm *nonceManager) GetNonce() (*fp256bn.BIG, error) {
 
 // CheckNonce checks if the specified nonce is valid (is in DB and has not expired)
 // and the nonce is removed from DB
-func (nm *nonceManager) CheckNonce(nonce *fp256bn.BIG) error {
-	nonceBytes := idemix.BigToBytes(nonce)
+func (nm *nonceManager) CheckNonce(nonce *math.Zr) error {
+	nonceBytes := nonce.Bytes()
 	queryParam := util.B64Encode(nonceBytes)
 	nonceRec, err := doTransaction("CheckNonce", nm.issuer.DB(), nm.getNonceFromDB, queryParam)
 	if err != nil {
