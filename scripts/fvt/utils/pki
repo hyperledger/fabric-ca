@@ -586,7 +586,7 @@ shift $(($OPTIND-1))
 
 : ${function:="newcert"}
 : ${subjectname:="/C=US/ST=NC/L=NC/O=IBM/O=FVT/CN=MVS TEST CERT"}
-: ${digest:="sha1"}
+: ${digest:="sha256"}
 : ${crlexpiration:="7300"}
 : ${expiration:="7300"}
 : ${keyfile:="newkey.pem"}
