@@ -2,15 +2,19 @@
 
 This is the Developer's Guide for Fabric CA, which is a Certificate Authority for Hyperledger Fabric.
 
-See [User's Guide for Fabric CA](https://hyperledger-fabric-ca.readthedocs.io) for information on how to use Fabric CA.
+Fabric CA can issue enrollment certificates and TLS certificates for Hyperledger Fabric deployments.
+
+See the [Fabric Getting Started Guide](https://hyperledger-fabric.readthedocs.io/en/latest/getting_started.html) for information on how to install and use Fabric CA with Hyperledger Fabric sample networks.
+
+See the [Fabric CA User's Guide, Operations Guide, and Deployment Guide](https://hyperledger-fabric-ca.readthedocs.io) for detailed information on how to use and deploy Fabric CA.
+
+The remainder of this guide is intended for developers contributing to Fabric CA.
 
 ## Prerequisites
 
 * Go 1.18+ installation or later
-* **GOPATH** environment variable is set correctly
 * docker version 17.03 or later
 * docker-compose version 1.11 or later
-* A Linux Foundation ID  (see [create a Linux Foundation ID](https://identity.linuxfoundation.org/))
 
 
 ## Contribution guidelines
