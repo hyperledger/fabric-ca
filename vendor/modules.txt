@@ -367,8 +367,8 @@ golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/idna
-# golang.org/x/sys v0.0.0-20210420205809-ac73e9fd8988
-## explicit; go 1.12
+# golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d
+## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
