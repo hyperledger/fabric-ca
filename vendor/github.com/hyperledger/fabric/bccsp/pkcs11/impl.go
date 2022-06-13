@@ -8,11 +8,8 @@ package pkcs11
 
 import (
 	"crypto/ecdsa"
-	"crypto/rsa"
 	"crypto/x509"
-	"encoding/hex"
 	"os"
-	"sync"
 
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/sw"
@@ -36,60 +33,45 @@ func New(opts PKCS11Opts, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 		return nil, errors.Wrapf(err, "Failed initializing configuration")
 	}
 
-	swCSP, err := sw.NewWithParams(opts.SecLevel, opts.HashFamily, keyStore)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed initializing fallback SW BCCSP")
-	}
-
 	// Check KeyStore
 	if keyStore == nil {
 		return nil, errors.New("Invalid bccsp.KeyStore instance. It must be different from nil")
 	}
 
-	var sessPool chan pkcs11.SessionHandle
-	if sessionCacheSize > 0 {
-		sessPool = make(chan pkcs11.SessionHandle, sessionCacheSize)
+	swCSP, err := sw.NewWithParams(opts.SecLevel, opts.HashFamily, keyStore)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed initializing fallback SW BCCSP")
 	}
 
-	csp := &impl{
-		BCCSP:       swCSP,
-		conf:        conf,
-		softVerify:  opts.SoftVerify,
-		immutable:   opts.Immutable,
-		sessPool:    sessPool,
-		sessions:    map[pkcs11.SessionHandle]struct{}{},
-		handleCache: map[string]pkcs11.ObjectHandle{},
-		keyCache:    map[string]bccsp.Key{},
-		altId:       opts.AltId,
+	lib := opts.Library
+	pin := opts.Pin
+	label := opts.Label
+	ctx, slot, session, err := loadLib(lib, pin, label)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed initializing PKCS11 library %s %s",
+			lib, label)
 	}
 
-	return csp.initialize(opts)
+	sessions := make(chan pkcs11.SessionHandle, sessionCacheSize)
+	csp := &impl{swCSP, conf, ctx, sessions, slot, pin, lib, opts.SoftVerify, opts.Immutable}
+	csp.returnSession(*session)
+	return csp, nil
 }
 
 type impl struct {
 	bccsp.BCCSP
 
 	conf *config
-	ks   bccsp.KeyStore
 
-	ctx  *pkcs11.Ctx
-	slot uint
-	pin  string
+	ctx      *pkcs11.Ctx
+	sessions chan pkcs11.SessionHandle
+	slot     uint
+	pin      string
 
 	lib        string
 	softVerify bool
 	//Immutable flag makes object immutable
 	immutable bool
-	// Alternate identifier of the private key
-	altId string
-
-	sessLock sync.Mutex
-	sessPool chan pkcs11.SessionHandle
-	sessions map[pkcs11.SessionHandle]struct{}
-
-	cacheLock   sync.RWMutex
-	handleCache map[string]pkcs11.ObjectHandle
-	keyCache    map[string]bccsp.Key
 }
 
 // KeyGen generates a key using opts.
@@ -131,19 +113,6 @@ func (csp *impl) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
 	return k, nil
 }
 
-func (csp *impl) cacheKey(ski []byte, key bccsp.Key) {
-	csp.cacheLock.Lock()
-	csp.keyCache[hex.EncodeToString(ski)] = key
-	csp.cacheLock.Unlock()
-}
-
-func (csp *impl) cachedKey(ski []byte) (bccsp.Key, bool) {
-	csp.cacheLock.RLock()
-	defer csp.cacheLock.RUnlock()
-	key, ok := csp.keyCache[hex.EncodeToString(ski)]
-	return key, ok
-}
-
 // KeyImport imports a key from its raw representation using opts.
 // The opts argument should be appropriate for the primitive used.
 func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
@@ -169,10 +138,8 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 		switch pk.(type) {
 		case *ecdsa.PublicKey:
 			return csp.KeyImport(pk, &bccsp.ECDSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
-		case *rsa.PublicKey:
-			return csp.KeyImport(pk, &bccsp.RSAGoPublicKeyImportOpts{Temporary: opts.Ephemeral()})
 		default:
-			return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA, RSA]")
+			return nil, errors.New("Certificate's public key type not recognized. Supported keys: [ECDSA]")
 		}
 
 	default:
@@ -184,23 +151,14 @@ func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.K
 // GetKey returns the key this CSP associates to
 // the Subject Key Identifier ski.
 func (csp *impl) GetKey(ski []byte) (bccsp.Key, error) {
-	if key, ok := csp.cachedKey(ski); ok {
-		return key, nil
-	}
-
 	pubKey, isPriv, err := csp.getECKey(ski)
-	if err != nil {
-		logger.Debugf("Key not found using PKCS11: %v", err)
-		return csp.BCCSP.GetKey(ski)
+	if err == nil {
+		if isPriv {
+			return &ecdsaPrivateKey{ski, ecdsaPublicKey{ski, pubKey}}, nil
+		}
+		return &ecdsaPublicKey{ski, pubKey}, nil
 	}
-
-	var key bccsp.Key = &ecdsaPublicKey{ski, pubKey}
-	if isPriv {
-		key = &ecdsaPrivateKey{ski, ecdsaPublicKey{ski, pubKey}}
-	}
-
-	csp.cacheKey(ski, key)
-	return key, nil
+	return csp.BCCSP.GetKey(ski)
 }
 
 // Sign signs digest using key k.
@@ -219,11 +177,11 @@ func (csp *impl) Sign(k bccsp.Key, digest []byte, opts bccsp.SignerOpts) ([]byte
 	}
 
 	// Check key type
-	switch k.(type) {
+	switch key := k.(type) {
 	case *ecdsaPrivateKey:
-		return csp.signECDSA(*k.(*ecdsaPrivateKey), digest, opts)
+		return csp.signECDSA(*key, digest, opts)
 	default:
-		return csp.BCCSP.Sign(k, digest, opts)
+		return csp.BCCSP.Sign(key, digest, opts)
 	}
 }
 
@@ -241,11 +199,11 @@ func (csp *impl) Verify(k bccsp.Key, signature, digest []byte, opts bccsp.Signer
 	}
 
 	// Check key type
-	switch k.(type) {
+	switch key := k.(type) {
 	case *ecdsaPrivateKey:
-		return csp.verifyECDSA(k.(*ecdsaPrivateKey).pub, signature, digest, opts)
+		return csp.verifyECDSA(key.pub, signature, digest, opts)
 	case *ecdsaPublicKey:
-		return csp.verifyECDSA(*k.(*ecdsaPublicKey), signature, digest, opts)
+		return csp.verifyECDSA(*key, signature, digest, opts)
 	default:
 		return csp.BCCSP.Verify(k, signature, digest, opts)
 	}
@@ -278,7 +236,7 @@ func FindPKCS11Lib() (lib, pin, label string) {
 			"/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so",           //Ubuntu
 			"/usr/lib/s390x-linux-gnu/softhsm/libsofthsm2.so",            //Ubuntu
 			"/usr/lib/powerpc64le-linux-gnu/softhsm/libsofthsm2.so",      //Power
-			"/usr/local/Cellar/softhsm/2.1.0/lib/softhsm/libsofthsm2.so", //MacOS
+			"/usr/local/Cellar/softhsm/2.5.0/lib/softhsm/libsofthsm2.so", //MacOS
 		}
 		for _, path := range possibilities {
 			if _, err := os.Stat(path); !os.IsNotExist(err) {

@@ -112,17 +112,7 @@ func getBCCSPKeyOpts(kr *csr.KeyRequest, ephemeral bool) (opts bccsp.KeyGenOpts,
 	log.Debugf("generate key from request: algo=%s, size=%d", kr.Algo(), kr.Size())
 	switch kr.Algo() {
 	case "rsa":
-		switch kr.Size() {
-		case 2048:
-			return &bccsp.RSA2048KeyGenOpts{Temporary: ephemeral}, nil
-		case 3072:
-			return &bccsp.RSA3072KeyGenOpts{Temporary: ephemeral}, nil
-		case 4096:
-			return &bccsp.RSA4096KeyGenOpts{Temporary: ephemeral}, nil
-		default:
-			// Need to add a way to specify arbitrary RSA key size to bccsp
-			return nil, errors.Errorf("Invalid RSA key size: %d", kr.Size())
-		}
+		return nil, errors.Errorf("RSA keys are not supported")
 	case "ecdsa":
 		switch kr.Size() {
 		case 256:
