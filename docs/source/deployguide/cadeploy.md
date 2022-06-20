@@ -311,7 +311,7 @@ Because you've already registered and enrolled your organization CA bootstrap id
             ├── rcaadmin
               ├── msp
                  ├── IssuerPublicKey
-                 ├── IssuerRevocationPublicKey
+                 ├── RevocationPublicKey
                  ├── cacerts
                  ├── keystore
                      └── key.pem
@@ -412,7 +412,7 @@ The folder structure we are using for these commands is:
            └── cert.pem
        ├── user
        ├── IssuerPublicKey
-       └── IssuerRevocationPublicKey       
+       └── RevocationPublicKey       
     ```
 
    Where:
@@ -473,7 +473,7 @@ The resulting folder structure is similar to the following structure. (Some fold
                ├── tlscacerts
                ├── user
                ├── IssuerPublicKey
-               └── IssuerRevocationPublicKey
+               └── RevocationPublicKey
   fabric-ca-server-int-ca
     └── tls
       └── tls-ca-cert.pem

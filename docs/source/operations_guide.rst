@@ -235,7 +235,7 @@ issued form the CA. You will see files such as the ones below:
    ├── fabric-ca-client-config.yaml
    └── msp
       ├── IssuerPublicKey
-      ├── IssuerRevocationPublicKey
+      ├── RevocationPublicKey
       ├── cacerts
       │   └── 0-0-0-0-7053.pem
       ├── keystore
