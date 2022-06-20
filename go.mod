@@ -16,6 +16,7 @@ require (
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
 	github.com/hyperledger/fabric v1.4.11
 	github.com/hyperledger/fabric-lib-go v1.0.0
+	github.com/hyperledger/fabric-protos-go v0.0.0-20210911123859-041d13f0980c
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
