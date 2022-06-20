@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/hyperledger/fabric-protos-go/msp"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -944,7 +945,18 @@ func (c *Client) verifyIdemixCredential() error {
 	signerConfig := &idemixcred.SignerConfig{}
 	err = json.Unmarshal(credfileBytes, signerConfig)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+		// try proto
+		idemixSignerConfig := &msp.IdemixMSPSignerConfig{}
+		err = proto.Unmarshal(credfileBytes, idemixSignerConfig)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+		}
+		signerConfig.Cred = idemixSignerConfig.Cred
+		signerConfig.Sk = idemixSignerConfig.Sk
+		signerConfig.CredentialRevocationInformation = idemixSignerConfig.CredentialRevocationInformation
+		signerConfig.EnrollmentID = idemixSignerConfig.EnrollmentId
+		signerConfig.Role = int(idemixSignerConfig.Role)
+		signerConfig.OrganizationalUnitIdentifier = idemixSignerConfig.OrganizationalUnitIdentifier
 	}
 
 	cred := new(idemix.Credential)
