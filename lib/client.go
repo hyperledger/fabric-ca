@@ -125,7 +125,7 @@ func (c *Client) Init() error {
 		c.ipkFile = filepath.Join(mspDir, "IssuerPublicKey")
 
 		// Idemix credentials directory
-		c.idemixCredsDir = path.Join(mspDir, "user")
+		c.idemixCredsDir = path.Join(c.HomeDir, "user")
 		err = os.MkdirAll(c.idemixCredsDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Idemix credentials directory 'user'")
