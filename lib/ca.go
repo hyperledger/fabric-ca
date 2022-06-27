@@ -50,6 +50,8 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
+
+	"github.com/jinzhu/copier"
 )
 
 const (
@@ -487,13 +489,18 @@ func (ca *CA) VerifyCertificate(cert *x509.Certificate, forceTime bool) error {
 		return errors.WithMessage(err, "Failed to get verify options")
 	}
 
+	// some cases the structure needs to be update; create a duplicate
+	// *could* only do this one path but the code then isn't quite as clean.
+	// Not in a perforamnce path, so chose this approach
+	checkOpts := x509.VerifyOptions{}
+	copier.Copy(&checkOpts, opts)
 	// force check time to be 30 seconds after certificate start time to ensure expiry doesn't get flagged
 	// this is one of the checks that is made on the certificate in Verify()
 	if forceTime {
-		opts.CurrentTime = cert.NotBefore.Add(time.Duration(time.Second * 30))
+		checkOpts.CurrentTime = cert.NotBefore.Add(time.Duration(time.Second * 30))
 	}
 
-	_, err = cert.Verify(*opts)
+	_, err = cert.Verify(checkOpts)
 	if err != nil {
 		return errors.WithMessage(err, "Failed to verify certificate")
 	}
