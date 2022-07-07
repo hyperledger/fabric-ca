@@ -73,7 +73,7 @@ type GetCAInfoResponse struct {
 	// Idemix issuer public key of the CA
 	IssuerPublicKey []byte
 	// Idemix issuer revocation public key of the CA
-	RevocationPublicKey []byte
+	IssuerRevocationPublicKey []byte
 	// Version of the server
 	Version string
 }
@@ -308,12 +308,12 @@ func (c *Client) net2LocalCAInfo(net *api.CAInfoResponseNet, local *GetCAInfoRes
 		}
 		local.IssuerPublicKey = ipk
 	}
-	if net.RevocationPublicKey != "" {
-		rpk, err := util.B64Decode(net.RevocationPublicKey)
+	if net.IssuerRevocationPublicKey != "" {
+		rpk, err := util.B64Decode(net.IssuerRevocationPublicKey)
 		if err != nil {
 			return errors.WithMessage(err, "Failed to decode issuer revocation key")
 		}
-		local.RevocationPublicKey = rpk
+		local.IssuerRevocationPublicKey = rpk
 	}
 	local.CAName = net.CAName
 	local.CAChain = caChain
@@ -517,6 +517,7 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	ou, _ := result.Attrs["OU"].(string)
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	signerConfig := &idemixcred.SignerConfig{
+		CurveID:                         cidemix.Curves.ByID(c.curveID),
 		Cred:                            credBytes,
 		Sk:                              sk.Bytes(),
 		Role:                            role,

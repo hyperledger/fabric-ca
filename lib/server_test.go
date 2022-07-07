@@ -1238,7 +1238,7 @@ func TestSRVMultiCAWithIntermediate(t *testing.T) {
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
-		err = os.RemoveAll("../testdata/RevocationPublicKey")
+		err = os.RemoveAll("../testdata/IssuerRevocationPublicKey")
 		if err != nil {
 			t.Errorf("RemoveAll failed: %s", err)
 		}
@@ -2399,7 +2399,7 @@ func cleanMultiCADir(t *testing.T) {
 	toplevelFolders := []string{"intermediateca", "rootca"}
 	nestedFolders := []string{"ca1", "ca2", "ca3"}
 	removeFiles := []string{"ca-cert.pem", "ca-key.pem", "fabric-ca-server.db",
-		"fabric-ca2-server.db", "ca-chain.pem", "IssuerPublicKey", "IssuerSecretKey", "RevocationPublicKey"}
+		"fabric-ca2-server.db", "ca-chain.pem", "IssuerPublicKey", "IssuerSecretKey", "IssuerRevocationPublicKey"}
 
 	for _, topFolder := range toplevelFolders {
 		for _, nestedFolder := range nestedFolders {
