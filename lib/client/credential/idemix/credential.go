@@ -90,8 +90,6 @@ func (cred *Credential) Store() error {
 		return err
 	}
 	caSignerConfig := val.(*SignerConfig)
-
-	// Store the MSP signer config as Fabric expects
 	mspSignerConfig := &m.IdemixMSPSignerConfig{
 		Cred:                            caSignerConfig.Cred,
 		Sk:                              caSignerConfig.Sk,
