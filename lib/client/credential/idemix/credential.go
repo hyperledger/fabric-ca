@@ -19,7 +19,6 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	idemix4 "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/util"
-	m "github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 )
@@ -89,16 +88,7 @@ func (cred *Credential) Store() error {
 	if err != nil {
 		return err
 	}
-	caSignerConfig := val.(*SignerConfig)
-	mspSignerConfig := &m.IdemixMSPSignerConfig{
-		Cred:                            caSignerConfig.Cred,
-		Sk:                              caSignerConfig.Sk,
-		OrganizationalUnitIdentifier:    caSignerConfig.OrganizationalUnitIdentifier,
-		Role:                            int32(caSignerConfig.Role),
-		EnrollmentId:                    caSignerConfig.EnrollmentID,
-		CredentialRevocationInformation: caSignerConfig.CredentialRevocationInformation,
-	}
-	signerConfigBytes, err := proto.Marshal(mspSignerConfig)
+	signerConfigBytes, err := json.Marshal(val)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal SignerConfig")
 	}
@@ -118,31 +108,14 @@ func (cred *Credential) Load() error {
 		log.Debugf("No credential found at %s: %s", cred.signerConfigFile, err.Error())
 		return err
 	}
-
-	// Load the MSP signer config
-	var val SignerConfig
-	mspSignerConfig := &m.IdemixMSPSignerConfig{}
-	err = proto.Unmarshal(signerConfigBytes, mspSignerConfig)
-	if err == nil {
-		val = SignerConfig{
-			Cred:                            mspSignerConfig.Cred,
-			Sk:                              mspSignerConfig.Sk,
-			OrganizationalUnitIdentifier:    mspSignerConfig.OrganizationalUnitIdentifier,
-			Role:                            int(mspSignerConfig.Role),
-			EnrollmentID:                    mspSignerConfig.EnrollmentId,
-			CredentialRevocationInformation: mspSignerConfig.CredentialRevocationInformation,
-		}
-	}
-
+	val := SignerConfig{}
+	err = json.Unmarshal(signerConfigBytes, &val)
 	if err != nil {
-		// try to unmarshal via json
-		val = SignerConfig{}
-		err = json.Unmarshal(signerConfigBytes, &val)
-		if err != nil {
-			return errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
-		}
+		return errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
 	}
-
+	if val.CurveID == "" {
+		val.CurveID = idemix4.DefaultIdemixCurve
+	}
 	cred.val = &val
 	return nil
 }
