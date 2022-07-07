@@ -147,9 +147,6 @@ github.com/hyperledger/fabric-amcl/core/FP256BN
 # github.com/hyperledger/fabric-lib-go v1.0.0
 ## explicit
 github.com/hyperledger/fabric-lib-go/healthz
-# github.com/hyperledger/fabric-protos-go v0.0.0-20210911123859-041d13f0980c
-## explicit; go 1.12
-github.com/hyperledger/fabric-protos-go/msp
 # github.com/inconshreveable/mousetrap v1.0.0
 ## explicit
 github.com/inconshreveable/mousetrap

@@ -18,9 +18,9 @@ const (
 	// DefaultIssuerSecretKeyFile is the default name of the file that contains issuer secret key
 	DefaultIssuerSecretKeyFile = "IssuerSecretKey"
 	// DefaultRevocationPublicKeyFile is the name of the file where revocation public key is stored
-	DefaultRevocationPublicKeyFile = "RevocationPublicKey"
+	DefaultRevocationPublicKeyFile = "IssuerRevocationPublicKey"
 	// DefaultRevocationPrivateKeyFile is the name of the file where revocation private key is stored
-	DefaultRevocationPrivateKeyFile = "RevocationPrivateKey"
+	DefaultRevocationPrivateKeyFile = "IssuerRevocationPrivateKey"
 	// KeystoreDir is the keystore directory where all keys are stored. It is relative to the server home directory.
 	KeystoreDir = "msp/keystore"
 )
@@ -30,8 +30,8 @@ type Config struct {
 	Curve                    string `def:"amcl.Fp256bn" help:"Name of the curve among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'}, defaults to 'amcl.Fp256bn'"`
 	IssuerPublicKeyfile      string `def:"IssuerPublicKey" skip:"true" help:"Name of the file that contains marshalled bytes of CA's Idemix issuer public key"`
 	IssuerSecretKeyfile      string `def:"IssuerSecretKey" skip:"true" help:"Name of the file that contains CA's Idemix issuer secret key"`
-	RevocationPublicKeyfile  string `def:"RevocationPublicKey" skip:"true" help:"Name of the file that contains Idemix issuer revocation public key"`
-	RevocationPrivateKeyfile string `def:"RevocationPrivateKey" skip:"true" help:"Name of the file that contains Idemix issuer revocation private key"`
+	RevocationPublicKeyfile  string `def:"IssuerRevocationPublicKey" skip:"true" help:"Name of the file that contains Idemix issuer revocation public key"`
+	RevocationPrivateKeyfile string `def:"IssuerRevocationPrivateKey" skip:"true" help:"Name of the file that contains Idemix issuer revocation private key"`
 	RHPoolSize               int    `def:"100" help:"Specifies revocation handle pool size"`
 	NonceExpiration          string `def:"15s" help:"Duration after which a nonce expires"`
 	NonceSweepInterval       string `def:"15m" help:"Interval at which expired nonces are deleted"`

@@ -2189,7 +2189,7 @@ func TestCleanUp(t *testing.T) {
 	os.Remove(filepath.Join(tdDir, "ca-key.pem"))
 	os.Remove(filepath.Join(tdDir, "IssuerPublicKey"))
 	os.Remove(filepath.Join(tdDir, "IssuerSecretKey"))
-	os.Remove(filepath.Join(tdDir, "RevocationPublicKey"))
+	os.Remove(filepath.Join(tdDir, "IssuerRevocationPublicKey"))
 	os.Remove(testYaml)
 	os.Remove(fabricCADB)
 	os.RemoveAll(moptionDir)
@@ -2200,7 +2200,7 @@ func cleanMultiCADir() {
 	caFolder := filepath.Join(tdDir, "ca/rootca")
 	nestedFolders := []string{"ca1", "ca2"}
 	removeFiles := []string{"msp", "ca-cert.pem",
-		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem", "IssuerPublicKey", "IssuerSecretKey", "RevocationPublicKey"}
+		"fabric-ca-server.db", "fabric-ca2-server.db", "ca-chain.pem", "IssuerPublicKey", "IssuerSecretKey", "IssuerRevocationPublicKey"}
 
 	for _, nestedFolder := range nestedFolders {
 		path := filepath.Join(caFolder, nestedFolder)
