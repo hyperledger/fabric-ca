@@ -1119,7 +1119,9 @@ is intended to be used by operators, not administrators or “users” of the ne
 
 The API exposes the following capabilities:
 
-    Prometheus target for operational metrics (when configured)
+- Prometheus target for operational metrics (when configured)
+- Health checks
+- Endpoint for retrieving version information
 
 Configuring the Operations Service
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1188,6 +1190,28 @@ cannot verify the certificate, then the request will be rejected.
 When TLS is disabled, authorization is bypassed and any client that can
 connect to the operations endpoint will be able to use the API.
 
+
+Health Checks
+^^^^^^^^^^^^^
+The operations service provides a ``/healthz`` resource that operators can use to
+help determine the liveness and health of the CA server. The resource is
+a conventional REST resource that supports GET requests. The implementation is
+intended to be compatible with the liveness probe model used by Kubernetes but
+can be used in other contexts.
+
+When a ``GET /healthz`` request is received, the operations service will call all
+registered health checkers for the process to ensure all registered services and
+dependencies are available. When all of the health checkers
+return successfully, the operations service will respond with a ``200 "OK"`` and a
+JSON body:
+
+.. code:: json
+
+  {
+    "status": "OK",
+    "time": "2009-11-10T23:00:00Z"
+  }
+
 Metrics
 ^^^^^^^^^
 
@@ -1245,6 +1269,18 @@ that would be prepended to all generated metrics.
 
 For a look at the different metrics that are generated, check out
 :doc:`metrics_reference`.
+
+Version
+-------
+
+The operations service exposes a ``/version`` endpoint. This endpoint
+serves a JSON document containing CA server version.
+
+.. code:: json
+
+  {
+    "Version":"1.4.9"
+  }
 
 `Back to Top`_
 
