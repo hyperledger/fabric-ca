@@ -35,17 +35,3 @@ jobs:
     displayName: Checkout Fabric CA Code
   - script: make fvt-tests
     displayName: Run FVT Tests
-
-- job: DocBuild
-  pool:
-    vmImage: ubuntu-latest
-  container:
-    image: n42org/tox:3.4.0
-  steps:
-  - checkout: self
-    path: 'go/src/github.com/hyperledger/fabric-ca'
-    displayName: Checkout Fabric CA Code
-  - script: tox -edocs
-    displayName: Build Documentation
-  - publish: 'docs/_build/html'
-    displayName: Publish Documentation
