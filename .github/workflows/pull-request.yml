@@ -1,0 +1,50 @@
+# Copyright the Hyperledger Fabric contributors. All rights reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Pull Request
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+env:
+  GOPATH: /opt/go
+  PATH: /opt/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+  GO_VER: 1.18
+
+jobs:
+  verify-build:
+    name: Verify Build
+    runs-on: ubuntu-22.04
+    steps:
+      - run: sudo apt clean
+        name: Run APT Clean
+      - run: sudo apt update
+        name: Run Apt Update
+      - uses: actions/setup-go@v3
+        name: Install Go
+        with:
+          go-version: ${{ env.GO_VER }}
+      - uses: actions/checkout@v3
+        name: Checkout Fabric CA Code
+      - run: make dist-all checks all-tests docs
+        name: Run Unit and Integration Tests
+  fvt-tests:
+    name: FVT Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - run: sudo apt clean
+        name: Run APT Clean
+      - run: sudo apt update
+        name: Run Apt Update
+      - uses: actions/setup-go@v3
+        name: Install Go
+        with:
+          go-version: ${{ env.GO_VER }}
+      - uses: actions/checkout@v3
+        name: Checkout Fabric CA Code
+      - run: make fvt-tests
+        name: Run FVT Tests
