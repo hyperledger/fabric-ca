@@ -68,7 +68,7 @@ jobs:
         env:
           RELEASE: ${{ inputs.release }}
           TWO_DIGIT_RELEASE: ${{ inputs.two_digit_release }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         name: Publish Docker Images
   create-release:
