@@ -21,7 +21,7 @@ permissions:
 jobs:
   verify-build:
     name: Verify Build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - run: sudo apt clean
         name: Run APT Clean
@@ -37,7 +37,7 @@ jobs:
         name: Run Unit and Integration Tests
   fvt-tests:
     name: FVT Tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - run: sudo apt clean
         name: Run APT Clean
