@@ -83,7 +83,7 @@ container.
       - FABRIC_CA_SERVER_CSR_HOSTS=0.0.0.0
       - FABRIC_CA_SERVER_DEBUG=true
     volumes:
-      - /tmp/hyperledger/tls/ca:/tmp/hyperledger/fabric-ca
+      - /tmp/hyperledger/tls-ca:/tmp/hyperledger/fabric-ca
     networks:
       - fabric-ca
     ports:
@@ -131,12 +131,12 @@ certificates for peers and orderers.
 
 You will issue the commands below to enroll the TLS CA admin and then register
 identities. We assume the trusted root certificate for the TLS CA has been copied
-to ``/tmp/hyperledger/tls-ca/crypto/tls-ca-cert.pem`` on all host machines that
+to ``/tmp/hyperledger/tls-ca/crypto/tls-cert.pem`` on all host machines that
 will communicate with this CA via the fabric-ca-client.
 
 .. code:: bash
 
-   export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/tls-ca/crypto/tls-ca-cert.pem
+   export FABRIC_CA_CLIENT_TLS_CERTFILES=/tmp/hyperledger/tls-ca/crypto/tls-cert.pem
    export FABRIC_CA_CLIENT_HOME=/tmp/hyperledger/tls-ca/admin
    fabric-ca-client enroll -d -u https://tls-ca-admin:tls-ca-adminpw@0.0.0.0:7052
    fabric-ca-client register -d --id.name peer1-org1 --id.secret peer1PW --id.type peer -u https://0.0.0.0:7052
@@ -176,7 +176,7 @@ container.
    rca-org0:
       container_name: rca-org0
       image: hyperledger/fabric-ca
-      command: /bin/bash -c 'fabric-ca-server start -d -b rca-org0-admin:rca-org0-adminpw --port 7053'
+      command: sh -c 'fabric-ca-server start -d -b rca-org0-admin:rca-org0-adminpw --port 7053'
       environment:
          - FABRIC_CA_SERVER_HOME=/tmp/hyperledger/fabric-ca/crypto
          - FABRIC_CA_SERVER_TLS_ENABLED=true
