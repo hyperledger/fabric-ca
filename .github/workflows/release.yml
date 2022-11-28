@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: 'Fabric CA Release, e.g. 1.5.5'
+        description: 'Fabric CA Release, e.g. 1.5.6'
         required: true
         type: string
       two_digit_release:
@@ -20,7 +20,7 @@ on:
         type: string
 
 env:
-  GO_VER: 1.18.7
+  GO_VER: 1.18.8
 
 permissions:
   contents: read
@@ -32,11 +32,16 @@ jobs:
       matrix:
         include:
         - image: ubuntu-20.04
-          target: linux
-        - image: macos-11
-          target: darwin
+          platform: linux-amd64
+        - image: ubuntu-20.04
+          platform: linux-arm64
+        - image: macos-12
+          platform: darwin-arm64
+        - image: macos-12
+          platform: darwin-amd64
         - image: windows-2022
-          target: windows
+          platform: windows-amd64
+
     runs-on: ${{ matrix.image }}
     steps:
       - uses: actions/setup-go@v3
@@ -45,13 +50,17 @@ jobs:
           go-version: ${{ env.GO_VER }}
       - uses: actions/checkout@v3
         name: Checkout Fabric CA Code
-      - run: make dist
+      - name: Install linux aarch64 compiler
+        run: sudo apt-get -y install gcc-aarch64-linux-gnu
+        if:  ${{ contains(matrix.platform, 'linux') }}
+      - run: make dist/${{ matrix.platform }}
         name: Compile Binary and Create Tarball
       - uses: actions/upload-artifact@v3
         name: Publish Release Artifact
         with:
-          name: hyperledger-fabric-ca-${{ matrix.target }}-amd64-${{ inputs.release }}.tar.gz
-          path: release/${{ matrix.target }}-amd64/hyperledger-fabric-ca-${{ matrix.target }}-amd64-${{ inputs.release }}.tar.gz
+          name: hyperledger-fabric-ca-${{ matrix.platform }}-${{ inputs.release }}.tar.gz
+          path: release/${{ matrix.platform }}/hyperledger-fabric-ca-${{ matrix.platform }}-${{ inputs.release }}.tar.gz
+
   build-and-push-docker-images:
     name: Build and Push Fabric CA Docker Images
     runs-on: ubuntu-20.04
@@ -75,6 +84,7 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         name: Publish Docker Images
+
   create-release:
     name: Create GitHub Release
     needs: [ build-binaries, build-and-push-docker-images ]
