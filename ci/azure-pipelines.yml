@@ -11,7 +11,7 @@ pr:
 variables:
   GOPATH: $(Agent.BuildDirectory)/go
   PATH: $(Agent.BuildDirectory)/go/bin:$(Agent.BuildDirectory)/go/src/github.com/hyperledger/fabric-ca/build/tools:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-  GOVER: 1.18.2
+  GOVER: 1.18.8
 
 jobs:
 - job: VerifyBuild
@@ -22,7 +22,7 @@ jobs:
   - checkout: self
     path: 'go/src/github.com/hyperledger/fabric-ca'
     displayName: Checkout Fabric CA Code
-  - script: make dist-all checks all-tests docs
+  - script: make dist checks all-tests docs
     displayName: Run Unit and Integration Tests
 
 - job: FVTTests
