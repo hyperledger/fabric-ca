@@ -3,24 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: Release
+
 on:
-  workflow_dispatch:
-    inputs:
-      release:
-        description: 'Fabric CA Release, e.g. 1.5.6'
-        required: true
-        type: string
-      two_digit_release:
-        description: 'Fabric CA Two Digit Release, e.g. 1.5'
-        required: true
-        type: string
-      commit_hash:
-        description: 'Commit hash, e.g. df9c661a192f8cf11376d9d643a0021f1a76c34b'
-        required: true
-        type: string
+  push:
+    tags: [ v* ]
 
 env:
   GO_VER: 1.18.8
+  ALPINE_VER: 3.17
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 permissions:
   contents: read
@@ -31,63 +23,104 @@ jobs:
     strategy:
       matrix:
         include:
-        - image: ubuntu-20.04
-          platform: linux-amd64
-        - image: ubuntu-20.04
-          platform: linux-arm64
-        - image: macos-12
-          platform: darwin-arm64
-        - image: macos-12
-          platform: darwin-amd64
-        - image: windows-2022
-          platform: windows-amd64
-
+          - image: ubuntu-20.04
+            platform: linux-amd64
+          - image: ubuntu-20.04
+            platform: linux-arm64
+          - image: macos-12
+            platform: darwin-arm64
+          - image: macos-12
+            platform: darwin-amd64
+          - image: windows-2022
+            platform: windows-amd64
     runs-on: ${{ matrix.image }}
     steps:
       - uses: actions/setup-go@v3
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
+
       - uses: actions/checkout@v3
         name: Checkout Fabric CA Code
-      - name: Install linux aarch64 compiler
-        run: sudo apt-get -y install gcc-aarch64-linux-gnu
+
+      - name: Install GCC cross-compilers
         if:  ${{ contains(matrix.platform, 'linux') }}
+        run: |
+          sudo apt-get -y install gcc-aarch64-linux-gnu
+          sudo apt-get -y install gcc-x86-64-linux-gnu
+
       - run: make dist/${{ matrix.platform }}
         name: Compile Binary and Create Tarball
+        env:
+          BASE_VERSION: ${{ github.ref_name }}
+
       - uses: actions/upload-artifact@v3
         name: Publish Release Artifact
         with:
-          name: hyperledger-fabric-ca-${{ matrix.platform }}-${{ inputs.release }}.tar.gz
-          path: release/${{ matrix.platform }}/hyperledger-fabric-ca-${{ matrix.platform }}-${{ inputs.release }}.tar.gz
+          name: hyperledger-fabric-ca-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          path: release/${{ matrix.platform }}/hyperledger-fabric-ca-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
 
-  build-and-push-docker-images:
-    name: Build and Push Fabric CA Docker Images
+  build-and-push-image:
     runs-on: ubuntu-20.04
+
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - run: sudo apt clean
-        name: Run APT Clean
-      - run: sudo apt update
-        name: Run Apt Update
-      - run: sudo apt install -y gcc haveged libtool make
-        name: Install Dependencies
-      - uses: actions/setup-go@v3
-        name: Install Go
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login to the GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          go-version: ${{ env.GO_VER }}
-      - uses: actions/checkout@v3
-        name: Checkout Fabric CA Code
-      - run: ./ci/scripts/publish_docker.sh
-        env:
-          RELEASE: ${{ inputs.release }}
-          TWO_DIGIT_RELEASE: ${{ inputs.two_digit_release }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        name: Publish Docker Images
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      #      - name: Login to Docker Hub Container Registry
+      #        uses: docker/login-action@v2
+      #        with:
+      #          registry: docker.io
+      #          username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: images/fabric-ca/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          push: ${{ github.event_name != 'pull_request' }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ALPINE_VER=${{ env.ALPINE_VER }}
+            GO_VER=${{ env.GO_VER }}
+            GO_TAGS=pkcs11
+            GO_LDFLAGS=-X github.com/hyperledger/fabric-ca/lib/metadata.Version=${{ github.ref_name }} -linkmode external -extldflags '-lpthread -static'
+
 
   create-release:
     name: Create GitHub Release
-    needs: [ build-binaries, build-and-push-docker-images ]
+    needs: [ build-binaries, build-and-push-image ]
     runs-on: ubuntu-20.04
     permissions:
       contents: write
@@ -100,8 +133,8 @@ jobs:
       - name: Release Fabric CA Version
         uses: ncipollo/release-action@v1
         with:
+          allowUpdates: "true"
           artifacts: "*.tar.gz/*.tar.gz"
-          bodyFile: release_notes/v${{ inputs.release }}.md
-          commit: ${{ inputs.commit_hash }}
-          tag: v${{ inputs.release }}
+          bodyFile: release_notes/${{ github.ref_name }}.md
+          tag: ${{ github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
