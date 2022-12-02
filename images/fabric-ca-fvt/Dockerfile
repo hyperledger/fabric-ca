@@ -4,21 +4,33 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 ARG GO_VER
+ARG DEBIAN_VER
+
 FROM golang:${GO_VER}-buster as fabric-ca-builder
 ARG GO_LDFLAGS
 ARG GO_TAGS
 
 ADD . /build/fabric-ca
 WORKDIR /build/fabric-ca
-RUN go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
-	-o /usr/local/bin/fabric-ca-server \
-	github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
-	&& go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
-	-o /usr/local/bin/fabric-ca-client \
-	github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
 
-FROM debian:buster-20210816-slim
+RUN go build \
+    -o /usr/local/bin/fabric-ca-server \
+    -tags "${GO_TAGS}" \
+    -ldflags "${GO_LDFLAGS}" \
+    github.com/hyperledger/fabric-ca/cmd/fabric-ca-server
+
+RUN go build \
+    -o /usr/local/bin/fabric-ca-client \
+    -tags "${GO_TAGS}" \
+    -ldflags "${GO_LDFLAGS}" \
+    github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
+
+
+FROM debian:${DEBIAN_VER}-slim
 ARG PG_VER
+
+COPY --from=fabric-ca-builder /usr/local/go /usr/local
+COPY --from=fabric-ca-builder /usr/local/bin /usr/local/bin
 
 ENV PATH="/usr/local/go/bin/:${PATH}" \
     DEBIAN_FRONTEND="noninteractive" \
@@ -40,6 +52,7 @@ ENV PATH="/usr/local/go/bin/:${PATH}" \
     TLS_CLIENT_KEY=FabricTlsClientEEkey.pem \
     MYSQLDATA=/var/lib/mysql
 
+# if this fails, run docker image prune && docker container prune:
 RUN apt-get clean && apt-get update && apt-get install openssl -y
 
 # setup scripts for slapd, postgres, mysql, and openssl
@@ -52,15 +65,13 @@ RUN chmod 600 ${FABRIC_CA_DATA}/${TLS_CLIENT_KEY}
 
 # Avoid ERROR:
 #   invoke-rc.d: policy-rc.d denied execution of start.
-RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
+RUN printf '#!/bin/sh\n\nexit 0\n' > /usr/sbin/policy-rc.d
 
 RUN ${FABRIC_CA_DATA}/system_update.sh
 RUN ${FABRIC_CA_DATA}/postgres_setup.sh
 RUN ${FABRIC_CA_DATA}/slapd_setup.sh
 RUN ${FABRIC_CA_DATA}/mysql_setup.sh
 
-COPY --from=fabric-ca-builder /usr/local/go /usr/local
-COPY --from=fabric-ca-builder /usr/local/bin /usr/local/bin
 
 WORKDIR /build/fabric-ca
 RUN cp ${FABRIC_CA_DATA}/start.sh /
