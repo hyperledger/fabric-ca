@@ -28,22 +28,21 @@
 #   - vendor - vendors third-party packages
 
 PROJECT_NAME = fabric-ca
-ALPINE_VER ?= 3.16
+
+GO_VER = 1.18.8
+ALPINE_VER ?= 3.17
 DEBIAN_VER ?= stretch
-BASE_VERSION = 1.5.6
+BASE_VERSION ?= v1.5.6
 IS_RELEASE = true
 
 ARCH=$(shell go env GOARCH)
 PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
-STABLE_TAG ?= $(ARCH)-$(BASE_VERSION)-stable
 
 ifneq ($(IS_RELEASE),true)
 EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
 PROJECT_VERSION=$(BASE_VERSION)-$(EXTRA_VERSION)
-FABRIC_TAG ?= latest
 else
 PROJECT_VERSION=$(BASE_VERSION)
-FABRIC_TAG ?= $(ARCH)-$(BASE_VERSION)
 endif
 
 PG_VER=11
@@ -52,7 +51,6 @@ PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
 METADATA_VAR = Version=$(PROJECT_VERSION)
 
-GO_VER = 1.18.8
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
 export GO_LDFLAGS
@@ -173,6 +171,9 @@ release/%-arm64: 	GOARCH=arm64
 
 release/windows-amd64: CC=x86_64-w64-mingw32-gcc
 release/windows-amd64: $(patsubst %,release/windows-amd64/bin/%, $(RELEASE_PKGS))
+release/windows-amd64:
+	mv $(abspath $@)/bin/fabric-ca-client $(abspath $@)/bin/fabric-ca-client.exe
+	mv $(abspath $@)/bin/fabric-ca-server $(abspath $@)/bin/fabric-ca-server.exe
 
 release/darwin-amd64: CC=clang
 release/darwin-amd64: $(patsubst %,release/darwin-amd64/bin/%, $(RELEASE_PKGS))
@@ -180,7 +181,7 @@ release/darwin-amd64: $(patsubst %,release/darwin-amd64/bin/%, $(RELEASE_PKGS))
 release/darwin-arm64: CC=clang
 release/darwin-arm64: $(patsubst %,release/darwin-arm64/bin/%, $(RELEASE_PKGS))
 
-release/linux-amd64: CC=gcc
+release/linux-amd64: CC=x86_64-linux-gnu-gcc
 release/linux-amd64: $(patsubst %,release/linux-amd64/bin/%, $(RELEASE_PKGS))
 
 release/linux-arm64: CC=aarch64-linux-gnu-gcc
@@ -190,7 +191,7 @@ release/%/bin/fabric-ca-client: GO_TAGS+= caclient
 release/%/bin/fabric-ca-client: $(GO_SOURCE)
 	@echo "Building $@ for $(GOOS)-$(GOARCH)"
 	mkdir -p $(@D)
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(abspath $@) -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.$(@F))
+	CC=$(CC) CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(abspath $@) -tags "$(GO_TAGS)" -ldflags "$(GO_LDFLAGS)" $(PKGNAME)/$(path-map.$(@F))
 
 release/%/bin/fabric-ca-server: $(GO_SOURCE)
 	@echo "Building $@ for $(GOOS)-$(GOARCH)"

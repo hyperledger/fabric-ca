@@ -101,8 +101,14 @@ func GetLevels(version string) (*db.Levels, error) {
 }
 
 // CmpVersion compares version v1 to v2.
+// Strips off an optional 'v' prefix for semrev tags
 // Return 0 if equal, 1 if v2 > v1, or -1 if v2 < v1.
 func CmpVersion(v1, v2 string) (int, error) {
+
+	// optionally remove the semrev 'v', if present
+	v1 = strings.TrimPrefix(v1, "v")
+	v2 = strings.TrimPrefix(v2, "v")
+
 	v1strs := strs(v1)
 	v2strs := strs(v2)
 	m := max(len(v1strs), len(v2strs))
