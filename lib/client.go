@@ -362,11 +362,11 @@ func (c *Client) handleX509Enroll(req *api.EnrollmentRequest) (*EnrollmentRespon
 }
 
 // Handles enrollment request for an Idemix credential
-// 1. Sends a request with empty body to the /api/v1/idemix/credentail REST endpoint
-//    of the server to get a Nonce from the CA
-// 2. Constructs a credential request using the nonce, CA's idemix public key
-// 3. Sends a request with the CredentialRequest object in the body to the
-//    /api/v1/idemix/credentail REST endpoint to get a credential
+//  1. Sends a request with empty body to the /api/v1/idemix/credentail REST endpoint
+//     of the server to get a Nonce from the CA
+//  2. Constructs a credential request using the nonce, CA's idemix public key
+//  3. Sends a request with the CredentialRequest object in the body to the
+//     /api/v1/idemix/credentail REST endpoint to get a credential
 func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResponse, error) {
 	log.Debugf("Getting nonce from CA %s", req.CAName)
 	reqNet := &api.IdemixEnrollmentRequestNet{
@@ -616,6 +616,7 @@ func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, erro
 
 // LoadMyIdentity loads the client's identity from disk
 func (c *Client) LoadMyIdentity() (*Identity, error) {
+	log.Debugf("LoadMyIdentity ")
 	err := c.Init()
 	if err != nil {
 		return nil, err
@@ -886,14 +887,14 @@ func (c *Client) CheckEnrollment() error {
 	if err == nil {
 		x509Enrollment = true
 	}
-	err = c.checkIdemixEnrollment()
-	if err == nil {
+	err2 := c.checkIdemixEnrollment()
+	if err2 == nil {
 		idemixEnrollment = true
 	}
 	if x509Enrollment || idemixEnrollment {
 		return nil
 	}
-	log.Errorf("Enrollment check failed: %s", err.Error())
+	log.Errorf("Enrollment check failed: either because '%s' or  '%s'", err.Error(), err2.Error())
 	return errors.New("Enrollment information does not exist. Please execute enroll command first. Example: fabric-ca-client enroll -u http://user:userpw@serverAddr:serverPort")
 }
 
@@ -912,7 +913,7 @@ func (c *Client) checkX509Enrollment() error {
 			return nil
 		}
 	}
-	return errors.New("X509 enrollment information does not exist")
+	return fmt.Errorf("x509 enrollment information does not exist - certFile: %s keyFile: %s", c.certFile, c.keyFile)
 }
 
 // checkIdemixEnrollment returns an error if CA's Idemix public key and user's
