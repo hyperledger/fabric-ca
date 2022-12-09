@@ -33,23 +33,19 @@ GO_VER = 1.18.8
 ALPINE_VER ?= 3.17
 DEBIAN_VER ?= stretch
 BASE_VERSION ?= v1.5.6
-IS_RELEASE = true
 
 ARCH=$(shell go env GOARCH)
 PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
 
-ifneq ($(IS_RELEASE),true)
-EXTRA_VERSION ?= snapshot-$(shell git rev-parse --short HEAD)
-PROJECT_VERSION=$(BASE_VERSION)-$(EXTRA_VERSION)
-else
-PROJECT_VERSION=$(BASE_VERSION)
-endif
+# For compatibility with legacy install-fabric.sh conventions, strip the
+# leading semrev 'v' character when preparing dist and release artifacts.
+RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed -e  's/^v\(.*\)/\1/')
 
 PG_VER=11
 
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
-METADATA_VAR = Version=$(PROJECT_VERSION)
+METADATA_VAR = Version=$(BASE_VERSION)
 
 GO_SOURCE := $(shell find . -name '*.go')
 GO_LDFLAGS = $(patsubst %,-X $(PKGNAME)/lib/metadata.%,$(METADATA_VAR))
@@ -209,11 +205,11 @@ docker-thirdparty:
 
 .PHONY: dist
 dist: dist-clean release
-	cd release/$(PLATFORM) && tar -czvf hyperledger-fabric-ca-$(PLATFORM)-$(PROJECT_VERSION).tar.gz *
+	cd release/$(PLATFORM) && tar -czvf hyperledger-fabric-ca-$(PLATFORM)-$(RELEASE_VERSION).tar.gz *
 
 dist/%: release/%
 	$(eval PLATFORM = ${patsubst dist/%,%,${@}})
-	cd release/$(PLATFORM) && tar -czvf hyperledger-fabric-ca-$(PLATFORM)-$(PROJECT_VERSION).tar.gz *
+	cd release/$(PLATFORM) && tar -czvf hyperledger-fabric-ca-$(PLATFORM)-$(RELEASE_VERSION).tar.gz *
 
 .PHONY: clean
 clean: docker-clean release-clean
@@ -229,10 +225,10 @@ release-clean: $(patsubst %,%-release-clean, $(RELEASE_PLATFORMS))
 
 .PHONY: dist-clean
 dist-clean:
-	-@rm -rf release/windows-amd64/hyperledger-fabric-ca-windows-amd64-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/darwin-amd64/hyperledger-fabric-ca-darwin-amd64-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/darwin-arm64/hyperledger-fabric-ca-darwin-arm64-$(PROJECT_VERSION).tar.gz ||:
-	-@rm -rf release/linux-arm64/hyperledger-fabric-ca-linux-arm64-$(PROJECT_VERSION).tar.gz ||:
+	-@rm -rf release/windows-amd64/hyperledger-fabric-ca-windows-amd64-$(RELEASE_VERSION).tar.gz ||:
+	-@rm -rf release/darwin-amd64/hyperledger-fabric-ca-darwin-amd64-$(RELEASE_VERSION).tar.gz ||:
+	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64-$(RELEASE_VERSION).tar.gz ||:
+	-@rm -rf release/darwin-arm64/hyperledger-fabric-ca-darwin-arm64-$(RELEASE_VERSION).tar.gz ||:
+	-@rm -rf release/linux-arm64/hyperledger-fabric-ca-linux-arm64-$(RELEASE_VERSION).tar.gz ||:
 
 .FORCE:

@@ -6,7 +6,7 @@ name: Release
 
 on:
   push:
-    tags: [ v* ]
+    tags: [ v1.* ]
 
 env:
   GO_VER: 1.18.8
@@ -46,6 +46,7 @@ jobs:
       - name: Install GCC cross-compilers
         if:  ${{ contains(matrix.platform, 'linux') }}
         run: |
+          sudo apt-get update
           sudo apt-get -y install gcc-aarch64-linux-gnu
           sudo apt-get -y install gcc-x86-64-linux-gnu
 
@@ -55,10 +56,13 @@ jobs:
           BASE_VERSION: ${{ github.ref_name }}
 
       - uses: actions/upload-artifact@v3
-        name: Publish Release Artifact
+        name: Publish Release Artifacts
         with:
-          name: hyperledger-fabric-ca-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
-          path: release/${{ matrix.platform }}/hyperledger-fabric-ca-${{ matrix.platform }}-${{ github.ref_name }}.tar.gz
+          # <name> of the artifact must not collide between platform/arch builds
+          name: release-${{ matrix.platform }}
+          # <path> of the artifact may include multiple files.
+          path: release/${{ matrix.platform }}/*.tar.gz
+
 
   build-and-push-image:
     runs-on: ubuntu-20.04
@@ -77,13 +81,9 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      #      - name: Login to Docker Hub Container Registry
-      #        uses: docker/login-action@v2
-      #        with:
-      #          registry: docker.io
-      #          username: ${{ secrets.DOCKERHUB_USERNAME }}
-      #          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#          registry: docker.io
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Docker meta
         id: meta
@@ -120,7 +120,9 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [ build-binaries, build-and-push-image ]
+    needs:
+      - build-binaries
+      - build-and-push-image
     runs-on: ubuntu-20.04
     permissions:
       contents: write
@@ -134,7 +136,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: "true"
-          artifacts: "*.tar.gz/*.tar.gz"
+          artifacts: "release-*-*/*.tar.gz"
           bodyFile: release_notes/${{ github.ref_name }}.md
           tag: ${{ github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
