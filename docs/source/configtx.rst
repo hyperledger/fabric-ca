@@ -35,7 +35,7 @@
          # for cross org gossip communication.  Note, this value is only
          # encoded in the genesis block in the Application section context
          - Host: peer1-org1
-            Port: 7051
+           Port: 7051
 
    - &org2
 
@@ -52,7 +52,7 @@
          # for cross org gossip communication.  Note, this value is only
          # encoded in the genesis block in the Application section context
          - Host: peer1-org2
-            Port: 7051
+           Port: 7051
 
    ################################################################################
    #
@@ -79,56 +79,55 @@
    ################################################################################
    Profiles:
 
-   OrgsOrdererGenesis:
-      Orderer:
-         # Orderer Type: The orderer implementation to start
-         # Available types are "solo" and "kafka"
-         OrdererType: solo
-         Addresses:
-         - orderer1-org0:7050
+     OrgsOrdererGenesis:
+       Orderer:
+           # Orderer Type: The orderer implementation to start
+           # Available types are "solo" and "kafka"
+           OrdererType: solo
+           Addresses:
+             - orderer1-org0:7050
 
-         # Batch Timeout: The amount of time to wait before creating a batch
-         BatchTimeout: 2s
+           # Batch Timeout: The amount of time to wait before creating a batch
+           BatchTimeout: 2s
 
-         # Batch Size: Controls the number of messages batched into a block
-         BatchSize:
+           # Batch Size: Controls the number of messages batched into a block
+           BatchSize:
 
-         # Max Message Count: The maximum number of messages to permit in a batch
-         MaxMessageCount: 10
+             # Max Message Count: The maximum number of messages to permit in a batch
+             MaxMessageCount: 10
 
-         # Absolute Max Bytes: The absolute maximum number of bytes allowed for
-         # the serialized messages in a batch.
-         AbsoluteMaxBytes: 99 MB
+             # Absolute Max Bytes: The absolute maximum number of bytes allowed for
+             # the serialized messages in a batch.
+             AbsoluteMaxBytes: 99 MB
 
-         # Preferred Max Bytes: The preferred maximum number of bytes allowed for
-         # the serialized messages in a batch. A message larger than the preferred
-         # max bytes will result in a batch larger than preferred max bytes.
-         PreferredMaxBytes: 512 KB
+             # Preferred Max Bytes: The preferred maximum number of bytes allowed for
+             # the serialized messages in a batch. A message larger than the preferred
+             # max bytes will result in a batch larger than preferred max bytes.
+             PreferredMaxBytes: 512 KB
 
-         # Kafka:
-         #   # Brokers: A list of Kafka brokers to which the orderer connects
-         #   # NOTE: Use IP:port notation
-         #   Brokers:
-         #     - 127.0.0.1:9092
+           # Kafka:
+           #   # Brokers: A list of Kafka brokers to which the orderer connects
+           #   # NOTE: Use IP:port notation
+           #   Brokers:
+           #     - 127.0.0.1:9092
 
-         # Organizations is the list of orgs which are defined as participants on
-         # the orderer side of the network
-         Organizations:
-         - *org0
+           # Organizations is the list of orgs which are defined as participants on
+           # the orderer side of the network
+           Organizations:
+             - *org0
 
-      Consortiums:
+       Consortiums:
 
          SampleConsortium:
 
-         Organizations:
-            - *org1
-            - *org2
+           Organizations:
+             - *org1
+             - *org2
 
-   OrgsChannel:
-      Consortium: SampleConsortium
-      Application:
-         <<: *ApplicationDefaults
-         Organizations:
-         - *org1
-         - *org2
-
+     OrgsChannel:
+       Consortium: SampleConsortium
+       Application:
+           <<: *ApplicationDefaults
+           Organizations:
+             - *org1
+             - *org2
