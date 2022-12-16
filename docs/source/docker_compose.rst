@@ -120,6 +120,7 @@
          - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer2-org1:7051
          - CORE_PEER_GOSSIP_SKIPHANDSHAKE=true
          - CORE_PEER_GOSSIP_BOOTSTRAP=peer1-org1:7051
+         - GODEBUG=netdns=go
       working_dir: /opt/gopath/src/github.com/hyperledger/fabric/org1/peer2
       volumes:
          - /var/run:/host/var/run
