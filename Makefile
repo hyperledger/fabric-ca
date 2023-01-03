@@ -29,8 +29,8 @@
 
 PROJECT_NAME = fabric-ca
 
-GO_VER = 1.18.8
-ALPINE_VER ?= 3.17
+GO_VER = 1.18.9
+UBUNTU_VER ?= 20.04
 DEBIAN_VER ?= stretch
 BASE_VERSION ?= v1.5.6
 
@@ -40,6 +40,7 @@ PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
 # For compatibility with legacy install-fabric.sh conventions, strip the
 # leading semrev 'v' character when preparing dist and release artifacts.
 RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed -e  's/^v\(.*\)/\1/')
+PROJECT_VERSION=${RELEASE_VERSION}
 
 PG_VER=11
 
@@ -108,9 +109,9 @@ build/image/fabric-ca/$(DUMMY):
 		--build-arg GO_VER=${GO_VER} \
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
-		--build-arg ALPINE_VER=${ALPINE_VER} \
+		--build-arg UBUNTU_VER=${UBUNTU_VER} \
 		-t $(DOCKER_NS)/$(TARGET) .
-	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(BASE_VERSION)
+	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(PROJECT_VERSION)
 	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
 	@touch $@
 
