@@ -110,6 +110,8 @@ build/image/fabric-ca/$(DUMMY):
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
 		--build-arg UBUNTU_VER=${UBUNTU_VER} \
+		--build-arg TARGETARCH=$(ARCH) \
+		--build-arg TARGETOS=linux \
 		-t $(DOCKER_NS)/$(TARGET) .
 	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(PROJECT_VERSION)
 	docker tag $(DOCKER_NS)/$(TARGET) $(DOCKER_NS)/$(TARGET):$(DOCKER_TAG)
@@ -124,6 +126,8 @@ build/image/fabric-ca-fvt/$(DUMMY):
 		--build-arg GO_TAGS=pkcs11 \
 		--build-arg GO_LDFLAGS="${DOCKER_GO_LDFLAGS}" \
 		--build-arg PG_VER=${PG_VER} \
+		--build-arg TARGETARCH=$(ARCH) \
+		--build-arg TARGETOS=linux \
 		-t $(DOCKER_NS)/$(TARGET) .
 	@touch $@
 
