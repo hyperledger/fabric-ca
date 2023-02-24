@@ -143,7 +143,7 @@ Note that the `-d` flag enables debug mode, which is useful for debugging if the
 Here is a sample register command for an admin identity:
 
 ```
-./fabric-ca-client register -d --id.name org1admin --id.secret org1adminpw -u https://example.com:7054 --mspdir ./org1-ca/msp --id.type admin --tls.certfiles ../tls/tls-ca-cert.pem --csr.hosts 'host1,*.example.com'
+./fabric-ca-client register -d --id.name org1admin --id.secret org1adminpw -u https://example.com:7054 --mspdir ./org1-ca/msp --id.type admin --tls.certfiles ../tls/tls-ca-cert.pem
 ```
 
 After the identity has been successfully registered, the CA admin would give the enroll ID (`org1admin`) and enroll secret (`org1adminpw`) to the user who will enroll as an admin.
@@ -168,14 +168,14 @@ With these variables:
 * `ENROLL_SECRET`: The enroll secret that was specified when registering this identity. This will have to be communicated to the user of this identity out of band.
 * `CA_URL`: The URL of the CA, including the port (which is 7054 by default). If you have configured two CAs at the same location, you will also have to specify a CA name following a `--caname` flag, but in this tutorial we assume you are using a configuration of CAs as specified in the [CA deployment tutorial].
 * `PORT`: The port utilized by the CA you are enrolling with.
-* `MSP_FOLDER`: The path to the MSP (the local MSP, if enrolling a node, or the org MSP, if enrolling an admin) on the filesystem. If you do not specify the `-mspdir` flag to specify a location, the certificates will be placed in a folder called `msp` at your current location (if this folder does not already exist, it will be created).
-* `CSR_HOSTNAME`: Only relevant to node identities, this will encode the domain name of a node. For example, MagnetoCorp might choose a hostname of `peer0.mgntoorg.magnetocorp.com`.
+* `MSP_FOLDER`: The path to the MSP (the local MSP, if enrolling a node, or the org MSP, if enrolling an admin) on the filesystem. If you do not specify the `--mspdir` flag to specify a location, the certificates will be placed in a folder called `msp` at your current location (if this folder does not already exist, it will be created).
+* `CSR_HOSTNAME`: Only relevant when obtaining (enrolling) a TLS certificate against a TLS CA for a node, this will encode the host name(s) or domain name(s) of a node into the TLS certificate Subject Alternative Name (SAN). For multiple names, use a comma-separated list with no spaces. If a host name is dynamic you can specify a wildcard for the domain. For example, when you include the flag `--csr.hosts 'host1,*.example.com'` it means that the hostname `host1` is recognized as well as any host from the `example.com` domain.
 * `TLS_CERT`: The relative path to the TLS CA root signed certificate of the TLS CA associated with this organization.
 
 Here is an example enroll command corresponding to the example register command we used earlier:
 
 ```
-./fabric-ca-client enroll -u https://org1admin:org1adminpw@example.com:7054 --mspdir ./org1.example.com/msp --csr.hosts 'org1,*.example.com' --tls.certfiles ../tls/tls-ca-cert.pem
+./fabric-ca-client enroll -u https://org1admin:org1adminpw@example.com:7054 --mspdir ./org1.example.com/msp --csr.hosts 'host1,*.example.com' --tls.certfiles ../tls/tls-ca-cert.pem
 ```
 
 Unlike a typical CA, in which an enrollment command will return only the public/private key pair, the Fabric CA returns a folder structure called an MSP. This MSP can then be used to create a structure that can be consumed by Fabric when creating nodes or adding organizations to a channel. In the case of enrolling an admin, the MSP forms the basis of an organization. In the case of enrolling a node identity, it forms the basis for the local MSP for the node. Note that this folder structure will also be returned by the TLS CA. However, only the relevant TLS certificates are needed.
