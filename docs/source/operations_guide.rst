@@ -65,7 +65,7 @@ and TLS mutual authentication is disabled.
 .. note:: In a production environment, you will probably use your organization's CA
           to get TLS certificates. You will have to transfer out-of-band your CA's
           certificate with organizations that will validate your TLS certificates.
-          Thus, unlike this example, each organization would have its own TLS CA. 
+          Thus, unlike this example, each organization would have its own TLS CA.
 
 A docker service, such as the one below can be used to a launch a Fabric TLS CA
 container.
@@ -410,9 +410,9 @@ band process.
 
 Next step is to get the TLS cryptographic material for the peer. This requires another enrollment,
 but this time you will enroll against the ``tls`` profile on the TLS CA. You will
-also need to provide the address of the Peer1's host machine in the enrollment
-request as the input to the ``csr.hosts`` flag. In the command below, we will
-assume the certificate of the TLS CA has been copied to
+also need to provide the address of the Peer1's host name or domain name in the enrollment
+request as the input to the ``csr.hosts`` flag. This value will be used for the TLS certificate's Subject Alternative Name.
+In the command below, we will assume the certificate of the TLS CA has been copied to
 ``/tmp/hyperledger/org1/peer1/assets/tls-ca/tls-ca-cert.pem``
 on Peer1's host machine.
 
@@ -449,7 +449,7 @@ machine.
 
 Next step is to get the TLS cryptographic material for the peer. This requires another enrollment,
 but this time you will enroll against the ``tls`` profile on the TLS CA. You will
-also need to provide the address of the Peer2's host machine in the enrollment
+also need to provide the address of the Peer2's host name or domain name in the enrollment
 request as the input to the ``csr.hosts`` flag. In the command below, we will
 assume the certificate of the TLS CA has been copied to
 ``/tmp/hyperledger/org1/peer2/assets/tls-ca/tls-ca-cert.pem``

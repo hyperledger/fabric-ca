@@ -249,10 +249,10 @@ The following links shows the :doc:`Server Command Line <servercli>` and
           specified either by specifying the option with comma-separated list
           elements or by specifying the option multiple times, each with a
           string value that make up the list. For example, to specify
-          ``host1`` and ``host2`` for the ``csr.hosts`` option, you can either
+          ``host1`` and ``host2`` as TLS certificate Subject Alternative Names in the ``csr.hosts`` option, you can either
           pass ``--csr.hosts 'host1,host2'`` or
           ``--csr.hosts host1 --csr.hosts host2``. When using the former format,
-          please make sure there are no space before or after any commas.
+          please make sure there are no spaces before or after any commas.
 
 `Back to Top`_
 
