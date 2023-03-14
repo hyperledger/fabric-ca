@@ -32,7 +32,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.3.2
 	github.com/stretchr/testify v1.7.1-0.20210116013205-6990a05d54c2
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.1.0
 	gopkg.in/ldap.v2 v2.5.1
 )
 
