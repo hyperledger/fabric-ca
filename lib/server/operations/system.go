@@ -170,7 +170,7 @@ func (s *System) startMetricsTickers() error {
 		writeInterval := s.options.Metrics.Statsd.WriteInterval
 
 		s.sendTicker = time.NewTicker(writeInterval)
-		go s.statsd.SendLoop(s.sendTicker.C, network, address)
+		go s.statsd.SendLoop(context.TODO(), s.sendTicker.C, network, address)
 	}
 
 	return nil
