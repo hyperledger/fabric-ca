@@ -124,14 +124,17 @@ func Unmarshal(from []byte, to interface{}, what string) error {
 
 // CreateToken creates a JWT-like token.
 // In a normal JWT token, the format of the token created is:
-//      <algorithm,claims,signature>
+//
+//	<algorithm,claims,signature>
+//
 // where each part is base64-encoded string separated by a period.
 // In this JWT-like token, there are two differences:
-// 1) the claims section is a certificate, so the format is:
-//      <certificate,signature>
-// 2) the signature uses the private key associated with the certificate,
-//    and the signature is across both the certificate and the "body" argument,
-//    which is the body of an HTTP request, though could be any arbitrary bytes.
+//  1. the claims section is a certificate, so the format is:
+//     <certificate,signature>
+//  2. the signature uses the private key associated with the certificate,
+//     and the signature is across both the certificate and the "body" argument,
+//     which is the body of an HTTP request, though could be any arbitrary bytes.
+//
 // @param cert The pem-encoded certificate
 // @param key The pem-encoded key
 // @param method http method of the request
@@ -164,7 +167,7 @@ func CreateToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string
 	return token, nil
 }
 
-//GenECDSAToken signs the http body and cert with ECDSA using EC private key
+// GenECDSAToken signs the http body and cert with ECDSA using EC private key
 func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string, body []byte) (string, error) {
 	b64body := B64Encode(body)
 	b64cert := B64Encode(cert)
@@ -272,7 +275,7 @@ func decodeToken(token string) (*x509.Certificate, string, string, error) {
 	return x509Cert, b64cert, parts[1], nil
 }
 
-//GetECPrivateKey get *ecdsa.PrivateKey from key pem
+// GetECPrivateKey get *ecdsa.PrivateKey from key pem
 func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
 	decoded, _ := pem.Decode(raw)
 	if decoded == nil {
@@ -296,7 +299,7 @@ func GetECPrivateKey(raw []byte) (*ecdsa.PrivateKey, error) {
 	return nil, errors.Wrap(err2, "Failed parsing EC private key")
 }
 
-//GetRSAPrivateKey get *rsa.PrivateKey from key pem
+// GetRSAPrivateKey get *rsa.PrivateKey from key pem
 func GetRSAPrivateKey(raw []byte) (*rsa.PrivateKey, error) {
 	decoded, _ := pem.Decode(raw)
 	if decoded == nil {

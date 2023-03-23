@@ -35,7 +35,9 @@ func GetServerPort() string {
 // specified option and returns the following value if found; otherwise
 // it returns "".
 // For example, if command line is:
-//    fabric-ca client enroll -config myconfig.json
+//
+//	fabric-ca client enroll -config myconfig.json
+//
 // getCommandLineOptValue("-config") returns "myconfig.json"
 func getCommandLineOptValue(optName string) string {
 	for i := 0; i < len(os.Args)-1; i++ {

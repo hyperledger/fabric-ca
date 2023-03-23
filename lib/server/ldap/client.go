@@ -536,13 +536,16 @@ func (ue *userExpr) functions() map[string]govaluate.ExpressionFunction {
 
 // Get an LDAP attribute's value.
 // The usage is:
-//     attrFunction <attrName> [<separator>]
+//
+// attrFunction <attrName> [<separator>]
+//
 // If attribute <attrName> has multiple values, return the values in a single
 // string separated by the <separator> string, which is a comma by default.
 // Example:
-//    Assume attribute "foo" has two values "bar1" and "bar2".
-//    attrFunction("foo") returns "bar1,bar2"
-//    attrFunction("foo",":") returns "bar1:bar2"
+//
+// Assume attribute "foo" has two values "bar1" and "bar2".
+// attrFunction("foo") returns "bar1,bar2"
+// attrFunction("foo",":") returns "bar1:bar2"
 func (ue *userExpr) attrFunction(args ...interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, fmt.Errorf("Expecting 1 or 2 arguments for 'attr' but found %d", len(args))
@@ -573,21 +576,21 @@ func (ue *userExpr) attrFunction(args ...interface{}) (interface{}, error) {
 // three values: "foo1", "foo2", and "foo3".  Further assume the following
 // LDAP configuration.
 //
-//    converters:
-//       - name: myAttr
-//         value: map(attr("myLDAPAttr"), myMap)
-//    maps:
-//       myMap:
-//          foo1: bar1
-//          foo2: bar2
+//	converters:
+//	   - name: myAttr
+//	     value: map(attr("myLDAPAttr"), myMap)
+//	maps:
+//	   myMap:
+//	      foo1: bar1
+//	      foo2: bar2
 //
 // The value of the user's "myAttr" attribute is then "bar1,bar2,foo3".
 // This value is computed as follows:
-// 1) The value of 'attr("myLDAPAttr")' is "foo1,foo2,foo3" by joining
-//    the values using the default separator character ",".
-// 2) The value of 'map("foo1,foo2,foo3", "myMap")' is "foo1,foo2,foo3"
-//    because it maps or substitutes "bar1" for "foo1" and "bar2" for "foo2"
-//    according to the entries in the "myMap" map.
+//  1. The value of 'attr("myLDAPAttr")' is "foo1,foo2,foo3" by joining
+//     the values using the default separator character ",".
+//  2. The value of 'map("foo1,foo2,foo3", "myMap")' is "foo1,foo2,foo3"
+//     because it maps or substitutes "bar1" for "foo1" and "bar2" for "foo2"
+//     according to the entries in the "myMap" map.
 func (ue *userExpr) mapFunction(args ...interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, errors.Errorf("Expecting two arguments but found %d", len(args))
