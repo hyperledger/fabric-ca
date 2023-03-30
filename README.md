@@ -12,7 +12,7 @@ The remainder of this guide is intended for developers contributing to Fabric CA
 
 ## Prerequisites
 
-* Go 1.19+ installation or later
+* Go 1.20+ installation or later
 * docker version 17.03 or later
 * docker-compose version 1.11 or later
 
