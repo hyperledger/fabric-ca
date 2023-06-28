@@ -104,6 +104,13 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 		return nil, err
 	}
 
+	// convert the revocation handle rh to a string by first converting it to int64.
+	rhInt64, err := rh.Int()
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to convert RH to int64")
+	}
+	rhStr := fmt.Sprintf("%d", rhInt64)
+
 	// Get attributes for the identity
 	attrMap, attrs, err := h.GetAttributeValues(caller, ik.GetIpk(), rh)
 	if err != nil {
@@ -122,15 +129,13 @@ func (h *EnrollRequestHandler) HandleRequest() (*EnrollmentResponse, error) {
 	}
 	b64CredBytes := util.B64Encode(credBytes)
 
-	rhstr := util.B64Encode(rh.Bytes())
-
 	// Store the credential in the database
 	err = h.Issuer.CredDBAccessor().InsertCredential(CredRecord{
 		CALabel:          h.Issuer.Name(),
 		ID:               caller.GetName(),
 		Status:           "good",
 		Cred:             b64CredBytes,
-		RevocationHandle: rhstr,
+		RevocationHandle: rhStr,
 	})
 	if err != nil {
 		log.Errorf("Failed to store the Idemix credential for identity '%s' in the database: %s", caller.GetName(), err.Error())
@@ -210,8 +215,13 @@ func (h *EnrollRequestHandler) GetAttributeValues(caller user.User, ipk *idemix.
 			rc = append(rc, h.Curve.HashToZr(ouBytes))
 			attrMap[attrName] = ouVal
 		} else if attrName == AttrRevocationHandle {
-			rc = append(rc, rh)
-			attrMap[attrName] = util.B64Encode(rh.Bytes())
+			rhInt64, err := rh.Int()
+			if err != nil {
+				return nil, nil, errors.WithMessage(err, "failed to convert RH to int64")
+			}
+			rhStr := fmt.Sprintf("%d", rhInt64)
+			rc = append(rc, h.Curve.HashToZr([]byte(rhStr)))
+			attrMap[attrName] = rhStr
 		} else if attrName == AttrRole {
 			role := MEMBER.getValue()
 			attrObj, err := caller.GetAttribute("role")

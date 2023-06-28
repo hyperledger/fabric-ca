@@ -71,6 +71,14 @@ func (cred *Credential) EnrollmentID() (string, error) {
 	return cred.val.EnrollmentID, nil
 }
 
+// RevocationHandle returns revocation handle associated with this Idemix credential
+func (cred *Credential) RevocationHandle() (string, error) {
+	if cred.val == nil {
+		return "", errors.New("Idemix credential value is not set")
+	}
+	return cred.val.RevocationHandle, nil
+}
+
 // SetVal sets *SignerConfig for this Idemix credential
 func (cred *Credential) SetVal(val interface{}) error {
 	s, ok := val.(*SignerConfig)
