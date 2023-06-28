@@ -10,6 +10,7 @@ Fabric-CA Server's CLI
       fabric-ca-server [command]
     
     Available Commands:
+      completion  Generate the autocompletion script for the specified shell
       help        Help about any command
       init        Initialize the fabric-ca server
       start       Start the fabric-ca server

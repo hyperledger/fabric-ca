@@ -486,7 +486,7 @@ func testHandleIdemixEnrollInsertCredError(t *testing.T, curveID cidemix.CurveID
 	credAccessor := new(mocks.CredDBAccessor)
 	credAccessor.On("InsertCredential",
 		CredRecord{
-			RevocationHandle: util.B64Encode(curve.NewZrFromInt(1).Bytes()),
+			RevocationHandle: "1",
 			CALabel:          "", ID: "foo", Status: "good",
 			Cred: b64CredBytes,
 		}).Return(errors.New("Failed to add credential to DB"))
@@ -587,7 +587,7 @@ func testHandleIdemixEnrollForCredentialSuccess(t *testing.T, curveID cidemix.Cu
 	}
 	credAccessor := new(mocks.CredDBAccessor)
 	credAccessor.On("InsertCredential", CredRecord{
-		RevocationHandle: util.B64Encode(curve.NewZrFromInt(1).Bytes()),
+		RevocationHandle: "1",
 		CALabel:          "", ID: "foo", Status: "good", Cred: b64CredBytes,
 	}).Return(nil)
 

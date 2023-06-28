@@ -12,16 +12,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
-	"strings"
-
 	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
 	math "github.com/IBM/mathlib"
 	cfsslapi "github.com/cloudflare/cfssl/api"
@@ -33,6 +23,7 @@ import (
 	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
 	x509cred "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
+	sidemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/streamer"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
@@ -40,6 +31,15 @@ import (
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // Client is the fabric-ca client object
@@ -516,6 +516,7 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	role, _ := result.Attrs["Role"].(int)
 	ou, _ := result.Attrs["OU"].(string)
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
+	revocationHandle := result.Attrs[sidemix.AttrRevocationHandle].(string)
 	signerConfig := &idemixcred.SignerConfig{
 		CurveID:                         cidemix.Curves.ByID(c.curveID),
 		Cred:                            credBytes,
@@ -524,6 +525,7 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 		OrganizationalUnitIdentifier:    ou,
 		EnrollmentID:                    enrollmentID,
 		CredentialRevocationInformation: criBytes,
+		RevocationHandle:                revocationHandle,
 	}
 
 	// Create IdemixCredential object

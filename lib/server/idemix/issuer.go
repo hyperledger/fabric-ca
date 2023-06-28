@@ -301,10 +301,12 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 	idemixSecretKey := i.cfg.IssuerSecretKeyfile
 	issuerCred := NewIssuerCredential(idemixPubKey, idemixSecretKey, i.idemixLib, i.curveID)
 
+	log.Debugf("renew is set to [%v]", renew)
 	if !renew {
 		pubKeyFileExists := util.FileExists(idemixPubKey)
 		privKeyFileExists := util.FileExists(idemixSecretKey)
 		// If they both exist, the CA was already initialized, load the keys from the disk
+		log.Debugf("pubKeyFileExists && privKeyFileExists : [%s:%s][%s:%s]", idemixPubKey, pubKeyFileExists, idemixSecretKey, privKeyFileExists)
 		if pubKeyFileExists && privKeyFileExists {
 			log.Info("The Idemix issuer public and secret key files already exist")
 			log.Infof("   secret key file location: %s", idemixSecretKey)
@@ -321,7 +323,7 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 	if err != nil {
 		return err
 	}
-	// log.Infof("Idemix issuer public and secret keys were generated for CA '%s'", i.name)
+	log.Debugf("Idemix issuer public and secret keys were generated for CA '%s'", i.name)
 	issuerCred.SetIssuerKey(ik)
 	err = issuerCred.Store()
 	if err != nil {

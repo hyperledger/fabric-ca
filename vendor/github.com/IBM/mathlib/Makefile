@@ -17,4 +17,4 @@ unit-tests-race:
 
 .PHONY: check-deps
 check-deps:
-	@go get -u github.com/google/addlicense
+	@go install github.com/google/addlicense@latest

@@ -236,22 +236,25 @@ func (o *IdemixCredentialSignerOpts) IssuerPublicKey() Key {
 	return o.IssuerPK
 }
 
-// NymEIDAuditData contains the data that is used to audit the nym EID.
+// AttrNymAuditData contains the data that is used to audit a commitment to an auditable attribute.
+// Nym is a commitment to the Attr. Attr can be an Enrollment ID or a Revocation Handle.
 // Notice that this data should be used only after validating the corresponding signature.
-type NymEIDAuditData struct {
-	// Nym is the EID Nym
+type AttrNymAuditData struct {
+	// Nym is the commitment to an attribute
 	Nym *math.G1
 
-	// RNymEid is the randomness used to generate the EID Nym
-	RNymEid *math.Zr
+	// RAttrNym is the randomness used to generate the Attr Nym
+	Rand *math.Zr
 
-	// EID is the enrollment id
-	EID *math.Zr
+	// Attr is the attribute (enrollment id or revocation handle)
+	Attr *math.Zr
 }
 
 type IdemixSignerMetadata struct {
-	NymEID          []byte
-	NymEIDAuditData *NymEIDAuditData
+	EidNym          []byte
+	EidNymAuditData *AttrNymAuditData
+	RhNym           []byte
+	RhNymAuditData  *AttrNymAuditData
 }
 
 // IdemixSignerOpts contains the options to generate an Idemix signature
@@ -270,7 +273,7 @@ type IdemixSignerOpts struct {
 	// then Attributes[i].Value must be set accordingly.
 	Attributes []IdemixAttribute
 	// RhIndex is the index of attribute containing the revocation handler.
-	// Notice that this attributed cannot be discloused
+	// Notice that this attributed cannot be disclosed
 	RhIndex int
 	// EidIndex contains the index of the EID attrbiute
 	EidIndex int
@@ -294,14 +297,27 @@ func (o *IdemixSignerOpts) HashFunc() crypto.Hash {
 	return o.H
 }
 
+// EidNymAuditOpts contains audit options for pseudonymous enrollment id
 type EidNymAuditOpts struct {
 	AuditVerificationType AuditVerificationType
-	EidIndex              int
-	EnrollmentID          string
-	RNymEid               *math.Zr
+	EidIndex              int      // Index of enrollment ID attribute in signature
+	EnrollmentID          string   // Enrollment ID of identity
+	RNymEid               *math.Zr // Field element of randomness
 }
 
 func (o *EidNymAuditOpts) HashFunc() crypto.Hash {
+	return 0
+}
+
+// RhNymAuditOpts contains audit options for pseudonymous revocation handle
+type RhNymAuditOpts struct {
+	AuditVerificationType AuditVerificationType
+	RhIndex               int      // Index of revocation handle attribute in signature
+	RevocationHandle      string   // Revocation handle of identity
+	RNymRh                *math.Zr // Field element of randomness
+}
+
+func (o *RhNymAuditOpts) HashFunc() crypto.Hash {
 	return 0
 }
 
@@ -394,13 +410,15 @@ const (
 	Standard SignatureType = iota
 	// EidNym adds a hiding and binding commitment to the enrollment id and proves its correctness
 	EidNym
+	// EidNymRhNym adds a hiding and binding commitment to both the enrollment id and the revocation handle and proves each of their correctness
+	EidNymRhNym
 )
 
 // VerificationType describes the type of verification that is required
 type VerificationType int
 
 const (
-	// Basic performs the verification without any of the extensions (e.g. it ignores the nym eid)
+	// Basic performs the verification without any of the extensions (e.g. it ignores the eid nym and rh nym)
 	Basic VerificationType = iota
 	// BestEffort performs all verifications possible given the available information in the signature/opts
 	BestEffort
@@ -408,6 +426,8 @@ const (
 	ExpectStandard
 	// ExpectEidNym expects a SignatureType of type EidNym
 	ExpectEidNym
+	// ExpectEidNymRhNym expects a SignatureType of EidNymRhNym
+	ExpectEidNymRhNym
 )
 
 // AuditVerificationType describes the type of audit verification that is required
@@ -416,6 +436,8 @@ type AuditVerificationType int
 const (
 	// AuditExpectSignature performs the audit verification against a signature
 	AuditExpectSignature AuditVerificationType = iota
-	// AuditExpectEidNym performs the audit verification against a Nym EID
+	// AuditExpectEidNym performs the audit verification against an EID pseudonym
 	AuditExpectEidNym
+	// AuditExpectEidNymRhNym performs the audit verification against an EID pseudonym and a Revocation Handle pseudonym
+	AuditExpectEidNymRhNym
 )

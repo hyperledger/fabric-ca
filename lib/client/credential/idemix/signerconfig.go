@@ -22,6 +22,8 @@ type SignerConfig struct {
 	CredentialRevocationInformation []byte `protobuf:"bytes,6,opt,name=credential_revocation_information,json=credentialRevocationInformation,proto3" json:"credential_revocation_information,omitempty"`
 	// CurveID specifies the name of the Idemix curve to use, defaults to 'amcl.Fp256bn'
 	CurveID string `protobuf:"bytes,7,opt,name=curve_id,json=curveID" json:"curveID,omitempty"`
+	// RevocationHandle is the handle used to single out this credential and determine its revocation status
+	RevocationHandle string `protobuf:"bytes,8,opt,name=revocation_handle,json=revocationHandle,proto3" json:"revocation_handle,omitempty"`
 }
 
 // GetCred returns credential associated with this signer config
