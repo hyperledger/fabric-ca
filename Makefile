@@ -93,6 +93,11 @@ vet: .FORCE
 docs: gotools fabric-ca-client fabric-ca-server
 	@scripts/regenDocs
 
+.PHONY: build-docs
+build-docs: 
+	@docker run --rm -v $$(pwd):/docs n42org/tox:3.4.0 sh -c 'cd /docs && tox -e docs'
+
+
 fabric-ca-client: bin/fabric-ca-client
 fabric-ca-server: bin/fabric-ca-server
 
