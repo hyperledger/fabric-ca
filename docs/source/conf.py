@@ -69,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'hyperledger-fabric-cadocs'
-copyright = u'2017, hyperledger'
+copyright = u'2017-2023, hyperledger'
 author = u'hyperledger'
 
 # The version info for the project you're documenting, acts as replacement for
