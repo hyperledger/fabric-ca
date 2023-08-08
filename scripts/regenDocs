@@ -215,6 +215,6 @@ echo "Doc generation completed"
 # Only checking status under docs/source folder
 cd $docsdir
 if [[ $(git status . --porcelain --untracked-file=no) ]]; then
-    echo "ERROR: New readme files generated, commit changes before doing push"
+    echo "ERROR: New rst documentation files generated that don't match the existing docs, run `make docs` to re-generate the rst documentation files before pushing"
     exit 1
 fi
