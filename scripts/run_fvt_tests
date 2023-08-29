@@ -30,6 +30,7 @@ function runTest() {
   ${1} >>$RESULTLOG 2>&1
   rc=$?
   test $rc -eq 0 && echo PASSED || echo FAILED
+  # print the log only upon test failure
   test $rc -ne 0 && awk -v b="$TESTCASE" -v e="test ended." '$0~b,$0~e' $RESULTLOG
   RC=$((RC + rc))
   "$SCRIPTDIR/fabric-ca_setup.sh" -R >/dev/null 2>&1

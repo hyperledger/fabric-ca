@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
+
 : ${TESTCASE:="idemix"}
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 CA_CFG_PATH="/tmp/idemixTesting"

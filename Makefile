@@ -42,7 +42,7 @@ PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
 RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed -e  's/^v\(.*\)/\1/')
 PROJECT_VERSION=${RELEASE_VERSION}
 
-PG_VER=11
+PG_VER=13
 
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 
@@ -210,8 +210,8 @@ release/%/bin/fabric-ca-server: $(GO_SOURCE)
 # to the test target you are running i.e. (unit-tests, int-tests, all-tests).
 .PHONY: docker-thirdparty
 docker-thirdparty:
-	docker pull postgres:9.6
-	docker pull mysql:5.7
+	docker pull postgres:13.13
+	docker pull mysql:8.0
 
 .PHONY: dist
 dist: dist-clean release

@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
+
 TESTCASE="backwards_comp"
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPTDIR/fabric-ca_utils"
@@ -93,7 +95,7 @@ function createDB {
     postgres)
       psql -d postgres -c "CREATE DATABASE $DBNAME" ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME" ;;
+      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME CHARACTER SET latin1 COLLATE latin1_swedish_ci" ;;
     *)
       echo "Invalid database type"
       exit 1
@@ -125,7 +127,7 @@ function loadUsers {
           s/datasource:.*/datasource: host=localhost port=$POSTGRES_PORT user=postgres password=postgres dbname=$DBNAME $postgresTls/" $TESTCONFIG
       ;;
     mysql)
-      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME"
+      mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE $DBNAME CHARACTER SET latin1 COLLATE latin1_swedish_ci"
       mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE IF NOT EXISTS users (id VARCHAR(255) NOT NULL, token blob, type VARCHAR(256), affiliation VARCHAR(1024), attributes TEXT, state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin"
       mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('registrar', '', 'user', 'org2', '[{\"name\": \"hf.Registrar.Roles\", \"value\": \"user,peer,client\"},{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
       mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "INSERT INTO users (id, token, type, affiliation, attributes, state, max_enrollments) VALUES ('notregistrar', '', 'user', 'org2', '[{\"name\": \"hf.Revoker\", \"value\": \"true\"}]', '0', '-1')"
@@ -219,7 +221,7 @@ for driver in sqlite3 postgres mysql; do
     ;;
   mysql)
     mysql --host=localhost --user=root --password=mysql -e "DROP DATABASE fabric_ca"
-    mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE fabric_ca"
+    mysql --host=localhost --user=root --password=mysql -e "CREATE DATABASE fabric_ca CHARACTER SET latin1 COLLATE latin1_swedish_ci"
     mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "CREATE TABLE IF NOT EXISTS properties (property VARCHAR(255), value VARCHAR(256), PRIMARY KEY(property))"
     mysql --host=localhost --user=root --password=mysql --database=fabric_ca -e "INSERT INTO properties (property, value) Values ('identity.level', '9')"
     ;;
