@@ -29,7 +29,7 @@
 
 PROJECT_NAME = fabric-ca
 
-GO_VER = 1.20.2
+GO_VER = 1.20.5
 UBUNTU_VER ?= 20.04
 DEBIAN_VER ?= stretch
 BASE_VERSION ?= v1.5.6
@@ -94,7 +94,7 @@ docs: gotools fabric-ca-client fabric-ca-server
 	@scripts/regenDocs
 
 .PHONY: build-docs
-build-docs: 
+build-docs:
 	@docker run --rm -v $$(pwd):/docs n42org/tox:3.4.0 sh -c 'cd /docs && tox -e docs'
 
 
