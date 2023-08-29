@@ -44,6 +44,7 @@ Fabric-CA Server's CLI
           --db.tls.client.certfile string             PEM-encoded certificate file when mutual authenticate is enabled
           --db.tls.client.keyfile string              PEM-encoded key file when mutual authentication is enabled
           --db.type string                            Type of database; one of: sqlite3, postgres, mysql (default "sqlite3")
+      -d, --debug                                     Enable debug level logging (slows server)
       -h, --help                                      help for fabric-ca-server
       -H, --home string                               Server's home directory (default "/etc/hyperledger/fabric-ca")
           --idemix.curve string                       Name of the curve among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'}, defaults to 'amcl.Fp256bn' (default "amcl.Fp256bn")
