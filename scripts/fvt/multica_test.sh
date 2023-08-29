@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
 
 : ${TESTCASE:="multica-test"}
 TDIR=/tmp/$TESTCASE

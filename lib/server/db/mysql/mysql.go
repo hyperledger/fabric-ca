@@ -153,7 +153,11 @@ func (m *Mysql) createDatabase() error {
 	}
 	if !exists {
 		log.Debugf("Creating MySQL Database '%s'", m.dbName)
-		_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE "+m.dbName)
+		// Note that Fabric CA uses the MySQL "latin1" character set when creating the database.
+		// MySQL v8.0 changed the default character set from "latin1" to "utf8mb4",
+		// however the "utf8mb4" character set doesn't work with Fabric CA
+		// since the additional storage requirements would push existing column and index sizes beyond MySQL maximum sizes.
+		_, err := m.SqlxDB.Exec("CreateDatabase", "CREATE DATABASE "+m.dbName+" CHARACTER SET latin1 COLLATE latin1_swedish_ci")
 		if err != nil {
 			return errors.Wrap(err, "Failed to execute create database query")
 		}

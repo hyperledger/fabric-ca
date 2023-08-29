@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
+
 : ${TESTCASE:="intermediateca-test"}
 TDIR=/tmp/$TESTCASE
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"

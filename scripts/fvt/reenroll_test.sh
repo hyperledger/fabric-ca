@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
+
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPTDIR/fabric-ca_utils"
 PKI="$SCRIPTDIR/utils/pki"

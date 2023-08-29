@@ -508,8 +508,8 @@ may skip this section; otherwise, you must configure either PostgreSQL or
 MySQL as described below. Fabric CA supports the following database
 versions in a cluster setup:
 
-- PostgreSQL: 9.5.5 or later
-- MySQL: 5.7 or later
+- PostgreSQL: 13 or later
+- MySQL: 8.0 or later
 
 PostgreSQL
 ^^^^^^^^^^
@@ -622,9 +622,9 @@ The following sample may be added to the Fabric CA server configuration file in
 order to connect to a MySQL database. Be sure to customize the various
 values appropriately. There are limitations on what characters are allowed
 in the database name. Please refer to the following MySQL documentation
-for more information: https://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+for more information: https://dev.mysql.com/doc/refman/8.0/en/identifiers.html
 
-On MySQL 5.7.X, certain modes affect whether the server permits '0000-00-00' as a valid date.
+On MySQL certain modes affect whether the server permits '0000-00-00' as a valid date.
 It might be necessary to relax the modes that MySQL server uses. We want to allow
 the server to be able to accept zero date values.
 
@@ -635,7 +635,7 @@ Please refer to the following MySQL documentation on different modes available
 and select the appropriate settings for the specific version of MySQL that is
 being used.
 
-https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
+https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html
 
 .. code:: yaml
 
@@ -645,6 +645,11 @@ https://dev.mysql.com/doc/refman/5.7/en/sql-mode.html
 
 If connecting over TLS to the MySQL server, the ``db.tls.client``
 section is also required as described in the **PostgreSQL** section above.
+
+Note that Fabric CA uses the MySQL "latin1" character set when creating the database.
+MySQL v8.0 changed the default character set from "latin1" to "utf8mb4",
+however the "utf8mb4" character set doesn't work with Fabric CA
+since the additional storage requirements would push existing column and index sizes beyond MySQL maximum sizes.
 
 MySQL SSL Configuration
 """"""""""""""""""""""""

@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set -x # print commands in case of failure (the log won't get printed upon success)
+
 TESTCASE="db_migration"
 SCRIPTDIR="$(cd "$(dirname "$0")" && pwd)"
 . $SCRIPTDIR/fabric-ca_utils
@@ -16,7 +18,7 @@ export FABRIC_CA_CLIENT_HOME="/tmp/db_migration/admin"
 export FABRIC_CA_SERVER_HOME="$TESTDIR"
 export CA_CFG_PATH="$TESTDIR"
 
-###### SQLITE #####
+println "###### SQLITE #####"
 
 mkdir -p $FABRIC_CA_SERVER_HOME
 sqlite3 $FABRIC_CA_SERVER_HOME/$DBNAME 'CREATE TABLE IF NOT EXISTS users (id VARCHAR(64), token bytea, type VARCHAR(64), affiliation VARCHAR(64), attributes TEXT, state INTEGER,  max_enrollments INTEGER);'
@@ -102,7 +104,7 @@ fi
 
 rm $FABRIC_CA_SERVER_HOME/$DBNAME
 
-###### MYSQL ######
+println "###### MYSQL ######"
 
 $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d mysql # Start up the server and the new schema should get created
 $SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
@@ -115,7 +117,7 @@ $SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
 # Create the database tables using the old schema
 echo "Creating '$DBNAME' MySQL database and tables before starting up server"
 mysql --host=localhost --user=root --password=mysql -e "drop database $DBNAME;"
-mysql --host=localhost --user=root --password=mysql -e "create database $DBNAME;"
+mysql --host=localhost --user=root --password=mysql -e "create database $DBNAME CHARACTER SET latin1 COLLATE latin1_swedish_ci;"
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE users (id VARCHAR(64) NOT NULL, token blob, type VARCHAR(64), affiliation VARCHAR(64), attributes VARCHAR(256), state INTEGER, max_enrollments INTEGER, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE affiliations (name VARCHAR(64) NOT NULL UNIQUE, prekey VARCHAR(64));"
 mysql --host=localhost --user=root --password=mysql --database=$DBNAME -e "CREATE TABLE certificates (id VARCHAR(64), serial_number varbinary(128) NOT NULL, authority_key_identifier varbinary(128) NOT NULL, ca_label varbinary(128), status varbinary(128) NOT NULL, reason int, expiry timestamp DEFAULT 0, revoked_at timestamp DEFAULT 0, pem varbinary(4096) NOT NULL, PRIMARY KEY(serial_number, authority_key_identifier)) DEFAULT CHARSET=utf8 COLLATE utf8_bin;"
@@ -193,7 +195,7 @@ if [ $? != 0 ]; then
     ErrorMsg "Database column 'pem' should have byte limit of 8192"
 fi
 
-###### POSTGRES ######
+println "###### POSTGRES ######"
 $SCRIPTDIR/fabric-ca_setup.sh -I -S -X -D -d postgres # Start up the server and the new schema should get created
 $SCRIPTDIR/fabric-ca_setup.sh -K # Kill the server
 $SCRIPTDIR/fabric-ca_setup.sh -S -X -D -d postgres # Start up the server again and it should try to update the schema again, should result in no errors
