@@ -12,7 +12,7 @@ import (
 	"io"
 	"sort"
 
-	opts "github.com/IBM/idemix/bccsp/schemes"
+	opts "github.com/IBM/idemix/bccsp/types"
 	math "github.com/IBM/mathlib"
 	"github.com/pkg/errors"
 )
@@ -816,7 +816,7 @@ func (sig *Signature) Ver(
 	meta *opts.IdemixSignerMetadata,
 ) error {
 	// Validate inputs
-	if ipk == nil || revPk == nil {
+	if ipk == nil {
 		return errors.Errorf("cannot verify idemix signature: received nil input")
 	}
 

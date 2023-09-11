@@ -1,10 +1,11 @@
 module github.com/hyperledger/fabric-ca
 
-go 1.20
+go 1.19
 
 require (
-	github.com/IBM/idemix v0.0.2-0.20230510082947-a0c3ee5ebe35
-	github.com/IBM/mathlib v0.0.3-0.20231011094432-44ee0eb539da
+	github.com/IBM/idemix v0.0.2-0.20230914074304-f8eb4a0f6606
+	github.com/IBM/idemix/bccsp/types v0.0.0-20230914074304-f8eb4a0f6606
+	github.com/IBM/mathlib v0.0.3-0.20230831091907-c532c4d3b65c
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/felixge/httpsnoop v1.0.1
@@ -15,7 +16,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
 	github.com/hyperledger/fabric v0.0.0-20240123171006-370ebe56cea8
-	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2
 	github.com/hyperledger/fabric-lib-go v1.0.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.2.0
@@ -32,12 +32,15 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.17.0
 	gopkg.in/ldap.v2 v2.5.1
 )
 
 require (
+	github.com/IBM/idemix/bccsp/schemes/aries v0.0.0-20230818093228-308e96f529c9 // indirect
+	github.com/IBM/idemix/bccsp/schemes/weak-bb v0.0.0-20230818093228-308e96f529c9 // indirect
+	github.com/ale-linux/aries-framework-go/component/kmscrypto v0.0.0-20230817163708-4b3de6d91874 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.7.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -48,6 +51,7 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/kilic/bls12-381 v0.1.0 // indirect

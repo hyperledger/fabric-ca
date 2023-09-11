@@ -6,14 +6,11 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"fmt"
 	"testing"
 
-	scheme "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
+	"github.com/IBM/idemix/bccsp/types"
+	bccsp "github.com/IBM/idemix/bccsp/types"
+	ibccsp "github.com/IBM/idemix/bccsp/types"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/pkg/errors"
@@ -31,56 +28,39 @@ func TestCRIInvalidTokenAuth(t *testing.T) {
 func TestCreateCRIError(t *testing.T) {
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("TokenAuthentication").Return("", nil)
-	issuer := new(mocks.MyIssuer)
+	issuer := new(IssuerInst)
 	ra := new(mocks.RevocationAuthority)
 	ra.On("CreateCRI").Return(nil, errors.New("Failed to create CRI"))
-	issuer.On("RevocationAuthority").Return(ra)
+	issuer.RevocationAuthority = ra
 	handler := CRIRequestHandler{Ctx: ctx, Issuer: issuer}
 	_, err := handler.HandleRequest()
 	assert.Error(t, err)
 }
 
-func TestGetCRIMarshalError(t *testing.T) {
+func TestGetCRI(t *testing.T) {
 	ctx := new(mocks.ServerRequestCtx)
 	ctx.On("TokenAuthentication").Return("", nil)
-	issuer := new(mocks.MyIssuer)
+	issuer := new(IssuerInst)
 	ra := new(mocks.RevocationAuthority)
-	ra.On("CreateCRI").Return(nil, nil)
-	issuer.On("RevocationAuthority").Return(ra)
-	handler := CRIRequestHandler{Ctx: ctx, Issuer: issuer}
-	_, err := handler.HandleRequest()
-	assert.Error(t, err, "GetCRI should have failed when marshalling idemix.CredentialRevocationInformation")
-}
 
-func TestGetCRI(t *testing.T) {
-	for _, curveID := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curveID), func(t *testing.T) {
-			ctx := new(mocks.ServerRequestCtx)
-			ctx.On("TokenAuthentication").Return("", nil)
-			issuer := new(mocks.MyIssuer)
-			ra := new(mocks.RevocationAuthority)
-			privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-			if err != nil {
-				t.Fatalf("Failed to create ecdsa key: %s", err.Error())
-			}
+	RevocationKey, err := getCSP(t).KeyGen(&bccsp.IdemixRevocationKeyGenOpts{Temporary: true})
+	assert.NoError(t, err)
 
-			idemix := cidemix.InstanceForCurve(curveID)
-			curve := cidemix.CurveByID(curveID)
-
-			rand, err := curve.Rand()
-			if err != nil {
-				t.Fatalf("Failed generate random number: %s", err.Error())
-			}
-
-			cri, err := idemix.CreateCRI(privateKey, nil, 1, scheme.ALG_NO_REVOCATION, rand, idemix.Translator)
-			if err != nil {
-				t.Fatalf("Failed to create CRI: %s", err.Error())
-			}
-			ra.On("CreateCRI").Return(cri, nil)
-			issuer.On("RevocationAuthority").Return(ra)
-			handler := CRIRequestHandler{Ctx: ctx, Issuer: issuer}
-			_, err = handler.HandleRequest()
-			assert.NoError(t, err)
-		})
+	cri, err := getCSP(t).Sign(
+		RevocationKey,
+		nil,
+		&ibccsp.IdemixCRISignerOpts{
+			UnrevokedHandles:    nil,
+			Epoch:               1,
+			RevocationAlgorithm: types.AlgNoRevocation,
+		},
+	)
+	if err != nil {
+		t.Fatalf("Failed to create CRI: %s", err.Error())
 	}
+	ra.On("CreateCRI").Return(cri, nil)
+	issuer.RevocationAuthority = ra
+	handler := CRIRequestHandler{Ctx: ctx, Issuer: issuer}
+	_, err = handler.HandleRequest()
+	assert.NoError(t, err)
 }

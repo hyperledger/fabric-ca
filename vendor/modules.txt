@@ -1,9 +1,23 @@
-# github.com/IBM/idemix v0.0.2-0.20230510082947-a0c3ee5ebe35
+# github.com/IBM/idemix v0.0.2-0.20230914074304-f8eb4a0f6606
 ## explicit; go 1.19
-github.com/IBM/idemix/bccsp/schemes
+github.com/IBM/idemix/bccsp
+github.com/IBM/idemix/bccsp/handlers
+github.com/IBM/idemix/bccsp/keystore
+github.com/IBM/idemix/bccsp/schemes/dlog/bridge
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl
-# github.com/IBM/mathlib v0.0.3-0.20231011094432-44ee0eb539da
+github.com/IBM/idemix/common/flogging
+github.com/IBM/idemix/common/flogging/fabenc
+# github.com/IBM/idemix/bccsp/schemes/aries v0.0.0-20230818093228-308e96f529c9
+## explicit; go 1.19
+github.com/IBM/idemix/bccsp/schemes/aries
+# github.com/IBM/idemix/bccsp/schemes/weak-bb v0.0.0-20230818093228-308e96f529c9
+## explicit; go 1.19
+github.com/IBM/idemix/bccsp/schemes/weak-bb
+# github.com/IBM/idemix/bccsp/types v0.0.0-20230914074304-f8eb4a0f6606
+## explicit; go 1.19
+github.com/IBM/idemix/bccsp/types
+# github.com/IBM/mathlib v0.0.3-0.20230831091907-c532c4d3b65c
 ## explicit; go 1.18
 github.com/IBM/mathlib
 github.com/IBM/mathlib/driver
@@ -14,6 +28,9 @@ github.com/IBM/mathlib/driver/kilic
 # github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 ## explicit
 github.com/Knetic/govaluate
+# github.com/ale-linux/aries-framework-go/component/kmscrypto v0.0.0-20230817163708-4b3de6d91874
+## explicit; go 1.19
+github.com/ale-linux/aries-framework-go/component/kmscrypto/crypto/primitive/bbs12381g2pub
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
@@ -319,8 +336,8 @@ github.com/spf13/viper
 # github.com/stretchr/objx v0.5.0
 ## explicit; go 1.12
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.8.2
-## explicit; go 1.13
+# github.com/stretchr/testify v1.8.4
+## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 # github.com/subosito/gotenv v1.2.0
@@ -367,6 +384,7 @@ golang.org/x/crypto/blowfish
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2

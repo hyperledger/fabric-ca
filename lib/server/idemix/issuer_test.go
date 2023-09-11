@@ -7,16 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/hyperledger/fabric-ca/lib"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
@@ -29,39 +25,22 @@ import (
 )
 
 func TestNewIssuer(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testNewIssuer(t, curve)
-		})
-	}
-}
-
-func testNewIssuer(t *testing.T, curveID cidemix.CurveID) {
-	lib := new(mocks.Lib)
 	cfg := &Config{
 		NonceExpiration:    "15",
 		NonceSweepInterval: "15",
 	}
-	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), lib, curveID)
+	issuer := NewIssuer("ca1", ".", cfg, getCSP(t))
 	assert.NotNil(t, issuer)
 }
 
 func TestInit(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testInit(t, curve)
-		})
-	}
-}
-
-func testInit(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
 	err := os.MkdirAll(filepath.Join(testdir, "msp/keystore"), 0o777)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 	err = issuer.Init(false, nil, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err, "Init should not return an error if db is nil")
@@ -83,40 +62,24 @@ func testInit(t *testing.T, curveID cidemix.CurveID) {
 }
 
 func TestInitDBNotInitialized(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testInitDBNotInitialized(t, curve)
-		})
-	}
-}
-
-func testInitDBNotInitialized(t *testing.T, curveID cidemix.CurveID) {
 	cfg := &Config{
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
-	var db *dmocks.FabricCADB
-	issuer := NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib(curveID), curveID)
+	var db *dmocks.DbFabricCADB
+	issuer := NewIssuer("ca1", ".", cfg, getCSP(t))
 	err := issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 
-	db = new(dmocks.FabricCADB)
+	db = new(dmocks.DbFabricCADB)
 	db.On("IsInitialized").Return(false)
-	issuer = NewIssuer("ca1", ".", cfg, util.GetDefaultBCCSP(), NewLib(curveID), curveID)
+	issuer = NewIssuer("ca1", ".", cfg, getCSP(t))
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.NoError(t, err)
 }
 
 func TestInitExistingIssuerCredential(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testInitExistingIssuerCredential(t, curve)
-		})
-	}
-}
-
-func testInitExistingIssuerCredential(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -134,7 +97,7 @@ func testInitExistingIssuerCredential(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	secrekeyfile := filepath.Join(testdir, "msp/keystore/IssuerSecretKey")
@@ -159,24 +122,16 @@ func testInitExistingIssuerCredential(t *testing.T, curveID cidemix.CurveID) {
 }
 
 func TestInitRenewTrue(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testInitRenewTrue(t, curve)
-		})
-	}
-}
-
-func testInitRenewTrue(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
-	db, issuer := getIssuer(t, testdir, true, false, curveID)
+	db, issuer := getIssuer(t, testdir, true, false)
 	assert.NotNil(t, issuer)
 
-	db, issuer = getIssuer(t, testdir, false, true, curveID)
+	db, issuer = getIssuer(t, testdir, false, true)
 	assert.NotNil(t, issuer)
 	err := issuer.Init(true, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
 	assert.Error(t, err, "Init should fail if it fails to create new issuer key")
 
-	db, issuer = getIssuer(t, testdir, false, false, curveID)
+	db, issuer = getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	testdataInfo, err := os.Stat(testdir)
@@ -199,15 +154,7 @@ func testInitRenewTrue(t *testing.T, curveID cidemix.CurveID) {
 }
 
 func TestVerifyTokenError(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testVerifyTokenError(t, curve)
-		})
-	}
-}
-
-func testVerifyTokenError(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -226,7 +173,7 @@ func testVerifyTokenError(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	_, err = issuer.VerifyToken("idemix.1.foo.blah", "", "", []byte{})
@@ -251,15 +198,7 @@ func testVerifyTokenError(t *testing.T, curveID cidemix.CurveID) {
 }
 
 func TestVerifyTokenNoCreds(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testVerifyTokenNoCreds(t, curve)
-		})
-	}
-}
-
-func testVerifyTokenNoCreds(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -277,7 +216,7 @@ func testVerifyTokenNoCreds(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -294,15 +233,7 @@ func testVerifyTokenNoCreds(t *testing.T, curveID cidemix.CurveID) {
 }
 
 func TestVerifyTokenBadSignatureEncoding(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testVerifyTokenBadSignatureEncoding(t, curve)
-		})
-	}
-}
-
-func testVerifyTokenBadSignatureEncoding(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -320,7 +251,7 @@ func testVerifyTokenBadSignatureEncoding(t *testing.T, curveID cidemix.CurveID) 
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -338,15 +269,7 @@ func testVerifyTokenBadSignatureEncoding(t *testing.T, curveID cidemix.CurveID) 
 }
 
 func TestVerifyTokenBadSignature(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testVerifyTokenBadSignature(t, curve)
-		})
-	}
-}
-
-func testVerifyTokenBadSignature(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -364,7 +287,7 @@ func testVerifyTokenBadSignature(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -398,15 +321,7 @@ func TestIsToken(t *testing.T) {
 }
 
 func TestRevocationPublicKey(t *testing.T) {
-	for _, curve := range cidemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testRevocationPublicKey(t, curve)
-		})
-	}
-}
-
-func testRevocationPublicKey(t *testing.T, curveID cidemix.CurveID) {
-	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t, curveID)
+	testPublicKeyFile, testSecretKeyFile, tmpDir, err := GeneratePublicPrivateKeyPair(t)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
@@ -424,7 +339,7 @@ func testRevocationPublicKey(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to copy file: %s", err.Error())
 	}
 
-	db, issuer := getIssuer(t, testdir, false, false, curveID)
+	db, issuer := getIssuer(t, testdir, false, false)
 	assert.NotNil(t, issuer)
 
 	err = issuer.Init(false, db, &dbutil.Levels{Credential: 1, RAInfo: 1, Nonce: 1})
@@ -432,96 +347,4 @@ func testRevocationPublicKey(t *testing.T, curveID cidemix.CurveID) {
 
 	_, err = issuer.RevocationPublicKey()
 	assert.NoError(t, err, "RevocationPublicKey should not return an error")
-}
-
-func getIssuer(t *testing.T, testDir string, getranderror, newIssuerKeyerror bool, curveID cidemix.CurveID) (*dmocks.FabricCADB, Issuer) {
-	err := os.MkdirAll(filepath.Join(testDir, "msp/keystore"), 0o777)
-	if err != nil {
-		t.Fatalf("Failed to create directory: %s", err.Error())
-	}
-
-	db := new(dmocks.FabricCADB)
-
-	tx := new(dmocks.FabricCATx)
-	tx.On("Commit").Return(nil)
-	tx.On("Rollback").Return(nil)
-	tx.On("Rebind", SelectRAInfo).Return(SelectRAInfo)
-	tx.On("Rebind", UpdateNextHandle).Return(UpdateNextHandle)
-	tx.On("Exec", UpdateNextHandle, 2, 1).Return(nil, nil)
-	rcInfos := []RevocationAuthorityInfo{}
-	f1 := getTxSelectFunc(t, &rcInfos, 1, false, true)
-	tx.On("Select", &rcInfos, SelectRAInfo).Return(f1)
-
-	db.On("BeginTx").Return(tx)
-	db.On("IsInitialized").Return(true)
-
-	lib := new(mocks.Lib)
-
-	idemix := cidemix.InstanceForCurve(curveID)
-	curve := cidemix.CurveByID(curveID)
-	rnd, err := curve.Rand()
-	if err != nil {
-		t.Fatalf("Failed to get random number: %s", err.Error())
-	}
-	ik, err := idemix.NewIssuerKey(GetAttributeNames(), rnd, idemix.Translator)
-	if err != nil {
-		t.Fatalf("Failed to generate issuer key: %s", err.Error())
-	}
-	if getranderror {
-		lib.On("GetRand").Return(nil, errors.New("Failed to generate random number"))
-	} else {
-		lib.On("GetRand").Return(rnd, nil)
-	}
-
-	if newIssuerKeyerror {
-		lib.On("NewIssuerKey", GetAttributeNames()).Return(nil, errors.New("Failed to generate new issuer key"))
-	} else {
-		lib.On("NewIssuerKey", GetAttributeNames()).Return(ik, nil)
-	}
-
-	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		t.Fatalf("Failed to generate key: %s", err.Error())
-	}
-	lib.On("GenerateLongTermRevocationKey").Return(key, nil)
-
-	cfg := &Config{
-		RHPoolSize:         100,
-		NonceExpiration:    "15s",
-		NonceSweepInterval: "15m",
-	}
-	issuer := NewIssuer("ca1", testDir, cfg, util.GetDefaultBCCSP(), lib, curveID)
-
-	f := getSelectFunc(t, true, false)
-
-	rcInfosForSelect := []RevocationAuthorityInfo{}
-	db.On("Select", "GetRAInfo", &rcInfosForSelect, SelectRAInfo).Return(f)
-	rcinfo := RevocationAuthorityInfo{
-		Epoch:                1,
-		NextRevocationHandle: 1,
-		LastHandleInPool:     100,
-		Level:                1,
-	}
-	result := new(dmocks.Result)
-	result.On("RowsAffected").Return(int64(1), nil)
-	db.On("NamedExec", "AddRAInfo", InsertRAInfo, &rcinfo).Return(result, nil)
-
-	return db, issuer
-}
-
-func getCredsSelectFunc(t *testing.T, creds *[]CredRecord, isAppend bool) func(string, interface{}, string, ...interface{}) error {
-	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
-		credRecs := dest.(*[]CredRecord)
-		cred := CredRecord{
-			ID:     "foo",
-			Status: "active",
-			Cred:   "",
-		}
-
-		if isAppend {
-			//*creds = append(*creds, cred)
-			*credRecs = append(*credRecs, cred)
-		}
-		return nil
-	}
 }

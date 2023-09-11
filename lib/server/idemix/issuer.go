@@ -7,26 +7,20 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	schemes "github.com/IBM/idemix/bccsp/schemes"
-	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
-	math "github.com/IBM/mathlib"
+	bccsp "github.com/IBM/idemix/bccsp/types"
 	"github.com/cloudflare/cfssl/log"
-	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-ca/api"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	"github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
+	fabric_bccsp "github.com/hyperledger/fabric/bccsp"
 	"github.com/pkg/errors"
 )
 
@@ -40,22 +34,12 @@ type Issuer interface {
 	VerifyToken(authHdr, method, uri string, body []byte) (string, error)
 }
 
-//go:generate mockery --name MyIssuer --case underscore
-
-// MyIssuer provides functions for accessing issuer components
-type MyIssuer interface {
-	Name() string
-	HomeDir() string
-	Config() *Config
-	IdemixLib() Lib
-	DB() db.FabricCADB
-	IssuerCredential() IssuerCredential
-	RevocationAuthority() RevocationAuthority
-	NonceManager() NonceManager
-	CredDBAccessor() CredDBAccessor
-}
-
 //go:generate mockery --name ServerRequestCtx --case underscore
+
+//go:generate mockery --name UserUser --case underscore
+type UserUser interface {
+	user.User
+}
 
 // ServerRequestCtx is the server request context that Idemix enroll expects
 type ServerRequestCtx interface {
@@ -66,34 +50,30 @@ type ServerRequestCtx interface {
 	ReadBody(body interface{}) error
 }
 
-type issuer struct {
-	name      string
-	homeDir   string
-	cfg       *Config
-	idemixLib Lib
-	db        db.FabricCADB
-	csp       bccsp.BCCSP
+type IssuerInst struct {
+	Name    string
+	HomeDir string
+	Cfg     *Config
+	Db      db.FabricCADB
+	Csp     bccsp.BCCSP
 	// The Idemix credential DB accessor
-	credDBAccessor CredDBAccessor
+	CredDBAccessor CredDBAccessor
 	// idemix issuer credential for the CA
-	issuerCred    IssuerCredential
-	rc            RevocationAuthority
-	nm            NonceManager
-	isInitialized bool
-	mutex         sync.Mutex
-	curveID       cidemix.CurveID
-	t             idemix.Translator
-	curve         *math.Curve
+	IssuerCred          IssuerCredential
+	RevocationAuthority RevocationAuthority
+	NonceManager        NonceManager
+	IsInitialized       bool
+	mutex               sync.Mutex
 }
 
 // NewIssuer returns an object that implements Issuer interface
-func NewIssuer(name, homeDir string, config *Config, csp bccsp.BCCSP, idemixLib Lib, curveID cidemix.CurveID) Issuer {
-	issuer := issuer{name: name, homeDir: homeDir, cfg: config, csp: csp, idemixLib: idemixLib, curveID: curveID, curve: cidemix.CurveByID(curveID), t: cidemix.InstanceForCurve(curveID).Translator}
+func NewIssuer(name, homeDir string, config *Config, csp bccsp.BCCSP) Issuer {
+	issuer := IssuerInst{Name: name, HomeDir: homeDir, Cfg: config, Csp: csp}
 	return &issuer
 }
 
-func (i *issuer) Init(renew bool, db db.FabricCADB, levels *dbutil.Levels) error {
-	if i.isInitialized {
+func (i *IssuerInst) Init(renew bool, db db.FabricCADB, levels *dbutil.Levels) error {
+	if i.IsInitialized {
 		return nil
 	}
 
@@ -101,16 +81,16 @@ func (i *issuer) Init(renew bool, db db.FabricCADB, levels *dbutil.Levels) error
 	defer i.mutex.Unlock()
 
 	// After obtaining a lock, check again to see if issuer has been initialized by another thread
-	if i.isInitialized {
+	if i.IsInitialized {
 		return nil
 	}
 
 	if db == nil || reflect.ValueOf(db).IsNil() || !db.IsInitialized() {
-		log.Debugf("Returning without initializing Idemix issuer for CA '%s' as the database is not initialized", i.Name())
+		log.Debugf("Returning without initializing Idemix issuer for CA '%s' as the database is not initialized", i.Name)
 		return nil
 	}
-	i.db = db
-	err := i.cfg.init(i.homeDir)
+	i.Db = db
+	err := i.Cfg.init(i.HomeDir)
 	if err != nil {
 		return err
 	}
@@ -118,66 +98,65 @@ func (i *issuer) Init(renew bool, db db.FabricCADB, levels *dbutil.Levels) error
 	if err != nil {
 		return err
 	}
-	i.credDBAccessor = NewCredentialAccessor(i.db, levels.Credential)
-	log.Debugf("Intializing revocation authority for issuer '%s'", i.Name())
-	i.rc, err = NewRevocationAuthority(i, levels.RAInfo, i.curveID)
+	i.CredDBAccessor = NewCredentialAccessor(i.Db, levels.Credential)
+	log.Debugf("Intializing revocation authority for issuer '%s'", i.Name)
+	i.RevocationAuthority, err = NewRevocationAuthority(i, levels.RAInfo)
 	if err != nil {
 		return err
 	}
-	log.Debugf("Intializing nonce manager for issuer '%s'", i.Name())
-	i.nm, err = NewNonceManager(i, &wallClock{}, levels.Nonce)
+	log.Debugf("Intializing nonce manager for issuer '%s'", i.Name)
+	i.NonceManager, err = NewNonceManager(i, &wallClock{}, levels.Nonce)
 	if err != nil {
 		return err
 	}
-	i.isInitialized = true
+	i.IsInitialized = true
 	return nil
 }
 
-func (i *issuer) IssuerPublicKey() ([]byte, error) {
-	if !i.isInitialized {
+func (i *IssuerInst) IssuerPublicKey() ([]byte, error) {
+	if !i.IsInitialized {
 		return nil, errors.New("Issuer is not initialized")
 	}
-	ik, err := i.issuerCred.GetIssuerKey()
+	isk, err := i.IssuerCred.GetIssuerKey()
 	if err != nil {
 		return nil, err
 	}
-	ipkBytes, err := proto.Marshal(ik.Ipk)
+
+	ipk, err := isk.PublicKey()
+	if err != nil {
+		return nil, err
+	}
+
+	ipkBytes, err := ipk.Bytes()
 	if err != nil {
 		return nil, err
 	}
 	return ipkBytes, nil
 }
 
-func (i *issuer) RevocationPublicKey() ([]byte, error) {
-	if !i.isInitialized {
+func (i *IssuerInst) RevocationPublicKey() ([]byte, error) {
+	if !i.IsInitialized {
 		return nil, errors.New("Issuer is not initialized")
 	}
-	rpk := i.RevocationAuthority().PublicKey()
-	encodedPubKey, err := x509.MarshalPKIXPublicKey(rpk)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to encode revocation authority public key of the issuer %s", i.Name())
-	}
-	pemEncodedPubKey := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: encodedPubKey})
-	return pemEncodedPubKey, nil
+	rpk := i.RevocationAuthority.PublicKey()
+
+	return rpk.Bytes()
 }
 
-func (i *issuer) IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, error) {
-	if !i.isInitialized {
+func (i *IssuerInst) IssueCredential(ctx ServerRequestCtx) (*EnrollmentResponse, error) {
+	if !i.IsInitialized {
 		return nil, errors.New("Issuer is not initialized")
 	}
 	handler := EnrollRequestHandler{
-		Curve:   i.curve,
-		CurveID: i.curveID,
-		Ctx:     ctx,
-		Issuer:  i,
-		IdmxLib: i.idemixLib,
+		Ctx:    ctx,
+		Issuer: i,
 	}
 
 	return handler.HandleRequest()
 }
 
-func (i *issuer) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
-	if !i.isInitialized {
+func (i *IssuerInst) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
+	if !i.IsInitialized {
 		return nil, errors.New("Issuer is not initialized")
 	}
 	handler := CRIRequestHandler{
@@ -188,8 +167,8 @@ func (i *issuer) GetCRI(ctx ServerRequestCtx) (*api.GetCRIResponse, error) {
 	return handler.HandleRequest()
 }
 
-func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, error) {
-	if !i.isInitialized {
+func (i *IssuerInst) VerifyToken(authHdr, method, uri string, body []byte) (string, error) {
+	if !i.IsInitialized {
 		return "", errors.New("Issuer is not initialized")
 	}
 	// Disclosure array indicates which attributes are disclosed. 1 means disclosed. Currently four attributes are
@@ -198,7 +177,6 @@ func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, 
 	// EnrollmentID is disclosed to check if the signature was infact created using credential of a user whose
 	// enrollment ID is the one specified in the token. So, enrollment ID in the token is used to check if the user
 	// is valid and has a credential (by checking the DB) and it is used to verify zero knowledge proof.
-	disclosure := []byte{0, 0, 1, 0}
 	parts := getTokenParts(authHdr)
 	if parts == nil {
 		return "", errors.New("Invalid Idemix token format; token format must be: 'idemix.<enrollment ID>.<base64 encoding of Idemix signature bytes>'")
@@ -207,28 +185,32 @@ func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, 
 		return "", errors.New("Invalid version found in the Idemix token. Version must be 1")
 	}
 	enrollmentID := parts[2]
-	creds, err := i.credDBAccessor.GetCredentialsByID(enrollmentID)
+	creds, err := i.CredDBAccessor.GetCredentialsByID(enrollmentID)
 	if err != nil {
 		return "", errors.Errorf("Failed to check if enrollment ID '%s' is valid", enrollmentID)
 	}
 	if len(creds) == 0 {
 		return "", errors.Errorf("Enrollment ID '%s' does not have any Idemix credentials", enrollmentID)
 	}
-	idBytes := []byte(enrollmentID)
-	attrs := []*math.Zr{nil, nil, i.curve.HashToZr(idBytes), nil}
 	b64body := util.B64Encode(body)
 	b64uri := util.B64Encode([]byte(uri))
 	msg := method + "." + b64uri + "." + b64body
-	digest, digestError := i.csp.Hash([]byte(msg), &bccsp.SHAOpts{})
+	digest, digestError := i.Csp.Hash([]byte(msg), &fabric_bccsp.SHAOpts{})
 	if digestError != nil {
 		return "", errors.WithMessage(digestError, fmt.Sprintf("Failed to create authentication token '%s'", msg))
 	}
 
-	issuerKey, err := i.issuerCred.GetIssuerKey()
+	issuerSecretKey, err := i.IssuerCred.GetIssuerKey()
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to get issuer key")
 	}
-	ra := i.RevocationAuthority()
+
+	IssuerPublicKey, err := issuerSecretKey.PublicKey()
+	if err != nil {
+		return "", errors.WithMessage(err, "Failed to get issuer public key")
+	}
+
+	ra := i.RevocationAuthority
 	epoch, err := ra.Epoch()
 	if err != nil {
 		return "", err
@@ -238,68 +220,35 @@ func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, 
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to base64 decode signature specified in the token")
 	}
-	sig := &idemix.Signature{}
-	err = proto.Unmarshal(sigBytes, sig)
-	if err != nil {
-		return "", errors.WithMessage(err, "Failed to unmarshal signature bytes specified in the token")
-	}
-	err = sig.Ver(disclosure, issuerKey.Ipk, digest, attrs, 3, 0, ra.PublicKey(), epoch, i.curve, i.t, schemes.BestEffort, nil)
-	if err != nil {
+
+	valid, err := i.Csp.Verify(
+		IssuerPublicKey,
+		sigBytes,
+		digest,
+		&bccsp.IdemixSignerOpts{
+			Attributes: []bccsp.IdemixAttribute{
+				{Type: bccsp.IdemixHiddenAttribute},
+				{Type: bccsp.IdemixHiddenAttribute},
+				{Type: bccsp.IdemixBytesAttribute, Value: []byte(enrollmentID)},
+				{Type: bccsp.IdemixHiddenAttribute},
+			},
+			RhIndex:          3,
+			EidIndex:         2,
+			VerificationType: bccsp.BestEffort,
+			Epoch:            epoch,
+		},
+	)
+	if err != nil || !valid {
 		return "", errors.WithMessage(err, "Failed to verify the token")
 	}
+
 	return enrollmentID, nil
 }
 
-// Name returns the name of the issuer
-func (i *issuer) Name() string {
-	return i.name
-}
-
-// HomeDir returns the home directory of the issuer
-func (i *issuer) HomeDir() string {
-	return i.homeDir
-}
-
-// Config returns config of this issuer
-func (i *issuer) Config() *Config {
-	return i.cfg
-}
-
-// IdemixLib return idemix library instance
-func (i *issuer) IdemixLib() Lib {
-	return i.idemixLib
-}
-
-// DB returns the FabricCADB object (which represents database handle
-// to the CA database) associated with this issuer
-func (i *issuer) DB() db.FabricCADB {
-	return i.db
-}
-
-// IssuerCredential returns IssuerCredential of this issuer
-func (i *issuer) IssuerCredential() IssuerCredential {
-	return i.issuerCred
-}
-
-// RevocationAuthority returns revocation authority of this issuer
-func (i *issuer) RevocationAuthority() RevocationAuthority {
-	return i.rc
-}
-
-// NonceManager returns nonce manager of this issuer
-func (i *issuer) NonceManager() NonceManager {
-	return i.nm
-}
-
-// CredDBAccessor returns the Idemix credential DB accessor for issuer
-func (i *issuer) CredDBAccessor() CredDBAccessor {
-	return i.credDBAccessor
-}
-
-func (i *issuer) initKeyMaterial(renew bool) error {
-	idemixPubKey := i.cfg.IssuerPublicKeyfile
-	idemixSecretKey := i.cfg.IssuerSecretKeyfile
-	issuerCred := NewIssuerCredential(idemixPubKey, idemixSecretKey, i.idemixLib, i.curveID)
+func (i *IssuerInst) initKeyMaterial(renew bool) error {
+	idemixPubKey := i.Cfg.IssuerPublicKeyfile
+	idemixSecretKey := i.Cfg.IssuerSecretKeyfile
+	issuerCred := NewIssuerCredential(idemixPubKey, idemixSecretKey, i.Csp)
 
 	log.Debugf("renew is set to [%v]", renew)
 	if !renew {
@@ -315,7 +264,7 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 			if err != nil {
 				return err
 			}
-			i.issuerCred = issuerCred
+			i.IssuerCred = issuerCred
 			return nil
 		}
 	}
@@ -323,13 +272,13 @@ func (i *issuer) initKeyMaterial(renew bool) error {
 	if err != nil {
 		return err
 	}
-	log.Debugf("Idemix issuer public and secret keys were generated for CA '%s'", i.name)
+	log.Debugf("Idemix issuer public and secret keys were generated for CA '%s'", i.Name)
 	issuerCred.SetIssuerKey(ik)
 	err = issuerCred.Store()
 	if err != nil {
 		return err
 	}
-	i.issuerCred = issuerCred
+	i.IssuerCred = issuerCred
 	return nil
 }
 
