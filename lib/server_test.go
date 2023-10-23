@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -386,7 +385,7 @@ func TestSRVProfiling(t *testing.T) {
 	// send heap profiling request to the server and expect a bad response
 	// as profiling is disabled
 	if err2 == nil && resp1.StatusCode == 200 {
-		responseData, _ := ioutil.ReadAll(resp1.Body)
+		responseData, _ := io.ReadAll(resp1.Body)
 		t.Errorf("Expected error response for profile request %s but got good response: %s",
 			url, responseData)
 	}
@@ -429,7 +428,7 @@ func TestSRVProfiling(t *testing.T) {
 	resp, err1 := sendGetReq(url, t)
 	if err1 != nil || resp.StatusCode != 200 {
 		if err1 == nil {
-			responseData, _ := ioutil.ReadAll(resp.Body)
+			responseData, _ := io.ReadAll(resp.Body)
 			err1 = fmt.Errorf("Invalid response %s with code %d returned for the request %s",
 				string(responseData), resp.StatusCode, url)
 		}
@@ -680,7 +679,7 @@ func TestSRVRunningTLSServer(t *testing.T) {
 
 	// make sure only TLSv1.2 and TLSv1.3 are supported
 	rootPool := x509.NewCertPool()
-	rootBytes, _ := ioutil.ReadFile("../testdata/root.pem")
+	rootBytes, _ := os.ReadFile("../testdata/root.pem")
 	rootPool.AppendCertsFromPEM(rootBytes)
 	for _, tlsVersion := range []uint16{tls.VersionTLS12, tls.VersionTLS13} {
 		_, err = tls.Dial("tcp", fmt.Sprintf("localhost:%d", rootPort), &tls.Config{
@@ -856,7 +855,7 @@ func invalidTokenAuthorization(t *testing.T) {
 
 func addTokenAuthHeader(req *http.Request, t *testing.T) {
 	CSP := factory.GetDefault()
-	cert, err := ioutil.ReadFile("../testdata/ec.pem")
+	cert, err := os.ReadFile("../testdata/ec.pem")
 	if err != nil {
 		t.Fatalf("Failed reading ec.pem: %s", err)
 	}
@@ -986,12 +985,12 @@ func TestSRVMultiCAConfigs(t *testing.T) {
 	}
 
 	// Starting server with (bad) existing certificate
-	err = ioutil.WriteFile("../testdata/ca/rootca/ca1/ca-key.pem", make([]byte, 1), 0644)
+	err = os.WriteFile("../testdata/ca/rootca/ca1/ca-key.pem", make([]byte, 1), 0644)
 	t.Logf("Create err: %v", err)
 	if !util.FileExists("../testdata/ca/rootca/ca1/ca-key.pem") {
 		t.Fatal("../testdata/ca1/ca-key.pem doesn't exist")
 	}
-	err = ioutil.WriteFile("../testdata/ca/rootca/ca1/ca-cert.pem", make([]byte, 1), 0644)
+	err = os.WriteFile("../testdata/ca/rootca/ca1/ca-cert.pem", make([]byte, 1), 0644)
 	t.Logf("Create err: %v", err)
 	if !util.FileExists("../testdata/ca/rootca/ca1/ca-cert.pem") {
 		t.Fatal("../testdata/ca1/ca-cert.pem doesn't exist")
@@ -2601,7 +2600,7 @@ intermediate:
 `, name, port, parentcaname)
 	os.MkdirAll(home, 0755)
 	fpath := path.Join(home, fmt.Sprintf("%s.yaml", filename))
-	err := ioutil.WriteFile(fpath, []byte(contents), 0644)
+	err := os.WriteFile(fpath, []byte(contents), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create ca1.yaml: %s", err)
 	}
@@ -2828,7 +2827,7 @@ func TestPrometheusMetricsE2E(t *testing.T) {
 	)
 	gt.Expect(err).NotTo(HaveOccurred())
 	clientCertPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(filepath.Join(testdata, "root.pem"))
+	caCert, err := os.ReadFile(filepath.Join(testdata, "root.pem"))
 	gt.Expect(err).NotTo(HaveOccurred())
 	clientCertPool.AppendCertsFromPEM(caCert)
 
@@ -2848,7 +2847,7 @@ func TestPrometheusMetricsE2E(t *testing.T) {
 	gt.Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	gt.Expect(err).NotTo(HaveOccurred())
 	body := string(bodyBytes)
 

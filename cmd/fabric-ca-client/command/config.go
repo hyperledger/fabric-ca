@@ -8,7 +8,6 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -358,7 +357,7 @@ func (c *ClientCmd) createDefaultConfigFile() error {
 	}
 
 	// Now write the file
-	return ioutil.WriteFile(c.cfgFileName, []byte(cfg), 0o755)
+	return os.WriteFile(c.cfgFileName, []byte(cfg), 0o755)
 }
 
 // processAttributes parses attributes from command line or env variable

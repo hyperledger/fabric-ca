@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -49,7 +48,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to marshal signer config: %s", err.Error())
 	}
 
-	err = ioutil.WriteFile(testSignerConfigFile, rawSignerConf, 0o644)
+	err = os.WriteFile(testSignerConfigFile, rawSignerConf, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write signer config to file: %s", err.Error())
 	}
@@ -59,7 +58,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to marshal IPK: %s", err.Error())
 	}
 
-	err = ioutil.WriteFile(testIssuerPublicFile, rawIPK, 0o644)
+	err = os.WriteFile(testIssuerPublicFile, rawIPK, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write IPK to file: %s", err.Error())
 	}
@@ -111,7 +110,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 	err = idemixCred.Load()
 	assert.Errorf(t, err, "Load should fail as %s is not found", signerConfig)
 
-	err = ioutil.WriteFile(signerConfig, []byte("hello"), 0o744)
+	err = os.WriteFile(signerConfig, []byte("hello"), 0o744)
 	if err != nil {
 		t.Fatalf("Failed to write to file %s: %s", signerConfig, err.Error())
 	}

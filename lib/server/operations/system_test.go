@@ -8,7 +8,7 @@ package operations_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -35,7 +35,7 @@ var _ = Describe("System", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "system")
+		tempDir, err = os.MkdirTemp("", "system")
 		Expect(err).NotTo(HaveOccurred())
 
 		err = generateCertificates(tempDir)
@@ -165,7 +165,7 @@ var _ = Describe("System", func() {
 			resp, err := authClient.Get(metricsURL)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(body).To(ContainSubstring("# TYPE go_gc_duration_seconds summary"))

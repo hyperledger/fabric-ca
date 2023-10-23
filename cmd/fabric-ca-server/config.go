@@ -7,7 +7,6 @@ SPDX-License-Identifier: Apache-2.0
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -696,5 +695,5 @@ func (s *ServerCmd) createDefaultConfigFile() error {
 	}
 
 	// Now write the file
-	return ioutil.WriteFile(s.cfgFileName, []byte(cfg), 0o644)
+	return os.WriteFile(s.cfgFileName, []byte(cfg), 0o644)
 }

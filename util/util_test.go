@@ -14,7 +14,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"os"
@@ -32,7 +31,7 @@ import (
 // are some obvious deficiencies.
 
 func TestGetEnrollmentIDFromPEM(t *testing.T) {
-	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	cert, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 
 	_, err = GetEnrollmentIDFromPEM(cert)
@@ -44,7 +43,7 @@ func TestECCreateToken(t *testing.T) {
 	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
 	assert.NoError(t, err, "failed to import key")
 
-	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	cert, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 	body := []byte("request byte array")
 
@@ -73,7 +72,7 @@ func TestECCreateToken(t *testing.T) {
 	_, err = VerifyToken(bccsp, tok, "GET", "/enroll", append(body, byte('T')), false)
 	assert.Error(t, err, "VerifyToken should have failed as the body was changed")
 
-	ski, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	ski, err := os.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	assert.NoError(t, err, "failed to read ec-key.ski")
 
 	tok, err = CreateToken(bccsp, ski, privKey, "GET", "/enroll", body)
@@ -114,14 +113,14 @@ func TestDecodeToken(t *testing.T) {
 }
 
 func TestGetX509CertFromPem(t *testing.T) {
-	certBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	certBuffer, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 
 	certificate, err := GetX509CertificateFromPEM(certBuffer)
 	assert.NoError(t, err, "GetX509CertificateFromPEM failed")
 	assert.NotNil(t, certificate, "certificate cannot be nil")
 
-	skiBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	skiBuffer, err := os.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	assert.NoError(t, err)
 
 	certificate, err = GetX509CertificateFromPEM(skiBuffer)
@@ -130,7 +129,7 @@ func TestGetX509CertFromPem(t *testing.T) {
 }
 
 func TestGetX509CertsFromPem(t *testing.T) {
-	certBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	certBuffer, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 
 	certificates, err := GetX509CertificatesFromPEM(certBuffer)
@@ -138,7 +137,7 @@ func TestGetX509CertsFromPem(t *testing.T) {
 	assert.NotNil(t, certificates)
 	assert.Equal(t, 1, len(certificates), "GetX509CertificatesFromPEM should have returned 1 certificate")
 
-	skiBuffer, err := ioutil.ReadFile(filepath.Join("testdata", "ec-key.ski"))
+	skiBuffer, err := os.ReadFile(filepath.Join("testdata", "ec-key.ski"))
 	assert.NoError(t, err)
 
 	certificates, err = GetX509CertificatesFromPEM(skiBuffer)
@@ -150,7 +149,7 @@ func TestGetX509CertsFromPem(t *testing.T) {
 // imported so privKey is nil when CreateToken is called.
 
 // func TestCreateTokenDiffKey(t *testing.T) {
-// 	cert, _ := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+// 	cert, _ := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 // 	bccsp := GetDefaultBCCSP()
 // 	privKey, _ := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "rsa-key.pem"), bccsp, true)
 // 	body := []byte("request byte array")
@@ -167,7 +166,7 @@ func TestEmptyToken(t *testing.T) {
 }
 
 func TestEmptyCert(t *testing.T) {
-	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	cert, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 
 	csp := factory.GetDefault()
@@ -188,7 +187,7 @@ func TestEmptyBody(t *testing.T) {
 	bccsp := GetDefaultBCCSP()
 	privKey, err := ImportBCCSPKeyFromPEM(filepath.Join("testdata", "ec-key.pem"), bccsp, true)
 	assert.NoError(t, err)
-	cert, err := ioutil.ReadFile(filepath.Join("testdata", "ec.pem"))
+	cert, err := os.ReadFile(filepath.Join("testdata", "ec.pem"))
 	assert.NoError(t, err)
 
 	_, err = CreateToken(bccsp, cert, privKey, "POST", "/enroll", []byte(""))
@@ -277,7 +276,7 @@ func TestMarshal(t *testing.T) {
 	assert.NoError(t, err, "failed to marshal")
 }
 
-// TODO(mjs): Get rid of this. It's literally a call to ioutil.ReadFile.
+// TODO(mjs): Get rid of this. It's literally a call to os.ReadFile.
 func TestReadFile(t *testing.T) {
 	_, err := ReadFile(filepath.Join("testdata", "csr.json"))
 	assert.NoError(t, err, "failed to read file")
@@ -575,7 +574,7 @@ func TestRead(t *testing.T) {
 }
 
 func getPEM(file string, t *testing.T) []byte {
-	buf, err := ioutil.ReadFile(file)
+	buf, err := os.ReadFile(file)
 	assert.NoError(t, err)
 	return buf
 }

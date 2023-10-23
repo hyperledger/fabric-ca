@@ -9,7 +9,6 @@ package lib
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -266,7 +265,7 @@ func TestCAConfigDBStringer(t *testing.T) {
 }
 
 func getTestDir(d string) (string, error) {
-	td, err := ioutil.TempDir(".", d)
+	td, err := os.MkdirTemp(".", d)
 	if err != nil {
 		return string(""), err
 	}
@@ -710,10 +709,10 @@ func testCAVerifyCertificate(t *testing.T) {
 
 	err = GenerateECDSATestCert()
 	util.FatalError(t, err, "Failed to generate certificate for testing")
-	caCert1, err := ioutil.ReadFile("../testdata/ec_cert.pem")
+	caCert1, err := os.ReadFile("../testdata/ec_cert.pem")
 	assert.NoError(t, err, "failed to read ec_cert.pem")
 	caCert2 := append(caCert1, util.RandomString(128)...)
-	err = ioutil.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0o644)
+	err = os.WriteFile(filepath.Join(os.TempDir(), "ca-chainfile.pem"), caCert2, 0o644)
 	assert.NoError(t, err, "failed to write ca-chainfile.pem")
 	ca.Config.CA.Chainfile = filepath.Join(os.TempDir(), "ca-chainfile.pem")
 	err = ca.VerifyCertificate(cert, false)
@@ -796,7 +795,7 @@ func TestServerMigration(t *testing.T) {
 }
 
 func getCertFromFile(f string) (*x509.Certificate, error) {
-	p, err := ioutil.ReadFile(f)
+	p, err := os.ReadFile(f)
 	if err != nil {
 		return nil, fmt.Errorf("read of %s failed", f)
 	}

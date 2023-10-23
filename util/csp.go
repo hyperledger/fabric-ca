@@ -15,7 +15,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	_ "time" // for ocspSignerFromConfig
 
@@ -173,7 +173,7 @@ func GetSignerFromCert(cert *x509.Certificate, csp bccsp.BCCSP) (bccsp.Key, cryp
 // GetSignerFromCertFile load skiFile and load private key represented by ski and return bccsp signer that conforms to crypto.Signer
 func GetSignerFromCertFile(certFile string, csp bccsp.BCCSP) (bccsp.Key, crypto.Signer, *x509.Certificate, error) {
 	// Load cert file
-	certBytes, err := ioutil.ReadFile(certFile)
+	certBytes, err := os.ReadFile(certFile)
 	if err != nil {
 		return nil, nil, nil, errors.Wrapf(err, "Could not read certFile '%s'", certFile)
 	}
@@ -208,7 +208,7 @@ func BCCSPKeyRequestGenerate(req *csr.CertificateRequest, myCSP bccsp.BCCSP) (bc
 
 // ImportBCCSPKeyFromPEM attempts to create a private BCCSP key from a pem file keyFile
 func ImportBCCSPKeyFromPEM(keyFile string, myCSP bccsp.BCCSP, temporary bool) (bccsp.Key, error) {
-	keyBuff, err := ioutil.ReadFile(keyFile)
+	keyBuff, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +244,7 @@ func ImportBCCSPKeyFromPEM(keyFile string, myCSP bccsp.BCCSP, temporary bool) (b
 // BCCSP Signer
 func LoadX509KeyPair(certFile, keyFile string, csp bccsp.BCCSP) (*tls.Certificate, error) {
 
-	certPEMBlock, err := ioutil.ReadFile(certFile)
+	certPEMBlock, err := os.ReadFile(certFile)
 	if err != nil {
 		return nil, err
 	}

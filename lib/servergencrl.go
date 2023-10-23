@@ -11,8 +11,8 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/crl"
@@ -145,7 +145,7 @@ func genCRL(ca *CA, req api.GenCRLRequest) ([]byte, error) {
 
 func getCACert(ca *CA) (*x509.Certificate, error) {
 	// Get CA certificate
-	caCertBytes, err := ioutil.ReadFile(ca.Config.CA.Certfile)
+	caCertBytes, err := os.ReadFile(ca.Config.CA.Certfile)
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to read certificate for the CA '%s'", ca.HomeDir))
 	}

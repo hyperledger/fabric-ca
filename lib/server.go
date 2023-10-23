@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // import to support profiling
@@ -526,7 +525,7 @@ func (s *Server) createDefaultCAConfigs(cacount int) error {
 			return err
 		}
 
-		err = ioutil.WriteFile(cfgFileName, []byte(cfg), 0644)
+		err = os.WriteFile(cfgFileName, []byte(cfg), 0644)
 		if err != nil {
 			return err
 		}
@@ -890,7 +889,7 @@ func (s *Server) autoGenerateTLSCertificateKey() error {
 	}
 
 	// Write the TLS certificate to the file system
-	err = ioutil.WriteFile(s.Config.TLS.CertFile, cert, 0644)
+	err = os.WriteFile(s.Config.TLS.CertFile, cert, 0644)
 	if err != nil {
 		return fmt.Errorf("Failed to write TLS certificate: %s", err)
 	}

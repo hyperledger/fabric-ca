@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
@@ -161,7 +160,7 @@ func TestCreateDefaultConfigFile(t *testing.T) {
 		t.Errorf("No server running, should have failed")
 	}
 
-	fileBytes, err := ioutil.ReadFile(defYaml)
+	fileBytes, err := os.ReadFile(defYaml)
 	if err != nil {
 		t.Error(err)
 	}
@@ -311,12 +310,12 @@ func TestEnrollmentCertExpiry(t *testing.T) {
 	certfile := filepath.Join(adminHome, "msp/signcerts/cert.pem")
 	cacertFile := filepath.Join(adminHome, "msp/cacerts/localhost-"+strconv.Itoa(serverPort)+".pem")
 
-	certbytes, err := ioutil.ReadFile(certfile)
+	certbytes, err := os.ReadFile(certfile)
 	assert.NoError(t, err, "Failed to read the cert from the file %s", certfile)
 	cert, err := lib.BytesToX509Cert(certbytes)
 	assert.NoError(t, err, "Failed to convert bytes to certificate")
 
-	certbytes, err = ioutil.ReadFile(cacertFile)
+	certbytes, err = os.ReadFile(cacertFile)
 	assert.NoError(t, err, "Failed to read the cert from the file %s", cacertFile)
 	cacert, err := lib.BytesToX509Cert(certbytes)
 	assert.NoError(t, err, "Failed to convert bytes to certificate")
@@ -1069,7 +1068,7 @@ func TestGencsr(t *testing.T) {
 	signcerts := path.Join(mspDir, "signcerts")
 	assertFilesInDir(signcerts, 1, t)
 
-	files, err := ioutil.ReadDir(signcerts)
+	files, err := os.ReadDir(signcerts)
 	if err != nil {
 		t.Fatalf("Failed to get number of files in directory '%s': %s", signcerts, err)
 	}
@@ -1118,7 +1117,7 @@ func TestDifferentKeySizeAlgos(t *testing.T) {
 			return err
 		}
 		fileName := filepath.Join(dir, "fabric-ca-client-config.yaml")
-		err = ioutil.WriteFile(fileName, []byte(cfg), os.ModePerm)
+		err = os.WriteFile(fileName, []byte(cfg), os.ModePerm)
 		return err
 	}
 
@@ -1157,7 +1156,7 @@ func TestDifferentKeySizeAlgos(t *testing.T) {
 		if !data.errorExpected {
 			assert.NoError(t, err, "GenCSR called with %s algorithm and %d key size should not have failed", data.algo, data.size)
 			csrFileName := cn + ".csr"
-			csrBytes, rerr := ioutil.ReadFile(filepath.Join(homeDir, "msp/signcerts", csrFileName))
+			csrBytes, rerr := os.ReadFile(filepath.Join(homeDir, "msp/signcerts", csrFileName))
 			assert.NoError(t, rerr, "Failed to read the generated CSR from the file %s:", csrFileName)
 
 			block, _ := pem.Decode(csrBytes)
@@ -1183,7 +1182,7 @@ func TestDifferentKeySizeAlgos(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to enroll admin: %s", err)
 	}
-	certBytes, rerr1 := ioutil.ReadFile(filepath.Join(homeDir, "msp/signcerts/cert.pem"))
+	certBytes, rerr1 := os.ReadFile(filepath.Join(homeDir, "msp/signcerts/cert.pem"))
 	if rerr1 != nil {
 		t.Fatalf("Failed to read the enrollment certificate: %s", err)
 	}
@@ -1231,9 +1230,9 @@ func TestMOption(t *testing.T) {
 	assertFilesInDir(path.Join(homedir, mspdir, "cacerts"), 1, t)
 	assertFilesInDir(path.Join(homedir, mspdir, "intermediatecerts"), 1, t)
 	validCertsInDir(path.Join(homedir, mspdir, "cacerts"), path.Join(homedir, mspdir, "intermediatecerts"), t)
-	_, err = ioutil.ReadDir(path.Join(homedir, mspdir, "tlscacerts"))
+	_, err = os.ReadDir(path.Join(homedir, mspdir, "tlscacerts"))
 	assert.Error(t, err, "The MSP folder 'tlscacerts' should not exist")
-	_, err = ioutil.ReadDir(path.Join(homedir, mspdir, "tlsintermediatecerts"))
+	_, err = os.ReadDir(path.Join(homedir, mspdir, "tlsintermediatecerts"))
 	assert.Error(t, err, "The MSP folder 'tlsintermediatecerts' should not exist")
 
 	homedir = path.Join(moptionDir, "client")
@@ -1251,7 +1250,7 @@ func TestMOption(t *testing.T) {
 	assertFilesInDir(path.Join(homedir, mspdir, "tlsintermediatecerts"), 1, t)
 	validCertsInDir(path.Join(homedir, mspdir, "tlscacerts"), path.Join(homedir, mspdir, "tlsintermediatecerts"), t)
 	assertFilesInDir(path.Join(homedir, mspdir, "cacerts"), 0, t)
-	_, err = ioutil.ReadDir(path.Join(homedir, mspdir, "intermediatecerts"))
+	_, err = os.ReadDir(path.Join(homedir, mspdir, "intermediatecerts"))
 	assert.Error(t, err, "The MSP folder 'intermediatecerts' should not exist")
 
 	// Test case: msp and home are in different paths
@@ -1277,7 +1276,7 @@ func TestMOption(t *testing.T) {
 
 // Checks to see if root and intermediate certificates are correctly getting stored in their respective directories
 func validCertsInDir(rootCertDir, interCertsDir string, t *testing.T) {
-	files, err := ioutil.ReadDir(rootCertDir)
+	files, err := os.ReadDir(rootCertDir)
 	if err != nil {
 		t.Fatalf("failed to read root cert dir: %s", err)
 	}
@@ -1317,7 +1316,7 @@ func TestThreeCAHierarchy(t *testing.T) {
 // the 'intermediatecerts' folder.
 func testThreeCAHierarchy(t *testing.T) {
 	validateCACerts := func(rootCertDir, interCertsDir string) {
-		files, err := ioutil.ReadDir(rootCertDir)
+		files, err := os.ReadDir(rootCertDir)
 		assert.NoError(t, err, "failed to read %", rootCertDir)
 		file := files[0].Name()
 		rootCertPath := filepath.Join(rootCertDir, file)
@@ -2467,7 +2466,7 @@ func stopAndCleanupServer(t *testing.T, srv *lib.Server) {
 // revoked certificates
 func checkCRL(t *testing.T, client *lib.Client, revokedSerials []*big.Int) {
 	crlfile := filepath.Join(client.Config.MSPDir, "crls/crl.pem")
-	crl, err := ioutil.ReadFile(crlfile)
+	crl, err := os.ReadFile(crlfile)
 	assert.NoError(t, err, "Failed to read the CRL from the file %s", crlfile)
 	blk, _ := pem.Decode(crl)
 	assert.Equal(t, blk.Type, "X509 CRL", "The %s is not a pem encoded CRL")
@@ -2593,7 +2592,7 @@ func extraArgErrorTest(in *TestData, t *testing.T) {
 
 // Make sure there is exactly one file in a directory
 func assertFilesInDir(dir string, numFiles int, t *testing.T) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("Failed to get number of files in directory '%s': %s", dir, err)
 	}

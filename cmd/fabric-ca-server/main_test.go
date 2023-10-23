@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -86,7 +85,7 @@ func TestNoArguments(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	os.Unsetenv(homeEnvVar)
-	_ = ioutil.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
+	_ = os.WriteFile(badSyntaxYaml, []byte("signing: true\n"), 0644)
 
 	// errorTest validates error cases
 	errorTest := func(in *TestData, t *testing.T) {

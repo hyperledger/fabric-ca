@@ -8,7 +8,6 @@ package idemix_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -37,7 +36,7 @@ func testLoadEmptyIdemixPublicKey(t *testing.T, curveID cidemix.CurveID) {
 	defer os.RemoveAll(tmpDir)
 
 	testdir := t.TempDir()
-	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
+	pubkeyfile, err := os.CreateTemp(testdir, "IdemixPublicKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
@@ -61,11 +60,11 @@ func TestLoadFakeIdemixPublicKey(t *testing.T) {
 
 func testLoadFakeIdemixPublicKey(t *testing.T, curveID cidemix.CurveID) {
 	testdir := t.TempDir()
-	pubkeyfile, err := ioutil.TempFile(testdir, "IdemixPublicKey")
+	pubkeyfile, err := os.CreateTemp(testdir, "IdemixPublicKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	privkeyfile, err := ioutil.TempFile(testdir, "IdemixSecretKey")
+	privkeyfile, err := os.CreateTemp(testdir, "IdemixSecretKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
@@ -97,7 +96,7 @@ func testLoadEmptyIdemixSecretKey(t *testing.T, curveID cidemix.CurveID) {
 	defer os.RemoveAll(tmpDir)
 
 	testdir := t.TempDir()
-	privkeyfile, err := ioutil.TempFile(testdir, "IdemixSecretKey")
+	privkeyfile, err := os.CreateTemp(testdir, "IdemixSecretKey")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
@@ -219,7 +218,7 @@ func testStoreReadonlyPublicKeyFilePath(t *testing.T, curveID cidemix.CurveID) {
 
 	// Valid issuer public key
 	validPubKeyFile := testPublicKeyFile
-	pubKeyBytes, err := ioutil.ReadFile(validPubKeyFile)
+	pubKeyBytes, err := os.ReadFile(validPubKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to read idemix public key file %s", validPubKeyFile)
 	}
@@ -261,7 +260,7 @@ func testStoreReadonlySecretKeyFilePath(t *testing.T, curveID cidemix.CurveID) {
 	privkeyfile := filepath.Join(testdir, "foo/IdemixSecretKey")
 
 	// Valid issuer public key
-	pubKeyBytes, err := ioutil.ReadFile(testPublicKeyFile)
+	pubKeyBytes, err := os.ReadFile(testPublicKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to read idemix public key file %s", testPublicKeyFile)
 	}

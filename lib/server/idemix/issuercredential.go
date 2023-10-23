@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
-	"io/ioutil"
+	"os"
 
 	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
 	math "github.com/IBM/mathlib"
@@ -68,7 +68,7 @@ func NewIssuerCredential(pubKeyFile, secretKeyFile string, lib Lib, curveID cide
 // Load loads the CA's Idemix public and private key from the location specified
 // by pubKeyFile and secretKeyFile attributes, respectively
 func (ic *caIdemixCredential) Load() error {
-	pubKeyBytes, err := ioutil.ReadFile(ic.pubKeyFile)
+	pubKeyBytes, err := os.ReadFile(ic.pubKeyFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read Issuer public key")
 	}
@@ -84,7 +84,7 @@ func (ic *caIdemixCredential) Load() error {
 	if err != nil {
 		return errors.Wrapf(err, "Issuer public key check failed")
 	}
-	privKey, err := ioutil.ReadFile(ic.secretKeyFile)
+	privKey, err := os.ReadFile(ic.secretKeyFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read Issuer secret key")
 	}

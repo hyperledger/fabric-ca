@@ -8,7 +8,6 @@ package idemix
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -123,12 +122,12 @@ func GeneratePublicPrivateKeyPair(t *testing.T, curveID idemix2.CurveID) (string
 	testSecretKeyFile := filepath.Join(tmpDir, "IdemixSecretKey")
 
 	pk, sk := makePubPrivKeyPair(curveID, t)
-	err = ioutil.WriteFile(testPublicKeyFile, pk, 0o644)
+	err = os.WriteFile(testPublicKeyFile, pk, 0o644)
 	if err != nil {
 		t.Fatalf("Failed writing public key to file: %s", err.Error())
 	}
 
-	err = ioutil.WriteFile(testSecretKeyFile, sk, 0o644)
+	err = os.WriteFile(testSecretKeyFile, sk, 0o644)
 	if err != nil {
 		t.Fatalf("Failed writing private key to file: %s", err.Error())
 	}

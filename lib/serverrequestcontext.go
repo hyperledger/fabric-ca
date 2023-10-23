@@ -11,7 +11,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -387,7 +387,7 @@ func (ctx *serverRequestContextImpl) TryReadBody(body interface{}) (bool, error)
 func (ctx *serverRequestContextImpl) ReadBodyBytes() ([]byte, error) {
 	if !ctx.body.read {
 		r := ctx.req
-		buf, err := ioutil.ReadAll(r.Body)
+		buf, err := io.ReadAll(r.Body)
 		ctx.body.buf = buf
 		ctx.body.err = err
 		ctx.body.read = true
