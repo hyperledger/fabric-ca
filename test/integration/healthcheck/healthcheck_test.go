@@ -8,7 +8,7 @@ package healthcheck
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -47,7 +47,7 @@ func TestHealthCheckEndpoint(t *testing.T) {
 	resp, err = client.Get(healthURL)
 	assert.NoError(t, err)
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 
 	resp.Body.Close()

@@ -16,7 +16,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
 	"net/http"
@@ -78,7 +77,7 @@ func RandomString(n int) string {
 
 // ReadFile reads a file
 func ReadFile(file string) ([]byte, error) {
-	return ioutil.ReadFile(file)
+	return os.ReadFile(file)
 }
 
 // WriteFile writes a file
@@ -91,7 +90,7 @@ func WriteFile(file string, buf []byte, perm os.FileMode) error {
 			return errors.Wrapf(err, "Failed to create directory '%s' for file '%s'", dir, file)
 		}
 	}
-	return ioutil.WriteFile(file, buf, perm)
+	return os.WriteFile(file, buf, perm)
 }
 
 // FileExists checks to see if a file exists
@@ -335,16 +334,16 @@ func B64Decode(str string) (buf []byte, err error) {
 
 // HTTPRequestToString returns a string for an HTTP request for debugging
 func HTTPRequestToString(req *http.Request) string {
-	body, _ := ioutil.ReadAll(req.Body)
-	req.Body = ioutil.NopCloser(bytes.NewReader(body))
+	body, _ := io.ReadAll(req.Body)
+	req.Body = io.NopCloser(bytes.NewReader(body))
 	return fmt.Sprintf("%s %s\n%s",
 		req.Method, req.URL, string(body))
 }
 
 // HTTPResponseToString returns a string for an HTTP response for debugging
 func HTTPResponseToString(resp *http.Response) string {
-	body, _ := ioutil.ReadAll(resp.Body)
-	resp.Body = ioutil.NopCloser(bytes.NewReader(body))
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body = io.NopCloser(bytes.NewReader(body))
 	return fmt.Sprintf("statusCode=%d (%s)\n%s",
 		resp.StatusCode, resp.Status, string(body))
 }
@@ -627,7 +626,7 @@ func NormalizeFileList(files []string, homeDir string) ([]string, error) {
 
 // CheckHostsInCert checks to see if host correctly inserted into certificate
 func CheckHostsInCert(certFile string, hosts ...string) error {
-	certBytes, err := ioutil.ReadFile(certFile)
+	certBytes, err := os.ReadFile(certFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read certificate file at '%s'", certFile)
 	}

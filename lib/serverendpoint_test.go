@@ -8,7 +8,7 @@ package lib
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,7 +44,7 @@ func testEndpoint(t *testing.T, method, url string, scode, rcode int) {
 	se.ServeHTTP(w, r)
 	resp := w.Result()
 	assert.True(t, resp.StatusCode == scode)
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	if method != "HEAD" {
 		var body api.Response

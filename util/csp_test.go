@@ -9,7 +9,6 @@ package util_test
 import (
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,7 +33,7 @@ func testMain(m *testing.M) int {
 		return -1
 	}
 
-	tmpDir, err := ioutil.TempDir("", "keystore")
+	tmpDir, err := os.MkdirTemp("", "keystore")
 	if err != nil {
 		fmt.Printf("Could not create keystore directory [%s]", err)
 		return -1

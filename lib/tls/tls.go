@@ -19,7 +19,7 @@ package tls
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/cloudflare/cfssl/log"
@@ -99,7 +99,7 @@ func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, err
 	}
 
 	for _, cacert := range cfg.CertFiles {
-		caCert, err := ioutil.ReadFile(cacert)
+		caCert, err := os.ReadFile(cacert)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to read '%s'", cacert)
 		}
@@ -169,7 +169,7 @@ func AbsTLSServer(cfg *ServerTLSConfig, configDir string) error {
 
 func checkCertDates(certFile string) error {
 	log.Debug("Check client TLS certificate for valid dates")
-	certPEM, err := ioutil.ReadFile(certFile)
+	certPEM, err := os.ReadFile(certFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read file '%s'", certFile)
 	}

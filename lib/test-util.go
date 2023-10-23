@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
@@ -184,7 +183,7 @@ func GenerateECDSATestCert() error {
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 	}
 
-	privKey, err := ioutil.ReadFile("../testdata/ec_key.pem")
+	privKey, err := os.ReadFile("../testdata/ec_key.pem")
 	if err != nil {
 		return err
 	}

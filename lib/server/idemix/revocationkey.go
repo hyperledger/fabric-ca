@@ -10,7 +10,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/util"
@@ -51,14 +51,14 @@ func NewRevocationKey(pubKeyFile, privateKeyFile string, lib Lib) RevocationKey 
 // Load loads the Issuer revocation public and private key from the location specified
 // by pubKeyFile and privateKeyFile attributes, respectively
 func (rk *caIdemixRevocationKey) Load() error {
-	pubKeyBytes, err := ioutil.ReadFile(rk.pubKeyFile)
+	pubKeyBytes, err := os.ReadFile(rk.pubKeyFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read revocation public key from %s", rk.pubKeyFile)
 	}
 	if len(pubKeyBytes) == 0 {
 		return errors.New("Revocation public key file is empty")
 	}
-	privKey, err := ioutil.ReadFile(rk.privateKeyFile)
+	privKey, err := os.ReadFile(rk.privateKeyFile)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read revocation private key from %s", rk.privateKeyFile)
 	}

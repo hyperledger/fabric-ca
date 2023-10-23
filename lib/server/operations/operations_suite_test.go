@@ -14,7 +14,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
@@ -163,7 +162,7 @@ func genCert(name, dir string, cert []byte, privKey *rsa.PrivateKey) error {
 
 func newHTTPClient(tlsDir string, withClientCert bool) *http.Client {
 	clientCertPool := x509.NewCertPool()
-	caCert, err := ioutil.ReadFile(filepath.Join(tlsDir, "server-ca.pem"))
+	caCert, err := os.ReadFile(filepath.Join(tlsDir, "server-ca.pem"))
 	Expect(err).NotTo(HaveOccurred())
 	clientCertPool.AppendCertsFromPEM(caCert)
 

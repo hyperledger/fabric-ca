@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -53,7 +52,7 @@ func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
 	if len(certFiles) > 0 {
 		for _, cert := range certFiles {
 			log.Debugf("Reading cert file: %s", cert)
-			pemCerts, err := ioutil.ReadFile(cert)
+			pemCerts, err := os.ReadFile(cert)
 			if err != nil {
 				return nil, err
 			}
@@ -214,7 +213,7 @@ func (cd *CertificateDecoder) storeCert(enrollmentID, storePath string, cert []b
 		filePath = filepath.Join(storePath, fmt.Sprintf("%s-%d.pem", enrollmentID, cd.certIDCount[enrollmentID]))
 	}
 
-	err = ioutil.WriteFile(filePath, cert, 0644)
+	err = os.WriteFile(filePath, cert, 0644)
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("Failed to store certificate at: %s", storePath))
 	}

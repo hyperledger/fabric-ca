@@ -14,7 +14,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -1024,7 +1023,7 @@ func (ca *CA) validateCertAndKey(certFile string, keyFile string) error {
 	var err error
 	var certPEM []byte
 
-	certPEM, err = ioutil.ReadFile(certFile)
+	certPEM, err = os.ReadFile(certFile)
 	if err != nil {
 		return errors.Wrapf(err, certificateError+" '%s'", certFile)
 	}
@@ -1155,7 +1154,7 @@ func validateKeySize(cert *x509.Certificate) error {
 func validateMatchingKeys(cert *x509.Certificate, keyFile string) error {
 	log.Debug("Check that public key and private key match")
 
-	keyPEM, err := ioutil.ReadFile(keyFile)
+	keyPEM, err := os.ReadFile(keyFile)
 	if err != nil {
 		return err
 	}
@@ -1245,7 +1244,7 @@ func writeFile(file string, buf []byte, perm os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(file, buf, perm)
+	return os.WriteFile(file, buf, perm)
 }
 
 func affiliationPath(name, parent string) string {

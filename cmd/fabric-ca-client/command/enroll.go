@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package command
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -62,14 +62,14 @@ func (c *enrollCmd) runEnroll(cmd *cobra.Command, args []string) error {
 
 	ID := resp.Identity
 
-	cfgFile, err := ioutil.ReadFile(cfgFileName)
+	cfgFile, err := os.ReadFile(cfgFileName)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to read file at '%s'", cfgFileName)
 	}
 
 	cfgStr := strings.Replace(string(cfgFile), "<<<ENROLLMENT_ID>>>", ID.GetName(), 1)
 
-	err = ioutil.WriteFile(cfgFileName, []byte(cfgStr), 0644)
+	err = os.WriteFile(cfgFileName, []byte(cfgStr), 0644)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to write file at '%s'", cfgFileName)
 	}

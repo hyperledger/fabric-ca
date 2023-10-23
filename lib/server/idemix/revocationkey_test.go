@@ -8,7 +8,6 @@ package idemix_test
 
 import (
 	"crypto/ecdsa"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -40,7 +39,7 @@ func TestLoadNonExistentRevocationPublicKey(t *testing.T) {
 
 func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
-	pubkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPublicKeyFile)
+	pubkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPublicKeyFile)
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(pubkeyfile.Name(), path.Join(testdir, "msp/keystore", DefaultRevocationPrivateKeyFile), idemixLib)
 	err = rk.Load()
@@ -52,11 +51,11 @@ func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 
 func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
-	pubkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPublicKeyFile)
+	pubkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPublicKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	privkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPrivateKeyFile)
+	privkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPrivateKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
@@ -99,7 +98,7 @@ func TestLoadNonExistentRevocationPrivateKey(t *testing.T) {
 
 func TestLoadEmptyRevocationPrivateKey(t *testing.T) {
 	testdir := t.TempDir()
-	privkeyfile, err := ioutil.TempFile(testdir, "")
+	privkeyfile, err := os.CreateTemp(testdir, "")
 	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, privkeyfile.Name(), idemixLib)
 	err = rk.Load()
@@ -177,7 +176,7 @@ func TestEncodeKeys(t *testing.T) {
 func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
 	testdir := t.TempDir()
 
-	privkeyfile, err := ioutil.TempFile(testdir, DefaultRevocationPrivateKeyFile)
+	privkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPrivateKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}

@@ -31,7 +31,7 @@ import (
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -602,7 +602,7 @@ func (c *Client) newIdemixCredentialRequest(nonce *math.Zr, ipkBytes []byte) (*i
 func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
 	var err error
 	if len(ipkBytes) == 0 {
-		ipkBytes, err = ioutil.ReadFile(c.ipkFile)
+		ipkBytes, err = os.ReadFile(c.ipkFile)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Error reading CA's Idemix public key at '%s'", c.ipkFile)
 		}
@@ -695,7 +695,7 @@ func (c *Client) NewX509Identity(name string, creds []credential.Credential) x50
 // LoadCSRInfo reads CSR (Certificate Signing Request) from a file
 // @parameter path The path to the file contains CSR info in JSON format
 func (c *Client) LoadCSRInfo(path string) (*api.CSRInfo, error) {
-	csrJSON, err := ioutil.ReadFile(path)
+	csrJSON, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -793,7 +793,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 	}
 	var respBody []byte
 	if resp.Body != nil {
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		defer func() {
 			err := resp.Body.Close()
 			if err != nil {

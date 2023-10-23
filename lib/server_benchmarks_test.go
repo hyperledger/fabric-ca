@@ -16,7 +16,7 @@ limitations under the License.
 package lib
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -73,7 +73,7 @@ func BenchmarkGetCACert(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("GetCACert request handler returned an error: %s", body)
 		}
 	}
@@ -110,7 +110,7 @@ func BenchmarkRegister(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("Register request handler returned an error: %s", body)
 		}
 	}
@@ -156,7 +156,7 @@ func BenchmarkEnroll(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("Enroll request handler returned an error: %s", body)
 		}
 	}
@@ -202,7 +202,7 @@ func BenchmarkReenrollOneUser(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("Reenroll request handler returned an error: %s", body)
 		}
 	}
@@ -248,7 +248,7 @@ func BenchmarkReenroll(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("Reenroll request handler returned an error: %s", body)
 		}
 	}
@@ -321,7 +321,7 @@ func BenchmarkGenCRL(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("GenCRL request handler returned an error: %s", body)
 		}
 	}
@@ -366,7 +366,7 @@ func invokeRevokeBenchmark(b *testing.B) {
 		b.StopTimer()
 		resp := rw.Result()
 		if resp.StatusCode != http.StatusOK {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			b.Fatalf("Revoke request handler returned an error: %s", body)
 		}
 	}

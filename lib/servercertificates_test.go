@@ -9,7 +9,6 @@ package lib
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -280,7 +279,7 @@ func TestStoreCert(t *testing.T) {
 	filePath := filepath.Join(dir, "testID.pem")
 	assert.Equal(t, true, util.FileExists(filePath))
 
-	cert, err := ioutil.ReadFile(filePath)
+	cert, err := os.ReadFile(filePath)
 	assert.NoError(t, err, "failed to read certificate file")
 	assert.Equal(t, "testing store cert function", string(cert))
 
@@ -289,13 +288,13 @@ func TestStoreCert(t *testing.T) {
 
 	filePath = filepath.Join(dir, "testID-1.pem")
 	assert.Equal(t, true, util.FileExists(filePath))
-	cert, err = ioutil.ReadFile(filePath)
+	cert, err = os.ReadFile(filePath)
 	assert.NoError(t, err, "failed to read certificate file")
 	assert.Equal(t, "testing store cert function", string(cert))
 
 	filePath = filepath.Join(dir, "testID-2.pem")
 	assert.Equal(t, true, util.FileExists(filePath))
-	cert, err = ioutil.ReadFile(filePath)
+	cert, err = os.ReadFile(filePath)
 	assert.NoError(t, err, "failed to read certificate file")
 	assert.Equal(t, "testing store cert function - second cert", string(cert))
 
