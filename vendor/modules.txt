@@ -54,7 +54,7 @@ github.com/cloudflare/cfssl/signer/universal
 # github.com/consensys/bavard v0.1.13
 ## explicit; go 1.15
 github.com/consensys/bavard
-# github.com/consensys/gnark-crypto v0.12.0
+# github.com/consensys/gnark-crypto v0.12.1
 ## explicit; go 1.18
 github.com/consensys/gnark-crypto/ecc
 github.com/consensys/gnark-crypto/ecc/bls12-377
