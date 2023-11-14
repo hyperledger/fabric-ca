@@ -32,6 +32,29 @@ const (
 	BLS12_381_BBS_GURVY
 )
 
+func CurveIDToString(id CurveID) string {
+	switch id {
+	case FP256BN_AMCL:
+		return "FP256BN_AMCL"
+	case BN254:
+		return "BN254"
+	case FP256BN_AMCL_MIRACL:
+		return "FP256BN_AMCL_MIRACL"
+	case BLS12_381:
+		return "BLS12_381"
+	case BLS12_377_GURVY:
+		return "BLS12_377_GURVY"
+	case BLS12_381_GURVY:
+		return "BLS12_381_GURVY"
+	case BLS12_381_BBS:
+		return "BLS12_381_BBS"
+	case BLS12_381_BBS_GURVY:
+		return "BLS12_381_BBS_GURVY"
+	default:
+		panic(fmt.Sprintf("unknown curve %d", id))
+	}
+}
+
 var Curves []*Curve = []*Curve{
 	{
 		c:                    amcl.NewFp256bn(),

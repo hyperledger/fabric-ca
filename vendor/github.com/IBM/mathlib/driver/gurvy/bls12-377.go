@@ -19,7 +19,7 @@ import (
 /*********************************************************************/
 
 type bls12377G1 struct {
-	*bls12377.G1Affine
+	bls12377.G1Affine
 }
 
 func (g *bls12377G1) Clone(a driver.G1) {
@@ -31,24 +31,23 @@ func (g *bls12377G1) Clone(a driver.G1) {
 }
 
 func (e *bls12377G1) Copy() driver.G1 {
-	c := &bls12377.G1Affine{}
-	c.Set(e.G1Affine)
-	return &bls12377G1{c}
+	c := &bls12377G1{}
+	c.Set(&e.G1Affine)
+	return c
 }
 
 func (g *bls12377G1) Add(a driver.G1) {
-	j := &bls12377.G1Jac{}
-	j.FromAffine(g.G1Affine)
-	j.AddMixed((*bls12377.G1Affine)(a.(*bls12377G1).G1Affine))
-	g.G1Affine.FromJacobian(j)
+	j := bls12377.G1Jac{}
+	j.FromAffine(&g.G1Affine)
+	j.AddMixed((*bls12377.G1Affine)(&a.(*bls12377G1).G1Affine))
+	g.G1Affine.FromJacobian(&j)
 }
 
 func (g *bls12377G1) Mul(a driver.Zr) driver.G1 {
-	gc := &bls12377G1{&bls12377.G1Affine{}}
-	gc.Clone(g)
-	gc.G1Affine.ScalarMultiplication(g.G1Affine, a.(*common.BaseZr).Int)
+	ret := &bls12377G1{}
+	ret.G1Affine.ScalarMultiplication(&g.G1Affine, &a.(*common.BaseZr).Int)
 
-	return gc
+	return ret
 }
 
 func (g *bls12377G1) Mul2(e driver.Zr, Q driver.G1, f driver.Zr) driver.G1 {
@@ -60,7 +59,7 @@ func (g *bls12377G1) Mul2(e driver.Zr, Q driver.G1, f driver.Zr) driver.G1 {
 }
 
 func (g *bls12377G1) Equals(a driver.G1) bool {
-	return g.G1Affine.Equal(a.(*bls12377G1).G1Affine)
+	return g.G1Affine.Equal(&a.(*bls12377G1).G1Affine)
 }
 
 func (g *bls12377G1) Bytes() []byte {
@@ -74,11 +73,11 @@ func (g *bls12377G1) Compressed() []byte {
 }
 
 func (g *bls12377G1) Sub(a driver.G1) {
-	j, k := &bls12377.G1Jac{}, &bls12377.G1Jac{}
-	j.FromAffine(g.G1Affine)
-	k.FromAffine(a.(*bls12377G1).G1Affine)
-	j.SubAssign(k)
-	g.G1Affine.FromJacobian(j)
+	j, k := bls12377.G1Jac{}, bls12377.G1Jac{}
+	j.FromAffine(&g.G1Affine)
+	k.FromAffine(&a.(*bls12377G1).G1Affine)
+	j.SubAssign(&k)
+	g.G1Affine.FromJacobian(&j)
 }
 
 func (g *bls12377G1) IsInfinity() bool {
@@ -92,13 +91,13 @@ func (g *bls12377G1) String() string {
 }
 
 func (g *bls12377G1) Neg() {
-	g.G1Affine.Neg(g.G1Affine)
+	g.G1Affine.Neg(&g.G1Affine)
 }
 
 /*********************************************************************/
 
 type bls12377G2 struct {
-	*bls12377.G2Affine
+	bls12377.G2Affine
 }
 
 func (g *bls12377G2) Clone(a driver.G2) {
@@ -110,33 +109,32 @@ func (g *bls12377G2) Clone(a driver.G2) {
 }
 
 func (e *bls12377G2) Copy() driver.G2 {
-	c := &bls12377.G2Affine{}
-	c.Set(e.G2Affine)
-	return &bls12377G2{c}
+	c := &bls12377G2{}
+	c.Set(&e.G2Affine)
+	return c
 }
 
 func (g *bls12377G2) Mul(a driver.Zr) driver.G2 {
-	gc := &bls12377G2{&bls12377.G2Affine{}}
-	gc.Clone(g)
-	gc.G2Affine.ScalarMultiplication(g.G2Affine, a.(*common.BaseZr).Int)
+	gc := &bls12377G2{}
+	gc.G2Affine.ScalarMultiplication(&g.G2Affine, &a.(*common.BaseZr).Int)
 
 	return gc
 }
 
 func (g *bls12377G2) Add(a driver.G2) {
-	j := &bls12377.G2Jac{}
-	j.FromAffine(g.G2Affine)
-	j.AddMixed((*bls12377.G2Affine)(a.(*bls12377G2).G2Affine))
-	g.G2Affine.FromJacobian(j)
+	j := bls12377.G2Jac{}
+	j.FromAffine(&g.G2Affine)
+	j.AddMixed((*bls12377.G2Affine)(&a.(*bls12377G2).G2Affine))
+	g.G2Affine.FromJacobian(&j)
 }
 
 func (g *bls12377G2) Sub(a driver.G2) {
-	j := &bls12377.G2Jac{}
-	j.FromAffine(g.G2Affine)
-	aJac := &bls12377.G2Jac{}
-	aJac.FromAffine((*bls12377.G2Affine)(a.(*bls12377G2).G2Affine))
-	j.SubAssign(aJac)
-	g.G2Affine.FromJacobian(j)
+	j := bls12377.G2Jac{}
+	j.FromAffine(&g.G2Affine)
+	aJac := bls12377.G2Jac{}
+	aJac.FromAffine((*bls12377.G2Affine)(&a.(*bls12377G2).G2Affine))
+	j.SubAssign(&aJac)
+	g.G2Affine.FromJacobian(&j)
 }
 
 func (g *bls12377G2) Affine() {
@@ -158,38 +156,37 @@ func (g *bls12377G2) String() string {
 }
 
 func (g *bls12377G2) Equals(a driver.G2) bool {
-	return g.G2Affine.Equal(a.(*bls12377G2).G2Affine)
+	return g.G2Affine.Equal(&a.(*bls12377G2).G2Affine)
 }
 
 /*********************************************************************/
 
 type bls12377Gt struct {
-	*bls12377.GT
+	bls12377.GT
 }
 
 func (g *bls12377Gt) Exp(x driver.Zr) driver.Gt {
-	copy := &bls12377.GT{}
-	copy.Set(g.GT)
-	return &bls12377Gt{copy.Exp(*g.GT, x.(*common.BaseZr).Int)}
+	copy := bls12377.GT{}
+	return &bls12377Gt{*copy.Exp(g.GT, &x.(*common.BaseZr).Int)}
 }
 
 func (g *bls12377Gt) Equals(a driver.Gt) bool {
-	return g.GT.Equal(a.(*bls12377Gt).GT)
+	return g.GT.Equal(&a.(*bls12377Gt).GT)
 }
 
 func (g *bls12377Gt) Inverse() {
-	g.GT.Inverse(g.GT)
+	g.GT.Inverse(&g.GT)
 }
 
 func (g *bls12377Gt) Mul(a driver.Gt) {
-	g.GT.Mul(g.GT, a.(*bls12377Gt).GT)
+	g.GT.Mul(&g.GT, &a.(*bls12377Gt).GT)
 }
 
 func (g *bls12377Gt) IsUnity() bool {
-	unity := &bls12377.GT{}
+	unity := bls12377.GT{}
 	unity.SetOne()
 
-	return unity.Equal(g.GT)
+	return unity.Equal(&g.GT)
 }
 
 func (g *bls12377Gt) ToString() string {
@@ -204,60 +201,62 @@ func (g *bls12377Gt) Bytes() []byte {
 /*********************************************************************/
 
 func NewBls12_377() *Bls12_377 {
-	return &Bls12_377{&common.CurveBase{Modulus: fr.Modulus()}}
+	return &Bls12_377{common.CurveBase{Modulus: *fr.Modulus()}}
 }
 
 type Bls12_377 struct {
-	*common.CurveBase
+	common.CurveBase
 }
 
 func (c *Bls12_377) Pairing(p2 driver.G2, p1 driver.G1) driver.Gt {
-	t, err := bls12377.MillerLoop([]bls12377.G1Affine{*p1.(*bls12377G1).G1Affine}, []bls12377.G2Affine{*p2.(*bls12377G2).G2Affine})
+	t, err := bls12377.MillerLoop([]bls12377.G1Affine{p1.(*bls12377G1).G1Affine}, []bls12377.G2Affine{p2.(*bls12377G2).G2Affine})
 	if err != nil {
 		panic(fmt.Sprintf("pairing failed [%s]", err.Error()))
 	}
 
-	return &bls12377Gt{&t}
+	return &bls12377Gt{t}
 }
 
 func (c *Bls12_377) Pairing2(p2a, p2b driver.G2, p1a, p1b driver.G1) driver.Gt {
-	t, err := bls12377.MillerLoop([]bls12377.G1Affine{*p1a.(*bls12377G1).G1Affine, *p1b.(*bls12377G1).G1Affine}, []bls12377.G2Affine{*p2a.(*bls12377G2).G2Affine, *p2b.(*bls12377G2).G2Affine})
+	t, err := bls12377.MillerLoop([]bls12377.G1Affine{p1a.(*bls12377G1).G1Affine, p1b.(*bls12377G1).G1Affine}, []bls12377.G2Affine{p2a.(*bls12377G2).G2Affine, p2b.(*bls12377G2).G2Affine})
 	if err != nil {
 		panic(fmt.Sprintf("pairing 2 failed [%s]", err.Error()))
 	}
 
-	return &bls12377Gt{&t}
+	return &bls12377Gt{t}
 }
 
 func (c *Bls12_377) FExp(a driver.Gt) driver.Gt {
-	gt := bls12377.FinalExponentiation(a.(*bls12377Gt).GT)
-	return &bls12377Gt{&gt}
+	return &bls12377Gt{bls12377.FinalExponentiation(&a.(*bls12377Gt).GT)}
+}
+
+var g1Bytes12_377 [48]byte
+var g2Bytes12_377 [96]byte
+
+func init() {
+	_, _, g1, g2 := bls12377.Generators()
+	g1Bytes12_377 = g1.Bytes()
+	g2Bytes12_377 = g2.Bytes()
 }
 
 func (c *Bls12_377) GenG1() driver.G1 {
-	_, _, g1, _ := bls12377.Generators()
-	raw := g1.Bytes()
-
-	r := &bls12377.G1Affine{}
-	_, err := r.SetBytes(raw[:])
+	r := &bls12377G1{}
+	_, err := r.SetBytes(g1Bytes12_377[:])
 	if err != nil {
 		panic("could not generate point")
 	}
 
-	return &bls12377G1{r}
+	return r
 }
 
 func (c *Bls12_377) GenG2() driver.G2 {
-	_, _, _, g2 := bls12377.Generators()
-	raw := g2.Bytes()
-
-	r := &bls12377.G2Affine{}
-	_, err := r.SetBytes(raw[:])
+	r := &bls12377G2{}
+	_, err := r.SetBytes(g2Bytes12_377[:])
 	if err != nil {
 		panic("could not generate point")
 	}
 
-	return &bls12377G2{r}
+	return r
 }
 
 func (c *Bls12_377) GenGt() driver.Gt {
@@ -293,61 +292,61 @@ func (c *Bls12_377) ScalarByteSize() int {
 }
 
 func (c *Bls12_377) NewG1() driver.G1 {
-	return &bls12377G1{&bls12377.G1Affine{}}
+	return &bls12377G1{}
 }
 
 func (c *Bls12_377) NewG2() driver.G2 {
-	return &bls12377G2{&bls12377.G2Affine{}}
+	return &bls12377G2{}
 }
 
 func (c *Bls12_377) NewG1FromBytes(b []byte) driver.G1 {
-	v := &bls12377.G1Affine{}
-	_, err := v.SetBytes(b)
+	v := &bls12377G1{}
+	_, err := v.G1Affine.SetBytes(b)
 	if err != nil {
 		panic(fmt.Sprintf("set bytes failed [%s]", err.Error()))
 	}
 
-	return &bls12377G1{v}
+	return v
 }
 
 func (c *Bls12_377) NewG2FromBytes(b []byte) driver.G2 {
-	v := &bls12377.G2Affine{}
-	_, err := v.SetBytes(b)
+	v := &bls12377G2{}
+	_, err := v.G2Affine.SetBytes(b)
 	if err != nil {
 		panic(fmt.Sprintf("set bytes failed [%s]", err.Error()))
 	}
 
-	return &bls12377G2{v}
+	return v
 }
 
 func (c *Bls12_377) NewG1FromCompressed(b []byte) driver.G1 {
-	v := &bls12377.G1Affine{}
-	_, err := v.SetBytes(b)
+	v := &bls12377G1{}
+	_, err := v.G1Affine.SetBytes(b)
 	if err != nil {
 		panic(fmt.Sprintf("set bytes failed [%s]", err.Error()))
 	}
 
-	return &bls12377G1{v}
+	return v
 }
 
 func (c *Bls12_377) NewG2FromCompressed(b []byte) driver.G2 {
-	v := &bls12377.G2Affine{}
-	_, err := v.SetBytes(b)
+	v := &bls12377G2{}
+	_, err := v.G2Affine.SetBytes(b)
 	if err != nil {
 		panic(fmt.Sprintf("set bytes failed [%s]", err.Error()))
 	}
 
-	return &bls12377G2{v}
+	return v
 }
 
 func (c *Bls12_377) NewGtFromBytes(b []byte) driver.Gt {
-	v := &bls12377.GT{}
+	v := &bls12377Gt{}
 	err := v.SetBytes(b)
 	if err != nil {
 		panic(fmt.Sprintf("set bytes failed [%s]", err.Error()))
 	}
 
-	return &bls12377Gt{v}
+	return v
 }
 
 func (c *Bls12_377) HashToG1(data []byte) driver.G1 {
@@ -356,7 +355,7 @@ func (c *Bls12_377) HashToG1(data []byte) driver.G1 {
 		panic(fmt.Sprintf("HashToG1 failed [%s]", err.Error()))
 	}
 
-	return &bls12377G1{&g1}
+	return &bls12377G1{g1}
 }
 
 func (p *Bls12_377) HashToG1WithDomain(data, domain []byte) driver.G1 {
@@ -365,5 +364,5 @@ func (p *Bls12_377) HashToG1WithDomain(data, domain []byte) driver.G1 {
 		panic(fmt.Sprintf("HashToG1 failed [%s]", err.Error()))
 	}
 
-	return &bls12377G1{&g1}
+	return &bls12377G1{g1}
 }
