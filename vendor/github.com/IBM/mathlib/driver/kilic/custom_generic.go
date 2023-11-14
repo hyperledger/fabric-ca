@@ -1,4 +1,4 @@
-//go:build wasm || generic
+//go:build !amd64 || generic
 
 /*
 Copyright IBM Corp. All Rights Reserved.
