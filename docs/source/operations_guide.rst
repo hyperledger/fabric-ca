@@ -1114,93 +1114,15 @@ CLI container, you will execute the following commands using the admin MSP:
    peer channel join -b /tmp/hyperledger/org2/peer1/assets/mychannel.block
 
 
-Install and Instantiate Chaincode
-----------------------------------
+Deploy Chaincode
+----------------
 
-Download this `chaincode <https://github.com/hyperledger/fabric-samples/tree/master/chaincode/abac/go>`_
-from Github to the local file system on Peer1 in both orgs.
-
-Org1
-^^^^^
-
-On Peer1, you are going to install chaincode. The command assumes that the
-chaincode that needs to be installed is available inside the GOPATH. In this
-example we will assume the chaincode is located at
-``/opt/gopath/src/github.com/hyperledger/fabric-samples/chaincode/abac/go`` with the
-GOPATH being ``/opt/gopath``. From Org1's CLI container, you will
-execute the following command:
+Installing chaincode on a peer, and approving and committing the chaincode on a channel
+requires using the organization admin role, for example:
 
 .. code:: bash
 
    export CORE_PEER_ADDRESS=peer1-org1:7051
    export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org1/admin/msp
-   peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric-samples/chaincode/abac/go
 
-The same set of steps will be followed for peer2.
-
-.. code:: bash
-
-   export CORE_PEER_ADDRESS=peer2-org1:7051
-   export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org1/admin/msp
-   peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric-samples/chaincode/abac/go
-
-Org2
-^^^^^
-
-On Peer1, you are going to perform the same steps as Org1. The command
-assumes that the chaincode that needs to be installed is available at
-``/opt/gopath/src/github.com/hyperledger/org2/peer1/assets/chaincode/abac/go``.
-From Org2's CLI container, you will execute the following command:
-
-.. code:: bash
-
-   export CORE_PEER_ADDRESS=peer1-org2:7051
-   export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org2/admin/msp
-   peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric-samples/chaincode/abac/go
-
-The same set of steps will be followed for peer2.
-
-.. code:: bash
-
-   export CORE_PEER_ADDRESS=peer2-org2:7051
-   export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org2/admin/msp
-   peer chaincode install -n mycc -v 1.0 -p github.com/hyperledger/fabric-samples/chaincode/abac/go
-
-The next step is going to be to instantiate the chaincode. This done by
-executing:
-
-.. code:: bash
-
-   peer chaincode instantiate -C mychannel -n mycc -v 1.0 -c '{"Args":["init","a","100","b","200"]}' -o orderer1-org0:7050 --tls --cafile /tmp/hyperledger/org2/peer1/tls-msp/tlscacerts/tls-0-0-0-0-7052.pem
-
-Invoke and Query Chaincode
-----------------------------------
-
-From Org1's CLI container, execute:
-
-.. code:: bash
-
-   export CORE_PEER_ADDRESS=peer1-org1:7051
-   export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org1/admin/msp
-   peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
-
-This should return a value of ``100``.
-
-From Org2's CLI container, execute:
-
-.. code:: bash
-
-   export CORE_PEER_ADDRESS=peer1-org2:7051
-   export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org2/admin/msp
-   peer chaincode invoke -C mychannel -n mycc -c '{"Args":["invoke","a","b","10"]}' --tls --cafile /tmp/hyperledger/org2/peer1/tls-msp/tlscacerts/tls-0-0-0-0-7052.pem
-
-This is going to subtract 10 from value of ``a`` and move it to ``b``. Now, if
-you query by running:
-
-.. code:: bash
-
-   peer chaincode query -C mychannel -n mycc -c '{"Args":["query","a"]}'
-
-This should return a value of ``90``.
-
-This concludes the Operations Guide for Fabric CA.
+For additional chaincode deployment details see the `Fabric chaincode tutorial <https://hyperledger-fabric.readthedocs.io/en/latest/deploy_chaincode.html>`_.
