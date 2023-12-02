@@ -114,24 +114,26 @@ func handleEnroll(ctx *serverRequestContextImpl, id string) (interface{}, error)
 	}
 	req.NotAfter = time.Now().Round(time.Minute).Add(profile.Expiry).UTC()
 
-	notBefore, notAfter, err := ca.getCACertExpiry()
+	caNotBefore, caNotAfter, err := ca.getCACertExpiry()
 	if err != nil {
 		return nil, errors.New("Failed to get CA certificate information")
 	}
 
 	// Make sure requested expiration for enrollment certificate is not after CA certificate
 	// expiration
-	if !notAfter.IsZero() && req.NotAfter.After(notAfter) {
-		log.Debugf("Requested expiry '%s' is after the CA certificate expiry '%s'. Will use CA cert expiry",
-			req.NotAfter, notAfter)
-		req.NotAfter = notAfter
+	if !caNotAfter.IsZero() && req.NotAfter.After(caNotAfter) {
+		log.Warningf("Requested NotAfter expiry '%s' is after the CA certificate NotAfter expiry '%s'. Will use CA cert NotAfter expiry",
+			req.NotAfter, caNotAfter)
+		req.NotAfter = caNotAfter
 	}
 	// Make sure that requested expiration for enrollment certificate is not before CA certificate
 	// expiration
-	if !notBefore.IsZero() && req.NotBefore.Before(notBefore) {
-		log.Debugf("Requested expiry '%s' is before the CA certificate expiry '%s'. Will use CA cert expiry",
-			req.NotBefore, notBefore)
-		req.NotBefore = notBefore
+	if !caNotBefore.IsZero() && req.NotBefore.Before(caNotBefore) {
+		if !req.NotBefore.IsZero() { // Suppress the warning if NotBefore is not set
+			log.Warningf("Requested NotBefore date '%s' is before the CA certificate NotBefore date '%s'. Will use CA cert NotBefore date",
+				req.NotBefore, caNotBefore)
+		}
+		req.NotBefore = caNotBefore
 	}
 
 	// Process the sign request from the caller.
