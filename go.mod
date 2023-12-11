@@ -20,7 +20,7 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
 	github.com/lib/pq v1.8.0
-	github.com/mattn/go-sqlite3 v1.14.5
+	github.com/mattn/go-sqlite3 v1.14.18
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.3
