@@ -91,7 +91,7 @@ var _ = Describe("System", func() {
 
 			_, err = unauthClient.Get(fmt.Sprintf("https://%s/metrics", system.Addr()))
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("remote error: tls: bad certificate"))
+			Expect(err.Error()).To(ContainSubstring("remote error: tls: certificate required"))
 		})
 	})
 
