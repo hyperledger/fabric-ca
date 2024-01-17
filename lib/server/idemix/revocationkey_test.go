@@ -13,10 +13,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,6 +51,8 @@ func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 
 func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
+	idemixLib := new(mocks.Lib)
+	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 	pubkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPublicKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
@@ -76,7 +78,6 @@ func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to write to the file %s", pubkeyfile.Name())
 	}
-	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(pubkeyfile.Name(), privkeyfile.Name(), idemixLib)
 	err = rk.Load()
 	assert.Error(t, err, "Should have failed to load non existing revocation public key")
@@ -130,6 +131,7 @@ func TestStoreNilRevocationKey(t *testing.T) {
 
 func TestStoreNilRevocationPublicKey(t *testing.T) {
 	idemixLib := new(mocks.Lib)
+	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, testRevocationPrivateKeyFile, idemixLib)
 	key, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -145,6 +147,7 @@ func TestStoreNilRevocationPublicKey(t *testing.T) {
 }
 
 func TestEncodeKeys(t *testing.T) {
+	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 	privateKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
@@ -175,6 +178,7 @@ func TestEncodeKeys(t *testing.T) {
 
 func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
 	testdir := t.TempDir()
+	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 
 	privkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPrivateKeyFile)
 	if err != nil {
@@ -194,11 +198,11 @@ func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
 	}
 
 	pubkeyfile := path.Join(testdir, "testdata1/RevocationPublicKey")
+	idemixLib := new(mocks.Lib)
 	err = os.MkdirAll(path.Dir(pubkeyfile), 4444)
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
-	idemixLib := new(mocks.Lib)
 	rk := NewRevocationKey(pubkeyfile, privkeyfile.Name(), idemixLib)
 	rk.SetKey(key)
 	err = rk.Store()

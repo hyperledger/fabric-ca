@@ -13,7 +13,6 @@ import (
 	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
 	math "github.com/IBM/mathlib"
 	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
-	scheme "github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 )
 
@@ -110,5 +109,5 @@ func (i *libImpl) GenerateLongTermRevocationKey() (pk *ecdsa.PrivateKey, err err
 			err = errors.Errorf("failure: %s", r)
 		}
 	}()
-	return scheme.GenerateLongTermRevocationKey()
+	return i.idemix.GenerateLongTermRevocationKey()
 }
