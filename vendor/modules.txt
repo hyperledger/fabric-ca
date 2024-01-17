@@ -153,7 +153,6 @@ github.com/hyperledger/fabric/common/metrics/internal/namer
 github.com/hyperledger/fabric/common/metrics/metricsfakes
 github.com/hyperledger/fabric/common/metrics/prometheus
 github.com/hyperledger/fabric/common/metrics/statsd
-github.com/hyperledger/fabric/idemix
 # github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2
 ## explicit
 github.com/hyperledger/fabric-amcl/amcl

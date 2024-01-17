@@ -21,7 +21,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -115,6 +114,7 @@ func testGetRAInfoFromDBError(t *testing.T, curveID cidemix.CurveID) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("ca1")
 	lib := new(mocks.Lib)
+	idemix := NewLib(curveID)
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
@@ -153,6 +153,7 @@ func testGetRAInfoFromNewDBSelectError(t *testing.T, curveID cidemix.CurveID) {
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(homeDir)
 	lib := new(mocks.Lib)
+	idemix := NewLib(curveID)
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
@@ -191,6 +192,7 @@ func testGetRAInfoFromExistingDB(t *testing.T, curveID cidemix.CurveID) {
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(homeDir)
 	lib := new(mocks.Lib)
+	idemix := NewLib(curveID)
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
@@ -228,7 +230,7 @@ func TestRevocationKeyStoreFailure(t *testing.T) {
 
 func testRevocationKeyStoreFailure(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	issuer, db, _ := setupForInsertTests(t, homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir, curveID)
 	os.RemoveAll(path.Join(homeDir, "msp/keystore"))
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
@@ -267,7 +269,7 @@ func TestGetRAInfoFromNewDBInsertFailure(t *testing.T) {
 
 func testGetRAInfoFromNewDBInsertFailure(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	issuer, db, _ := setupForInsertTests(t, homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir, curveID)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -305,7 +307,7 @@ func testGetRAInfoFromNewDBInsertFailure1(t *testing.T, curveID cidemix.CurveID)
 		t.Fatalf("Failed to create directory: %s", err.Error())
 	}
 	defer os.RemoveAll(homeDir)
-	issuer, db, _ := setupForInsertTests(t, homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir, curveID)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -338,7 +340,7 @@ func TestGetRAInfoFromNewDBInsertError(t *testing.T) {
 
 func testGetRAInfoFromNewDBInsertError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
-	issuer, db, _ := setupForInsertTests(t, homeDir)
+	issuer, db, _ := setupForInsertTests(t, homeDir, curveID)
 	rainfo := RevocationAuthorityInfo{
 		Epoch:                1,
 		NextRevocationHandle: 1,
@@ -621,6 +623,7 @@ func TestGetEpochRAInfoError(t *testing.T) {
 func testGetEpochRAInfoError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
+	idemix := NewLib(curveID)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -643,6 +646,7 @@ func TestCreateCRIGetRAInfoError(t *testing.T) {
 func testCreateCRIGetRAInfoError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
+	idemix := NewLib(curveID)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -665,6 +669,7 @@ func TestCreateCRIGetRevokeCredsError(t *testing.T) {
 func testCreateCRIGetRevokeCredsError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
 	db := new(dmocks.FabricCADB)
+	idemix := NewLib(curveID)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -687,6 +692,7 @@ func TestIdemixCreateCRIError(t *testing.T) {
 
 func testIdemixCreateCRIError(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
+	idemix := NewLib(curveID)
 
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
@@ -710,6 +716,7 @@ func TestEpochValuesInCRI(t *testing.T) {
 
 func testEpochValuesInCRI(t *testing.T, curveID cidemix.CurveID) {
 	homeDir := t.TempDir()
+	idemix := NewLib(curveID)
 	revocationKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
@@ -727,7 +734,7 @@ func testEpochValuesInCRI(t *testing.T, curveID cidemix.CurveID) {
 	}
 }
 
-func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks.FabricCADB, *ecdsa.PrivateKey) {
+func setupForInsertTests(t *testing.T, homeDir string, curveID cidemix.CurveID) (*mocks.MyIssuer, *dmocks.FabricCADB, *ecdsa.PrivateKey) {
 	issuer := new(mocks.MyIssuer)
 	issuer.On("Name").Return("")
 	issuer.On("HomeDir").Return(homeDir)
@@ -737,6 +744,7 @@ func setupForInsertTests(t *testing.T, homeDir string) (*mocks.MyIssuer, *dmocks
 		t.Fatalf("Failed to create directory %s: %s", keystore, err.Error())
 	}
 	lib := new(mocks.Lib)
+	idemix := NewLib(curveID)
 	privateKey, err := idemix.GenerateLongTermRevocationKey()
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
@@ -763,6 +771,7 @@ func getRevocationAuthority(t *testing.T, funcName, homeDir string, db *dmocks.F
 
 	if revocationKey == nil {
 		var err error
+		idemix := NewLib(curveID)
 		revocationKey, err = idemix.GenerateLongTermRevocationKey()
 		if err != nil {
 			t.Fatalf("Failed to generate ECDSA key for revocation authority")

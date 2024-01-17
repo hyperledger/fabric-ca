@@ -7,17 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/hyperledger/fabric-amcl/amcl"
 	idmx "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/idemix"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -140,7 +141,7 @@ func testCheckNonce(t *testing.T, curveID idmx.CurveID) {
 	issuer.On("Name").Return("ca1")
 
 	lib := new(mocks.Lib)
-	rnd, err := idemix.GetRand()
+	rnd, err := getRand()
 	if err != nil {
 		t.Fatalf("Error generating a random number")
 	}
@@ -348,4 +349,18 @@ func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) 
 		}
 		return nil
 	}
+}
+
+// getRand returns a new *amcl.RAND with a fresh seed
+func getRand() (*amcl.RAND, error) {
+	seedLength := 32
+	b := make([]byte, seedLength)
+	_, err := rand.Read(b)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting randomness for seed")
+	}
+	rng := amcl.NewRAND()
+	rng.Clean()
+	rng.Seed(seedLength, b)
+	return rng, nil
 }

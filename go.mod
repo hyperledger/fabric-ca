@@ -15,6 +15,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
 	github.com/hyperledger/fabric v1.4.11
+	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2
 	github.com/hyperledger/fabric-lib-go v1.0.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.2.0
@@ -48,7 +49,6 @@ require (
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
 	github.com/kilic/bls12-381 v0.1.0 // indirect
