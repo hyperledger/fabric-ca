@@ -89,13 +89,7 @@ def placeholderReplace(app, docname, source):
     source[0] = result
 
 def setup(app):
-    ## The next commented line is how you would actually import and use the custom.css.
-    ## It's actually always been overridden by the parameters from the RTD
-    ## theme, so we've never actually seen it.  BHS kept it here in case we
-    ## with to use it, but chances are, we should just throw it out.
-    ##
-    ## The changes are minimal and suboptimal in BHS's opinion.
-    # app.add_css_file('custom.css')
+    app.add_css_file("css/custom.css")
     app.add_config_value('placeholder_replacements', {}, True)
     app.connect('source-read', placeholderReplace)
 
