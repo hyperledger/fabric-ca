@@ -44,9 +44,9 @@ func TestX509Credential(t *testing.T) {
 		Config: &lib.ClientConfig{
 			URL: "http://localhost:7054",
 			CSP: &factory.FactoryOpts{
-				SwOpts: &factory.SwOpts{
-					HashFamily: "SHA2",
-					SecLevel:   256,
+				SW: &factory.SwOpts{
+					Hash:     "SHA2",
+					Security: 256,
 					FileKeystore: &factory.FileKeystoreOpts{
 						KeyStorePath: "msp/keystore",
 					},
@@ -166,9 +166,9 @@ func TestRevokeSelf(t *testing.T) {
 	id := new(mocks.Identity)
 	client := new(mocks.Client)
 	opts := &factory.FactoryOpts{
-		SwOpts: &factory.SwOpts{
-			HashFamily: "SHA2",
-			SecLevel:   256,
+		SW: &factory.SwOpts{
+			Hash:     "SHA2",
+			Security: 256,
 		},
 	}
 	bccsp, err := util.InitBCCSP(&opts, "msp", clientHome)

@@ -30,7 +30,6 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/hyperledger/fabric/bccsp/utils"
 	"github.com/pkg/errors"
 )
 
@@ -67,8 +66,8 @@ func GetBCCSP(opts *factory.FactoryOpts, homeDir string) (bccsp.BCCSP, error) {
 // relative to 'homeDir'.
 func makeFileNamesAbsolute(opts *factory.FactoryOpts, homeDir string) error {
 	var err error
-	if opts != nil && opts.SwOpts != nil && opts.SwOpts.FileKeystore != nil {
-		fks := opts.SwOpts.FileKeystore
+	if opts != nil && opts.SW != nil && opts.SW.FileKeystore != nil {
+		fks := opts.SW.FileKeystore
 		fks.KeyStorePath, err = MakeFileAbs(fks.KeyStorePath, homeDir)
 	}
 	return err
@@ -212,13 +211,13 @@ func ImportBCCSPKeyFromPEM(keyFile string, myCSP bccsp.BCCSP, temporary bool) (b
 	if err != nil {
 		return nil, err
 	}
-	key, err := utils.PEMtoPrivateKey(keyBuff, nil)
+	key, err := PEMtoPrivateKey(keyBuff, nil)
 	if err != nil {
 		return nil, errors.WithMessage(err, fmt.Sprintf("Failed parsing private key from %s", keyFile))
 	}
 	switch key := key.(type) {
 	case *ecdsa.PrivateKey:
-		priv, err := utils.PrivateKeyToDER(key)
+		priv, err := PrivateKeyToDER(key)
 		if err != nil {
 			return nil, errors.WithMessage(err, fmt.Sprintf("Failed to convert ECDSA private key for '%s'", keyFile))
 		}

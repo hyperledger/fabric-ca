@@ -22,7 +22,6 @@ import (
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/factory"
 	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/hyperledger/fabric/bccsp/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -291,7 +290,7 @@ func testImpersonation(id *Identity, t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed getting ECDSA raw public key [%s]", err)
 	}
-	pub, err := utils.DERToPublicKey(pkRaw)
+	pub, err := util.DERToPublicKey(pkRaw)
 	if err != nil {
 		t.Fatalf("Failed converting raw to ECDSA.PublicKey [%s]", err)
 	}

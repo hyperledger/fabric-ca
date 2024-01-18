@@ -1,3 +1,4 @@
+//go:build pkcs11
 // +build pkcs11
 
 /*
@@ -9,19 +10,22 @@ SPDX-License-Identifier: Apache-2.0
 package factory
 
 import (
+	"reflect"
+	"strings"
+
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/bccsp/pkcs11"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
-const pkcs11Enabled = true
+const pkcs11Enabled = false
 
 // FactoryOpts holds configuration information used to initialize factory implementations
 type FactoryOpts struct {
-	ProviderName string             `mapstructure:"default" json:"default" yaml:"Default"`
-	SwOpts       *SwOpts            `mapstructure:"SW,omitempty" json:"SW,omitempty" yaml:"SwOpts"`
-	PluginOpts   *PluginOpts        `mapstructure:"PLUGIN,omitempty" json:"PLUGIN,omitempty" yaml:"PluginOpts"`
-	Pkcs11Opts   *pkcs11.PKCS11Opts `mapstructure:"PKCS11,omitempty" json:"PKCS11,omitempty" yaml:"PKCS11"`
+	Default string             `json:"default" yaml:"Default"`
+	SW      *SwOpts            `json:"SW,omitempty" yaml:"SW,omitempty"`
+	PKCS11  *pkcs11.PKCS11Opts `json:"PKCS11,omitempty" yaml:"PKCS11"`
 }
 
 // InitFactories must be called before using factory interfaces
@@ -42,48 +46,36 @@ func initFactories(config *FactoryOpts) error {
 		config = GetDefaultOpts()
 	}
 
-	if config.ProviderName == "" {
-		config.ProviderName = "SW"
+	if config.Default == "" {
+		config.Default = "SW"
 	}
 
-	if config.SwOpts == nil {
-		config.SwOpts = GetDefaultOpts().SwOpts
+	if config.SW == nil {
+		config.SW = GetDefaultOpts().SW
 	}
-
-	// Initialize factories map
-	bccspMap = make(map[string]bccsp.BCCSP)
 
 	// Software-Based BCCSP
-	if config.ProviderName == "SW" && config.SwOpts != nil {
+	if config.Default == "SW" && config.SW != nil {
 		f := &SWFactory{}
-		err := initBCCSP(f, config)
+		var err error
+		defaultBCCSP, err = initBCCSP(f, config)
 		if err != nil {
 			return errors.Wrap(err, "Failed initializing SW.BCCSP")
 		}
 	}
 
 	// PKCS11-Based BCCSP
-	if config.ProviderName == "PKCS11" && config.Pkcs11Opts != nil {
+	if config.Default == "PKCS11" && config.PKCS11 != nil {
 		f := &PKCS11Factory{}
-		err := initBCCSP(f, config)
+		var err error
+		defaultBCCSP, err = initBCCSP(f, config)
 		if err != nil {
 			return errors.Wrapf(err, "Failed initializing PKCS11.BCCSP")
 		}
 	}
 
-	// BCCSP Plugin
-	if config.ProviderName == "PLUGIN" && config.PluginOpts != nil {
-		f := &PluginFactory{}
-		err := initBCCSP(f, config)
-		if err != nil {
-			return errors.Wrapf(err, "Failed initializing PLUGIN.BCCSP")
-		}
-	}
-
-	var ok bool
-	defaultBCCSP, ok = bccspMap[config.ProviderName]
-	if !ok {
-		return errors.Errorf("Could not find default `%s` BCCSP", config.ProviderName)
+	if defaultBCCSP == nil {
+		return errors.Errorf("Could not find default `%s` BCCSP", config.Default)
 	}
 
 	return nil
@@ -92,15 +84,13 @@ func initFactories(config *FactoryOpts) error {
 // GetBCCSPFromOpts returns a BCCSP created according to the options passed in input.
 func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
 	var f BCCSPFactory
-	switch config.ProviderName {
+	switch config.Default {
 	case "SW":
 		f = &SWFactory{}
 	case "PKCS11":
 		f = &PKCS11Factory{}
-	case "PLUGIN":
-		f = &PluginFactory{}
 	default:
-		return nil, errors.Errorf("Could not find BCCSP, no '%s' provider", config.ProviderName)
+		return nil, errors.Errorf("Could not find BCCSP, no '%s' provider", config.Default)
 	}
 
 	csp, err := f.Get(config)
@@ -108,4 +98,36 @@ func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
 		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
 	}
 	return csp, nil
+}
+
+// StringToKeyIds returns a DecodeHookFunc that converts
+// strings to pkcs11.KeyIDMapping.
+func StringToKeyIds() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+
+		if t != reflect.TypeOf(pkcs11.KeyIDMapping{}) {
+			return data, nil
+		}
+
+		res := pkcs11.KeyIDMapping{}
+		raw := data.(string)
+		if raw == "" {
+			return res, nil
+		}
+
+		rec := strings.Fields(raw)
+		if len(rec) != 2 {
+			return res, nil
+		}
+		res.SKI = rec[0]
+		res.ID = rec[1]
+
+		return res, nil
+	}
 }

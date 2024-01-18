@@ -235,7 +235,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 			}
 			// Yes, it is stored by BCCSP
 			log.Info("The CA key and certificate already exist")
-			log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
+			log.Infof("The key is stored by BCCSP provider '%s'", ca.Config.CSP.Default)
 			log.Infof("The certificate is at: %s", certFile)
 			// Load CN from existing enrollment information and set CSR accordingly
 			// CN needs to be set, having a multi CA setup requires a unique CN and can't
@@ -260,7 +260,7 @@ func (ca *CA) initKeyMaterial(renew bool) error {
 		return errors.Wrap(err, "Failed to store certificate")
 	}
 	log.Infof("The CA key and certificate were generated for CA %s", ca.Config.CA.Name)
-	log.Infof("The key was stored by BCCSP provider '%s'", ca.Config.CSP.ProviderName)
+	log.Infof("The key was stored by BCCSP provider '%s'", ca.Config.CSP.Default)
 	log.Infof("The certificate is at: %s", certFile)
 
 	return nil

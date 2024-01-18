@@ -19,11 +19,11 @@ import (
 )
 
 // formatRegexp is broken into three groups:
-//   1. the format verb
-//   2. an optional colon that is ungrouped with '?:'
-//   3. an optional, non-greedy format directive
+//  1. the format verb
+//  2. an optional colon that is ungrouped with '?:'
+//  3. an optional, non-greedy format directive
 //
-// The grouping simplifies the verb proccessing during spec parsing.
+// The grouping simplifies the verb proccssing during spec parsing.
 var formatRegexp = regexp.MustCompile(`%{(color|id|level|message|module|shortfunc|time)(?::(.*?))?}`)
 
 // ParseFormat parses a log format spec and returns a slice of formatters
@@ -44,7 +44,6 @@ var formatRegexp = regexp.MustCompile(`%{(color|id|level|message|module|shortfun
 //   - level: a fmt style string formatter without the leading %
 //   - message: a fmt style string formatter without the leading %
 //   - module: a fmt style string formatter without the leading %
-//
 func ParseFormat(spec string) ([]Formatter, error) {
 	cursor := 0
 	formatters := []Formatter{}
@@ -190,11 +189,11 @@ func (c ColorFormatter) LevelColor(l zapcore.Level) Color {
 func (c ColorFormatter) Format(w io.Writer, entry zapcore.Entry, fields []zapcore.Field) {
 	switch {
 	case c.Reset:
-		fmt.Fprintf(w, ResetColor())
+		fmt.Fprint(w, ResetColor())
 	case c.Bold:
-		fmt.Fprintf(w, c.LevelColor(entry.Level).Bold())
+		fmt.Fprint(w, c.LevelColor(entry.Level).Bold())
 	default:
-		fmt.Fprintf(w, c.LevelColor(entry.Level).Normal())
+		fmt.Fprint(w, c.LevelColor(entry.Level).Normal())
 	}
 }
 

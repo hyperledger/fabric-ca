@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		 http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,9 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	logger = flogging.MustGetLogger("bccsp_sw")
-)
+var logger = flogging.MustGetLogger("bccsp_sw")
 
 // CSP provides a generic implementation of the BCCSP interface based
 // on wrappers. It can be customized by providing implementations for the
@@ -60,9 +58,11 @@ func New(keyStore bccsp.KeyStore) (*CSP, error) {
 	keyDerivers := make(map[reflect.Type]KeyDeriver)
 	keyImporters := make(map[reflect.Type]KeyImporter)
 
-	csp := &CSP{keyStore,
+	csp := &CSP{
+		keyStore,
 		keyGenerators, keyDerivers, keyImporters, encryptors,
-		decryptors, signers, verifiers, hashers}
+		decryptors, signers, verifiers, hashers,
+	}
 
 	return csp, nil
 }
