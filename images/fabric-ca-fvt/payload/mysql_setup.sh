@@ -10,8 +10,8 @@ export DEBIAN_FRONTEND=noninteractive
 # Latest mysql download can be found at https://dev.mysql.com/downloads/repo/apt/
 # mysql versions and platform support can be found at http://repo.mysql.com/apt/debian/dists/bullseye/ (no arm support)
 echo mysql-apt-config mysql-apt-config/select-server select mysql-8.0 | debconf-set-selections
-wget https://dev.mysql.com/get/mysql-apt-config_0.8.28-1_all.deb
-dpkg -i mysql-apt-config_0.8.28-1_all.deb
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb
+dpkg -i mysql-apt-config_0.8.29-1_all.deb
 apt-get update
 apt-get install mysql-server -y
 
