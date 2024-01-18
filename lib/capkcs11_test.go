@@ -56,7 +56,7 @@ func TestCAInit(t *testing.T) {
 	// BCCSP error
 	swo := &factory.SwOpts{}
 	pko := &pkcs11.PKCS11Opts{}
-	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "PKCS11", SwOpts: swo, Pkcs11Opts: pko}
+	ca.Config.CSP = &factory.FactoryOpts{Default: "PKCS11", SW: swo, PKCS11: pko}
 	ca.HomeDir = ""
 	err = ca.init(false)
 	t.Logf("ca.init error: %v", err)
@@ -79,7 +79,7 @@ func TestCAInit(t *testing.T) {
 	t.Log("changed directory to ", wd2)
 	defer cleanupTmpfiles(t, wd2)
 
-	ca.Config.CSP = &factory.FactoryOpts{ProviderName: "SW", SwOpts: swo, Pkcs11Opts: pko}
+	ca.Config.CSP = &factory.FactoryOpts{Default: "SW", SW: swo, PKCS11: pko}
 	ca, err = newCA(cfgFile, &CAConfig{}, server, true)
 	if err != nil {
 		t.Fatal("newCA FAILED", err)

@@ -7,19 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 package flogging
 
 import (
-	"strings"
+	"io"
 
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/grpclog"
 )
 
 const (
-	defaultFormat = "%{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} -> %{level:.4s} %{id:03x}%{color:reset} %{message}"
+	defaultFormat = "%{color}%{time:2006-01-02 15:04:05.000 MST} %{id:04x} %{level:.4s}%{color:reset} [%{module}] %{color:bold}%{shortfunc}%{color:reset} -> %{message}"
 	defaultLevel  = zapcore.InfoLevel
 )
 
 var Global *Logging
-var logger *FabricLogger
 
 func init() {
 	logging, err := New(Config{})
@@ -28,9 +27,8 @@ func init() {
 	}
 
 	Global = logging
-	logger = Global.Logger("flogging")
 	grpcLogger := Global.ZapLogger("grpc")
-	grpclog.SetLogger(NewGRPCLogger(grpcLogger))
+	grpclog.SetLoggerV2(NewGRPCLogger(grpcLogger))
 }
 
 // Init initializes logging with the provided config.
@@ -48,10 +46,10 @@ func Reset() {
 	Global.Apply(Config{})
 }
 
-// GetLoggerLevel gets the current logging level for the logger with the
+// LoggerLevel gets the current logging level for the logger with the
 // provided name.
-func GetLoggerLevel(loggerName string) string {
-	return strings.ToUpper(Global.Level(loggerName).String())
+func LoggerLevel(loggerName string) string {
+	return Global.Level(loggerName).String()
 }
 
 // MustGetLogger creates a logger with the specified name. If an invalid name
@@ -66,4 +64,21 @@ func ActivateSpec(spec string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// DefaultLevel returns the default log level.
+func DefaultLevel() string {
+	return defaultLevel.String()
+}
+
+// SetWriter calls SetWriter returning the previous value
+// of the writer.
+func SetWriter(w io.Writer) io.Writer {
+	return Global.SetWriter(w)
+}
+
+// SetObserver calls SetObserver returning the previous value
+// of the observer.
+func SetObserver(observer Observer) Observer {
+	return Global.SetObserver(observer)
 }

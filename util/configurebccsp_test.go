@@ -22,13 +22,13 @@ func TestConfigureBCCSP(t *testing.T) {
 
 	lib, pin, label := pkcs11.FindPKCS11Lib()
 	opts := &factory.FactoryOpts{
-		ProviderName: "PKCS11",
-		Pkcs11Opts: &pkcs11.PKCS11Opts{
-			SecLevel:   256,
-			HashFamily: "SHA2",
-			Library:    lib,
-			Label:      label,
-			Pin:        pin,
+		Default: "PKCS11",
+		PKCS11: &pkcs11.PKCS11Opts{
+			Security: 256,
+			Hash:     "SHA2",
+			Library:  lib,
+			Label:    label,
+			Pin:      pin,
 		},
 	}
 
@@ -39,11 +39,11 @@ func TestConfigureBCCSP(t *testing.T) {
 func TestSanitizePKCS11Opts(t *testing.T) {
 	lib, pin, label := pkcs11.FindPKCS11Lib()
 	opts := pkcs11.PKCS11Opts{
-		SecLevel:   256,
-		HashFamily: "SHA2",
-		Library:    lib,
-		Label:      label,
-		Pin:        pin,
+		Security: 256,
+		Hash:     "SHA2",
+		Library:  lib,
+		Label:    label,
+		Pin:      pin,
 	}
 	p11opts := sanitizePKCS11Opts(opts)
 	assert.Equal(t, p11opts.Label, "******")

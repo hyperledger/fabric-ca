@@ -28,27 +28,27 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) error
 	if opts == nil {
 		opts = &factory.FactoryOpts{}
 	}
-	if opts.ProviderName == "" {
-		opts.ProviderName = "SW"
+	if opts.Default == "" {
+		opts.Default = "SW"
 	}
-	if strings.ToUpper(opts.ProviderName) == "SW" {
-		if opts.SwOpts == nil {
-			opts.SwOpts = &factory.SwOpts{}
+	if strings.ToUpper(opts.Default) == "SW" {
+		if opts.SW == nil {
+			opts.SW = &factory.SwOpts{}
 		}
-		if opts.SwOpts.HashFamily == "" {
-			opts.SwOpts.HashFamily = "SHA2"
+		if opts.SW.Hash == "" {
+			opts.SW.Hash = "SHA2"
 		}
-		if opts.SwOpts.SecLevel == 0 {
-			opts.SwOpts.SecLevel = 256
+		if opts.SW.Security == 0 {
+			opts.SW.Security = 256
 		}
-		if opts.SwOpts.FileKeystore == nil {
-			opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{}
+		if opts.SW.FileKeystore == nil {
+			opts.SW.FileKeystore = &factory.FileKeystoreOpts{}
 		}
 		// The mspDir overrides the KeyStorePath; otherwise, if not set, set default
 		if mspDir != "" {
-			opts.SwOpts.FileKeystore.KeyStorePath = path.Join(mspDir, "keystore")
-		} else if opts.SwOpts.FileKeystore.KeyStorePath == "" {
-			opts.SwOpts.FileKeystore.KeyStorePath = path.Join("msp", "keystore")
+			opts.SW.FileKeystore.KeyStorePath = path.Join(mspDir, "keystore")
+		} else if opts.SW.FileKeystore.KeyStorePath == "" {
+			opts.SW.FileKeystore.KeyStorePath = path.Join("msp", "keystore")
 		}
 	}
 	err = makeFileNamesAbsolute(opts, homeDir)
@@ -56,8 +56,8 @@ func ConfigureBCCSP(optsPtr **factory.FactoryOpts, mspDir, homeDir string) error
 		return errors.WithMessage(err, "Failed to make BCCSP files absolute")
 	}
 	log.Debugf("Initializing BCCSP: %+v", opts)
-	if opts.SwOpts != nil {
-		log.Debugf("Initializing BCCSP with software options %+v", opts.SwOpts)
+	if opts.SW != nil {
+		log.Debugf("Initializing BCCSP with software options %+v", opts.SW)
 	}
 	*optsPtr = opts
 	return nil

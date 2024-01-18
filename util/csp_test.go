@@ -41,7 +41,7 @@ func testMain(m *testing.M) int {
 	defer os.RemoveAll(tmpDir)
 
 	opts := factory.GetDefaultOpts()
-	opts.SwOpts.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: tmpDir}
+	opts.SW.FileKeystore = &factory.FileKeystoreOpts{KeyStorePath: tmpDir}
 	csp, err = factory.GetBCCSPFromOpts(opts)
 	if err != nil {
 		fmt.Printf("Could not initialize BCCSP Factories [%s]", err)
@@ -58,7 +58,7 @@ func TestInitBCCSP(t *testing.T) {
 	_, err := InitBCCSP(&opts, "", mspDir)
 	assert.NoError(t, err, "first initialization of BCCSP failed")
 
-	cfg := &factory.FactoryOpts{ProviderName: "SW"}
+	cfg := &factory.FactoryOpts{Default: "SW"}
 	_, err = InitBCCSP(&cfg, "msp2", mspDir)
 	assert.NoError(t, err, "second initialization of BCCSP failed")
 

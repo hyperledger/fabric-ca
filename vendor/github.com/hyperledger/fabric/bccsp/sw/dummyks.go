@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		 http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,8 +28,7 @@ func NewDummyKeyStore() bccsp.KeyStore {
 }
 
 // dummyKeyStore is a read-only KeyStore that neither loads nor stores keys.
-type dummyKeyStore struct {
-}
+type dummyKeyStore struct{}
 
 // ReadOnly returns true if this KeyStore is read only, false otherwise.
 // If ReadOnly is true then StoreKey will fail.

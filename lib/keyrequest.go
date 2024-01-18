@@ -14,10 +14,10 @@ import "github.com/hyperledger/fabric-ca/api"
 // GetKeyRequest constructs and returns api.KeyRequest object based on the bccsp
 // configuration options
 func GetKeyRequest(cfg *CAConfig) *api.KeyRequest {
-	if cfg.CSP.SwOpts != nil {
-		return &api.KeyRequest{Algo: "ecdsa", Size: cfg.CSP.SwOpts.SecLevel}
-	} else if cfg.CSP.Pkcs11Opts != nil {
-		return &api.KeyRequest{Algo: "ecdsa", Size: cfg.CSP.Pkcs11Opts.SecLevel}
+	if cfg.CSP.SW != nil {
+		return &api.KeyRequest{Algo: "ecdsa", Size: cfg.CSP.SW.Security}
+	} else if cfg.CSP.PKCS11 != nil {
+		return &api.KeyRequest{Algo: "ecdsa", Size: cfg.CSP.PKCS11.Security}
 	} else {
 		return api.NewKeyRequest()
 	}
