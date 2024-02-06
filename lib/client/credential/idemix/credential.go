@@ -12,7 +12,6 @@ import (
 	"net/http"
 
 	"github.com/IBM/idemix/bccsp/types"
-	schemes "github.com/IBM/idemix/bccsp/types"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
@@ -170,7 +169,7 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 		RhIndex:  3,
 		EidIndex: 2,
 		Epoch:    0,
-		SigType:  schemes.Standard,
+		SigType:  types.Standard,
 		CRI:      cred.val.GetCredentialRevocationInformation(),
 	}
 
