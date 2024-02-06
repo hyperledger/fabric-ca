@@ -21,6 +21,10 @@ import (
 	"sync"
 	"time"
 
+	i "github.com/IBM/idemix/bccsp"
+	"github.com/IBM/idemix/bccsp/keystore"
+	"github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl"
+	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/certdb"
 	"github.com/cloudflare/cfssl/config"
 	cfcsr "github.com/cloudflare/cfssl/csr"
@@ -32,7 +36,6 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/attr"
 	"github.com/hyperledger/fabric-ca/lib/attrmgr"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
-	idemix2 "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	cadb "github.com/hyperledger/fabric-ca/lib/server/db"
@@ -138,8 +141,14 @@ func initCA(ca *CA, homeDir string, config *CAConfig, server *Server, renew bool
 	if err != nil {
 		return err
 	}
+
+	CSP, err := i.New(&keystore.Dummy{}, curveID, &amcl.Gurvy{C: curveID}, true)
+	if err != nil {
+		return err
+	}
+
 	ca.issuer = idemix.NewIssuer(ca.Config.CA.Name, ca.HomeDir,
-		&ca.Config.Idemix, ca.csp, idemix.NewLib(curveID), curveID)
+		&ca.Config.Idemix, CSP)
 	err = ca.issuer.Init(renew, ca.db, ca.levels)
 	if err != nil {
 		return errors.WithMessage(err, fmt.Sprintf("Failed to initialize Idemix issuer for CA '%s'", err.Error()))
@@ -1296,17 +1305,18 @@ func getMigrator(driverName string, tx cadb.FabricCATx, curLevels, srvLevels *db
 	return migrator, nil
 }
 
-func curveIDFromConfig(idemixCurveName string) (idemix2.CurveID, error) {
-	if idemixCurveName == "" {
-		idemixCurveName = idemix2.DefaultIdemixCurve
-		log.Debugf("CurveID for Idemix not specified, defaulting to %s", idemixCurveName)
-		return idemix2.Curves.ByName(idemixCurveName), nil
-	}
+func curveIDFromConfig(idemixCurveName string) (*math.Curve, error) {
+	return math.Curves[math.BLS12_381_BBS], nil
 
-	curveID := idemix2.Curves.ByName(idemixCurveName)
-	if curveID == idemix2.Undefined {
-		return 0, errors.Errorf("CurveID '%s' doesn't exist, expecting one of %s", idemixCurveName, idemix2.Curves.Names())
-	}
-	log.Debugf("Using curve %s for Idemix", idemixCurveName)
-	return curveID, nil
+	// if idemixCurveName == "" {
+	// 	log.Debugf("CurveID for Idemix not specified, defaulting to %s", idemixCurveName)
+	// 	return math.Curves[math.BLS12_381_BBS], nil
+	// }
+
+	// curveID := idemix2.Curves.ByName(idemixCurveName)
+	// if curveID == idemix2.Undefined {
+	// 	return 0, errors.Errorf("CurveID '%s' doesn't exist, expecting one of %s", idemixCurveName, idemix2.Curves.Names())
+	// }
+	// log.Debugf("Using curve %s for Idemix", idemixCurveName)
+	// return curveID, nil
 }

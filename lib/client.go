@@ -12,25 +12,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
-	math "github.com/IBM/mathlib"
-	cfsslapi "github.com/cloudflare/cfssl/api"
-	"github.com/cloudflare/cfssl/csr"
-	"github.com/cloudflare/cfssl/log"
-	proto "github.com/golang/protobuf/proto"
-	"github.com/hyperledger/fabric-ca/api"
-	"github.com/hyperledger/fabric-ca/lib/client/credential"
-	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
-	x509cred "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
-	sidemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
-	"github.com/hyperledger/fabric-ca/lib/streamer"
-	"github.com/hyperledger/fabric-ca/lib/tls"
-	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
-	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
-	"github.com/mitchellh/mapstructure"
-	"github.com/pkg/errors"
 	"io"
 	"net"
 	"net/http"
@@ -40,6 +21,27 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	i "github.com/IBM/idemix/bccsp"
+	"github.com/IBM/idemix/bccsp/keystore"
+	"github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl"
+	"github.com/IBM/idemix/bccsp/types"
+	ibccsp "github.com/IBM/idemix/bccsp/types"
+	cfsslapi "github.com/cloudflare/cfssl/api"
+	"github.com/cloudflare/cfssl/csr"
+	"github.com/cloudflare/cfssl/log"
+	"github.com/hyperledger/fabric-ca/api"
+	"github.com/hyperledger/fabric-ca/lib/client/credential"
+	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
+	x509cred "github.com/hyperledger/fabric-ca/lib/client/credential/x509"
+	sidemix "github.com/hyperledger/fabric-ca/lib/server/idemix"
+	"github.com/hyperledger/fabric-ca/lib/streamer"
+	"github.com/hyperledger/fabric-ca/lib/tls"
+	"github.com/hyperledger/fabric-ca/util"
+	"github.com/hyperledger/fabric/bccsp"
+	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
 // Client is the fabric-ca client object
@@ -57,10 +59,8 @@ type Client struct {
 	// HTTP client associated with this Fabric CA client
 	httpClient *http.Client
 	// Public key of Idemix issuer
-	issuerPublicKey *idemix.IssuerPublicKey
-	idemix          *idemix.Idemix
-	curve           *math.Curve
-	curveID         cidemix.CurveID
+	issuerPublicKey ibccsp.Key
+	iCSP            ibccsp.BCCSP
 }
 
 // GetCAInfoResponse is the response from the GetCAInfo call
@@ -142,13 +142,17 @@ func (c *Client) Init() error {
 			return err
 		}
 
-		curveID, err := curveIDFromConfig(cfg.Idemix.Curve)
+		curve, err := curveIDFromConfig(cfg.Idemix.Curve)
 		if err != nil {
 			return err
 		}
-		c.curveID = curveID
-		c.curve = cidemix.CurveByID(curveID)
-		c.idemix = cidemix.InstanceForCurve(curveID)
+
+		CSP, err := i.New(&keystore.Dummy{}, curve, &amcl.Gurvy{C: curve}, true)
+		if err != nil {
+			return err
+		}
+
+		c.iCSP = CSP
 
 		// Successfully initialized the client
 		c.initialized = true
@@ -401,7 +405,7 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 			fmt.Sprintf("Failed to decode nonce that was returned by CA %s", req.CAName))
 	}
 
-	nonce := c.curve.NewZrFromBytes(nonceBytes)
+	nonce := nonceBytes
 	log.Infof("Successfully got nonce from CA %s", req.CAName)
 
 	ipkBytes, err := util.B64Decode(result.CAInfo.IssuerPublicKey)
@@ -414,6 +418,7 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 		return nil, errors.WithMessage(err, "Failed to create an Idemix credential request")
 	}
 	reqNet.CredRequest = credReq
+	reqNet.IssuerNonce = nonceBytes
 	log.Info("Successfully created an Idemix credential request")
 
 	body, err = util.Marshal(reqNet, "CredentialRequest")
@@ -499,7 +504,7 @@ func (c *Client) newEnrollmentResponse(result *api.EnrollmentResponseNet, id str
 
 // newIdemixEnrollmentResponse creates a client idemix enrollment response from a network response
 func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.IdemixEnrollmentResponseNet,
-	sk *math.Zr, id string) (*EnrollmentResponse, error) {
+	usk ibccsp.Key, id string) (*EnrollmentResponse, error) {
 	log.Debugf("newIdemixEnrollmentResponse %s", id)
 	credBytes, err := util.B64Decode(result.Credential)
 	if err != nil {
@@ -511,6 +516,11 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 		return nil, errors.WithMessage(err, "Invalid response format from server")
 	}
 
+	uskBytes, err := usk.Bytes()
+	if err != nil {
+		return nil, errors.WithMessage(err, "converting usk to byte failed")
+	}
+
 	// Create SignerConfig object with credential bytes from the response
 	// and secret key
 	role, _ := result.Attrs["Role"].(int)
@@ -518,9 +528,8 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	revocationHandle := result.Attrs[sidemix.AttrRevocationHandle].(string)
 	signerConfig := &idemixcred.SignerConfig{
-		CurveID:                         cidemix.Curves.ByID(c.curveID),
 		Cred:                            credBytes,
-		Sk:                              sk.Bytes(),
+		USk:                             uskBytes,
 		Role:                            role,
 		OrganizationalUnitIdentifier:    ou,
 		EnrollmentID:                    enrollmentID,
@@ -529,7 +538,7 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	}
 
 	// Create IdemixCredential object
-	cred := idemixcred.NewCredential(c.idemixCredFile, c, c.curveID)
+	cred := idemixcred.NewCredential(c.idemixCredFile, c, c.iCSP)
 	err = cred.SetVal(signerConfig)
 	if err != nil {
 		return nil, err
@@ -584,22 +593,46 @@ func (c *Client) newCertificateRequest(req *api.CSRInfo, id string) *csr.Certifi
 
 // newIdemixCredentialRequest returns CredentialRequest object, a secret key, and a random number used in
 // the creation of credential request.
-func (c *Client) newIdemixCredentialRequest(nonce *math.Zr, ipkBytes []byte) (*idemix.CredRequest, *math.Zr, error) {
-	rand, err := c.curve.Rand()
-	if err != nil {
-		return nil, nil, errors.Errorf("failed obtaining randomness source: %v", err)
-	}
-	sk := c.curve.NewRandomZr(rand)
-
+func (c *Client) newIdemixCredentialRequest(nonce []byte, ipkBytes []byte) ([]byte, ibccsp.Key, error) {
 	issuerPubKey, err := c.getIssuerPubKey(ipkBytes)
 	if err != nil {
 		return nil, nil, err
 	}
-	credReq, err := c.idemix.NewCredRequest(sk, nonce.Bytes(), issuerPubKey, rand, c.idemix.Translator)
-	return credReq, sk, err
+
+	UserKey, err := c.iCSP.KeyGen(&ibccsp.IdemixUserSecretKeyGenOpts{Temporary: true})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	credRequest, err := c.iCSP.Sign(
+		UserKey,
+		nil,
+		&ibccsp.IdemixCredentialRequestSignerOpts{IssuerPK: issuerPubKey, IssuerNonce: nonce},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return credRequest, UserKey, err
 }
 
-func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, error) {
+const (
+	// AttrEnrollmentID is the attribute name for enrollment ID
+	AttrEnrollmentID = "EnrollmentID"
+	// AttrRole is the attribute name for role
+	AttrRole = "Role"
+	// AttrOU is the attribute name for OU
+	AttrOU = "OU"
+	// AttrRevocationHandle is the attribute name for revocation handle
+	AttrRevocationHandle = "RevocationHandle"
+)
+
+// GetAttributeNames returns attribute names supported by the Fabric CA for Idemix credentials
+func GetAttributeNames() []string {
+	return []string{AttrOU, AttrRole, AttrEnrollmentID, AttrRevocationHandle}
+}
+
+func (c *Client) getIssuerPubKey(ipkBytes []byte) (ibccsp.Key, error) {
 	var err error
 	if len(ipkBytes) == 0 {
 		ipkBytes, err = os.ReadFile(c.ipkFile)
@@ -607,13 +640,13 @@ func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, erro
 			return nil, errors.Wrapf(err, "Error reading CA's Idemix public key at '%s'", c.ipkFile)
 		}
 	}
-	pubKey := &idemix.IssuerPublicKey{}
-	err = proto.Unmarshal(ipkBytes, pubKey)
+
+	ipk, err := c.iCSP.KeyImport(ipkBytes, &ibccsp.IdemixIssuerPublicKeyImportOpts{AttributeNames: GetAttributeNames(), Temporary: true})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Error importing issuer public key")
 	}
-	c.issuerPublicKey = pubKey
-	return c.issuerPublicKey, nil
+
+	return ipk, nil
 }
 
 // LoadMyIdentity loads the client's identity from disk
@@ -645,7 +678,7 @@ func (c *Client) LoadIdentity(keyFile, certFile, idemixCredFile string) (*Identi
 		log.Debugf("No X509 credential found at %s, %s", keyFile, certFile)
 	}
 
-	idemixCred := idemixcred.NewCredential(idemixCredFile, c, c.curveID)
+	idemixCred := idemixcred.NewCredential(idemixCredFile, c, c.iCSP)
 	err = idemixCred.Load()
 	if err == nil {
 		idemixFound = true
@@ -718,7 +751,7 @@ func (c *Client) GetCSP() bccsp.BCCSP {
 }
 
 // GetIssuerPubKey returns issuer public key associated with this client
-func (c *Client) GetIssuerPubKey() (*idemix.IssuerPublicKey, error) {
+func (c *Client) GetIssuerPubKey() (ibccsp.Key, error) {
 	if c.issuerPublicKey == nil {
 		return c.getIssuerPubKey(nil)
 	}
@@ -951,18 +984,30 @@ func (c *Client) verifyIdemixCredential() error {
 		return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
 	}
 
-	cred := new(idemix.Credential)
-	err = proto.Unmarshal(signerConfig.GetCred(), cred)
+	skbytes := signerConfig.GetSk()
+	sk, err := c.iCSP.KeyImport(skbytes, &types.IdemixUserSecretKeyGenOpts{})
 	if err != nil {
-		return errors.Wrap(err, "Failed to unmarshal Idemix credential from signer config")
+		return errors.Wrapf(err, "Failed to import users private key")
 	}
-	sk := c.curve.NewZrFromBytes(signerConfig.GetSk())
 
-	// Verify that the credential is cryptographically valid
-	err = cred.Ver(sk, ipk, c.curve, c.idemix.Translator)
-	if err != nil {
+	valid, err := c.iCSP.Verify(
+		sk,
+		signerConfig.GetCred(),
+		nil,
+		&types.IdemixCredentialSignerOpts{
+			IssuerPK: ipk,
+			Attributes: []types.IdemixAttribute{
+				{Type: types.IdemixBytesAttribute, Value: []byte{0}},
+				{Type: types.IdemixBytesAttribute, Value: []byte{0, 1}},
+				{Type: types.IdemixIntAttribute, Value: 1},
+				{Type: types.IdemixBytesAttribute, Value: []byte{0, 1, 2}},
+			},
+		},
+	)
+	if err != nil || !valid {
 		return errors.Wrap(err, "Idemix credential is not cryptographically valid")
 	}
+
 	return nil
 }
 

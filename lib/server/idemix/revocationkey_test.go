@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 package idemix_test
 
 import (
-	"crypto/ecdsa"
+	"errors"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
+	bccsp "github.com/IBM/idemix/bccsp/types"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
@@ -27,7 +27,7 @@ const (
 
 func TestLoadNonExistentRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(path.Join(testdir, DefaultRevocationPublicKeyFile),
 		path.Join(testdir, "msp/keystore", DefaultRevocationPrivateKeyFile), idemixLib)
 	err := rk.Load()
@@ -40,7 +40,7 @@ func TestLoadNonExistentRevocationPublicKey(t *testing.T) {
 func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
 	pubkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPublicKeyFile)
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(pubkeyfile.Name(), path.Join(testdir, "msp/keystore", DefaultRevocationPrivateKeyFile), idemixLib)
 	err = rk.Load()
 	assert.Error(t, err, "Should have failed to load empty revocation public key")
@@ -51,8 +51,6 @@ func TestLoadEmptyRevocationPublicKey(t *testing.T) {
 
 func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	testdir := t.TempDir()
-	idemixLib := new(mocks.Lib)
-	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 	pubkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPublicKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
@@ -61,11 +59,15 @@ func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	key, err := idemix.GenerateLongTermRevocationKey()
+	RevocationPrivateKey, err := getCSP(t).KeyGen(&bccsp.IdemixRevocationKeyGenOpts{Temporary: true})
 	if err != nil {
 		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
 	}
-	privKey, _, err := EncodeKeys(key, &key.PublicKey)
+	RevocationPublicKey, err := RevocationPrivateKey.PublicKey()
+	if err != nil {
+		t.Fatalf("Failed to obtain public key")
+	}
+	privKey, _, err := EncodeKeys(RevocationPublicKey, RevocationPrivateKey)
 	if err != nil {
 		t.Fatalf("Failed to encode test revocation key: %s", err.Error())
 	}
@@ -78,17 +80,18 @@ func TestLoadFakeRevocationPublicKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to write to the file %s", pubkeyfile.Name())
 	}
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(pubkeyfile.Name(), privkeyfile.Name(), idemixLib)
 	err = rk.Load()
 	assert.Error(t, err, "Should have failed to load non existing revocation public key")
 	if err != nil {
-		assert.Contains(t, err.Error(), "Failed to decode ECDSA public key")
+		assert.Contains(t, err.Error(), "Failed to decode revocation ECDSA public key")
 	}
 }
 
 func TestLoadNonExistentRevocationPrivateKey(t *testing.T) {
 	testdir := t.TempDir()
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, filepath.Join(testdir, "IdemixRevocationPrivateKey"), idemixLib)
 	err := rk.Load()
 	assert.Error(t, err, "Should have failed to load non existing issuer revocation private key")
@@ -100,7 +103,7 @@ func TestLoadNonExistentRevocationPrivateKey(t *testing.T) {
 func TestLoadEmptyRevocationPrivateKey(t *testing.T) {
 	testdir := t.TempDir()
 	privkeyfile, err := os.CreateTemp(testdir, "")
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, privkeyfile.Name(), idemixLib)
 	err = rk.Load()
 	assert.Error(t, err, "Should have failed to load empty issuer revocation private key")
@@ -110,7 +113,7 @@ func TestLoadEmptyRevocationPrivateKey(t *testing.T) {
 }
 
 func TestRevocationKeyLoad(t *testing.T) {
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, testRevocationPrivateKeyFile, idemixLib)
 	err := rk.Load()
 	assert.NoError(t, err, "Failed to load Idemix issuer revocation key")
@@ -120,7 +123,7 @@ func TestRevocationKeyLoad(t *testing.T) {
 }
 
 func TestStoreNilRevocationKey(t *testing.T) {
-	idemixLib := new(mocks.Lib)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, testRevocationPrivateKeyFile, idemixLib)
 	err := rk.Store()
 	assert.Error(t, err, "Should fail if store is called without setting or loading the revocation key from disk")
@@ -130,16 +133,12 @@ func TestStoreNilRevocationKey(t *testing.T) {
 }
 
 func TestStoreNilRevocationPublicKey(t *testing.T) {
-	idemixLib := new(mocks.Lib)
-	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(testRevocationPublicKeyFile, testRevocationPrivateKeyFile, idemixLib)
-	key, err := idemix.GenerateLongTermRevocationKey()
-	if err != nil {
-		t.Fatalf("Failed to create test revocation key: %s", err.Error())
-	}
-	key.PublicKey = ecdsa.PublicKey{}
-	rk.SetKey(key)
-	err = rk.Store()
+	mk := new(mocks.BccspKey)
+	mk.On("Bytes").Return(nil, errors.New("Failed to encode revocation public key"))
+	rk.SetKey(mk)
+	err := rk.Store()
 	assert.Error(t, err, "Should fail if store is called with empty revocation public key")
 	if err != nil {
 		assert.Contains(t, err.Error(), "Failed to encode revocation public key")
@@ -147,30 +146,37 @@ func TestStoreNilRevocationPublicKey(t *testing.T) {
 }
 
 func TestEncodeKeys(t *testing.T) {
-	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
-	privateKey, err := idemix.GenerateLongTermRevocationKey()
+	csp := getCSP(t)
+
+	RevocationPrivateKey, err := csp.KeyGen(&bccsp.IdemixRevocationKeyGenOpts{Temporary: true})
 	if err != nil {
 		t.Fatalf("Failed to generate ECDSA key for revocation authority")
 	}
-	pkstr, pubkeystr, err := EncodeKeys(privateKey, &privateKey.PublicKey)
+
+	RevocationPublicKey, err := RevocationPrivateKey.PublicKey()
+	if err != nil {
+		t.Fatalf("Failed to obtain public key")
+	}
+
+	pkstr, pubkeystr, err := EncodeKeys(RevocationPrivateKey, RevocationPublicKey)
 	assert.NoError(t, err)
 
-	_, _, err = DecodeKeys([]byte(""), pubkeystr)
+	_, _, err = DecodeKeys([]byte(""), pubkeystr, csp)
 	assert.Error(t, err)
-	assert.Equal(t, "Failed to decode ECDSA private key", err.Error())
+	assert.ErrorContains(t, err, "Failed to parse private key bytes")
 
-	_, _, err = DecodeKeys(pubkeystr, pkstr)
+	_, _, err = DecodeKeys(pubkeystr, pkstr, csp)
 	assert.Error(t, err, "DecodeKeys should fail as encoded public key string is passed as private key")
 
-	_, _, err = DecodeKeys(pkstr, []byte(""))
+	_, _, err = DecodeKeys(pkstr, []byte(""), csp)
 	assert.Error(t, err, "DecodeKeys should fail as empty string is passed for encoded public key string")
-	assert.Contains(t, err.Error(), "Failed to decode ECDSA public key")
+	assert.Contains(t, err.Error(), "Failed to parse public key bytes")
 
-	_, _, err = DecodeKeys(pkstr, pkstr)
+	_, _, err = DecodeKeys(pkstr, pkstr, csp)
 	assert.Error(t, err, "DecodeKeys should fail as encoded private key string is passed as public key")
-	assert.Contains(t, err.Error(), "Failed to parse ECDSA public key bytes")
+	assert.Contains(t, err.Error(), "Failed to parse public key bytes")
 
-	privateKey1, pubKey, err := DecodeKeys(pkstr, pubkeystr)
+	privateKey1, pubKey, err := DecodeKeys(pkstr, pubkeystr, csp)
 	assert.NoError(t, err)
 	assert.NotNil(t, privateKey1)
 	assert.NotNil(t, pubKey)
@@ -178,17 +184,20 @@ func TestEncodeKeys(t *testing.T) {
 
 func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
 	testdir := t.TempDir()
-	idemix := cidemix.InstanceForCurve(cidemix.FP256BN)
 
 	privkeyfile, err := os.CreateTemp(testdir, DefaultRevocationPrivateKeyFile)
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %s", err.Error())
 	}
-	key, err := idemix.GenerateLongTermRevocationKey()
+	RevocationPrivateKey, err := getCSP(t).KeyGen(&bccsp.IdemixRevocationKeyGenOpts{Temporary: true})
 	if err != nil {
 		t.Fatalf("Failed to generate test revocation key: %s", err.Error())
 	}
-	privKey, _, err := EncodeKeys(key, &key.PublicKey)
+	RevocationPublicKey, err := RevocationPrivateKey.PublicKey()
+	if err != nil {
+		t.Fatalf("Failed to obtain public key")
+	}
+	privKey, _, err := EncodeKeys(RevocationPrivateKey, RevocationPublicKey)
 	if err != nil {
 		t.Fatalf("Failed to encode test revocation key: %s", err.Error())
 	}
@@ -198,13 +207,13 @@ func TestStoreReadonlyRevocationPublicKeyFilepath(t *testing.T) {
 	}
 
 	pubkeyfile := path.Join(testdir, "testdata1/RevocationPublicKey")
-	idemixLib := new(mocks.Lib)
 	err = os.MkdirAll(path.Dir(pubkeyfile), 4444)
 	if err != nil {
 		t.Fatalf("Failed to create read only directory: %s", err.Error())
 	}
+	idemixLib := getCSP(t)
 	rk := NewRevocationKey(pubkeyfile, privkeyfile.Name(), idemixLib)
-	rk.SetKey(key)
+	rk.SetKey(RevocationPrivateKey)
 	err = rk.Store()
 	assert.Error(t, err, "Should fail if issuer public key is being stored to read-only directory")
 	if err != nil {

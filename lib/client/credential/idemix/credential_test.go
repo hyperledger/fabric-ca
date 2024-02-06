@@ -9,32 +9,24 @@ package idemix_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	scheme "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	i "github.com/IBM/idemix/bccsp"
+	"github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl"
+	bccsp "github.com/IBM/idemix/bccsp/types"
 	math "github.com/IBM/mathlib"
-	"github.com/golang/protobuf/proto"
 	lib "github.com/hyperledger/fabric-ca/lib"
 	. "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIdemixCredential(t *testing.T) {
-	for _, curveID := range []cidemix.CurveID{cidemix.Gurvy} {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curveID), func(t *testing.T) {
-			testIdemixCredential(t, curveID)
-		})
-	}
-}
-
-func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 	testDataDir, err := os.MkdirTemp("", strings.Replace(t.Name(), "/", "-", -1))
 	assert.NoError(t, err)
 	defer os.RemoveAll(testDataDir)
@@ -42,7 +34,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 	testSignerConfigFile := testDataDir + "/IdemixSignerConfig"
 	testIssuerPublicFile := testDataDir + "/IdemixPublicKey"
 
-	signerConf, ipk := makeSignerConfigAndIPK(curveID, t)
+	signerConf, ipk, CSP := makeSignerConfigAndIPK(math.BLS12_381_BBS, t)
 	rawSignerConf, err := json.Marshal(signerConf)
 	if err != nil {
 		t.Fatalf("Failed to marshal signer config: %s", err.Error())
@@ -53,7 +45,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to write signer config to file: %s", err.Error())
 	}
 
-	rawIPK, err := proto.Marshal(ipk)
+	rawIPK, err := ipk.Bytes()
 	if err != nil {
 		t.Fatalf("Failed to marshal IPK: %s", err.Error())
 	}
@@ -77,7 +69,7 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 		t.Fatalf("Failed to initialize client: %s", err.Error())
 	}
 
-	idemixCred := NewCredential(signerConfig, client, curveID)
+	idemixCred := NewCredential(signerConfig, client, CSP)
 
 	assert.Equal(t, idemixCred.Type(), CredType, "Type for a IdemixCredential instance must be Idemix")
 	_, err = idemixCred.Val()
@@ -204,50 +196,106 @@ func testIdemixCredential(t *testing.T, curveID cidemix.CurveID) {
 	assert.Error(t, err, "RevokeSelf should fail as it is not implemented for Idemix credential")
 }
 
-func makeSignerConfigAndIPK(curveID cidemix.CurveID, t *testing.T) (SignerConfig, *scheme.IssuerPublicKey) {
-	curve := cidemix.CurveByID(curveID)
-	rand, err := curve.Rand()
-	assert.NoError(t, err)
+// NewDummyKeyStore instantiate a dummy key store
+// that neither loads nor stores keys
+func NewDummyKeyStore() bccsp.KeyStore {
+	return &dummyKeyStore{}
+}
 
+// dummyKeyStore is a read-only KeyStore that neither loads nor stores keys.
+type dummyKeyStore struct {
+}
+
+// ReadOnly returns true if this KeyStore is read only, false otherwise.
+// If ReadOnly is true then StoreKey will fail.
+func (ks *dummyKeyStore) ReadOnly() bool {
+	return true
+}
+
+// GetKey returns a key object whose SKI is the one passed.
+func (ks *dummyKeyStore) GetKey(ski []byte) (bccsp.Key, error) {
+	return nil, errors.New("Key not found. This is a dummy KeyStore")
+}
+
+// StoreKey stores the key k in this KeyStore.
+// If this KeyStore is read only then the method will fail.
+func (ks *dummyKeyStore) StoreKey(k bccsp.Key) error {
+	return nil
+}
+
+func makeSignerConfigAndIPK(curveID math.CurveID, t *testing.T) (SignerConfig, bccsp.Key, bccsp.BCCSP) {
 	attrs := []string{idemix.AttrOU, idemix.AttrRole, idemix.AttrEnrollmentID, idemix.AttrRevocationHandle}
-	var numericalAttrs []*math.Zr
-	for _, attr := range attrs {
-		numericalAttrs = append(numericalAttrs, curve.HashToZr([]byte(attr)))
-	}
 
-	idemix := cidemix.InstanceForCurve(curveID)
-	ik, err := idemix.NewIssuerKey(attrs, rand, idemix.Translator)
+	curve := math.Curves[curveID]
+	CSP, err := i.New(NewDummyKeyStore(), curve, &amcl.Gurvy{C: curve}, true)
 	assert.NoError(t, err)
 
-	sk := curve.NewZrFromBytes(ik.Isk)
-
-	revKey, err := idemix.GenerateLongTermRevocationKey()
+	isk, err := CSP.KeyGen(&bccsp.IdemixIssuerKeyGenOpts{Temporary: true, AttributeNames: attrs})
 	assert.NoError(t, err)
 
-	cri, err := idemix.CreateCRI(revKey, nil, 1, scheme.ALG_NO_REVOCATION, rand, idemix.Translator)
+	ipk, err := isk.PublicKey()
 	assert.NoError(t, err)
 
-	criBytes, err := proto.Marshal(cri)
+	revKey, err := CSP.KeyGen(&bccsp.IdemixRevocationKeyGenOpts{Temporary: true})
 	assert.NoError(t, err)
 
-	nonce := curve.NewRandomZr(rand)
-
-	credReq, err := idemix.NewCredRequest(sk, nonce.Bytes(), ik.Ipk, rand, idemix.Translator)
+	cri, err := CSP.Sign(
+		revKey,
+		nil,
+		&bccsp.IdemixCRISignerOpts{
+			UnrevokedHandles:    nil,
+			Epoch:               1,
+			RevocationAlgorithm: bccsp.AlgNoRevocation,
+		},
+	)
 	assert.NoError(t, err)
 
-	cred, err := idemix.NewCredential(ik, credReq, numericalAttrs, rand, idemix.Translator)
+	nonce := []byte("do not reuse me do not reuse me ")
+
+	UserKey, err := CSP.KeyGen(&bccsp.IdemixUserSecretKeyGenOpts{Temporary: true})
 	assert.NoError(t, err)
 
-	credBytes, err := proto.Marshal(cred)
+	uskBytes, err := UserKey.Bytes()
 	assert.NoError(t, err)
 
-	signerSK := curve.NewRandomZr(rand)
+	credReq, err := CSP.Sign(
+		UserKey,
+		nil,
+		&bccsp.IdemixCredentialRequestSignerOpts{IssuerPK: ipk, IssuerNonce: nonce},
+	)
+	assert.NoError(t, err)
+
+	cred, err := CSP.Sign(
+		isk,
+		credReq,
+		&bccsp.IdemixCredentialSignerOpts{
+			Attributes: []bccsp.IdemixAttribute{
+				{
+					Type:  bccsp.IdemixBytesAttribute,
+					Value: []byte(attrs[0]),
+				},
+				{
+					Type:  bccsp.IdemixIntAttribute,
+					Value: 1,
+				},
+				{
+					Type:  bccsp.IdemixBytesAttribute,
+					Value: []byte(attrs[2]),
+				},
+				{
+					Type:  bccsp.IdemixBytesAttribute,
+					Value: []byte(attrs[3]),
+				},
+			},
+		},
+	)
+	assert.NoError(t, err)
 
 	return SignerConfig{
-		CredentialRevocationInformation: criBytes,
-		Cred:                            credBytes,
+		CredentialRevocationInformation: cri,
+		Cred:                            cred,
 		EnrollmentID:                    "admin",
 		OrganizationalUnitIdentifier:    "MSPID",
-		Sk:                              signerSK.Bytes(),
-	}, ik.Ipk
+		USk:                             uskBytes,
+	}, ipk, CSP
 }

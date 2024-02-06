@@ -7,6 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"time"
@@ -85,6 +86,21 @@ type CredDBAccessor interface {
 type CredentialAccessor struct {
 	level int
 	db    db.FabricCADB
+}
+
+//go:generate mockery --name DbFabricCADB --case underscore
+type DbFabricCADB interface {
+	db.FabricCADB
+}
+
+//go:generate mockery --name SqlResult --case underscore
+type SqlResult interface {
+	sql.Result
+}
+
+//go:generate mockery --name DbFabricCATx --case underscore
+type DbFabricCATx interface {
+	db.FabricCATx
 }
 
 // NewCredentialAccessor returns a new CredentialAccessor.

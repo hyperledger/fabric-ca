@@ -7,25 +7,17 @@ SPDX-License-Identifier: Apache-2.0
 package idemix
 
 import (
-	"fmt"
+	"math/big"
 	"testing"
 
-	idemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
+	"github.com/IBM/mathlib/driver/common"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUnRevokedHandles(t *testing.T) {
-	for _, curve := range idemix.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testGetUnRevokedHandles(t, curve)
-		})
-	}
-}
-
-func testGetUnRevokedHandles(t *testing.T, curveID idemix.CurveID) {
-	ra := &revocationAuthority{issuer: &issuer{name: "ca1", homeDir: ".", cfg: &Config{}}, curve: idemix.CurveByID(curveID)}
+	ra := &revocationAuthority{issuer: &IssuerInst{Name: "ca1", HomeDir: ".", Cfg: &Config{}}}
 	info := &RevocationAuthorityInfo{
 		Epoch:                1,
 		LastHandleInPool:     100,
@@ -40,7 +32,7 @@ func testGetUnRevokedHandles(t *testing.T, curveID idemix.CurveID) {
 	assert.Equal(t, 100, len(unrevokedHandles))
 
 	revokedCred = CredRecord{
-		RevocationHandle: util.B64Encode(idemix.CurveByID(curveID).NewZrFromInt(10).Bytes()),
+		RevocationHandle: util.B64Encode(common.BigToBytes(big.NewInt(int64(10)))),
 	}
 	revokedCreds = []CredRecord{revokedCred}
 	unrevokedHandles = ra.getUnRevokedHandles(info, revokedCreds)

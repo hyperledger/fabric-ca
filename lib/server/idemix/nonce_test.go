@@ -9,31 +9,25 @@ package idemix_test
 import (
 	"crypto/rand"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
-	"github.com/hyperledger/fabric-amcl/amcl"
-	idmx "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
-	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewNonceManager(t *testing.T) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("ca1")
+	issuer := new(IssuerInst)
+	issuer.Name = "ca1"
 	opts := &Config{
 		NonceExpiration:    "15",
 		NonceSweepInterval: "15",
 	}
 	clock := new(mocks.Clock)
-	lib := new(mocks.Lib)
-	issuer.On("Config").Return(opts)
-	issuer.On("IdemixLib").Return(lib)
+	issuer.Cfg = opts
 	_, err := NewNonceManager(issuer, clock, 1)
 	assert.Error(t, err, "NewNonceManager should return error if the NonceExpiration config option is not in time.Duration string format")
 	assert.Contains(t, err.Error(), "Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for Issuer 'ca1'")
@@ -49,33 +43,14 @@ func TestNewNonceManager(t *testing.T) {
 }
 
 func TestGetNonce(t *testing.T) {
-	for _, curve := range idmx.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testCheckNonce(t, curve)
-		})
-	}
-}
+	issuer := new(IssuerInst)
+	issuer.Name = "ca1"
 
-func testGetNonce(t *testing.T, curveID idmx.CurveID) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("ca1")
+	nonceBytes := make([]byte, 32)
+	_, err := rand.Read(nonceBytes)
+	assert.NoError(t, err)
 
-	curve := idmx.CurveByID(curveID)
-
-	lib := new(mocks.Lib)
-	rnd, err := curve.Rand()
-	if err != nil {
-		t.Fatalf("Error generating a random number")
-	}
-
-	rmo := curve.NewRandomZr(rnd)
-	rmo.Mod(curve.GroupOrder)
-
-	lib.On("RandModOrder", rnd).Return(rmo, nil)
-
-	issuer.On("IdemixRand").Return(rnd)
-
-	noncestr := util.B64Encode(rmo.Bytes())
+	noncestr := util.B64Encode(nonceBytes)
 	now := time.Now()
 	nonceObj := &Nonce{
 		Val:    noncestr,
@@ -85,16 +60,16 @@ func testGetNonce(t *testing.T, curveID idmx.CurveID) {
 
 	numResultForRowsAffectedCalls := 0
 	f1 := getResultForRowsAffectedFunc(&numResultForRowsAffectedCalls)
-	result := new(dmocks.Result)
+	result := new(mocks.SqlResult)
 	result.On("RowsAffected").Return(f1, nil)
 
-	db := new(dmocks.FabricCADB)
+	db := new(mocks.DbFabricCADB)
 	numResultForInsertNonceCalls := 0
 	numErrorForInsertNonceCalls := 0
 	f2 := getResultForInsertNonceFunc(result, &numResultForInsertNonceCalls)
 	f3 := getErrorForInsertNonceFunc(result, &numErrorForInsertNonceCalls)
 	db.On("NamedExec", "InsertNonce", InsertNonce, nonceObj).Return(f2, f3)
-	issuer.On("DB").Return(db)
+	issuer.Db = db
 
 	opts := &Config{
 		NonceExpiration:    "15s",
@@ -102,9 +77,12 @@ func testGetNonce(t *testing.T, curveID idmx.CurveID) {
 	}
 	clock := new(mocks.Clock)
 	clock.On("Now").Return(now)
-	issuer.On("Config").Return(opts)
-	issuer.On("IdemixLib").Return(lib)
+	issuer.Cfg = opts
 	nm, err := NewNonceManager(issuer, clock, 1)
+
+	mockRand := new(mocks.ReadNonce)
+	nm.(*NonceManagerImpl).ReadNonce = mockRand
+	mockRand.On("Read").Return(nonceBytes, nil)
 
 	_, err = nm.GetNonce()
 	assert.Error(t, err, "Executing insert SQL should return an error")
@@ -129,40 +107,17 @@ func testGetNonce(t *testing.T, curveID idmx.CurveID) {
 }
 
 func TestCheckNonce(t *testing.T) {
-	for _, curve := range idmx.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testCheckNonce(t, curve)
-		})
-	}
-}
+	issuer := new(IssuerInst)
+	issuer.Name = "ca1"
 
-func testCheckNonce(t *testing.T, curveID idmx.CurveID) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("ca1")
+	nonceBytes := make([]byte, 32)
+	_, err := rand.Read(nonceBytes)
+	assert.NoError(t, err)
 
-	lib := new(mocks.Lib)
-	rnd, err := getRand()
-	if err != nil {
-		t.Fatalf("Error generating a random number")
-	}
+	noncestr := util.B64Encode(nonceBytes)
 
-	curve := idmx.CurveByID(curveID)
-	rand, err := curve.Rand()
-	if err != nil {
-		t.Fatalf("Error obtaining randomness source")
-	}
-
-	rmo := curve.NewRandomZr(rand)
-	rmo.Mod(curve.GroupOrder)
-
-	lib.On("RandModOrder", rnd).Return(rmo)
-
-	issuer.On("IdemixRand").Return(rnd)
-	issuer.On("GetIdemixLib").Return(lib)
-	noncestr := util.B64Encode(rmo.Bytes())
-
-	db := new(dmocks.FabricCADB)
-	tx := new(dmocks.FabricCATx)
+	db := new(mocks.DbFabricCADB)
+	tx := new(mocks.DbFabricCATx)
 	tx.On("Commit", "CheckNonce").Return(nil)
 	tx.On("Rollback", "CheckNonce").Return(nil)
 	nonces := []Nonce{}
@@ -177,13 +132,13 @@ func testCheckNonce(t *testing.T, curveID idmx.CurveID) {
 	f1 := getTxRemoveNonceResultFunc(noncestr, &numTxRemoveResultCalls)
 	f2 := getTxRemoveNonceErrorFunc(&numTxRemoveErrorCalls)
 	tx.On("Exec", "GetNonce", RemoveNonce, noncestr).Return(f1, f2)
-	issuer.On("DB").Return(db)
+	issuer.Db = db
 
 	opts := &Config{
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
-	issuer.On("Config").Return(opts)
+	issuer.Cfg = opts
 	now := time.Now()
 	clock := new(mocks.Clock)
 	clock.On("Now").Return(now)
@@ -191,52 +146,42 @@ func testCheckNonce(t *testing.T, curveID idmx.CurveID) {
 	if err != nil {
 		t.Fatalf("Failed to get new instance of Nonce Manager")
 	}
-	err = nm.CheckNonce(rmo)
+	err = nm.CheckNonce(nonceBytes)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to retrieve nonce from the datastore")
 
-	err = nm.CheckNonce(rmo)
+	err = nm.CheckNonce(nonceBytes)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonce not found in the datastore")
 
-	err = nm.CheckNonce(rmo)
+	err = nm.CheckNonce(nonceBytes)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Nonce is either unknown or has expired")
 
-	err = nm.CheckNonce(rmo)
+	err = nm.CheckNonce(nonceBytes)
 	assert.NoError(t, err)
 
-	err = nm.CheckNonce(rmo)
+	err = nm.CheckNonce(nonceBytes)
 	assert.NoError(t, err)
 }
 
 func TestSweepExpiredNonces(t *testing.T) {
-	for _, curve := range idmx.Curves {
-		t.Run(fmt.Sprintf("%s-%d", t.Name(), curve), func(t *testing.T) {
-			testSweepExpiredNonces(t, curve)
-		})
-	}
-}
-
-func testSweepExpiredNonces(t *testing.T, curveID idmx.CurveID) {
-	issuer := new(mocks.MyIssuer)
-	issuer.On("Name").Return("ca1")
+	issuer := new(IssuerInst)
+	issuer.Name = "ca1"
 	now := time.Now()
 
 	numRemoveExpiredNoncesErrorFuncCalls := 0
 	f := getRemoveExpiredNoncesErrorFunc(&numRemoveExpiredNoncesErrorFuncCalls)
-	db := new(dmocks.FabricCADB)
+	db := new(mocks.DbFabricCADB)
 	db.On("Rebind", RemoveExpiredNonces).Return(RemoveExpiredNonces)
 	db.On("Exec", "RemoveExpiredNonces", RemoveExpiredNonces, now.UTC()).Return(nil, f) // errors.New("error"))
-	issuer.On("DB").Return(db)
+	issuer.Db = db
 
-	lib := new(mocks.Lib)
 	opts := &Config{
 		NonceExpiration:    "15s",
 		NonceSweepInterval: "15m",
 	}
-	issuer.On("Config").Return(opts)
-	issuer.On("IdemixLib").Return(lib)
+	issuer.Cfg = opts
 	clock := new(mocks.Clock)
 	clock.On("Now").Return(now)
 	nm, err := NewNonceManager(issuer, clock, 1)
@@ -320,7 +265,7 @@ func getTxRemoveNonceResultFunc(noncestr string, numTxRemoveResultCalls *int) fu
 			*numTxRemoveResultCalls = *numTxRemoveResultCalls + 1
 			return nil
 		}
-		result := new(dmocks.Result)
+		result := new(mocks.SqlResult)
 		if *numTxRemoveResultCalls == 1 {
 			result.On("RowsAffected").Return(int64(2), nil)
 			*numTxRemoveResultCalls = *numTxRemoveResultCalls + 1
@@ -349,18 +294,4 @@ func getRemoveExpiredNoncesErrorFunc(numRemoveExpiredNoncesErrorFuncCalls *int) 
 		}
 		return nil
 	}
-}
-
-// getRand returns a new *amcl.RAND with a fresh seed
-func getRand() (*amcl.RAND, error) {
-	seedLength := 32
-	b := make([]byte, seedLength)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, errors.Wrap(err, "error getting randomness for seed")
-	}
-	rng := amcl.NewRAND()
-	rng.Clean()
-	rng.Seed(seedLength, b)
-	return rng, nil
 }

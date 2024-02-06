@@ -9,7 +9,6 @@ package idemix_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	. "github.com/hyperledger/fabric-ca/lib/server/idemix"
 	dmocks "github.com/hyperledger/fabric-ca/lib/server/idemix/mocks"
@@ -21,7 +20,7 @@ import (
 func TestInsertCredentialNilDB(t *testing.T) {
 	credRecord := getCredRecord()
 
-	var db *dmocks.FabricCADB
+	var db *dmocks.DbFabricCADB
 	accessor := NewCredentialAccessor(db, 1)
 	err := accessor.InsertCredential(credRecord)
 	assert.Error(t, err)
@@ -30,9 +29,9 @@ func TestInsertCredentialNilDB(t *testing.T) {
 
 func TestInsertCredential(t *testing.T) {
 	credRecord := getCredRecord()
-	result := new(dmocks.Result)
+	result := new(dmocks.SqlResult)
 	result.On("RowsAffected").Return(int64(1), nil)
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(nil, 1)
@@ -43,9 +42,9 @@ func TestInsertCredential(t *testing.T) {
 
 func TestInsertCredentialNoRowsAffected(t *testing.T) {
 	credRecord := getCredRecord()
-	result := new(dmocks.Result)
+	result := new(dmocks.SqlResult)
 	result.On("RowsAffected").Return(int64(0), nil)
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
@@ -56,9 +55,9 @@ func TestInsertCredentialNoRowsAffected(t *testing.T) {
 
 func TestInsertCredentialTwoRowsAffected(t *testing.T) {
 	credRecord := getCredRecord()
-	result := new(dmocks.Result)
+	result := new(dmocks.SqlResult)
 	result.On("RowsAffected").Return(int64(2), nil)
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(result, nil)
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
@@ -69,7 +68,7 @@ func TestInsertCredentialTwoRowsAffected(t *testing.T) {
 
 func TestInsertCredentialExecError(t *testing.T) {
 	credRecord := getCredRecord()
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("NamedExec", "InsertCredential", InsertCredentialSQL, credRecord).Return(nil, errors.New("Exec error"))
 	db.On("Rebind", InsertCredentialSQL).Return(InsertCredentialSQL)
 	accessor := NewCredentialAccessor(db, 1)
@@ -79,7 +78,7 @@ func TestInsertCredentialExecError(t *testing.T) {
 }
 
 func TestGetCredentialsByIDNilDB(t *testing.T) {
-	var db *dmocks.FabricCADB
+	var db *dmocks.DbFabricCADB
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetCredentialsByID("1")
 	assert.Error(t, err)
@@ -87,7 +86,7 @@ func TestGetCredentialsByIDNilDB(t *testing.T) {
 }
 
 func TestGetCredentialsByIDSelectError(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
 	crs := []CredRecord{}
 	q := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
@@ -99,7 +98,7 @@ func TestGetCredentialsByIDSelectError(t *testing.T) {
 }
 
 func TestGetCredentialsByID(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectCredentialByIDSQL).Return(SelectCredentialByIDSQL)
 	crs := []CredRecord{}
 	q := fmt.Sprintf(SelectCredentialByIDSQL, sqlstruct.Columns(CredRecord{}))
@@ -112,7 +111,7 @@ func TestGetCredentialsByID(t *testing.T) {
 }
 
 func TestGetCredentialNilDB(t *testing.T) {
-	var db *dmocks.FabricCADB
+	var db *dmocks.DbFabricCADB
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetCredential("1")
 	assert.Error(t, err)
@@ -120,7 +119,7 @@ func TestGetCredentialNilDB(t *testing.T) {
 }
 
 func TestGetCredentialSelectError(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectCredentialSQL).Return(SelectCredentialSQL)
 	cr := CredRecord{}
 	q := fmt.Sprintf(SelectCredentialSQL, sqlstruct.Columns(CredRecord{}))
@@ -131,7 +130,7 @@ func TestGetCredentialSelectError(t *testing.T) {
 }
 
 func TestGetCredential(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectCredentialSQL).Return(SelectCredentialSQL)
 	cr := CredRecord{}
 	q := fmt.Sprintf(SelectCredentialSQL, sqlstruct.Columns(CredRecord{}))
@@ -142,7 +141,7 @@ func TestGetCredential(t *testing.T) {
 }
 
 func TestGetRevokedCredentialsNilDB(t *testing.T) {
-	var db *dmocks.FabricCADB
+	var db *dmocks.DbFabricCADB
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetRevokedCredentials()
 	assert.Error(t, err)
@@ -150,7 +149,7 @@ func TestGetRevokedCredentialsNilDB(t *testing.T) {
 }
 
 func TestGetRevokedCredentialsSelectError(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
 	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
 	cr := []CredRecord{}
@@ -161,7 +160,7 @@ func TestGetRevokedCredentialsSelectError(t *testing.T) {
 }
 
 func TestGetRevokedCredentials(t *testing.T) {
-	db := new(dmocks.FabricCADB)
+	db := new(dmocks.DbFabricCADB)
 	db.On("Rebind", SelectRevokedCredentialSQL).Return(SelectRevokedCredentialSQL)
 	q := fmt.Sprintf(SelectRevokedCredentialSQL, sqlstruct.Columns(CredRecord{}))
 	cr := []CredRecord{}
@@ -169,29 +168,4 @@ func TestGetRevokedCredentials(t *testing.T) {
 	accessor := NewCredentialAccessor(db, 1)
 	_, err := accessor.GetRevokedCredentials()
 	assert.NoError(t, err)
-}
-
-func getCredSelectFunc(t *testing.T, isError bool) func(string, interface{}, string, ...interface{}) error {
-	return func(funcName string, dest interface{}, query string, args ...interface{}) error {
-		crs := dest.(*[]CredRecord)
-		cr := getCredRecord()
-		*crs = append(*crs, cr)
-		if isError {
-			return errors.New("Failed to get credentials from DB")
-		}
-		return nil
-	}
-}
-
-func getCredRecord() CredRecord {
-	return CredRecord{
-		ID:               "foo",
-		CALabel:          "",
-		Expiry:           time.Now(),
-		Level:            1,
-		Reason:           0,
-		Status:           "good",
-		RevocationHandle: "1",
-		Cred:             "blah",
-	}
 }

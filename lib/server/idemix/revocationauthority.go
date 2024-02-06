@@ -8,13 +8,13 @@ package idemix
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 
-	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
-	math "github.com/IBM/mathlib"
+	"github.com/IBM/idemix/bccsp/types"
+	ibccsp "github.com/IBM/idemix/bccsp/types"
+	"github.com/IBM/mathlib/driver/common"
 	"github.com/cloudflare/cfssl/log"
-	cidemix "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/lib/server/db"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/jmoiron/sqlx"
@@ -34,23 +34,25 @@ const (
 	DefaultRevocationHandlePoolSize = 1000
 )
 
+//go:generate mockery --name RevocationAuthority --case underscore
+
 // RevocationAuthority is responsible for generating revocation handles and
 // credential revocation info (CRI)
 type RevocationAuthority interface {
 	// GetNewRevocationHandle returns new revocation handle, which is required to
 	// create a new Idemix credential
-	GetNewRevocationHandle() (*math.Zr, error)
+	GetNewRevocationHandle() (int64, error)
 	// CreateCRI returns latest credential revocation information (CRI). CRI contains
 	// information that allows a prover to create a proof that the revocation handle associated
 	// with his credential is not revoked and by the verifier to verify the non-revocation
 	// proof of the prover. Verification will fail if the version of the CRI that verifier has
 	// does not match the version of the CRI that prover used to create non-revocation proof.
 	// The version of the CRI is specified by the Epoch value associated with the CRI.
-	CreateCRI() (*idemix.CredentialRevocationInformation, error)
+	CreateCRI() ([]byte, error)
 	// Epoch returns epoch value of the latest CRI
 	Epoch() (int, error)
 	// PublicKey returns revocation authority's public key
-	PublicKey() *ecdsa.PublicKey
+	PublicKey() ibccsp.Key
 }
 
 // RevocationAuthorityInfo is the revocation authority information record that is
@@ -64,19 +66,18 @@ type RevocationAuthorityInfo struct {
 
 // revocationAuthority implements RevocationComponent interface
 type revocationAuthority struct {
-	curve      *math.Curve
-	issuer     MyIssuer
-	key        RevocationKey
-	db         db.FabricCADB
-	currentCRI *idemix.CredentialRevocationInformation
+	issuer       *IssuerInst
+	key          RevocationKey
+	db           db.FabricCADB
+	currentCRI   []byte
+	currentEpoch int64
 }
 
 // NewRevocationAuthority constructor for revocation authority
-func NewRevocationAuthority(issuer MyIssuer, level int, curveID cidemix.CurveID) (RevocationAuthority, error) {
+func NewRevocationAuthority(issuer *IssuerInst, level int) (RevocationAuthority, error) {
 	ra := &revocationAuthority{
-		curve:  cidemix.CurveByID(curveID),
 		issuer: issuer,
-		db:     issuer.DB(),
+		db:     issuer.Db,
 	}
 	var err error
 
@@ -88,7 +89,7 @@ func NewRevocationAuthority(issuer MyIssuer, level int, curveID cidemix.CurveID)
 	info, err := ra.getRAInfoFromDB()
 	if err != nil {
 		return nil, errors.WithMessage(err,
-			fmt.Sprintf("Failed to initialize revocation authority for issuer '%s'", issuer.Name()))
+			fmt.Sprintf("Failed to initialize revocation authority for issuer '%s'", issuer.Name))
 	}
 
 	// If epoch is 0, it means this is the first time revocation authority is being
@@ -97,13 +98,13 @@ func NewRevocationAuthority(issuer MyIssuer, level int, curveID cidemix.CurveID)
 		rcInfo := RevocationAuthorityInfo{
 			Epoch:                1,
 			NextRevocationHandle: 1,
-			LastHandleInPool:     issuer.Config().RHPoolSize,
+			LastHandleInPool:     issuer.Cfg.RHPoolSize,
 			Level:                level,
 		}
 		err = ra.addRAInfoToDB(&rcInfo)
 		if err != nil {
 			return nil, errors.WithMessage(err,
-				fmt.Sprintf("Failed to initialize revocation authority for issuer '%s'", issuer.Name()))
+				fmt.Sprintf("Failed to initialize revocation authority for issuer '%s'", issuer.Name))
 		}
 		info = &rcInfo
 	}
@@ -113,9 +114,9 @@ func NewRevocationAuthority(issuer MyIssuer, level int, curveID cidemix.CurveID)
 
 func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 	log.Debug("Initialize Idemix issuer revocation key material")
-	revocationPubKey := ra.issuer.Config().RevocationPublicKeyfile
-	revocationPrivKey := ra.issuer.Config().RevocationPrivateKeyfile
-	rk := NewRevocationKey(revocationPubKey, revocationPrivKey, ra.issuer.IdemixLib())
+	revocationPubKey := ra.issuer.Cfg.RevocationPublicKeyfile
+	revocationPrivKey := ra.issuer.Cfg.RevocationPrivateKeyfile
+	rk := NewRevocationKey(revocationPubKey, revocationPrivKey, ra.issuer.Csp)
 
 	if !renew {
 		pubKeyFileExists := util.FileExists(revocationPubKey)
@@ -127,7 +128,7 @@ func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 			log.Infof("   public key file location: %s", revocationPubKey)
 			err := rk.Load()
 			if err != nil {
-				return errors.WithMessage(err, fmt.Sprintf("Failed to load revocation key for issuer '%s'", ra.issuer.Name()))
+				return errors.WithMessage(err, fmt.Sprintf("Failed to load revocation key for issuer '%s'", ra.issuer.Name))
 			}
 			ra.key = rk
 			return nil
@@ -136,12 +137,12 @@ func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 	err := rk.SetNewKey()
 	if err != nil {
 		return errors.WithMessage(err,
-			fmt.Sprintf("Failed to generate revocation key for issuer '%s'", ra.issuer.Name()))
+			fmt.Sprintf("Failed to generate revocation key for issuer '%s'", ra.issuer.Name))
 	}
-	log.Infof("Idemix issuer revocation public and secret keys were generated for CA '%s'", ra.issuer.Name())
+	log.Infof("Idemix issuer revocation public and secret keys were generated for CA '%s'", ra.issuer.Name)
 	err = rk.Store()
 	if err != nil {
-		return errors.WithMessage(err, fmt.Sprintf("Failed to store revocation key of issuer '%s'", ra.issuer.Name()))
+		return errors.WithMessage(err, fmt.Sprintf("Failed to store revocation key of issuer '%s'", ra.issuer.Name))
 	}
 	ra.key = rk
 	return nil
@@ -153,39 +154,48 @@ func (ra *revocationAuthority) initKeyMaterial(renew bool) error {
 // proof of the prover. Verification will fail if the version of the CRI that verifier has
 // does not match the version of the CRI that prover used to create non-revocation proof.
 // The version of the CRI is specified by the Epoch value associated with the CRI.
-func (ra *revocationAuthority) CreateCRI() (*idemix.CredentialRevocationInformation, error) {
+func (ra *revocationAuthority) CreateCRI() ([]byte, error) {
 	info, err := ra.getRAInfoFromDB()
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failed to get revocation authority info from datastore")
 	}
-	if ra.currentCRI != nil && ra.currentCRI.Epoch == int64(info.Epoch) {
+	if ra.currentCRI != nil && ra.currentEpoch == int64(info.Epoch) {
 		return ra.currentCRI, nil
 	}
 
-	revokedCreds, err := ra.issuer.CredDBAccessor().GetRevokedCredentials()
+	revokedCreds, err := ra.issuer.CredDBAccessor.GetRevokedCredentials()
 	if err != nil {
-		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to get revoked credentials while generating CRI for issuer: '%s'", ra.issuer.Name()))
+		return nil, errors.WithMessage(err, fmt.Sprintf("Failed to get revoked credentials while generating CRI for issuer: '%s'", ra.issuer.Name))
 	}
 
 	unrevokedHandles := ra.getUnRevokedHandles(info, revokedCreds)
 
-	alg := idemix.ALG_NO_REVOCATION
-	cri, err := ra.issuer.IdemixLib().CreateCRI(ra.key.GetKey(), unrevokedHandles, info.Epoch, alg)
+	cri, err := ra.issuer.Csp.Sign(
+		ra.key.GetKey(),
+		nil,
+		&ibccsp.IdemixCRISignerOpts{
+			UnrevokedHandles:    unrevokedHandles,
+			Epoch:               info.Epoch,
+			RevocationAlgorithm: types.AlgNoRevocation,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
+
 	ra.currentCRI = cri
+	ra.currentEpoch = int64(info.Epoch)
 	return ra.currentCRI, nil
 }
 
 // GetNewRevocationHandle returns a new revocation handle
-func (ra *revocationAuthority) GetNewRevocationHandle() (*math.Zr, error) {
+func (ra *revocationAuthority) GetNewRevocationHandle() (int64, error) {
 	h, err := ra.getNextRevocationHandle()
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 
-	return ra.curve.NewZrFromInt(int64(h)), nil
+	return int64(h), nil
 }
 
 // Epoch returns epoch value of the latest CRI
@@ -198,28 +208,28 @@ func (ra *revocationAuthority) Epoch() (int, error) {
 }
 
 // PublicKey returns revocation authority's public key
-func (ra *revocationAuthority) PublicKey() *ecdsa.PublicKey {
-	return &ra.key.GetKey().PublicKey
+func (ra *revocationAuthority) PublicKey() ibccsp.Key {
+	return ra.key.GetKey()
 }
 
-func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo, revokedCreds []CredRecord) []*math.Zr {
-	log.Debugf("RA '%s' is getting revoked revocation handles for epoch %d", ra.issuer.Name(), info.Epoch)
-	isRevokedHandle := func(rh *math.Zr) bool {
+func (ra *revocationAuthority) getUnRevokedHandles(info *RevocationAuthorityInfo, revokedCreds []CredRecord) [][]byte {
+	log.Debugf("RA '%s' is getting revoked revocation handles for epoch %d", ra.issuer.Name, info.Epoch)
+	isRevokedHandle := func(rh []byte) bool {
 		for i := 0; i <= len(revokedCreds)-1; i++ {
 			rrhBytes, err := util.B64Decode(revokedCreds[i].RevocationHandle)
 			if err != nil {
 				log.Debugf("Failed to Base64 decode revocation handle '%s': %s", revokedCreds[i].RevocationHandle, err.Error())
 				return false
 			}
-			if bytes.Equal(rh.Bytes(), rrhBytes) {
+			if bytes.Equal(rh, rrhBytes) {
 				return true
 			}
 		}
 		return false
 	}
-	var validHandles []*math.Zr
+	var validHandles [][]byte
 	for i := 1; i <= info.LastHandleInPool; i = i + 1 {
-		validHandles = append(validHandles, ra.curve.NewZrFromInt(int64(i)))
+		validHandles = append(validHandles, common.BigToBytes(big.NewInt(int64(i))))
 	}
 	for i := len(validHandles) - 1; i >= 0; i-- {
 		isrevoked := isRevokedHandle(validHandles[i])
@@ -293,7 +303,7 @@ func (ra *revocationAuthority) getNextRevocationHandleTx(tx db.FabricCATx, _ ...
 	var inQuery string
 	var args []interface{}
 	if nextHandle == rcInfo.LastHandleInPool {
-		newLastHandleInPool := rcInfo.LastHandleInPool + ra.issuer.Config().RHPoolSize
+		newLastHandleInPool := rcInfo.LastHandleInPool + ra.issuer.Cfg.RHPoolSize
 		newEpoch := rcInfo.Epoch + 1
 		query = UpdateNextAndLastHandle
 		inQuery, args, err = sqlx.In(query, newNextHandle, newLastHandleInPool, newEpoch, rcInfo.Epoch)
