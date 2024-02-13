@@ -26,7 +26,7 @@ import (
 	dbutil "github.com/hyperledger/fabric-ca/lib/server/db/util"
 	dbuser "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/common/metrics/metricsfakes"
+	"github.com/hyperledger/fabric-lib-go/common/metrics/metricsfakes"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

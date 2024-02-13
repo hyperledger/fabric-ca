@@ -18,7 +18,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
 	"github.com/hyperledger/fabric-ca/lib/client/credential/x509"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric-lib-go/bccsp"
 	"github.com/pkg/errors"
 )
 
