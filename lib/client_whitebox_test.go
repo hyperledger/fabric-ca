@@ -19,9 +19,9 @@ import (
 	"github.com/cloudflare/cfssl/signer"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
-	"github.com/hyperledger/fabric/bccsp/factory"
-	cspsigner "github.com/hyperledger/fabric/bccsp/signer"
+	"github.com/hyperledger/fabric-lib-go/bccsp"
+	"github.com/hyperledger/fabric-lib-go/bccsp/factory"
+	cspsigner "github.com/hyperledger/fabric-lib-go/bccsp/signer"
 	"github.com/stretchr/testify/assert"
 )
 

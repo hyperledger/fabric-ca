@@ -16,7 +16,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/server/ldap"
 	"github.com/hyperledger/fabric-ca/lib/tls"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp/factory"
+	"github.com/hyperledger/fabric-lib-go/bccsp/factory"
 )
 
 const (

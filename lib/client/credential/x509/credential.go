@@ -15,7 +15,7 @@ import (
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
 	"github.com/hyperledger/fabric-ca/util"
-	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric-lib-go/bccsp"
 	"github.com/pkg/errors"
 )
 
