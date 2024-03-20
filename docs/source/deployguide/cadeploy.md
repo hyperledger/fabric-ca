@@ -94,7 +94,7 @@ When you deploy any node, you have three options for your TLS configuration:
 - Server-side TLS.
 - Mutual TLS.
 
-This process will configure a CA with server-side TLS enabled which is recommended for production networks. Mutual TLS is disabled by default. If you need to use mutual TLS, refer to the [TLS configuration settings](ca-config.html#tls).
+This process will configure a CA with server-side TLS enabled which is recommended for production networks. Mutual TLS is disabled by default. If you need to use mutual TLS, refer to the [TLS configuration settings](ca-config.md#tls).
 
 ### Before you begin
 
