@@ -6,7 +6,7 @@ The Fabric CA server and CA client binaries can be downloaded from [github](http
 
 ### Server binary file
 
-In this topic, we use the server binaries to deploy three different types of CAs: the TLS CA, an organization CA, and optionally an intermediate CA. The TLS CA issues certificates that secure communicates between all the nodes in the organization. The organization CA issues identity certificates. If you decide to include an intermediate CA, the organization CA serves as the root CA or parent server for the intermediate CA. If you have not already, you should review the topic on [Planning for a CA](ca-deploy-topology.html) to understand the purpose of each type of CA and their differences. We run the TLS CA, organization CA, and intermediate CAs from different folders. We will copy the CA server binary to each folder.
+In this topic, we use the server binaries to deploy three different types of CAs: the TLS CA, an organization CA, and optionally an intermediate CA. The TLS CA issues certificates that secure communicates between all the nodes in the organization. The organization CA issues identity certificates. If you decide to include an intermediate CA, the organization CA serves as the root CA or parent server for the intermediate CA. If you have not already, you should review the topic on [Planning for a CA](ca-deploy-topology.md) to understand the purpose of each type of CA and their differences. We run the TLS CA, organization CA, and intermediate CAs from different folders. We will copy the CA server binary to each folder.
 
 ### Client binary file
 
@@ -58,9 +58,9 @@ The usage of a single Fabric CA client to interact with multiple CA servers is u
 
 Two sets of CLI commands are included with the CA server and CA client binary files:
 
-- Use the [Fabric CA **server** CLI commands](../servercli.html) to deploy and update the CA server.
+- Use the [Fabric CA **server** CLI commands](../servercli.rst) to deploy and update the CA server.
 
-- Use the [Fabric CA **client** CLI commands ](../clientcli.html) to submit requests to your CA server after it is set up, such as registering, enrolling or revoking identities.
+- Use the [Fabric CA **client** CLI commands ](../clientcli.rst) to submit requests to your CA server after it is set up, such as registering, enrolling or revoking identities.
 
 We will use both of these CLI commands throughout this topic.
 
@@ -94,7 +94,7 @@ When you deploy any node, you have three options for your TLS configuration:
 - Server-side TLS.
 - Mutual TLS.
 
-This process will configure a CA with server-side TLS enabled which is recommended for production networks. Mutual TLS is disabled by default. If you need to use mutual TLS, refer to the [TLS configuration settings](ca-config.html#tls).
+This process will configure a CA with server-side TLS enabled which is recommended for production networks. Mutual TLS is disabled by default. If you need to use mutual TLS, refer to the [TLS configuration settings](ca-config.md#tls).
 
 ### Before you begin
 
@@ -136,7 +136,7 @@ The `init` command does not actually start the server but generates the required
 
 ### Modify the TLS CA server configuration
 
-Now that you have initialized your server, you can edit the generated `fabric-ca-server-config.yaml` file to modify the default configuration settings for your use case according to the [Checklist for a production CA server](ca-config.html).
+Now that you have initialized your server, you can edit the generated `fabric-ca-server-config.yaml` file to modify the default configuration settings for your use case according to the [Checklist for a production CA server](ca-config.md).
 
 At a minimum you should do the following:
 - `port` - Enter the port that you want to use for this server. These instructions use `7054`, but you can choose your port.
@@ -162,7 +162,7 @@ When the server starts successfully you will see something similar to:
 ```
 Because you have enabled TLS communications but have not specified a TLS certfile, notice that the TLS signed certificate `tls-cert.pem` file is generated under the `FABRIC_CA_HOME` location.
 
-**Tip:** The CA `ADMIN_USER` and `ADMIN_PWD` that were set on the `init` command cannot be overridden with the `-b` flag on this `start` command. When you need to modify the CA admin password, use the Fabric CA client [identity](../clientcli.html#identity-command) command.
+**Tip:** The CA `ADMIN_USER` and `ADMIN_PWD` that were set on the `init` command cannot be overridden with the `-b` flag on this `start` command. When you need to modify the CA admin password, use the Fabric CA client [identity](../clientcli.rst#identity-command) command.
 
 **Optional flags**:
 - `-d` - If you want to run the server in DEBUG mode which facilitates problem diagnosis, you can include the `-d` flag on the start command. However, in general it is not recommended to run a server with debug enabled as this will cause the server to perform slower.
@@ -338,7 +338,7 @@ For example:
 
 ### Modify the CA server configuration
 
-As we did with the TLS CA, we need to edit the generated `fabric-ca-server-config.yaml` file for the organization CA to modify the default configuration settings for your use case according to the [Checklist for a production CA server](ca-config.html).
+As we did with the TLS CA, we need to edit the generated `fabric-ca-server-config.yaml` file for the organization CA to modify the default configuration settings for your use case according to the [Checklist for a production CA server](ca-config.md).
 
 At a minimum, you should edit the following fields:
 - `port` - Enter the port that you want to use for this server. These instructions use `7055`, but you can choose your port.
@@ -347,7 +347,7 @@ At a minimum, you should edit the following fields:
 - `ca.name` - Give the organization CA a name by specifying a value in this parameter, for example `org1-ca`.
 - `csr.hosts` - Typically this parameter should be the hostname, ip address, or domain name where this server is running so that it can be injected into the TLS certificate Subject Alternative Name, however in this case the server will not generate its own TLS certificate (it was generated already from the TLS CA) and therefore no configuration is needed.
 - `csr.ca.pathlength`: This field is used to limit CA certificate hierarchy. Setting this value to `1` for the root CA means the root CA can issue intermediate CA certificates, but these intermediate CAs cannot in turn issue other **CA** certificates. In other words the intermediate CA cannot enroll other intermediate CAs, but it can issue enrollment certificates for users. The default value is `1`.
-- `signing.profiles.ca.caconstraint.maxpathlen` - This field represents the maximum number of non-self-issued intermediate certificates that can follow this certificate in a certificate chain. **If this will be a parent server for an intermediate CA, and you want that intermediate CA to act as a parent CA for another intermediate CA, this root CA needs to set this value to greater than 0 in the configuration .yaml file.** See the instructions for the [signing](ca-config.html#signing) section. The default value is `0`.
+- `signing.profiles.ca.caconstraint.maxpathlen` - This field represents the maximum number of non-self-issued intermediate certificates that can follow this certificate in a certificate chain. **If this will be a parent server for an intermediate CA, and you want that intermediate CA to act as a parent CA for another intermediate CA, this root CA needs to set this value to greater than 0 in the configuration .yaml file.** See the instructions for the [signing](ca-config.md#signing) section. The default value is `0`.
 - `operations.listenAddress:` - If there is another CA running on this host, then you need to update this parameter to use a different port.
 
 ### Delete the CA server certificates
@@ -551,7 +551,7 @@ When the enroll command runs, it creates the `fabric-ca-client/int-ca/icaadmin/m
 
 ## Next steps
 
-Minimally, you should now have a TLS CA and an organization CA configured for your organization. You can now use the Fabric CA client to register and enroll node admin identities, node identities, and organization identities with the TLS CA to generate their TLS certificates required for server side TLS communications. Likewise you will also need to register and enroll the same node admins and users with the organization CA to generate their enrollment certificates and MSPs. See [Use the CA to create identities and MSPs](https://hyperledger-fabric.readthedocs.io/en/release-2.1/deployment_guide_overview.html#dg-step-four-use-the-ca-to-create-identities-and-msps) for more information. If you did configure an intermediate CA, you can now use that CA to register and enroll identities for the organization instead of the root CA.
+Minimally, you should now have a TLS CA and an organization CA configured for your organization. You can now use the Fabric CA client to register and enroll node admin identities, node identities, and organization identities with the TLS CA to generate their TLS certificates required for server side TLS communications. Likewise you will also need to register and enroll the same node admins and users with the organization CA to generate their enrollment certificates and MSPs. See [Use the CA to create identities and MSPs](https://hyperledger-fabric.readthedocs.io/en/latest/deployment_guide_overview.html#dg-step-four-use-the-ca-to-create-identities-and-msps) for more information. If you did configure an intermediate CA, you can now use that CA to register and enroll identities for the organization instead of the root CA.
 
 **Tip:** When you subsequently use the Fabric CA client to register identities with the intermediate CA, ensure that you specify the `--mspdir int-ca/icaadmin/msp` on the register command.
 
