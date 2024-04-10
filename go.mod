@@ -1,6 +1,6 @@
 module github.com/hyperledger/fabric-ca
 
-go 1.20
+go 1.21
 
 require (
 	github.com/IBM/idemix v0.0.2-0.20230510082947-a0c3ee5ebe35
@@ -32,7 +32,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.21.0
 	gopkg.in/ldap.v2 v2.5.1
 )
 
@@ -72,8 +72,8 @@ require (
 	github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/grpc v1.61.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
