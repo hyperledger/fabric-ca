@@ -27,12 +27,12 @@ jobs:
         name: Run APT Clean
       - run: sudo apt update
         name: Run Apt Update
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+        name: Checkout Fabric CA Code        
+      - uses: actions/setup-go@v5
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
-      - uses: actions/checkout@v3
-        name: Checkout Fabric CA Code
       - run: make dist checks all-tests docs
         name: Run Unit and Integration Tests
   fvt-tests:
@@ -43,11 +43,11 @@ jobs:
         name: Run APT Clean
       - run: sudo apt update
         name: Run Apt Update
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+        name: Checkout Fabric CA Code        
+      - uses: actions/setup-go@v5
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
-      - uses: actions/checkout@v3
-        name: Checkout Fabric CA Code
       - run: make fvt-tests
         name: Run FVT Tests
