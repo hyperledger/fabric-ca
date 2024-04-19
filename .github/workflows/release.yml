@@ -35,13 +35,13 @@ jobs:
             platform: windows-amd64
     runs-on: ${{ matrix.image }}
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+        name: Checkout Fabric CA Code
+      
+      - uses: actions/setup-go@v5
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
-
-      - uses: actions/checkout@v3
-        name: Checkout Fabric CA Code
 
       - name: Install GCC cross-compilers
         if:  ${{ contains(matrix.platform, 'linux') }}
@@ -55,7 +55,7 @@ jobs:
         env:
           BASE_VERSION: ${{ github.ref_name }}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Publish Release Artifacts
         with:
           # <name> of the artifact must not collide between platform/arch builds
@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Login to the ${{ env.DOCKER_REGISTRY }} Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ env.DOCKER_REGISTRY == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
@@ -84,7 +84,7 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -93,14 +93,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}.{{patch}}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build and push
         id: push
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: images/fabric-ca/Dockerfile
