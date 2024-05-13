@@ -15,7 +15,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
 	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2
-	github.com/hyperledger/fabric-lib-go v1.1.0
+	github.com/hyperledger/fabric-lib-go v1.1.2
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
