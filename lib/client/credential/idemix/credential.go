@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"net/http"
 
-	schemes "github.com/IBM/idemix/bccsp/schemes"
 	scheme "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
+	"github.com/IBM/idemix/bccsp/types"
 	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
 	"github.com/golang/protobuf/proto"
@@ -179,7 +179,7 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 		return "", errors.Wrapf(err, "Failed to unmarshal Idemix CRI while creating token")
 	}
 
-	sig, _, err := cred.idemix.NewSignature(&credential, sk, nym, randNym, ipk, disclosure, digest, 3, 0, &cri, rand, cred.idemix.Translator, schemes.Standard, nil)
+	sig, _, err := cred.idemix.NewSignature(&credential, sk, nym, randNym, ipk, disclosure, digest, 3, 0, &cri, rand, cred.idemix.Translator, types.Standard, nil)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to create signature while creating token")
 	}

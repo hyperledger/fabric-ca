@@ -1,8 +1,13 @@
-# github.com/IBM/idemix v0.0.2-0.20230510082947-a0c3ee5ebe35
+# github.com/IBM/idemix v0.0.2-0.20231011101252-a4feda90f3f7
 ## explicit; go 1.19
-github.com/IBM/idemix/bccsp/schemes
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl
+# github.com/IBM/idemix/bccsp/schemes/weak-bb v0.0.0-20240612072411-114d281b442d
+## explicit; go 1.19
+github.com/IBM/idemix/bccsp/schemes/weak-bb
+# github.com/IBM/idemix/bccsp/types v0.0.0-20240612072411-114d281b442d
+## explicit; go 1.19
+github.com/IBM/idemix/bccsp/types
 # github.com/IBM/mathlib v0.0.3-0.20231011094432-44ee0eb539da
 ## explicit; go 1.18
 github.com/IBM/mathlib
@@ -17,8 +22,8 @@ github.com/Knetic/govaluate
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
-# github.com/bits-and-blooms/bitset v1.7.0
-## explicit; go 1.14
+# github.com/bits-and-blooms/bitset v1.13.0
+## explicit; go 1.16
 github.com/bits-and-blooms/bitset
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
@@ -97,8 +102,8 @@ github.com/go-logfmt/logfmt
 # github.com/go-sql-driver/mysql v1.5.0
 ## explicit; go 1.10
 github.com/go-sql-driver/mysql
-# github.com/golang/protobuf v1.5.3
-## explicit; go 1.9
+# github.com/golang/protobuf v1.5.4
+## explicit; go 1.17
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
@@ -353,7 +358,7 @@ github.com/zmap/zlint/util
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
-# go.uber.org/zap v1.26.0
+# go.uber.org/zap v1.27.0
 ## explicit; go 1.19
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -365,7 +370,7 @@ go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
-# golang.org/x/crypto v0.21.0
+# golang.org/x/crypto v0.24.0
 ## explicit; go 1.18
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
@@ -385,12 +390,12 @@ golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/idna
-# golang.org/x/sys v0.18.0
+# golang.org/x/sys v0.21.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.14.0
+# golang.org/x/text v0.16.0
 ## explicit; go 1.18
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -412,18 +417,19 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/grpc v1.61.0
+# google.golang.org/grpc v1.64.0
 ## explicit; go 1.19
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/internal/grpclog
-# google.golang.org/protobuf v1.33.0
-## explicit; go 1.17
+# google.golang.org/protobuf v1.34.2
+## explicit; go 1.20
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt
 google.golang.org/protobuf/internal/descopts
 google.golang.org/protobuf/internal/detrand
 google.golang.org/protobuf/internal/editiondefaults
+google.golang.org/protobuf/internal/editionssupport
 google.golang.org/protobuf/internal/encoding/defval
 google.golang.org/protobuf/internal/encoding/messageset
 google.golang.org/protobuf/internal/encoding/tag
