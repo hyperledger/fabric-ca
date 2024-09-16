@@ -825,7 +825,7 @@ Create Genesis Block and Channel Transaction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The orderer requires a genesis block that it uses to bootstrap itself.
-You can find more information in the `Hyperledger Fabric documentation <https://hyperledger-fabric.readthedocs.io/en/release-1.4/configtx.html?channel-configuration-configtx>`_
+You can find more information in the `Hyperledger Fabric documentation <https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/configtx.html?channel-configuration-configtx>`_
 
 In documentation below, you'll find a snippet of ``configtx.yaml`` that is written for this
 specific deployment. For the full ``configtx.yaml``, click :doc:`here <configtx>`.
@@ -1125,4 +1125,4 @@ requires using the organization admin role, for example:
    export CORE_PEER_ADDRESS=peer1-org1:7051
    export CORE_PEER_MSPCONFIGPATH=/tmp/hyperledger/org1/admin/msp
 
-For additional chaincode deployment details see the `Fabric chaincode tutorial <https://hyperledger-fabric.readthedocs.io/en/latest/deploy_chaincode.html>`_.
+For additional chaincode deployment details see the `Fabric chaincode tutorial <https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/deploy_chaincode.html>`_.
