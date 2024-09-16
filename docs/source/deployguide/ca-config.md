@@ -1,4 +1,4 @@
-#  Checklist for a production CA server
+# Checklist for a production CA server
 
 As you prepare to build a production Fabric CA server, you need to consider configuration of the following fields in the fabric-ca-server-config.yaml file.
 When you [initialize](../users-guide.html#initializing-the-server) the CA server, this file is generated for you so that you can customize it before actually starting the server.
@@ -81,6 +81,7 @@ As mentioned in the topic on [Planning for a CA](ca-deploy-topology.html), the `
 If this is not a desired configuration for your CA, you can leave the value of this parameter blank.
 
 ## intermediate CA
+
 ```
 intermediate:
   parentserver:
@@ -101,7 +102,7 @@ intermediate:
 
 Intermediate CAs are not required, but to reduce the risk of your organization (root) CA becoming compromised, you may want to include one or more intermediate CAs in your network.
 
-**Important:** Before setting up an intermediate CA, you need to verify the value of the `csr.ca.pathlength` parameter in the parent CA. When set to `0`, the organization CA can issue intermediate CA certificates, but these intermediate CAs may not in turn enroll other intermediate CAs. If you want your intermediate CA to be able to enroll other intermediate CAs, the root ca `csr.ca.pathlength` needs to be set to `1`.  And if you want those intermediate CAs to enroll other intermediate CAs, the root ca `csr.ca.pathlength` would need to be set to `2`.
+**Important:** Before setting up an intermediate CA, you need to verify the value of the `csr.ca.pathlength` parameter in the parent CA. When set to `0`, the organization CA can issue intermediate CA certificates, but these intermediate CAs may not in turn enroll other intermediate CAs. If you want your intermediate CA to be able to enroll other intermediate CAs, the root ca `csr.ca.pathlength` needs to be set to `1`. And if you want those intermediate CAs to enroll other intermediate CAs, the root ca `csr.ca.pathlength` would need to be set to `2`.
 
 - **`parentserver.url`**: Specify the parent server url in the format `https://<PARENT-CA-ENROLL-ID>:<PARENT-CA-SECRET>@<PARENT-CA-URL>:<PARENT-CA-PORT>`.
 - **`parentserver.caname`**: Enter `ca.name` of the parent CA server.
@@ -109,11 +110,13 @@ Intermediate CAs are not required, but to reduce the risk of your organization (
 - **`tls.certfiles`**: Enter the location and name of the TLS CA signing cert, `ca-cert.pem` file. For example, `tls/ca-cert.pem`. This location is relative to where the server configuration .yaml file exists.
 
 In addition to editing this `intermediate` section, you also need to edit the following sections of the configuration .yaml file for this intermediate CA:
+
 - `csr` - Ensure that the `csr.cn` field is blank.
 - `port` - Be sure to set a unique port for the intermediate CA.
 - `signing` - Verify that `isca` set to `true`, and `maxpathlen` is set to greater than `0` in the root CA only if the intermediate CA will serve as a parent CA to other intermediate CAs, otherwise it should be set to `0`. See the [signing](#signing) parameter.
 
 ## port
+
 ```
 port:
 ```
@@ -121,6 +124,7 @@ port:
 Each CA must be running on its own unique port and obviously must not conflict with any other service running on that port. You need to decide what ports you want to use for your CAs ahead of time and configure that port in the .yaml file.
 
 ## user registry
+
 ```
 registry:
   # Maximum number of times a password/secret can be reused for enrollment
@@ -142,19 +146,21 @@ registry:
           hf.Registrar.Attributes: "*"
           hf.AffiliationMgr: true
 ```
+
 If you are not using an LDAP user registry, then this section along with the associated registry database `db:` section are required. This section can be used to register a list of users with the CA when the server is started. Note that it simply registers the users and does not generate enrollment certificates for them. You use the Fabric CA client to generate the associated enrollment certificates.
 
-* `maxenrollments`: Used to restrict the number of times certificates can be generated for a user using the enroll ID and secret. The [reenroll](../users-guide.html#reenrolling-an-identity) command can be used to get certificates without any limitation.
-* `identities`: This section defines the list of users and their associated attributes to be registered when the CA is started. After you run the `fabric-ca-server init` command, the `<<<adminUserName>>>` and `<<<adminPassword>>>` here are replaced with the CA server bootstrap identity user and password specified with the `-b` option on the command.
-* `identities.type`: For Fabric, the list of valid types is `client`, `peer`, `admin`, `orderer`, and `member`.
-* `affiliation`: Select the affiliation to be associated with the user specified by the associated `name:` parameter. The list of possible affiliations is defined in the `affiliations:` section.
-* `attrs`: The list of roles included above would be for "admin" users, meaning they can register and enroll other users. If you are registering a non-admin user, you would not give them these permissions. The `hf` attributes associated with an identity affect that identity's ability to register other users. You should review the topic on [Registering a new identity](../users-guide.html#registering-a-new-identity) to understand the patterns that are required.
+- `maxenrollments`: Used to restrict the number of times certificates can be generated for a user using the enroll ID and secret. The [reenroll](../users-guide.html#reenrolling-an-identity) command can be used to get certificates without any limitation.
+- `identities`: This section defines the list of users and their associated attributes to be registered when the CA is started. After you run the `fabric-ca-server init` command, the `<<<adminUserName>>>` and `<<<adminPassword>>>` here are replaced with the CA server bootstrap identity user and password specified with the `-b` option on the command.
+- `identities.type`: For Fabric, the list of valid types is `client`, `peer`, `admin`, `orderer`, and `member`.
+- `affiliation`: Select the affiliation to be associated with the user specified by the associated `name:` parameter. The list of possible affiliations is defined in the `affiliations:` section.
+- `attrs`: The list of roles included above would be for "admin" users, meaning they can register and enroll other users. If you are registering a non-admin user, you would not give them these permissions. The `hf` attributes associated with an identity affect that identity's ability to register other users. You should review the topic on [Registering a new identity](../users-guide.html#registering-a-new-identity) to understand the patterns that are required.
 
 When the user is subsequently "enrolled", the `type`, `affiliation`, and `attrs` are visible inside the user's signing certificate and are used by policies to enforce authorization. Recall that `enrollment` is a process whereby the Fabric CA issues a certificate key-pair, comprised of a signed cert and a private key that forms the identity. The private and public keys are first generated locally by the Fabric CA client, and the public key is then sent to the CA which returns an encoded certificate, the signing certificate.
 
 After a user has been registered, you can use the [`Identity`](../clientcli.html#identity-command) command to modify the properties of the user.
 
 ## registry database
+
 ```
 db:
   type: sqlite3
@@ -178,6 +184,7 @@ If you are running the database in a cluster, you must choose `postgres` or `mys
 If LDAP is being used as the user registry (designated by `ldap.enabled:true`), then this section is ignored.
 
 ## LDAP
+
 ```
 ldap:
    # Enables or disables the LDAP client (default: false)
@@ -231,11 +238,12 @@ ldap:
          groups:
             - name:
               value:
-```   
+```
 
 If an LDAP registry is configured, all settings in the [registry](#user-registry) section are ignored.
 
 ## affiliations
+
 ```
 affiliations:
    org1:
@@ -243,11 +251,11 @@ affiliations:
       - department2
    org2:
       - department1
-```      
+```
 
-Affiliations are useful to designate sub-departments for organizations. They can then be referenced from a policy definition, for example when you might want to have transactions endorsed by a peer who is not simply a member of ORG1, but is a member of ORG1.MANUFACTURING. Note that the affiliation of the registrar must be equal to or a prefix of the affiliation of the identity being registered. If you are considering using affiliations you should review the topic on [Registering a new identity](../users-guide.html#registering-a-new-identity) for requirements. To learn more about how affiliations are used in an MSP, see the MSP Key concept topic on [Organizational Units (OUs) and MSPs](https://hyperledger-fabric.readthedocs.io/en/release-2.1/membership/membership.html#organizational-units-ous-and-msps).
+Affiliations are useful to designate sub-departments for organizations. They can then be referenced from a policy definition, for example when you might want to have transactions endorsed by a peer who is not simply a member of ORG1, but is a member of ORG1.MANUFACTURING. Note that the affiliation of the registrar must be equal to or a prefix of the affiliation of the identity being registered. If you are considering using affiliations you should review the topic on [Registering a new identity](../users-guide.html#registering-a-new-identity) for requirements. To learn more about how affiliations are used in an MSP, see the MSP Key concept topic on [Organizational Units (OUs) and MSPs](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/membership/membership.html#organizational-units-ous-and-msps).
 
-The default affiliations listed above are added to the Fabric CA database the first time the server is started. If you prefer not to have these affiliations on your server, you need to edit this config file and remove or replace them _before_ you start the server for the first time. Otherwise, you must use the Fabric CA client [Affiliation command](../clientcli.html#affiliation-command) to modify the list of affiliations.  By default, affiliations cannot be removed from the configuration, rather that feature has to be explicitly enabled. See the [cfg](#cfg) section for instructions on configuring the ability to allow removal of affiliations.
+The default affiliations listed above are added to the Fabric CA database the first time the server is started. If you prefer not to have these affiliations on your server, you need to edit this config file and remove or replace them _before_ you start the server for the first time. Otherwise, you must use the Fabric CA client [Affiliation command](../clientcli.html#affiliation-command) to modify the list of affiliations. By default, affiliations cannot be removed from the configuration, rather that feature has to be explicitly enabled. See the [cfg](#cfg) section for instructions on configuring the ability to allow removal of affiliations.
 
 ## csr (certificate signing request)
 
@@ -270,6 +278,7 @@ csr:
       expiry: 131400h
       pathlength: <<<PATHLENGTH>>>
 ```
+
 The CSR section controls the creation of the root CA certificate. Therefore, if you want to customize any values, it is recommended to configure this section before you start your server for the first time. The values you specify here will be included in the signing certificates that are generated. If you customize values for the CSR after you start the server, you need to delete the `ca.cert` file and `ca.key` files and then run the `fabric-ca-server start` command again.
 
 - **csr.cn**: This field must be set to the ID of the CA bootstrap identity and can be left blank. It defaults to the CA server bootstrap identity.
@@ -307,7 +316,7 @@ signing:
          expiry: 8760h
 ```
 
-The defaults in this section are normally sufficient for a production server. However, you might want to modify the default expiration of the generated organization CA and TLS certificates. Note that this is different than the `expiry` specified in the `csr` section for the CA root certificate.  
+The defaults in this section are normally sufficient for a production server. However, you might want to modify the default expiration of the generated organization CA and TLS certificates. Note that this is different than the `expiry` specified in the `csr` section for the CA root certificate.
 
 If this is a TLS CA, it is recommended that you remove the `ca` section from `profiles:` since a TLS CA should only be issuing TLS certificates.
 
@@ -328,7 +337,7 @@ bccsp:
             keystore: msp/keystore
 ```
 
-The information in this section controls where the private key for the CA is stored. The configuration above causes the private key to be stored on the file system of the CA server in the `msp/keystore` folder. If you plan to use a Hardware Security Module (HSM) the configuration is different. When you [configure HSM for a CA](https://hyperledger-fabric.readthedocs.io/en/release-2.1/hsm.html#using-an-hsm-with-a-fabric-ca), the CA private key is generated by and stored in the HSM instead of the `msp/keystore` folder. An example of the HSM configuration for softHSM would be similar to:
+The information in this section controls where the private key for the CA is stored. The configuration above causes the private key to be stored on the file system of the CA server in the `msp/keystore` folder. If you plan to use a Hardware Security Module (HSM) the configuration is different. When you [configure HSM for a CA](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/hsm.html#using-an-hsm-with-a-fabric-ca), the CA private key is generated by and stored in the HSM instead of the `msp/keystore` folder. An example of the HSM configuration for softHSM would be similar to:
 
 ```
 bccsp:
@@ -343,6 +352,7 @@ bccsp:
 ```
 
 ## cors
+
 ```
 cors:
     enabled: false
@@ -353,15 +363,16 @@ cors:
 Cross-Origin Resource Sharing (CORS) can be configured to use additional HTTP headers to tell browsers to give a web application running at one origin access to selected resources from a different origin. The `origins` parameter contains a list of domains that are allowed to access the resources.
 
 ## cfg
+
 ```
 cfg:
   affiliations:
     allowremove: false
   identities:
-    allowremove: false  
+    allowremove: false
 ```
 
-These two parameters are not listed in the sample configuration file, but are important to understand. With the default configuration set to false, you will be unable to remove affiliations or identities without a server restart. If you anticipate the need to remove affiliations or identities from your production environment without a server restart, both of these fields should be set to `true` before starting your server. Note that after the server is started, affiliations and identities can only be modified by using the Fabric CA client CLI commands.  
+These two parameters are not listed in the sample configuration file, but are important to understand. With the default configuration set to false, you will be unable to remove affiliations or identities without a server restart. If you anticipate the need to remove affiliations or identities from your production environment without a server restart, both of these fields should be set to `true` before starting your server. Note that after the server is started, affiliations and identities can only be modified by using the Fabric CA client CLI commands.
 
 ## operations
 
@@ -392,7 +403,7 @@ operations:
 ```
 
 The operations service can be used for health monitoring of the CA and relies on mutual TLS for communication with the node.
-Therefore, you need to set `operations.tls.clientAuthRequired` to `true`. When this is set to `true`, clients attempting to ascertain the health of the node are  required to provide a valid certificate for authentication. If the client does not provide a certificate or the service cannot verify the client’s certificate, the request is rejected. This means that the clients will need to register with the TLS CA and provide their TLS signing certificate on the requests.
+Therefore, you need to set `operations.tls.clientAuthRequired` to `true`. When this is set to `true`, clients attempting to ascertain the health of the node are required to provide a valid certificate for authentication. If the client does not provide a certificate or the service cannot verify the client’s certificate, the request is rejected. This means that the clients will need to register with the TLS CA and provide their TLS signing certificate on the requests.
 
 In the case where two CAs are running on the same machine, you need to modify the `listenAddress:` for the second CA to use a different port. Otherwise, when you start the second CA, it will fail to start, reporting that `the bind address is already in use`.
 
@@ -426,7 +437,6 @@ If you want to monitor the metrics for the CA, choose your metrics provider:
 ## Next steps
 
 After deciding on your CA configuration, you are ready to deploy your CAs. Follow instructions in the next CA Deployment steps topic to start your CA.
-
 
 <!--- Licensed under Creative Commons Attribution 4.0 International License
 https://creativecommons.org/licenses/by/4.0/ -->

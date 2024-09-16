@@ -1,8 +1,8 @@
 # Registering and enrolling identities with a CA
 
-*Audience: organization administrators, node administrators*
+_Audience: organization administrators, node administrators_
 
-If you've read our topics on [identity](https://hyperledger-fabric.readthedocs.io/en/{BRANCH}/identity/identity.html) and [Membership Service Provider (MSP)](https://hyperledger-fabric.readthedocs.io/en/{BRANCH}/membership/membership.html) you're aware that in Hyperledger Fabric, Certificate Authorities are used to generate the identities assigned to admins, nodes, and users (client applications). While any Certificate Authority that can generate x.509 certificates can be used to create the public/private key pair that constitutes an identity, the Fabric CA can additionally generate the local and organizational MSP folder structures that are required by Hyperledger Fabric.
+If you've read our topics on [identity](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/identity/identity.html) and [Membership Service Provider (MSP)](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/membership/membership.html) you're aware that in Hyperledger Fabric, Certificate Authorities are used to generate the identities assigned to admins, nodes, and users (client applications). While any Certificate Authority that can generate x.509 certificates can be used to create the public/private key pair that constitutes an identity, the Fabric CA can additionally generate the local and organizational MSP folder structures that are required by Hyperledger Fabric.
 
 In this topic, we'll show a "happy path" for using the Fabric CA to generate identities and MSPs. Note that you do not have to use the Fabric CA to register and enroll identities. However, if you use a different CA, you will need to create the relevant identities and MSPs that Fabric uses to build organizations, client identities, and nodes. We will show examples of those MSPs below.
 
@@ -44,7 +44,7 @@ If you've followed the process described in the CA deployment guide, you should 
 
 ![Fabric CA client folder structure](./fabriccaclientfolders.png)
 
-*The figure above shows the structure of folders associated with using a single Fabric CA client to connect to multiple CA servers.*
+_The figure above shows the structure of folders associated with using a single Fabric CA client to connect to multiple CA servers._
 
 As you can see, each CA server has a separate folder underneath the `fabric-ca-client` folder. Inside each of these CA folders is an `msp` folder that contains the public/private key pair for the identity of the admin of that CA. This is the `--mspdir` you must specify when administrating the CA (for example, when registering an identity).
 
@@ -54,17 +54,17 @@ If you are not a CA admin, but rather have a Fabric CA client only for the purpo
 
 While the way you organize the folders of the CAs you operate using the Fabric CA client is determined in large part by the multiple CAs a typical CA admin will interact with, the organizational method you use to organize your organization MSPs will be determined in part by how many organizations you anticipate creating and administering.
 
-For example, in the Fabric [test network](https://hyperledger-fabric.readthedocs.io/en/release-2.0/test_network.html), both peer organizations and orderer organizations are created. As a result, the scripts associated with the network create a folder called `organizations`, which contains an `ordererOrganization` and a `peerOrganization` folder. Each of these folders contains a folder for each organization, which contains both an MSP for that organization and a folder for each node owned by those organizations.
+For example, in the Fabric [test network](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/test_network.html), both peer organizations and orderer organizations are created. As a result, the scripts associated with the network create a folder called `organizations`, which contains an `ordererOrganization` and a `peerOrganization` folder. Each of these folders contains a folder for each organization, which contains both an MSP for that organization and a folder for each node owned by those organizations.
 
 ![Structuring organizations](./organizations.png)
 
-*The figure above shows the structure of the organizations managed by an administrator.*
+_The figure above shows the structure of the organizations managed by an administrator._
 
 Even if you don't plan to create an orderer organization, this kind of structure provides the highest level of long term flexibility for your deployment. If you create a new peer, for example, you will know to create a folder at `organizations/<name of org>/<name of new peer>`. This `<name of new peer>` folder will be the location for the local MSP of the peer (generated when the peer identity is enrolled) and for the certificates generated through enrollment with the TLS CA. Similarly, the location of the MSP of the organization the peer belongs to can reference the `msp` folder of the organization (which includes both the `config.yaml` file if Node OUs are being used as well as the public certificate of the admin of the organization, which in many cases will be the admin of the peer).
 
 ![Organizations and peers](./organizationswithpeer.png)
 
-*The figure above shows the subfolders inside of a peer owned by the organization. Note the `msp` folder here under the `peers` folder. This is the local MSP of the peer, not a duplicate of the `org1.example.com` MSP.*
+_The figure above shows the subfolders inside of a peer owned by the organization. Note the `msp` folder here under the `peers` folder. This is the local MSP of the peer, not a duplicate of the `org1.example.com` MSP._
 
 It is the best practice to create these folders before enrolling identities and then referencing them when issuing the enroll command through the `--mspdir` flag. Note that while the --mspdir flag is used to specify where the MSP of the CA admin is during **registration**, it is used instead during **enrollment** to specify the location on the filesystem where the folders and certificates returned by the CA will be stored.
 
@@ -130,13 +130,13 @@ As discussed above, an identity is first registered with a CA by a CA admin. Thi
 
 Where the variables are the following:
 
-* `ID_NAME`: The enroll ID of the identity. This name will be given to the user out of band, who will use it when enrolling.
-* `ID_SECRET`: The secret (similar to a password) for the identity. This secret will also be given along to the user along with the enroll ID to use when enrolling.
-* `CA_URL`: The URL of the CA, followed by the port `7054` (unless the default port has been changed).
-* `CA_ADMIN`: The path to the location of the certificates for the admin of the CA.
-* `ID_TYPE`: The type (or role) of the identity. There are four possible types: `peer`, `orderer`, `admin`, and `client` (used for applications). This type must be linked to the relevant [NodeOU](#specifying-nodeous). If NodeOUs are not being used, you can ignore the type and `--id.type` flag.
-* `ID_ATTRIBUTE`: Any attributes specified for this identity. For more information about attributes, check out [Attribute based access control](https://hyperledger-fabric-ca.readthedocs.io/en/latest/users-guide.html#attribute-based-access-control). These attributes can also be added as a JSON array, therefore the `$ID_ATTRIBUTE` is not meant to represent a single attribute but any and all attributes, which should be placed in the register command after the `--id.attrs` flag.
-* `TLSCERT`: The relative path to your the TLS CA root signed certificate (generated when creating the TLS CA).
+- `ID_NAME`: The enroll ID of the identity. This name will be given to the user out of band, who will use it when enrolling.
+- `ID_SECRET`: The secret (similar to a password) for the identity. This secret will also be given along to the user along with the enroll ID to use when enrolling.
+- `CA_URL`: The URL of the CA, followed by the port `7054` (unless the default port has been changed).
+- `CA_ADMIN`: The path to the location of the certificates for the admin of the CA.
+- `ID_TYPE`: The type (or role) of the identity. There are four possible types: `peer`, `orderer`, `admin`, and `client` (used for applications). This type must be linked to the relevant [NodeOU](#specifying-nodeous). If NodeOUs are not being used, you can ignore the type and `--id.type` flag.
+- `ID_ATTRIBUTE`: Any attributes specified for this identity. For more information about attributes, check out [Attribute based access control](https://hyperledger-fabric-ca.readthedocs.io/en/latest/users-guide.html#attribute-based-access-control). These attributes can also be added as a JSON array, therefore the `$ID_ATTRIBUTE` is not meant to represent a single attribute but any and all attributes, which should be placed in the register command after the `--id.attrs` flag.
+- `TLSCERT`: The relative path to your the TLS CA root signed certificate (generated when creating the TLS CA).
 
 Note that the `-d` flag enables debug mode, which is useful for debugging if the registration fails.
 
@@ -164,13 +164,13 @@ The command looks like this:
 
 With these variables:
 
-* `ENROLL_ID`: The enroll ID that was specified when registering this identity. This will have to be communicated to the user of this identity out of band.
-* `ENROLL_SECRET`: The enroll secret that was specified when registering this identity. This will have to be communicated to the user of this identity out of band.
-* `CA_URL`: The URL of the CA, including the port (which is 7054 by default). If you have configured two CAs at the same location, you will also have to specify a CA name following a `--caname` flag, but in this tutorial we assume you are using a configuration of CAs as specified in the [CA deployment tutorial].
-* `PORT`: The port utilized by the CA you are enrolling with.
-* `MSP_FOLDER`: The path to the MSP (the local MSP, if enrolling a node, or the org MSP, if enrolling an admin) on the filesystem. If you do not specify the `--mspdir` flag to specify a location, the certificates will be placed in a folder called `msp` at your current location (if this folder does not already exist, it will be created).
-* `CSR_HOSTNAME`: Only relevant when obtaining (enrolling) a TLS certificate against a TLS CA for a node, this will encode the host name(s) or domain name(s) of a node into the TLS certificate Subject Alternative Name (SAN). For multiple names, use a comma-separated list with no spaces. If a host name is dynamic you can specify a wildcard for the domain. For example, when you include the flag `--csr.hosts 'host1,*.example.com'` it means that the hostname `host1` is recognized as well as any host from the `example.com` domain.
-* `TLS_CERT`: The relative path to the TLS CA root signed certificate of the TLS CA associated with this organization.
+- `ENROLL_ID`: The enroll ID that was specified when registering this identity. This will have to be communicated to the user of this identity out of band.
+- `ENROLL_SECRET`: The enroll secret that was specified when registering this identity. This will have to be communicated to the user of this identity out of band.
+- `CA_URL`: The URL of the CA, including the port (which is 7054 by default). If you have configured two CAs at the same location, you will also have to specify a CA name following a `--caname` flag, but in this tutorial we assume you are using a configuration of CAs as specified in the [CA deployment tutorial].
+- `PORT`: The port utilized by the CA you are enrolling with.
+- `MSP_FOLDER`: The path to the MSP (the local MSP, if enrolling a node, or the org MSP, if enrolling an admin) on the filesystem. If you do not specify the `--mspdir` flag to specify a location, the certificates will be placed in a folder called `msp` at your current location (if this folder does not already exist, it will be created).
+- `CSR_HOSTNAME`: Only relevant when obtaining (enrolling) a TLS certificate against a TLS CA for a node, this will encode the host name(s) or domain name(s) of a node into the TLS certificate Subject Alternative Name (SAN). For multiple names, use a comma-separated list with no spaces. If a host name is dynamic you can specify a wildcard for the domain. For example, when you include the flag `--csr.hosts 'host1,*.example.com'` it means that the hostname `host1` is recognized as well as any host from the `example.com` domain.
+- `TLS_CERT`: The relative path to the TLS CA root signed certificate of the TLS CA associated with this organization.
 
 Here is an example enroll command corresponding to the example register command we used earlier:
 
@@ -184,12 +184,12 @@ Here is a sample of the MSP that will be returned after your enroll the identity
 
 ![Enrolled identity](./enrollmentreturn.png)
 
-*The figure above shows the subfolders returned by an enrollment.*
+_The figure above shows the subfolders returned by an enrollment._
 
 In certificate naming, it is helpful to use a convention that will help you keep track of whether you are referencing a public certificate or a private key. Given that both have the `.pem` extension, consider the following convention for naming public certs and private keys:
 
-* Rename a public cert from `cert.pem` (which is the default name the Fabric CA will give a public cert) to something meaningful. For example, the public cert of an admin of "Org1" could be given a name like `org1-admin-cert.pem`.
-* Rename a private key from `94u498f9r9fr98t49t345545345_sk` to something meaningful like `org1-admin-key.pem`.
+- Rename a public cert from `cert.pem` (which is the default name the Fabric CA will give a public cert) to something meaningful. For example, the public cert of an admin of "Org1" could be given a name like `org1-admin-cert.pem`.
+- Rename a private key from `94u498f9r9fr98t49t345545345_sk` to something meaningful like `org1-admin-key.pem`.
 
 In this convention, the last word in the name before appending the `.pem` extension would be either `cert` or `key` to help you remember which is which.
 
@@ -199,7 +199,7 @@ As we have noted, enrolling an identity with the Fabric CA generates output that
 
 However, that does not mean that these folders can simply be dropped into a channel configuration (to join an org to a channel) or into the local configuration of a node (to create a local MSP). In the case of creating an org MSP that can be added to a channel, you will need to remove the private key of the admin. In the case of a local MSP, you will need to add the public certificate of an admin.
 
-For more information about the folders and certificates that are needed in both an org MSP (also known as a "channel MSP", since it is added to a channel) and the local MSP of a node, check out [MSP structure](https://hyperledger-fabric.readthedocs.io/en/master/membership/membership.html#msp-structure).
+For more information about the folders and certificates that are needed in both an org MSP (also known as a "channel MSP", since it is added to a channel) and the local MSP of a node, check out [MSP structure](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/membership/membership.html#msp-structure).
 
 ### Create the org MSP needed to add an org to a channel
 
@@ -222,12 +222,12 @@ Here is a sample of the folder structure you need to create when you want to add
 
 Where the folders and certificates are:
 
-* `cacerts`: the root certificate (`ca-cert.pem`) of the organization CA where the identity of the admin was registered and enrolled.
-* `intermediatecerts`: the root certificate of an intermediate CA, if one was used.
-* `tlscacerts`: the root certificate (`ca-cert.pem`)  of the TLS CA that has issued certificates to the nodes associated with this organization.
-* `tlsintermediatecerts`: the root certificate of the intermediate TLS CA, if one was used.
+- `cacerts`: the root certificate (`ca-cert.pem`) of the organization CA where the identity of the admin was registered and enrolled.
+- `intermediatecerts`: the root certificate of an intermediate CA, if one was used.
+- `tlscacerts`: the root certificate (`ca-cert.pem`) of the TLS CA that has issued certificates to the nodes associated with this organization.
+- `tlsintermediatecerts`: the root certificate of the intermediate TLS CA, if one was used.
 
-Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.  
+Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.
 
 See [NodeOUs](#nodeous) for instructions on how to generate the `config.yaml` file for this organization. In older versions of Fabric, the `config.yaml` file would not have been here and an additional folder, `admincerts`, would be needed, in which certificates identifying the admin of this organization would be placed. This is no longer necessary thanks to Node OUs. **Any identity given a Node OU of `admin` by the CA listed in `config.yaml` can administer the organization**.
 
@@ -249,7 +249,7 @@ As with all of the configuration parameters in the YAML file of a node, you have
 
 If you are using a containerized solution for running your network (which for obvious reasons is a popular choice), **it is a best practice to mount these folders (volumes) external to the container where the node itself is running. This will allow the certificates to be used to create a new node should the node container go down, become corrupted, or is restarted.**
 
-For a look at a sample local MSP, check out [MSP structure](https://hyperledger-fabric.readthedocs.io/en/master/membership/membership.html#msp-structure). Note that you will not receive all of these certificates back simply by enrolling a peer identity. You will need, for example, to create the `users` subfolder and put the public certificate of the identity that will be administering the node in the folder prior to bootstrapping. You will also need an operations certificate (depending on the configuration of your network, this might come from a separate operations CA). For more information about the operations service, check out [The Operations Service](https://hyperledger-fabric.readthedocs.io/en/{BRANCH}/operations_service.html).
+For a look at a sample local MSP, check out [MSP structure](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/membership/membership.html#msp-structure). Note that you will not receive all of these certificates back simply by enrolling a peer identity. You will need, for example, to create the `users` subfolder and put the public certificate of the identity that will be administering the node in the folder prior to bootstrapping. You will also need an operations certificate (depending on the configuration of your network, this might come from a separate operations CA). For more information about the operations service, check out [The Operations Service](https://hyperledger-fabric.readthedocs.io/en/{FABRIC_VERSION}/operations_service.html).
 
 Here is a sample local MSP as it might look when the node has been enrolled and the additional fields have been added:
 
@@ -274,18 +274,17 @@ localmsp
 
 Where the folders and certificates are:
 
-* `cacerts`: the root cert of the organization CA where the identity of the admin was registered and enrolled.
-* `intermediatecerts`: the root cert of an intermediate CA, if one was used.
-* `keystore`: the private key of the node. This is the key the node uses to sign its communications.
-* `signcerts`: the public key of the node. This certificate is presented to nodes making incoming communications, allowing the node initiating a communication to know that it is talking to the correct node.
-* `tlscacerts`: the root cert of the TLS CA that has issued certificates to the CAs or nodes associated with this organization.
-* `tlsintermediatecerts`: the root cert of the intermediate TLS CA, if one was used.
-* `operationscerts`: the certificate needed for interaction with the operations service.
+- `cacerts`: the root cert of the organization CA where the identity of the admin was registered and enrolled.
+- `intermediatecerts`: the root cert of an intermediate CA, if one was used.
+- `keystore`: the private key of the node. This is the key the node uses to sign its communications.
+- `signcerts`: the public key of the node. This certificate is presented to nodes making incoming communications, allowing the node initiating a communication to know that it is talking to the correct node.
+- `tlscacerts`: the root cert of the TLS CA that has issued certificates to the CAs or nodes associated with this organization.
+- `tlsintermediatecerts`: the root cert of the intermediate TLS CA, if one was used.
+- `operationscerts`: the certificate needed for interaction with the operations service.
 
 Note that while the certificates themselves can be named anything you want, you should not change the name of the folders themselves, as Fabric expects to consume folders with certain names.
 
 Just as Node OUs make it no longer necessary to include a certificate of an admin in the organization MSP, it is not necessary to include the public certificate of a node admin to administer the node. **Any identity given a Node OU of `admin` by the CA listed in `config.yaml` can administer any of the nodes owned by that organization without needing to place the public certificate of that admin in the organization MSP or the local MSP**.
-
 
 <!--- Licensed under Creative Commons Attribution 4.0 International License
 https://creativecommons.org/licenses/by/4.0/ -->

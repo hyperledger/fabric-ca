@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.abspath('.'))
 import sphinx_rtd_theme
 
 placeholder_replacements = {
-    "{BRANCH}": "main"
+    "{BRANCH}": "main",
+    "{FABRIC_VERSION}": "release-2.5"
 }
 
 # -- Project information -----------------------------------------------------
@@ -41,7 +42,7 @@ version = u'main'
 #     '.md': 'recommonmark.parser.CommonMarkParser',
 # }
 
-# The file extensions of source files. Sphinx considers the files with this suffix as sources. 
+# The file extensions of source files. Sphinx considers the files with this suffix as sources.
 # The value can be a dictionary mapping file extensions to file types. For example:
 source_suffix = {
     '.rst': 'restructuredtext',
