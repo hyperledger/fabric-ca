@@ -32,7 +32,7 @@ PROJECT_NAME = fabric-ca
 GO_VER = 1.23.1
 UBUNTU_VER ?= 20.04
 DEBIAN_VER ?= stretch
-BASE_VERSION ?= v1.5.12
+BASE_VERSION ?= v1.5.13
 
 ARCH=$(shell go env GOARCH)
 PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
