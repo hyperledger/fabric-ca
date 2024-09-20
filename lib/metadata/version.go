@@ -29,7 +29,7 @@ const (
 
 // Version specifies fabric-ca-client/fabric-ca-server version
 // It is defined by the Makefile and passed in with ldflags
-var Version = "1.5.12"
+var Version = "1.5.13"
 
 // GetVersionInfo returns version information for the fabric-ca-client/fabric-ca-server
 func GetVersionInfo(prgName string) string {
