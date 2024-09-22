@@ -50,7 +50,6 @@ func TestECCreateToken(t *testing.T) {
 	tok, err := CreateToken(bccsp, cert, privKey, "GET", "/enroll", body)
 	assert.NoError(t, err, "CreateToken failed")
 
-	os.Setenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3", "false") // Test new token
 	_, err = VerifyToken(bccsp, tok, "GET", "/enroll", body, false)
 	assert.NoError(t, err, "VerifyToken failed")
 
@@ -87,7 +86,7 @@ func TestECCreateToken(t *testing.T) {
 	_, err = VerifyToken(bccsp, oldToken, "GET", "/enroll", body, false)
 	assert.Error(t, err)
 
-	// Test that by default with no environment variable set, the old token is considered valid
+	// With comptability mode enabled, the old token is considered valid
 	os.Unsetenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3")
 	_, err = VerifyToken(bccsp, oldToken, "GET", "/enroll", body, true)
 	assert.NoError(t, err, "Failed to verify token using old token type")
