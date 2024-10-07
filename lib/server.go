@@ -330,14 +330,13 @@ func (s *Server) initConfig() (err error) {
 	// Make file names absolute
 	s.makeFileNamesAbsolute()
 
-	compModeStr := os.Getenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3")
-	if compModeStr == "" {
-		compModeStr = "true" // TODO: Change default to false once all clients have been updated to use the new authorization header
-	}
-
-	s.Config.CompMode1_3, err = strconv.ParseBool(compModeStr)
-	if err != nil {
-		return errors.WithMessage(err, "Invalid value for boolean environment variable 'FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3'")
+	if compModeStr := os.Getenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3"); compModeStr == "" {
+		s.Config.CompMode1_3 = false
+	} else {
+		s.Config.CompMode1_3, err = strconv.ParseBool(compModeStr)
+		if err != nil {
+			return errors.WithMessage(err, "Invalid value for boolean environment variable 'FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3'")
+		}
 	}
 
 	return nil
