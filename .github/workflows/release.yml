@@ -27,9 +27,9 @@ jobs:
             platform: linux-amd64
           - image: ubuntu-20.04
             platform: linux-arm64
-          - image: macos-12
+          - image: macos-14
             platform: darwin-arm64
-          - image: macos-12
+          - image: macos-13
             platform: darwin-amd64
           - image: windows-2022
             platform: windows-amd64
