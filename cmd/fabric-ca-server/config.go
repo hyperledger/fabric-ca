@@ -9,6 +9,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/hyperledger/fabric-ca/lib/common/idemix"
@@ -19,6 +20,7 @@ import (
 	"github.com/hyperledger/fabric-ca/lib/metadata"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -578,6 +580,17 @@ func (s *ServerCmd) configInit() (err error) {
 		return err
 	}
 
+	// Info logging for CA config, includes yaml file settings and environment variable overrides
+	allSettings := s.myViper.AllSettings()
+	settingsYaml, err := yaml.Marshal(allSettings)
+	if err != nil {
+		return err
+	}
+	// Remove sensitive lines from the yaml config before logging it
+	yamlLines := strings.Split(string(settingsYaml), "\n")
+	filteredYamlLines := removeSensitiveLines(yamlLines)
+	log.Infof("CA config with combined yaml file and environment variable overrides (sensitive lines excluded):\n%s", strings.Join(filteredYamlLines, "\n"))
+
 	// Read operations tls files
 	if s.myViper.GetBool("operations.tls.enabled") {
 		cf := s.myViper.GetString("operations.tls.cert.file")
@@ -621,6 +634,21 @@ func (s *ServerCmd) configInit() (err error) {
 	}
 
 	return nil
+}
+
+// removeSensitiveLines filters out lines containing sensitive keywords (case insensitive).
+func removeSensitiveLines(lines []string) []string {
+	excludedKeywords := []string{"pass", "pw", "pswd", "secret", "ldap", "tcp"} // sensitive tokens that may appear in CA config
+
+	return slices.DeleteFunc(lines, func(line string) bool {
+		lowerLine := strings.ToLower(line)
+		for _, keyword := range excludedKeywords {
+			if strings.Contains(lowerLine, keyword) {
+				return true
+			}
+		}
+		return false
+	})
 }
 
 func (s *ServerCmd) createDefaultConfigFile() error {
