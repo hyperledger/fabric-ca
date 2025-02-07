@@ -331,8 +331,10 @@ func (s *Server) initConfig() (err error) {
 	s.makeFileNamesAbsolute()
 
 	if compModeStr := os.Getenv("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3"); compModeStr == "" {
+		log.Info("FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3 not set, defaulting to false")
 		s.Config.CompMode1_3 = false
 	} else {
+		log.Infof("Using FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3 value of %s", compModeStr)
 		s.Config.CompMode1_3, err = strconv.ParseBool(compModeStr)
 		if err != nil {
 			return errors.WithMessage(err, "Invalid value for boolean environment variable 'FABRIC_CA_SERVER_COMPATIBILITY_MODE_V1_3'")

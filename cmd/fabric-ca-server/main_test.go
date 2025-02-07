@@ -565,3 +565,59 @@ func TestOperationsTLSCertKeyConfig(t *testing.T) {
 	assert.Equal(t, cmd.cfg.Operations.TLS.CertFile, filepath.Join(homeDir, certFile))
 	assert.Equal(t, cmd.cfg.Operations.TLS.KeyFile, filepath.Join(homeDir, keyFile))
 }
+
+func TestRemoveSensitiveLines(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name: "No sensitive lines",
+			input: []string{
+				"username: admin",
+				"server: localhost",
+				"port: 8080",
+			},
+			expected: []string{
+				"username: admin",
+				"server: localhost",
+				"port: 8080",
+			},
+		},
+		{
+			name: "Remove password and secret",
+			input: []string{
+				"username: admin",
+				"password: 12345",
+				"api_secret: xyz",
+				"server: localhost",
+			},
+			expected: []string{
+				"username: admin",
+				"server: localhost",
+			},
+		},
+		{
+			name: "Mixed case sensitive words",
+			input: []string{
+				"User: root",
+				"PassWord: 1234",
+				"Secure_Pw: mypassword",
+				"Ldap URL: ldap://server",
+				"Port: 22",
+			},
+			expected: []string{
+				"User: root",
+				"Port: 22",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := removeSensitiveLines(tc.input)
+			assert.Equal(t, tc.expected, result, "Filtered lines should match expected output")
+		})
+	}
+}
