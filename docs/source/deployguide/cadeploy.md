@@ -256,7 +256,7 @@ The following diagram is a conceptual summary of the steps you perform to create
 The TLS CA server was started with a bootstrap admin identity (tlsadmin) which has full admin privileges for the server. One of the key abilities of the admin is the ability to register new identities. Each node in the organization (orderers, peers, organization CAs) that will transact on the network needs to be registered with the TLS CA, so that each node can then enroll to get their TLS certificate. Therefore, before we set up the organization CA, we need to use the TLS CA to register and enroll the organization CA bootstrap identity to get its TLS certificate and private key. The organization CA bootstrap admin user will be named `rcaadmin` in the next step, therefore we will generate the TLS identity for the organization CA using the same name. The following command registers the organization CA bootstrap identity `rcaadmin` with password `rcaadminpw` with the TLS CA.
 
 ```
-./fabric-ca-client register -d --id.name rcaadmin --id.secret rcaadminpw -u https://my-machine.example.com:7054  --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir tls-ca/tlsadmin/msp
+./fabric-ca-client register -d --id.name rcaadmin --id.secret rcaadminpw --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir tls-ca/tlsadmin/msp
 ```
 
 Notice that the `--mspdir` flag on the command points to the location of TLS CA admin msp certificates that we generated in the previous step. This crypto material is required to be able to register nodes with the TLS CA.
@@ -276,7 +276,7 @@ In this case, the `--mspdir` flag works a little differently. For the enroll com
 Similarly, if you are planning to have an intermediate CA that can issue certificates on behalf of the organization CA, you should also register and enroll the intermediate CA admin user now as well. The following command registers the intermediate CA admin id `icaadmin` and `icaadminpw` with the TLS CA. You can use any values you choose for the identity name and password.
 
 ```
-./fabric-ca-client register -d --id.name icaadmin --id.secret icaadminpw -u https://my-machine.example.com:7054  --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir tls-ca/tlsadmin/msp
+./fabric-ca-client register -d --id.name icaadmin --id.secret icaadminpw --tls.certfiles tls-root-cert/tls-ca-cert.pem --mspdir tls-ca/tlsadmin/msp
 ```
 
 Again, the `--mspdir` flag on the register command points to the location of TLS CA admin msp certificates that are required to be able to register other users with the TLS CA.
