@@ -10,9 +10,9 @@ on:
 
 env:
   GO_VER: 1.23.5
-  UBUNTU_VER: 20.04
-  DOCKER_REGISTRY: ${{ github.repository_owner == 'hyperledger' && 'docker.io' || 'ghcr.io' }}
+  UBUNTU_VER: 22.04
   IMAGE_NAME: ${{ github.repository }}
+  FABRIC_CA_VER: ${{ github.ref_name }}
 
 permissions:
   contents: read
@@ -23,9 +23,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: ubuntu-20.04
+          - image: ubuntu-22.04
             platform: linux-amd64
-          - image: ubuntu-20.04
+          - image: ubuntu-22.04
             platform: linux-arm64
           - image: macos-14
             platform: darwin-arm64
@@ -53,7 +53,7 @@ jobs:
       - run: make dist/${{ matrix.platform }}
         name: Compile Binary and Create Tarball
         env:
-          BASE_VERSION: ${{ github.ref_name }}
+          BASE_VERSION: ${{ env.FABRIC_CA_VER }}
 
       - uses: actions/upload-artifact@v4
         name: Publish Release Artifacts
@@ -64,76 +64,157 @@ jobs:
           path: release/${{ matrix.platform }}/*.tar.gz
 
 
-  build-and-push-image:
-    runs-on: ubuntu-20.04
+  # build native image using a different runner for each architecture (faster and more reliable than using qemu to build multi-architecture images on ubuntu-22.04)
+  build-and-push-native-docker-images:
+    name: Build and Push native image
+    runs-on: ${{ matrix.runner }}
 
     permissions:
       contents: read
       packages: write
 
+    strategy:
+      fail-fast: false
+      matrix:
+  
+        runner:
+          - ubuntu-22.04      # creates linux-amd64 images
+          - ubuntu-22.04-arm  # creates linux-arm64 images 
+  
+        # Dynamic matrix
+        # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
+        registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
+          
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to the ${{ env.DOCKER_REGISTRY }} Container Registry
+      - name: Login to the ${{ matrix.registry }} Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_REGISTRY == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
-          password: ${{ env.DOCKER_REGISTRY == 'docker.io' && secrets.DOCKERHUB_TOKEN    || secrets.GITHUB_TOKEN }}
+          registry: ${{ matrix.registry }}
+          username: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
+          password: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_TOKEN    || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}.{{minor}}.{{patch}}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+          images: ${{ matrix.registry }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push
-        id: push
-        uses: docker/build-push-action@v5
+        id: build-and-push
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: images/fabric-ca/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
-          push: ${{ github.event_name != 'pull_request' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             UBUNTU_VER=${{ env.UBUNTU_VER }}
             GO_VER=${{ env.GO_VER }}
             GO_TAGS=pkcs11
-            GO_LDFLAGS=-X github.com/hyperledger/fabric-ca/lib/metadata.Version=${{ github.ref_name }}
+            GO_LDFLAGS=-X github.com/hyperledger/fabric-ca/lib/metadata.Version=${{ env.FABRIC_CA_VER }}
+          outputs: type=image,"name=${{ matrix.registry }}/${{ env.IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=true
 
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests/${{ matrix.registry }}
+          digest="${{ steps.build-and-push.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${{ matrix.registry }}/${digest#sha256:}"
+  
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.registry }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/digests/${{ matrix.registry }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # This job merges the architecture-specific digests for the images created above
+  # and creates a multi-architecture image manifest with user-friendly tags
+  merge-and-push-multi-arch-image:
+    name: Merge and Push multi-arch image
+    runs-on: ubuntu-22.04
+    needs:
+      - build-and-push-native-docker-images
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+
+        # Dynamic matrix
+        # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
+        registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
+            
+    steps:
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests/${{ matrix.registry }}
+          pattern: digests-${{ matrix.registry }}-*
+          merge-multiple: true
+
+      - name: Login to the ${{ matrix.registry }} Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ matrix.registry }}
+          username: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
+          password: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_TOKEN    || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.registry }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+      
+      - name: Create manifest list and push # combines the downloaded amd64 and arm64 digests and pushes multi-architecture manifest with the tags specified above
+        working-directory: ${{ runner.temp }}/digests/${{ matrix.registry }}
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ matrix.registry }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+        
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ matrix.registry }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
 
   create-release:
     name: Create GitHub Release
     needs:
       - build-binaries
-      - build-and-push-image
-    runs-on: ubuntu-20.04
+      - merge-and-push-multi-arch-image
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
       - name: Checkout Fabric CA Code
         uses: actions/checkout@v4
+
       - name: Download Artifacts
         id: download
         uses: actions/download-artifact@v4
+        with:
+          pattern: "release-*"
+
       - name: Release Fabric CA Version
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: "true"
           artifacts: "release-*-*/*.tar.gz"
-          bodyFile: release_notes/${{ github.ref_name }}.md
-          tag: ${{ github.ref_name }}
+          bodyFile: release_notes/${{ env.FABRIC_CA_VER }}.md
+          tag: ${{ env.FABRIC_CA_VER }}
           token: ${{ secrets.GITHUB_TOKEN }}
