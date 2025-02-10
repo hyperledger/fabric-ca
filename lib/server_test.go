@@ -356,7 +356,7 @@ func TestSRVSpecialPassword(t *testing.T) {
 	}
 }
 
-// TestProfiling tests if profiling endpoint can be accessed when profiling is
+// TestSRVProfiling tests if profiling endpoint can be accessed when profiling is
 // enabled and not accessible when disabled (default)
 func TestSRVProfiling(t *testing.T) {
 	t.Log("start TestProfiling")
@@ -1943,7 +1943,7 @@ func TestUnmarshalConfig(t *testing.T) {
 	}
 }
 
-// TestSqliteLocking tests to ensure that "database is locked"
+// TestSRVSqliteLocking tests to ensure that "database is locked"
 // error does not occur when multiple requests are sent at the
 // same time.
 // This test assumes that sqlite is the database used in the tests
