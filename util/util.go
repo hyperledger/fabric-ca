@@ -131,8 +131,8 @@ func Unmarshal(from []byte, to interface{}, what string) error {
 //  1. the claims section is a certificate, so the format is:
 //     <certificate,signature>
 //  2. the signature uses the private key associated with the certificate,
-//     and the signature is across both the certificate and the "body" argument,
-//     which is the body of an HTTP request, though could be any arbitrary bytes.
+//     and the signature is across the certificate, method, URI path, and the "body" argument
+//     of the HTTP request.
 //
 // @param cert The pem-encoded certificate
 // @param key The pem-encoded key
@@ -166,7 +166,7 @@ func CreateToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string
 	return token, nil
 }
 
-// GenECDSAToken signs the http body and cert with ECDSA using EC private key
+// GenECDSAToken signs the http method, uri, body, and cert with ECDSA using EC private key
 func GenECDSAToken(csp bccsp.BCCSP, cert []byte, key bccsp.Key, method, uri string, body []byte) (string, error) {
 	b64body := B64Encode(body)
 	b64cert := B64Encode(cert)
