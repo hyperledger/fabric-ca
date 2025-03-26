@@ -134,13 +134,6 @@ func strs(version string) []string {
 	return strings.Split(strings.Split(version, "-")[0], ".")
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func val(strs []string, i int) (int, error) {
 	if i >= len(strs) {
 		return 0, nil
