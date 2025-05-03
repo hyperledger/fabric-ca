@@ -217,7 +217,7 @@
           {
             "name": "Authorization",
             "in": "header",
-            "description": "**basic** <base64 encoding of userid:password> (OR) **token** <An enrollment token consisting of two base 64 encoded parts separated by a period:  an enrollment certificate; a signature over the certificate and body of request>",
+            "description": "**basic** <base64 encoding of userid:password> (OR) **token** <An enrollment token consisting of two base 64 encoded parts separated by a period:  an enrollment certificate; a signature over the HTTP method, URL path, request body, and the certificate.>",
             "required": true,
             "schema": {
               "type": "string"
@@ -2022,7 +2022,7 @@
       "enrollmentToken": {
         "name": "Authorization",
         "in": "header",
-        "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the certificate and body of request.",
+        "description": "An enrollment token consisting of two base 64 encoded parts separated by a period:   \n* an enrollment certificate;   \n* a signature over the HTTP method, URL path, request body, and the certificate.",
         "required": true,
         "schema": {
           "type": "string"
