@@ -45,10 +45,9 @@ func BytesToX509Cert(bytes []byte) (*x509.Certificate, error) {
 	return cert, err
 }
 
-// LoadPEMCertPool loads a pool of PEM certificates from list of files
-func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
-	certPool := x509.NewCertPool()
-
+// loadPEMCertsFromFiles loads PEM certificates from a list of files and returns a slice of byte slices
+func loadPEMCertsFromFiles(certFiles []string) ([][]byte, error) {
+	var certs [][]byte
 	if len(certFiles) > 0 {
 		for _, cert := range certFiles {
 			log.Debugf("Reading cert file: %s", cert)
@@ -56,11 +55,25 @@ func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
 			if err != nil {
 				return nil, err
 			}
+			certs = append(certs, pemCerts)
+		}
+	}
+	return certs, nil
+}
 
-			log.Debugf("Appending cert %s to pool", cert)
-			if !certPool.AppendCertsFromPEM(pemCerts) {
-				return nil, errors.New("Failed to load cert pool")
-			}
+// LoadPEMCertPool loads a pool of PEM certificates from list of files
+func LoadPEMCertPool(certFiles []string) (*x509.CertPool, error) {
+	certPool := x509.NewCertPool()
+
+	certs, err := loadPEMCertsFromFiles(certFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, pemCerts := range certs {
+		log.Debugf("Appending cert %s to pool", certFiles[i])
+		if !certPool.AppendCertsFromPEM(pemCerts) {
+			return nil, errors.New("Failed to load cert pool")
 		}
 	}
 
