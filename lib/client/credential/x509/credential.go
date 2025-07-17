@@ -71,25 +71,28 @@ func (cred *Credential) EnrollmentID() (string, error) {
 	return cred.val.GetName(), nil
 }
 
-// SetVal sets *Signer for this X509 credential
+// SetCredentialFromSigner sets the credential value from a Signer.
+// This is a cryptographic operation and does not perform file I/O.
+func (cred *Credential) SetCredentialFromSigner(signer *Signer) error {
+	cred.val = signer
+	return nil
+}
+
+// SetVal sets *Signer for this X509 credential (implements credential.Credential interface)
 func (cred *Credential) SetVal(val interface{}) error {
 	s, ok := val.(*Signer)
 	if !ok {
 		return errors.New("The X509 credential value must be of type *Signer for X509 credential")
 	}
-	cred.val = s
-	return nil
+	return cred.SetCredentialFromSigner(s)
 }
 
-// Load loads the certificate and key from the location specified by
-// certFile attribute using the BCCSP of the client. The private key is
-// loaded from the location specified by the keyFile attribute, if the
-// private key is not found in the keystore managed by BCCSP
-func (cred *Credential) Load() error {
+// loadCredentialFromFiles loads the certificate and key from the specified files and returns a Signer
+func (cred *Credential) loadCredentialFromFiles() (*Signer, error) {
 	cert, err := util.ReadFile(cred.certFile)
 	if err != nil {
 		log.Debugf("No certificate found at %s", cred.certFile)
-		return err
+		return nil, err
 	}
 	csp := cred.getCSP()
 	key, _, _, err := util.GetSignerFromCertFile(cred.certFile, csp)
@@ -98,19 +101,14 @@ func (cred *Credential) Load() error {
 		log.Debugf("No key found in the BCCSP keystore, attempting fallback")
 		key, err = util.ImportBCCSPKeyFromPEM(cred.keyFile, csp, true)
 		if err != nil {
-			return errors.WithMessage(err, fmt.Sprintf("Could not find the private key in the BCCSP keystore nor in the keyfile %s", cred.keyFile))
+			return nil, errors.WithMessage(err, fmt.Sprintf("Could not find the private key in the BCCSP keystore nor in the keyfile %s", cred.keyFile))
 		}
 	}
-	cred.val, err = NewSigner(key, cert)
-	if err != nil {
-		return err
-	}
-	return nil
+	return NewSigner(key, cert)
 }
 
-// Store stores the certificate associated with this X509 credential to the location
-// specified by certFile attribute
-func (cred *Credential) Store() error {
+// storeCredentialToFile writes the certificate to the specified file
+func (cred *Credential) storeCredentialToFile() error {
 	if cred.val == nil {
 		return errors.New("X509 Credential value is not set")
 	}
@@ -120,6 +118,24 @@ func (cred *Credential) Store() error {
 	}
 	log.Infof("Stored client certificate at %s", cred.certFile)
 	return nil
+}
+
+// Load loads the certificate and key from the location specified by
+// certFile attribute using the BCCSP of the client. The private key is
+// loaded from the location specified by the keyFile attribute, if the
+// private key is not found in the keystore managed by BCCSP
+func (cred *Credential) Load() error {
+	signer, err := cred.loadCredentialFromFiles()
+	if err != nil {
+		return err
+	}
+	return cred.SetCredentialFromSigner(signer)
+}
+
+// Store stores the certificate associated with this X509 credential to the location
+// specified by certFile attribute
+func (cred *Credential) Store() error {
+	return cred.storeCredentialToFile()
 }
 
 // CreateToken creates token based on this X509 credential

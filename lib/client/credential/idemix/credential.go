@@ -89,9 +89,33 @@ func (cred *Credential) SetVal(val interface{}) error {
 	return nil
 }
 
-// Store stores this Idemix credential to the location specified by the
-// signerConfigFile attribute
-func (cred *Credential) Store() error {
+// SetSignerConfig sets the credential value from a SignerConfig.
+// This is a cryptographic operation and does not perform file I/O.
+func (cred *Credential) SetSignerConfig(val *SignerConfig) error {
+	cred.val = val
+	return nil
+}
+
+// loadSignerConfigFromFile loads the SignerConfig from the specified file
+func (cred *Credential) loadSignerConfigFromFile() (*SignerConfig, error) {
+	signerConfigBytes, err := util.ReadFile(cred.signerConfigFile)
+	if err != nil {
+		log.Debugf("No credential found at %s: %s", cred.signerConfigFile, err.Error())
+		return nil, err
+	}
+	val := SignerConfig{}
+	err = json.Unmarshal(signerConfigBytes, &val)
+	if err != nil {
+		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
+	}
+	if val.CurveID == "" {
+		val.CurveID = idemix4.DefaultIdemixCurve
+	}
+	return &val, nil
+}
+
+// storeSignerConfigToFile writes the SignerConfig to the specified file
+func (cred *Credential) storeSignerConfigToFile() error {
 	val, err := cred.Val()
 	if err != nil {
 		return err
@@ -108,24 +132,20 @@ func (cred *Credential) Store() error {
 	return nil
 }
 
+// Store stores this Idemix credential to the location specified by the
+// signerConfigFile attribute
+func (cred *Credential) Store() error {
+	return cred.storeSignerConfigToFile()
+}
+
 // Load loads the Idemix credential from the location specified by the
 // signerConfigFile attribute
 func (cred *Credential) Load() error {
-	signerConfigBytes, err := util.ReadFile(cred.signerConfigFile)
+	val, err := cred.loadSignerConfigFromFile()
 	if err != nil {
-		log.Debugf("No credential found at %s: %s", cred.signerConfigFile, err.Error())
 		return err
 	}
-	val := SignerConfig{}
-	err = json.Unmarshal(signerConfigBytes, &val)
-	if err != nil {
-		return errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
-	}
-	if val.CurveID == "" {
-		val.CurveID = idemix4.DefaultIdemixCurve
-	}
-	cred.val = &val
-	return nil
+	return cred.SetSignerConfig(val)
 }
 
 // CreateToken creates authorization token based on this Idemix credential

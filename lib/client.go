@@ -206,6 +206,31 @@ func (c *Client) GetCAInfo(req *api.GetCAInfoRequest) (*GetCAInfoResponse, error
 	return localSI, nil
 }
 
+// GenerateKey generates a new key using the BCCSP provider.
+// It performs only the cryptographic operation and does not write to disk.
+func (c *Client) GenerateKey(cr *csr.CertificateRequest) (bccsp.Key, error) {
+	key, _, err := util.BCCSPKeyRequestGenerate(cr, c.csp)
+	if err != nil {
+		log.Debugf("failed generating BCCSP key: %s", err)
+		return nil, err
+	}
+	return key, nil
+}
+
+// GenerateCSR generates a CSR using the provided key and certificate request.
+// It performs only the cryptographic operation and does not write to disk.
+func (c *Client) GenerateCSR(cr *csr.CertificateRequest, key bccsp.Key) ([]byte, error) {
+	cspSigner, err := cspsigner.New(c.csp, key)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed initializing CryptoSigner")
+	}
+	csrPEM, err := csr.Generate(cspSigner, cr)
+	if err != nil {
+		return nil, errors.WithMessage(err, "Failed generating CSR")
+	}
+	return csrPEM, nil
+}
+
 // GenCSR generates a CSR (Certificate Signing Request)
 func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) {
 	log.Debugf("GenCSR %+v", req)
@@ -217,14 +242,13 @@ func (c *Client) GenCSR(req *api.CSRInfo, id string) ([]byte, bccsp.Key, error) 
 
 	cr := c.newCertificateRequest(req, id)
 
-	cspSigner, key, err := c.generateCSPSigner(cr, nil)
+	key, err := c.GenerateKey(cr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	csrPEM, err := csr.Generate(cspSigner, cr)
+	csrPEM, err := c.GenerateCSR(cr, key)
 	if err != nil {
-		log.Debugf("failed generating CSR: %s", err)
 		return nil, nil, err
 	}
 
@@ -243,18 +267,12 @@ func (c *Client) GenCSRUsingKey(req *api.CSRInfo, id string, k bccsp.Key) ([]byt
 
 	cr := c.newCertificateRequest(req, id)
 
-	cspSigner, key, err := c.generateCSPSigner(cr, k)
+	csrPEM, err := c.GenerateCSR(cr, k)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	csrPEM, err := csr.Generate(cspSigner, cr)
-	if err != nil {
-		log.Debugf("failed generating CSR: %s", err)
-		return nil, nil, err
-	}
-
-	return csrPEM, key, nil
+	return csrPEM, k, nil
 }
 
 // generateCSPSigner generates a crypto.Signer for a given certificate request.
@@ -617,6 +635,26 @@ func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, erro
 	return c.issuerPublicKey, nil
 }
 
+// loadX509Credential loads an X509 credential from the given cert and key files
+func (c *Client) loadX509Credential(certFile, keyFile string) (credential.Credential, error) {
+	x509Cred := x509cred.NewCredential(certFile, keyFile, c)
+	err := x509Cred.Load()
+	if err != nil {
+		return nil, err
+	}
+	return x509Cred, nil
+}
+
+// loadIdemixCredential loads an Idemix credential from the given file
+func (c *Client) loadIdemixCredential(idemixCredFile string) (credential.Credential, error) {
+	idemixCred := idemixcred.NewCredential(idemixCredFile, c, c.curveID)
+	err := idemixCred.Load()
+	if err != nil {
+		return nil, err
+	}
+	return idemixCred, nil
+}
+
 // LoadMyIdentity loads the client's identity from disk
 func (c *Client) LoadMyIdentity() (*Identity, error) {
 	log.Debugf("LoadMyIdentity ")
@@ -637,8 +675,8 @@ func (c *Client) LoadIdentity(keyFile, certFile, idemixCredFile string) (*Identi
 
 	var creds []credential.Credential
 	var x509Found, idemixFound bool
-	x509Cred := x509cred.NewCredential(certFile, keyFile, c)
-	err = x509Cred.Load()
+
+	x509Cred, err := c.loadX509Credential(certFile, keyFile)
 	if err == nil {
 		x509Found = true
 		creds = append(creds, x509Cred)
@@ -646,8 +684,7 @@ func (c *Client) LoadIdentity(keyFile, certFile, idemixCredFile string) (*Identi
 		log.Debugf("No X509 credential found at %s, %s", keyFile, certFile)
 	}
 
-	idemixCred := idemixcred.NewCredential(idemixCredFile, c, c.curveID)
-	err = idemixCred.Load()
+	idemixCred, err := c.loadIdemixCredential(idemixCredFile)
 	if err == nil {
 		idemixFound = true
 		creds = append(creds, idemixCred)
@@ -901,33 +938,54 @@ func (c *Client) CheckEnrollment() error {
 	return errors.New("Enrollment information does not exist. Please execute enroll command first. Example: fabric-ca-client enroll -u http://user:userpw@serverAddr:serverPort")
 }
 
-func (c *Client) checkX509Enrollment() error {
+// x509EnrollmentFilesExist checks if the X509 key and cert files exist or if the key is stored by BCCSP
+func (c *Client) x509EnrollmentFilesExist() bool {
 	keyFileExists := util.FileExists(c.keyFile)
 	certFileExists := util.FileExists(c.certFile)
 	if keyFileExists && certFileExists {
-		return nil
+		return true
 	}
-	// If key file does not exist, but certFile does, key file is probably
-	// stored by bccsp, so check to see if this is the case
 	if certFileExists {
 		_, _, _, err := util.GetSignerFromCertFile(c.certFile, c.csp)
 		if err == nil {
-			// Yes, the key is stored by BCCSP
-			return nil
+			return true
 		}
+	}
+	return false
+}
+
+// idemixEnrollmentFilesExist checks if the Idemix public key and credential files exist
+func (c *Client) idemixEnrollmentFilesExist() bool {
+	idemixIssuerPubKeyExists := util.FileExists(c.ipkFile)
+	idemixCredExists := util.FileExists(c.idemixCredFile)
+	return idemixIssuerPubKeyExists && idemixCredExists
+}
+
+// loadIdemixSignerConfig loads the Idemix signer config from file
+func (c *Client) loadIdemixSignerConfig() (*idemixcred.SignerConfig, error) {
+	credfileBytes, err := util.ReadFile(c.idemixCredFile)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to read %s", c.idemixCredFile)
+	}
+	signerConfig := &idemixcred.SignerConfig{}
+	err = json.Unmarshal(credfileBytes, signerConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+	}
+	return signerConfig, nil
+}
+
+func (c *Client) checkX509Enrollment() error {
+	if c.x509EnrollmentFilesExist() {
+		return nil
 	}
 	return fmt.Errorf("x509 enrollment information does not exist - certFile: %s keyFile: %s", c.certFile, c.keyFile)
 }
 
-// checkIdemixEnrollment returns an error if CA's Idemix public key and user's
-// Idemix credential does not exist and if they exist and credential verification
-// fails. Returns nil if the credential verification succeeds
 func (c *Client) checkIdemixEnrollment() error {
 	log.Debugf("CheckIdemixEnrollment - ipkFile: %s, idemixCredFile: %s", c.ipkFile, c.idemixCredFile)
 
-	idemixIssuerPubKeyExists := util.FileExists(c.ipkFile)
-	idemixCredExists := util.FileExists(c.idemixCredFile)
-	if idemixIssuerPubKeyExists && idemixCredExists {
+	if c.idemixEnrollmentFilesExist() {
 		err := c.verifyIdemixCredential()
 		if err != nil {
 			return errors.WithMessage(err, "Idemix enrollment check failed")
@@ -942,14 +1000,9 @@ func (c *Client) verifyIdemixCredential() error {
 	if err != nil {
 		return err
 	}
-	credfileBytes, err := util.ReadFile(c.idemixCredFile)
+	signerConfig, err := c.loadIdemixSignerConfig()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to read %s", c.idemixCredFile)
-	}
-	signerConfig := &idemixcred.SignerConfig{}
-	err = json.Unmarshal(credfileBytes, signerConfig)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+		return err
 	}
 
 	cred := new(idemix.Credential)

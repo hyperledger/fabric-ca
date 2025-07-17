@@ -66,18 +66,9 @@ type KeyCertFiles struct {
 	CertFile string `help:"PEM-encoded certificate file when mutual authenticate is enabled"`
 }
 
-// GetClientTLSConfig creates a tls.Config object from certs and roots
-func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, error) {
+// loadClientCertsFromFiles loads client certificates from the specified files
+func loadClientCertsFromFiles(cfg *ClientTLSConfig, csp bccsp.BCCSP) ([]tls.Certificate, error) {
 	var certs []tls.Certificate
-
-	if csp == nil {
-		csp = factory.GetDefault()
-	}
-
-	log.Debugf("CA Files: %+v\n", cfg.CertFiles)
-	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
-	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
-
 	if cfg.Client.CertFile != "" {
 		err := checkCertDates(cfg.Client.CertFile)
 		if err != nil {
@@ -93,6 +84,11 @@ func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, err
 	} else {
 		log.Debug("Client TLS certificate and/or key file not provided")
 	}
+	return certs, nil
+}
+
+// loadRootCAsFromFiles loads root CA certificates from the specified files
+func loadRootCAsFromFiles(cfg *ClientTLSConfig) (*x509.CertPool, error) {
 	rootCAPool := x509.NewCertPool()
 	if len(cfg.CertFiles) == 0 {
 		return nil, errors.New("No trusted root certificates for TLS were provided")
@@ -107,6 +103,28 @@ func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, err
 		if !ok {
 			return nil, errors.Errorf("Failed to process certificate from file %s", cacert)
 		}
+	}
+	return rootCAPool, nil
+}
+
+// GetClientTLSConfig creates a tls.Config object from certs and roots
+func GetClientTLSConfig(cfg *ClientTLSConfig, csp bccsp.BCCSP) (*tls.Config, error) {
+	if csp == nil {
+		csp = factory.GetDefault()
+	}
+
+	log.Debugf("CA Files: %+v\n", cfg.CertFiles)
+	log.Debugf("Client Cert File: %s\n", cfg.Client.CertFile)
+	log.Debugf("Client Key File: %s\n", cfg.Client.KeyFile)
+
+	certs, err := loadClientCertsFromFiles(cfg, csp)
+	if err != nil {
+		return nil, err
+	}
+
+	rootCAPool, err := loadRootCAsFromFiles(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	config := &tls.Config{

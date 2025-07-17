@@ -77,25 +77,36 @@ func (c *ClientConfig) Enroll(rawurl, home string) (*EnrollmentResponse, error) 
 	return client.Enroll(&c.Enrollment)
 }
 
-// GenCSR generates a certificate signing request and writes the CSR to a file.
-func (c *ClientConfig) GenCSR(home string) error {
+// generateCSRInMemory generates a certificate signing request and returns the CSR in-memory.
+func (c *ClientConfig) generateCSRInMemory(home string) ([]byte, error) {
 	client := &Client{HomeDir: home, Config: c}
 	// Generate the CSR
 
 	err := client.Init()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if c.CSR.CN == "" {
-		return errors.Errorf("CSR common name not specified; use '--csr.cn' flag")
+		return nil, errors.Errorf("CSR common name not specified; use '--csr.cn' flag")
 	}
 
 	csrPEM, _, err := client.GenCSR(&c.CSR, c.CSR.CN)
 	if err != nil {
+		return nil, err
+	}
+
+	return csrPEM, nil
+}
+
+// GenCSR generates a certificate signing request and writes the CSR to a file.
+func (c *ClientConfig) GenCSR(home string) error {
+	csrPEM, err := c.generateCSRInMemory(home)
+	if err != nil {
 		return err
 	}
 
+	client := &Client{HomeDir: home, Config: c}
 	csrFile := path.Join(client.Config.MSPDir, "signcerts", fmt.Sprintf("%s.csr", c.CSR.CN))
 	err = util.WriteFile(csrFile, csrPEM, 0o644)
 	if err != nil {
