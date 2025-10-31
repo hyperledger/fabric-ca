@@ -67,7 +67,7 @@ EOF
 test -f "$CERT_HOME" || mkdir -p "$CERT_HOME"
 cd $CERT_HOME
 cp $TESTDATA/TestCRL.crl $CERT_HOME
-python -m SimpleHTTPServer $HTTP_PORT &
+python -m http.server $HTTP_PORT &
 HTTP_PID=$!
 pollSimpleHttp
 echo $HTTP_PID

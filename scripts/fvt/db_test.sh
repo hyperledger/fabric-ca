@@ -309,7 +309,7 @@ if [ $? != 0 ]; then
 fi
 
 # Start mysql server
-/usr/bin/mysqld_safe --sql-mode=STRICT_TRANS_TABLES &
+/usr/bin/mariadbd-safe --sql-mode=STRICT_TRANS_TABLES &
 pollMySql # Wait for MySQL to start
 
 # Enroll again, this time the server should try to reinitialize the DB before processing enroll request and this should succeed

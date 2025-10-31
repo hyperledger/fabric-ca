@@ -6,10 +6,10 @@ name: Release
 
 on:
   push:
-    tags: [ v1.* ]
+    tags: [v1.*]
 
 env:
-  GO_VER: 1.23.5
+  GO_VER: 1.25.3
   UBUNTU_VER: 22.04
   IMAGE_NAME: ${{ github.repository }}
   FABRIC_CA_VER: ${{ github.ref_name }}
@@ -37,14 +37,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         name: Checkout Fabric CA Code
-      
+
       - uses: actions/setup-go@v5
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
 
       - name: Install GCC cross-compilers
-        if:  ${{ contains(matrix.platform, 'linux') }}
+        if: ${{ contains(matrix.platform, 'linux') }}
         run: |
           sudo apt-get update
           sudo apt-get -y install gcc-aarch64-linux-gnu
@@ -63,7 +63,6 @@ jobs:
           # <path> of the artifact may include multiple files.
           path: release/${{ matrix.platform }}/*.tar.gz
 
-
   # build native image using a different runner for each architecture (faster and more reliable than using qemu to build multi-architecture images on ubuntu-22.04)
   build-and-push-native-docker-images:
     name: Build and Push native image
@@ -76,15 +75,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-  
         runner:
-          - ubuntu-22.04      # creates linux-amd64 images
-          - ubuntu-22.04-arm  # creates linux-arm64 images 
-  
+          - ubuntu-22.04 # creates linux-amd64 images
+          - ubuntu-22.04-arm # creates linux-arm64 images
+
         # Dynamic matrix
         # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
         registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
-          
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,7 +122,7 @@ jobs:
           mkdir -p ${{ runner.temp }}/digests/${{ matrix.registry }}
           digest="${{ steps.build-and-push.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${{ matrix.registry }}/${digest#sha256:}"
-  
+
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
@@ -148,13 +146,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
         # Dynamic matrix
         # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
         registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
-            
-    steps:
 
+    steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
@@ -181,13 +177,13 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}.{{minor}}.{{patch}}
-      
+
       - name: Create manifest list and push # combines the downloaded amd64 and arm64 digests and pushes multi-architecture manifest with the tags specified above
         working-directory: ${{ runner.temp }}/digests/${{ matrix.registry }}
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ matrix.registry }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
-        
+
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ matrix.registry }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}

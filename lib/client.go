@@ -823,7 +823,7 @@ func (c *Client) SendReq(req *http.Request, result interface{}) (err error) {
 					errorMsg = errorMsg + fmt.Sprintf("\n%s", msg)
 				}
 			}
-			return errors.Errorf(errorMsg)
+			return errors.New(errorMsg)
 		}
 	}
 	scode := resp.StatusCode

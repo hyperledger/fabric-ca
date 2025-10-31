@@ -33,7 +33,7 @@ export CA_CFG_PATH
 export FABRIC_CA_CLIENT_HOME="$CA_CFG_PATH/$REGISTRAR"
 
 cd $TESTDATA
-python -m SimpleHTTPServer $HTTP_PORT &
+python -m http.server $HTTP_PORT &
 HTTP_PID=$!
 pollSimpleHttp
 echo $HTTP_PID

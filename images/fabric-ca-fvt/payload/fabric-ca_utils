@@ -188,7 +188,7 @@ startHttp() {
    local port="$1"
    local rootdir="$2"
    cd $rootdir
-   python -m SimpleHTTPServer $port &
+   python -m http.server $port &
    HTTP_PID=$!
    pollServer python localhost "$HTTP_PORT" && return $HTTP_PID || return -1
 }

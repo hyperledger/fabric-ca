@@ -55,7 +55,7 @@ TIME='date +%I:%M:%S%p'
 
 stripBlank() {
    # delete comments and blanks lines
-   egrep -v "^ *#|^$"
+   grep -E -v "^ *#|^$"
 }
 
 listUser(){
@@ -241,7 +241,7 @@ pollLogForMsg() {
    # we find $msg in $log, or reach timeout
    while test "$(($(date +%s)-starttime))" -lt "$timeout" -a $rc -ne 0
    do
-      egrep "$msg" "$log"
+      grep -E "$msg" "$log"
       rc=$?
       test $rc -eq 0 && break
       sleep .1
@@ -390,7 +390,7 @@ startHttp() {
    local port="$1"
    local rootdir="$2"
    cd $rootdir
-   python -m SimpleHTTPServer $port &
+   python -m http.server $port &
    HTTP_PID=$!
    pollSimpleHttp
 }
@@ -962,7 +962,7 @@ signing:
 csr:
   keyrequest:
     algo: $KEYTYPE
-    size: $KEYLEN 
+    size: $KEYLEN
   names:
     - C: US
       ST: "North Carolina"
@@ -1041,5 +1041,5 @@ function killserver {
 }
 
 function grepPrint() {
-   tee /dev/stderr| egrep "$1"
+   tee /dev/stderr| grep -E "$1"
 }

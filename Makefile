@@ -29,10 +29,10 @@
 
 PROJECT_NAME = fabric-ca
 
-GO_VER = 1.23.5
+GO_VER = 1.25.3
 UBUNTU_VER ?= 22.04
 DEBIAN_VER ?= stretch
-BASE_VERSION ?= v1.5.15
+BASE_VERSION ?= v1.5.16
 
 ARCH=$(shell go env GOARCH)
 PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
@@ -42,7 +42,7 @@ PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
 RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed -e  's/^v\(.*\)/\1/')
 PROJECT_VERSION=${RELEASE_VERSION}
 
-PG_VER=13
+PG_VER=17
 
 PKGNAME = github.com/hyperledger/$(PROJECT_NAME)
 

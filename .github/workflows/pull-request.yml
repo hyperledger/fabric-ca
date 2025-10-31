@@ -13,7 +13,7 @@ on:
 env:
   GOPATH: /opt/go
   PATH: /opt/go/bin:/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-  GO_VER: 1.23.5
+  GO_VER: 1.25.3
 
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
       - run: sudo apt update
         name: Run Apt Update
       - uses: actions/checkout@v4
-        name: Checkout Fabric CA Code        
+        name: Checkout Fabric CA Code
       - uses: actions/setup-go@v5
         name: Install Go
         with:
@@ -44,7 +44,7 @@ jobs:
       - run: sudo apt update
         name: Run Apt Update
       - uses: actions/checkout@v4
-        name: Checkout Fabric CA Code        
+        name: Checkout Fabric CA Code
       - uses: actions/setup-go@v5
         name: Install Go
         with:

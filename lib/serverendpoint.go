@@ -104,7 +104,7 @@ func getHTTPErr(err error) *caerrors.HTTPErr {
 	}
 	curErr := caerrors.GetCause(err)
 	if curErr == nil {
-		return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, err.Error())
+		return caerrors.CreateHTTPErr(500, caerrors.ErrUnknown, "%s", err.Error())
 	}
 	return curErr
 

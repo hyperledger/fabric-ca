@@ -14,7 +14,7 @@ export CA_CFG_PATH="/tmp/groups"
 
 HTTP_PORT="3755"
 cd $TESTDATA
-python -m SimpleHTTPServer $HTTP_PORT &
+python -m http.server $HTTP_PORT &
 HTTP_PID=$!
 pollSimpleHttp
 echo $HTTP_PID

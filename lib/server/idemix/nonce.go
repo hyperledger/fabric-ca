@@ -75,13 +75,13 @@ func NewNonceManager(issuer MyIssuer, clock Clock, level int) (NonceManager, err
 	opts := issuer.Config()
 	mgr.nonceExpiration, err = time.ParseDuration(opts.NonceExpiration)
 	if err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for Issuer '%s'",
-			issuer.Name()))
+		return nil, errors.Wrapf(err, "Failed to parse idemix.nonceexpiration config option while initializing Nonce manager for Issuer '%s'",
+			issuer.Name())
 	}
 	mgr.nonceSweepInterval, err = time.ParseDuration(opts.NonceSweepInterval)
 	if err != nil {
-		return nil, errors.Wrapf(err, fmt.Sprintf("Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for Issuer '%s'",
-			issuer.Name()))
+		return nil, errors.Wrapf(err, "Failed to parse idemix.noncesweepinterval config option while initializing Nonce manager for Issuer '%s'",
+			issuer.Name())
 	}
 	return mgr, nil
 }

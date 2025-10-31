@@ -480,7 +480,7 @@ func TestECPrivateKey(t *testing.T) {
 	_, err := GetECPrivateKey(getPEM(filepath.Join("testdata", "ec-key.pem"), t))
 	assert.NoError(t, err)
 
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err, "failed to create RSA key")
 	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
 	assert.NoError(t, err, "failed to marshal RSA private key")
@@ -508,7 +508,7 @@ func TestRSAPrivateKey(t *testing.T) {
 	_, err = GetRSAPrivateKey(getPEM(filepath.Join("testdata", "rsa-key.pem"), t))
 	assert.NoError(t, err)
 
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 256)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	assert.NoError(t, err, "failed to create RSA key")
 	encodedPK, err := x509.MarshalPKCS8PrivateKey(rsaKey)
 	assert.NoError(t, err, "failed to marshal RSA private key")
