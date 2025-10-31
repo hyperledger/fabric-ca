@@ -1,16 +1,5 @@
-// Copyright 2020 ConsenSys Software Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Copyright 2020-2025 Consensys Software Inc.
+// Licensed under the Apache License, Version 2.0. See the LICENSE file for details.
 
 // Package bn254 efficient elliptic curve, pairing and hash to curve implementation for bn254. This curve appears in
 // Ethereum pre-compiles as altbn128.
@@ -76,7 +65,7 @@ var g1Infinity G1Jac
 var g2Infinity G2Jac
 
 // optimal Ate loop counter
-var loopCounter [66]int8
+var LoopCounter [66]int8
 
 // Parameters useful for the GLV scalar multiplication. The third roots define the
 // endomorphisms ϕ₁ and ϕ₂ for <G1Affine> and <G2Affine>. lambda is such that <r, ϕ-λ> lies above
@@ -152,7 +141,7 @@ func init() {
 
 	// 2-NAF decomposition of 6x₀+2 little endian
 	optimaAteLoop, _ := new(big.Int).SetString("29793968203157093288", 10)
-	ecc.NafDecomposition(optimaAteLoop, loopCounter[:])
+	ecc.NafDecomposition(optimaAteLoop, LoopCounter[:])
 
 	xGen.SetString("4965661367192848881", 10)
 
