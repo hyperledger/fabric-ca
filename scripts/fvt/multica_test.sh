@@ -177,7 +177,7 @@ for driver in postgres mysql; do
    done
 
    # notadmin cannot revoke
-   revokeUser notadmin user11 ca1 2>&1 | egrep "Authorization failure"
+   revokeUser notadmin user11 ca1 2>&1 | grep "Authorization failure"
    test "$?" -ne 0 && ErrorMsg "Non-revoker successfully revoked cert or failed for incorrect reason"
 
    # Check the DB contents
@@ -194,7 +194,7 @@ for driver in postgres mysql; do
          # Grab the serial number of user$i$j cert
          SN_UC="$(openssl x509 -noout -serial -in $c | awk -F'=' '{print toupper($2)}')"
          # and the auth keyid of notadmin cert - translate upper to lower case
-         AKI_UC=$(openssl x509 -noout -text -in $c |awk '/keyid/ {gsub(/ *keyid:|:/,"",$1);print toupper($0)}')
+         AKI_UC=$(openssl x509 -noout -in $c -ext authorityKeyIdentifier | awk 'NR==2 { gsub(/ |:/, "", $0); print $0; exit }')
          # Revoke the certs
          echo "SN  ---> $SN_UC"
          echo "AKI ---> $AKI_UC"
@@ -225,7 +225,7 @@ for driver in postgres mysql; do
          echo "=========================> REVOKING self"
          revokeUser admin admin ca$i
          # Verify that the cert is no longer usable
-         revokeUser admin user$i$j ca$i 2>&1 | egrep "Authentication failure"
+         revokeUser admin user$i$j ca$i 2>&1 | grep "Authentication failure"
          test $? -ne 0 && ErrorMsg "Improper revocation using revoked certificate" RC
       done
    done
@@ -241,4 +241,3 @@ test "$RC" -eq 0 && $SCRIPTDIR/fabric-ca_setup.sh -R -x $CA_CFG_PATH -d $driver
 rm -f $TESTDATA/openssl.cnf.base.req
 CleanUp "$RC"
 exit $RC
-

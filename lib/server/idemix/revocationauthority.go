@@ -322,7 +322,7 @@ func doTransaction(funcName string, db db.FabricCADB, doit func(tx db.FabricCATx
 		err2 := tx.Rollback(funcName)
 		if err2 != nil {
 			errMsg := fmt.Sprintf("Error encountered while rolling back transaction: %s, original error: %s", err2.Error(), err.Error())
-			log.Errorf(errMsg)
+			log.Error(errMsg)
 			return nil, errors.New(errMsg)
 		}
 		return nil, err

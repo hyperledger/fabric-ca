@@ -119,7 +119,7 @@ func (cred *Credential) Load() error {
 	val := SignerConfig{}
 	err = json.Unmarshal(signerConfigBytes, &val)
 	if err != nil {
-		return errors.Wrapf(err, fmt.Sprintf("Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile))
+		return errors.Wrapf(err, "Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile)
 	}
 	if val.CurveID == "" {
 		val.CurveID = idemix4.DefaultIdemixCurve

@@ -185,7 +185,7 @@ func (cd *CertificateDecoder) CertificateDecoder(decoder *json.Decoder) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf(result)
+	fmt.Print(result)
 	return nil
 }
 

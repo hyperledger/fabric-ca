@@ -88,7 +88,13 @@ function enrollUsers() {
      --csr.hosts ${USERNAME}${ca}-${user}@fab-client.raleigh.ibm.com \
      --csr.hosts ${USERNAME}${ca}-${user}.fabric.raleigh.ibm.com \
      --caname ca$ca >> $dir/admin$ca/log.txt 2>&1
-   test "${USERNAME}${ca}-${user}" = "$(openssl x509 -in $dir/${USERNAME}${ca}-${user}/$ENROLLCERT -noout -subject | awk -F'= ' '{print $NF}')"
+   local cert_subject="$(openssl x509 -in $dir/${USERNAME}${ca}-${user}/$ENROLLCERT -noout -subject | sed 's/^.* CN *= *//')"
+   if [ "${USERNAME}${ca}-${user}" != "${cert_subject}" ]; then
+      echo "Expected '${USERNAME}${ca}-${user}', got '${cert_subject}'"
+      cat $dir/${USERNAME}${ca}-${user}/$ENROLLCERT
+      return 1
+   fi
+   return 0
 }
 
 function reenrollUsers() {
@@ -103,7 +109,13 @@ function reenrollUsers() {
    $FABRIC_CA_CLIENTEXEC reenroll --debug $TLSOPT \
      -u ${PROTO}@localhost:$port \
      --caname ca$ca >> $dir/admin$ca/log.txt 2>&1
-   test "${USERNAME}${ca}-${user}" = "$(openssl x509 -in $dir/${USERNAME}${ca}-${user}/$ENROLLCERT -noout -subject | awk -F'= ' '{print $NF}')"
+   local cert_subject="$(openssl x509 -in $dir/${USERNAME}${ca}-${user}/$ENROLLCERT -noout -subject | sed 's/^.* CN *= *//')"
+   if [ "${USERNAME}${ca}-${user}" != "${cert_subject}" ]; then
+      echo "Expected '${USERNAME}${ca}-${user}', got '${cert_subject}'"
+      cat $dir/${USERNAME}${ca}-${user}/$ENROLLCERT
+      return 1
+   fi
+   return 0
 }
 
 function register() {
@@ -166,7 +178,9 @@ function checkStatus() {
    local number="$2"
    : ${number:="$NUMUSERS"}
    awk -v u=$number '
+         NR==1 {print $0}
          NR!=1 && $7==0 {rc+=1}
+         NR!=1 && $7!=0 {print $0}
          END {if (rc!=u) exit 1}' $log
    test $? -ne 0 && ErrorMsg "FAILED" || echo "PASSED"
 }

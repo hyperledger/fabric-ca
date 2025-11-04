@@ -9,7 +9,7 @@
 ###############################################################################
 
 ARG UBUNTU_VER
-FROM ubuntu:${UBUNTU_VER} as builder
+FROM ubuntu:${UBUNTU_VER} AS builder
 
 ARG TARGETARCH
 ARG TARGETOS

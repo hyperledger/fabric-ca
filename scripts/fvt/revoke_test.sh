@@ -73,7 +73,7 @@ revokedRevoked="-1 revoked"
 TEST_RESULTS=("$revokedRevoked" "$revokedRevoked" "$enrolledRevoked" "$enrolledRevoked" "$enrolledGood" "$enrolledGood" )
 
 cd $TESTDATA
-python -m SimpleHTTPServer $HTTP_PORT &
+python -m http.server $HTTP_PORT &
 HTTP_PID=$!
 pollSimpleHttp
 echo $HTTP_PID

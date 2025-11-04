@@ -23,7 +23,7 @@ EXPECTED_DISTRIBUTION=$(((NUM_USERS+1)*2/$NUM_SERVERS))
 export CA_CFG_PATH
 
 cd $TESTDATA
-python -m SimpleHTTPServer $HTTP_PORT &
+python -m http.server $HTTP_PORT &
 HTTP_PID=$!
 pollSimpleHttp
 echo $HTTP_PID

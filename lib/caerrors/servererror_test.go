@@ -47,7 +47,7 @@ func TestHTTPErr(t *testing.T) {
 func TestRemoteErrorString(t *testing.T) {
 	lmsg := "local message"
 	rmsg := "remote message"
-	err := CreateHTTPErr(401, ErrMethodNotAllowed, "%s", lmsg).Remote(ErrUnknown, rmsg)
+	err := CreateHTTPErr(401, ErrMethodNotAllowed, "%s", lmsg).Remote(ErrUnknown, "%s", rmsg)
 	errMsg := Print(err)
 	assert.Contains(t, errMsg, rmsg)
 }

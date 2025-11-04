@@ -3,21 +3,21 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-ARG GO_VER
-FROM golang:${GO_VER}-bullseye as fabric-ca-builder
+ARG GO_VER=1
+FROM golang:${GO_VER}-trixie AS fabric-ca-builder
 ARG GO_LDFLAGS
 ARG GO_TAGS
 
 ADD . /build/fabric-ca
 WORKDIR /build/fabric-ca
 RUN go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
-	-o /usr/local/bin/fabric-ca-server \
-	github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
-	&& go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
-	-o /usr/local/bin/fabric-ca-client \
-	github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
+    -o /usr/local/bin/fabric-ca-server \
+    github.com/hyperledger/fabric-ca/cmd/fabric-ca-server \
+    && go build -tags "${GO_TAGS}" -ldflags "${GO_LDFLAGS}" \
+    -o /usr/local/bin/fabric-ca-client \
+    github.com/hyperledger/fabric-ca/cmd/fabric-ca-client
 
-FROM debian:bullseye-20230814-slim
+FROM debian:trixie-slim
 ARG PG_VER
 
 ENV PATH="/usr/local/go/bin/:${PATH}" \

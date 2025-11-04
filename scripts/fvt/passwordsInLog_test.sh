@@ -23,12 +23,12 @@ function checkPasswd() {
    set -f
    # Extract password value(s) from logfile
    case "$Type" in
-          user) passwd=$(egrep -ao "Pass:[^[:space:]]+" $LOGFILE| awk -F':' '{print $2}') ;;
-          ldap) passwd=$(egrep -aio "ldap.*@" $LOGFILE| awk -v FS=[:@] '{print $(NF-1)}') ;;
-         mysql) passwd=$(egrep -ao "[a-z0-9*]+@tcp" $LOGFILE| awk -v FS=@ '{print $(NF-1)}') ;;
-      postgres) passwd=$(egrep -ao "password=[^ ]+ " $LOGFILE| awk -F '=' '{print $2}') ;;
-      register) passwd=$(egrep -oar 'Received registration.*Secret[^ ]+' $LOGFILE | awk -F':' '{print $NF}') ;;
-intermediateCa) passwd=$(egrep -ao "Enrolling.*Secret:[^ ]+ " $LOGFILE | awk -F':' '{print $NF}') ;;
+          user) passwd=$(grep -E -ao "Pass:[^[:space:]]+" $LOGFILE| awk -F':' '{print $2}') ;;
+          ldap) passwd=$(grep -E -aio "ldap.*@" $LOGFILE| awk -v FS=[:@] '{print $(NF-1)}') ;;
+         mysql) passwd=$(grep -E -ao "[a-z0-9*]+@tcp" $LOGFILE| awk -v FS=@ '{print $(NF-1)}') ;;
+      postgres) passwd=$(grep -E -ao "password=[^ ]+ " $LOGFILE| awk -F '=' '{print $2}') ;;
+      register) passwd=$(grep -E -oar 'Received registration.*Secret[^ ]+' $LOGFILE | awk -F':' '{print $NF}') ;;
+intermediateCa) passwd=$(grep -E -ao "Enrolling.*Secret:[^ ]+ " $LOGFILE | awk -F':' '{print $NF}') ;;
    esac
 
    # Fail if password is empty

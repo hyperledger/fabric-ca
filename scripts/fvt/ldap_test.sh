@@ -48,7 +48,7 @@ revokeEcert() {
    result="$3"
 
    certFile=$UDIR/$user/msp/signcerts/cert.pem
-   AKI=$(openssl x509 -noout -text -in $certFile |awk '/keyid/ {gsub(/ *keyid:|:/,"",$1);print toupper($0)}')
+   AKI=$(openssl x509 -noout -in $certFile -ext authorityKeyIdentifier | awk 'NR==2 { gsub(/ |:/, "", $0); print $0; exit }')
    SN=$(openssl x509 -noout -serial -in $certFile | awk -F'=' '{print toupper($2)}')
 
    case "$result" in
@@ -59,13 +59,13 @@ revokeEcert() {
       fail) echo "User '$admin is attempting to revoke the ecert of user cert of user '$user' ..."
 # Caller does not have authority to act on affiliation
             #$FABRIC_CA_CLIENTEXEC revoke -u $URI -a $AKI -s $SN $TLSOPT -H $UDIR/$admin 2>&1| grep 'does not have authority to revoke'
-            $FABRIC_CA_CLIENTEXEC revoke -u $URI -a $AKI -s $SN $TLSOPT -H $UDIR/$admin 2>&1| egrep "(does not have authority to (act|revoke)|Authorization failure)"
+            $FABRIC_CA_CLIENTEXEC revoke -u $URI -a $AKI -s $SN $TLSOPT -H $UDIR/$admin 2>&1| grep -E "(does not have authority to (act|revoke)|Authorization failure)"
             test "$?" -eq 0 || ErrorMsg "User '$admin' not authorized to revoke '$user'"
       ;;
     esac
 }
 
-for u in ${users1[*]}; do
+for u in "${users1[@]}"; do
    CA_CFG_PATH=$UDIR enroll $u ${u}pw uid,hf.Revoker
    test $? -ne 0 && ErrorExit "Failed to enroll $u"
    checkUserCert $u
@@ -73,12 +73,12 @@ done
 
 $FABRIC_CA_CLIENTEXEC register -d -u "$PROTO${CA_HOST_ADDRESS}:$PROXY_PORT" $TLSOPT \
                            --id.name "testldapuser" \
-                           -c /tmp/ldap/users/testUser8/fabric-ca-client-config.yaml 2>&1 | egrep "Registration is not supported when using LDAP"
+                           -c /tmp/ldap/users/testUser8/fabric-ca-client-config.yaml 2>&1 | grep "Registration is not supported when using LDAP"
 test $? -ne 0 && ErrorExit "Registration while using LDAP should have failed"
 # Sleep for more than the idle connection timeout limit of 1 second
 sleep 3
 
-for u in ${users2[*]}; do
+for u in "${users2[@]}"; do
    CA_CFG_PATH=$UDIR enroll $u ${u}pw uid,hf.Revoker
    test $? -ne 0 && ErrorExit "Failed to enroll $u"
    checkUserCert $u

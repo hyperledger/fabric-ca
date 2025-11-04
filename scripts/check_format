@@ -16,7 +16,7 @@ fi
 
 echo "Checking for trailing blanks..."
 find . -path ./vendor -prune -o -type f -regex ".*\(regenDocs\|\.\(go\|sh\)\)" \
-                      -exec egrep -q " +$" {} \; \
+                      -exec grep -E -q " +$" {} \; \
                       -exec printf "trailing blanks in {}\n" \; | grep -E '.*'
 if test $? -eq 0; then
    echo "To fix, run"
