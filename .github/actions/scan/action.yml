@@ -1,0 +1,26 @@
+name: "Security vulnerability scan"
+inputs:
+  path:
+    description: Path to scan
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Scan
+      id: scan
+      shell: bash
+      run: |
+        SOURCE_PATH="$(cd "${{ inputs.path }}" > /dev/null && pwd)"
+        docker run --rm \
+          --volume "${SOURCE_PATH}/:/src" \
+          ghcr.io/google/osv-scanner:latest \
+          scan \
+          --lockfile=/src/go.mod \
+          --format=markdown > osv-scanner.md
+    - name: Report failure
+      if: ${{ failure() && steps.scan.conclusion == 'failure' }}
+      shell: bash
+      run: |
+        cat osv-scanner.md >> ${GITHUB_STEP_SUMMARY}
