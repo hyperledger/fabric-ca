@@ -35,7 +35,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/crypto v0.43.0
+	golang.org/x/crypto v0.45.0
 	gopkg.in/ldap.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -76,9 +76,9 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.45.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
