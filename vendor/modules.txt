@@ -1,3 +1,5 @@
+# github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
+## explicit
 # github.com/IBM/idemix v0.0.2-0.20240913182345-72941a5f41cd
 ## explicit; go 1.22.6
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto
@@ -87,6 +89,8 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
+# github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667
+## explicit; go 1.13
 # github.com/go-kit/kit v0.10.0
 ## explicit; go 1.13
 github.com/go-kit/kit/log
@@ -96,6 +100,8 @@ github.com/go-kit/kit/metrics/internal/ratemap
 github.com/go-kit/kit/metrics/prometheus
 github.com/go-kit/kit/metrics/statsd
 github.com/go-kit/kit/util/conn
+# github.com/go-ldap/ldap/v3 v3.4.12
+## explicit; go 1.23.0
 # github.com/go-logfmt/logfmt v0.5.1
 ## explicit; go 1.17
 github.com/go-logfmt/logfmt
@@ -126,6 +132,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/uuid v1.6.0
+## explicit
 # github.com/gorilla/handlers v1.5.1
 ## explicit; go 1.14
 github.com/gorilla/handlers
