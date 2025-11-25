@@ -12,6 +12,7 @@ require (
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/go-kit/kit v0.10.0
+	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/handlers v1.5.1
@@ -36,7 +37,6 @@ require (
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.45.0
-	gopkg.in/ldap.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -50,7 +50,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667 // indirect
-	github.com/go-ldap/ldap/v3 v3.4.12 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
@@ -85,7 +84,6 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
-	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
