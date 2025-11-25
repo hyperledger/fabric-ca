@@ -15,6 +15,7 @@ import (
 
 	"github.com/Knetic/govaluate"
 	"github.com/cloudflare/cfssl/log"
+	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/hyperledger/fabric-ca/api"
 	causer "github.com/hyperledger/fabric-ca/lib/server/user"
 	"github.com/hyperledger/fabric-ca/lib/spi"
@@ -23,7 +24,6 @@ import (
 	"github.com/hyperledger/fabric-lib-go/bccsp"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	ldap "gopkg.in/ldap.v2"
 )
 
 var (
