@@ -242,3 +242,11 @@ dist-clean:
 	-@rm -rf release/linux-arm64/hyperledger-fabric-ca-linux-arm64-$(RELEASE_VERSION).tar.gz ||:
 
 .FORCE:
+
+.PHONY: install-osv-scanner
+install-osv-scanner:
+	go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest
+
+.PHONY: scan
+scan: install-osv-scanner
+	osv-scanner scan --lockfile=go.mod
