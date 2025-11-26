@@ -29,7 +29,7 @@
 
 PROJECT_NAME = fabric-ca
 
-GO_VER = 1.25.3
+GO_VER ?= 1.25.5
 UBUNTU_VER ?= 22.04
 DEBIAN_VER ?= stretch
 BASE_VERSION ?= v1.5.16
