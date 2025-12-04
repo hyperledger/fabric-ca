@@ -182,6 +182,9 @@ github.com/hyperledger/fabric-lib-go/common/metrics/namer
 github.com/hyperledger/fabric-lib-go/common/metrics/prometheus
 github.com/hyperledger/fabric-lib-go/common/metrics/statsd
 github.com/hyperledger/fabric-lib-go/healthz
+# github.com/hyperledger/fabric-protos-go-apiv2 v0.3.3
+## explicit; go 1.17
+github.com/hyperledger/fabric-protos-go-apiv2/msp
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap

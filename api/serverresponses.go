@@ -20,7 +20,7 @@ type CAInfoResponseNet struct {
 	// Base64 encoding of Idemix issuer public key
 	IssuerPublicKey string
 	// Base64 encoding of PEM-encoded Idemix issuer revocation public key
-	IssuerRevocationPublicKey string
+	RevocationPublicKey string
 	// Version of the server
 	Version string
 }
