@@ -9,7 +9,7 @@ on:
     tags: [v1.*]
 
 env:
-  GO_VER: 1.25.3
+  GO_VER: 1.25.5
   UBUNTU_VER: 22.04
   IMAGE_NAME: ${{ github.repository }}
   FABRIC_CA_VER: ${{ github.ref_name }}
