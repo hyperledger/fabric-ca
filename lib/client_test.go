@@ -27,6 +27,7 @@ import (
 	"github.com/hyperledger/fabric-lib-go/bccsp"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -1320,39 +1321,75 @@ func setupGenCRLTest(t *testing.T, serverHome, clientHome string) (*Server, *Ide
 	return server, adminID
 }
 
-func TestNormalizeUrl(t *testing.T) {
-	u, err := NormalizeURL("")
-	if err != nil {
-		t.Errorf("normalizeURL empty: %s", err)
-	} else {
-		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
+func TestNormalizeURL(t *testing.T) {
+	for testName, testData := range map[string]struct {
+		input    string
+		expected string
+	}{
+		"HTTP server URL is accepted": {
+			input:    "http://host:9876",
+			expected: "http://host:9876",
+		},
+		"HTTPS server URL is accepted": {
+			input:    "https://host:9876",
+			expected: "https://host:9876",
+		},
+		"HTTP scheme if only host and port specified": {
+			input:    "host:9876",
+			expected: "http://host:9876",
+		},
+		"HTTP scheme and default port if only host specified": {
+			input:    "host",
+			expected: "http://host:7054",
+		},
+		"default port if only scheme and host specified": {
+			input:    "http://host",
+			expected: "http://host:7054",
+		},
+		"URL with path is accepted": {
+			input:    "http://host:9876/path",
+			expected: "http://host:9876/path",
+		},
+		"HTTP scheme if host, port and path specified": {
+			input:    "host:9876/path",
+			expected: "http://host:9876/path",
+		},
+		"URL encoded characters in path are unmodified": {
+			input:    "http://host:9876/a%2Fb%2Fc",
+			expected: "http://host:9876/a%2Fb%2Fc",
+		},
+		"URL encoded characters in path without scheme are unmodified": {
+			input:    "host:9876/a%2Fb%2Fc",
+			expected: "http://host:9876/a%2Fb%2Fc",
+		},
+		"empty returns default": {
+			input:    "",
+			expected: "http://localhost:7054",
+		},
+	} {
+		t.Run(testName, func(t *testing.T) {
+			u, err := NormalizeURL(testData.input)
+			require.NoError(t, err)
+
+			assert.Equal(t, testData.expected, u.String())
+		})
 	}
-	u, err = NormalizeURL("http://host:7054/path")
-	if err != nil {
-		t.Errorf("normalizeURL failed: %s", err)
-	} else {
-		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
-	}
-	u, err = NormalizeURL("https://localhost:80/a%2Fb%2Fc")
-	if err != nil {
-		t.Errorf("NormalizeURL failed: %s", err)
-	} else {
-		t.Logf("URL %s, %s, %s", u.Scheme, u.Host, u.Path)
-	}
-	_, err = NormalizeURL("[")
-	t.Logf("NormalizeURL() error %v", err)
-	if err == nil {
-		t.Errorf("NormalizeURL '[' should have failed")
-	}
-	_, err = NormalizeURL("http://[/path")
-	t.Logf("NormalizeURL() error %v", err)
-	if err == nil {
-		t.Errorf("NormalizeURL 'http://[/path]' should have failed")
-	}
-	_, err = NormalizeURL("https:rootless/path")
-	t.Logf("NormalizeURL() error %v", err)
-	if err == nil {
-		t.Errorf("NormalizeURL 'https:rootless/path' should have failed")
+
+	t.Run("invalid scheme fails", func(t *testing.T) {
+		u, err := NormalizeURL("ftp://host:9876")
+		require.ErrorContains(t, err, "ftp", "URL: %s", u)
+	})
+
+	for testName, input := range map[string]string{
+		"invalid URL input fails":              "[",
+		"invalid characters in hostname fails": "http://[/path",
+		"rootless path fails":                  "https:rootless/path",
+		"non-numeric port fails":               "host:port",
+	} {
+		t.Run(testName, func(t *testing.T) {
+			u, err := NormalizeURL(input)
+			require.Error(t, err, "expected error, got: %s", u)
+		})
 	}
 }
 
