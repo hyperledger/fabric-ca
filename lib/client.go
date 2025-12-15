@@ -19,7 +19,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	idemix "github.com/IBM/idemix/bccsp/schemes/dlog/crypto"
@@ -971,38 +970,44 @@ func newCfsslKeyRequest(bkr *api.KeyRequest) *csr.KeyRequest {
 	return &csr.KeyRequest{A: bkr.Algo, S: bkr.Size}
 }
 
-// NormalizeURL normalizes a URL (from cfssl)
+// NormalizeURL normalizes a full or partial URL to a full URL, using
+// configuration for missing elements.
 func NormalizeURL(addr string) (*url.URL, error) {
 	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		addr = util.GetServerURL()
+	}
+
 	u, err := url.Parse(addr)
 	if err != nil {
 		return nil, err
 	}
+
 	if u.Opaque != "" {
-		u.Host = net.JoinHostPort(u.Scheme, u.Opaque)
+		port, path, found := strings.Cut(u.Opaque, "/")
+		if found {
+			u = u.JoinPath(path)
+		}
+		u.Host = net.JoinHostPort(u.Scheme, port)
+		u.Scheme = ""
 		u.Opaque = ""
-	} else if u.Path != "" && !strings.Contains(u.Path, ":") {
+	} else if u.Host == "" {
 		u.Host = net.JoinHostPort(u.Path, util.GetServerPort())
 		u.Path = ""
-	} else if u.Scheme == "" {
-		u.Host = u.Path
-		u.Path = ""
+	} else if u.Port() == "" {
+		u.Host = net.JoinHostPort(u.Host, util.GetServerPort())
 	}
-	if u.Scheme != "https" {
+
+	if u.Scheme == "" {
 		u.Scheme = "http"
+	} else if !isValidScheme(u.Scheme) {
+		return nil, errors.Errorf("invalid scheme: %s", u.Scheme)
 	}
-	_, port, err := net.SplitHostPort(u.Host)
-	if err != nil {
-		_, port, err = net.SplitHostPort(u.Host + ":" + util.GetServerPort())
-		if err != nil {
-			return nil, err
-		}
-	}
-	if port != "" {
-		_, err = strconv.Atoi(port)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return u, nil
+
+	// Parse again to ensure URL contains no invalid characters
+	return url.Parse(u.String())
+}
+
+func isValidScheme(scheme string) bool {
+	return scheme == "http" || scheme == "https"
 }
