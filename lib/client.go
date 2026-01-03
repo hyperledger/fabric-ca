@@ -157,7 +157,19 @@ func (c *Client) Init() error {
 	return nil
 }
 
+// SetHTTPClient sets a custom HTTP client for this Fabric CA client.
+// Call this before Init() to prevent default HTTP client creation, or after
+// Init() to override the default HTTP client.
+func (c *Client) SetHTTPClient(client *http.Client) {
+	c.httpClient = client
+}
+
 func (c *Client) initHTTPClient() error {
+	// Skip initialization if HTTP client was already set
+	if c.httpClient != nil {
+		return nil
+	}
+
 	tr := new(http.Transport)
 	if c.Config.TLS.Enabled {
 		log.Info("TLS Enabled")
