@@ -26,7 +26,7 @@ import (
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
-	proto "github.com/golang/protobuf/proto"
+	proto1 "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
 	idemixcred "github.com/hyperledger/fabric-ca/lib/client/credential/idemix"
@@ -38,8 +38,10 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric-lib-go/bccsp"
 	cspsigner "github.com/hyperledger/fabric-lib-go/bccsp/signer"
+	"github.com/hyperledger/fabric-protos-go-apiv2/msp"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	proto2 "google.golang.org/protobuf/proto"
 )
 
 // Client is the fabric-ca client object
@@ -73,7 +75,7 @@ type GetCAInfoResponse struct {
 	// Idemix issuer public key of the CA
 	IssuerPublicKey []byte
 	// Idemix issuer revocation public key of the CA
-	IssuerRevocationPublicKey []byte
+	RevocationPublicKey []byte
 	// Version of the server
 	Version string
 }
@@ -124,7 +126,7 @@ func (c *Client) Init() error {
 		c.ipkFile = filepath.Join(mspDir, "IssuerPublicKey")
 
 		// Idemix credentials directory
-		c.idemixCredsDir = path.Join(mspDir, "user")
+		c.idemixCredsDir = path.Join(c.HomeDir, "user")
 		err = os.MkdirAll(c.idemixCredsDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Idemix credentials directory 'user'")
@@ -308,12 +310,12 @@ func (c *Client) net2LocalCAInfo(net *api.CAInfoResponseNet, local *GetCAInfoRes
 		}
 		local.IssuerPublicKey = ipk
 	}
-	if net.IssuerRevocationPublicKey != "" {
-		rpk, err := util.B64Decode(net.IssuerRevocationPublicKey)
+	if net.RevocationPublicKey != "" {
+		rpk, err := util.B64Decode(net.RevocationPublicKey)
 		if err != nil {
 			return errors.WithMessage(err, "Failed to decode issuer revocation key")
 		}
-		local.IssuerRevocationPublicKey = rpk
+		local.RevocationPublicKey = rpk
 	}
 	local.CAName = net.CAName
 	local.CAChain = caChain
@@ -518,7 +520,6 @@ func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.Ide
 	enrollmentID, _ := result.Attrs["EnrollmentID"].(string)
 	revocationHandle := result.Attrs[sidemix.AttrRevocationHandle].(string)
 	signerConfig := &idemixcred.SignerConfig{
-		CurveID:                         cidemix.Curves.ByID(c.curveID),
 		Cred:                            credBytes,
 		Sk:                              sk.Bytes(),
 		Role:                            role,
@@ -608,7 +609,7 @@ func (c *Client) getIssuerPubKey(ipkBytes []byte) (*idemix.IssuerPublicKey, erro
 		}
 	}
 	pubKey := &idemix.IssuerPublicKey{}
-	err = proto.Unmarshal(ipkBytes, pubKey)
+	err = proto1.Unmarshal(ipkBytes, pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -948,11 +949,22 @@ func (c *Client) verifyIdemixCredential() error {
 	signerConfig := &idemixcred.SignerConfig{}
 	err = json.Unmarshal(credfileBytes, signerConfig)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+		// try proto
+		idemixSignerConfig := &msp.IdemixMSPSignerConfig{}
+		err = proto2.Unmarshal(credfileBytes, idemixSignerConfig)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to unmarshal signer config from %s", c.idemixCredFile)
+		}
+		signerConfig.Cred = idemixSignerConfig.Cred
+		signerConfig.Sk = idemixSignerConfig.Sk
+		signerConfig.CredentialRevocationInformation = idemixSignerConfig.CredentialRevocationInformation
+		signerConfig.EnrollmentID = idemixSignerConfig.EnrollmentId
+		signerConfig.Role = int(idemixSignerConfig.Role)
+		signerConfig.OrganizationalUnitIdentifier = idemixSignerConfig.OrganizationalUnitIdentifier
 	}
 
 	cred := new(idemix.Credential)
-	err = proto.Unmarshal(signerConfig.GetCred(), cred)
+	err = proto1.Unmarshal(signerConfig.GetCred(), cred)
 	if err != nil {
 		return errors.Wrap(err, "Failed to unmarshal Idemix credential from signer config")
 	}

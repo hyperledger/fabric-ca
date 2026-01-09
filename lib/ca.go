@@ -1013,7 +1013,7 @@ func (ca *CA) fillCAInfo(info *api.CAInfoResponseNet) error {
 		return err
 	}
 	info.IssuerPublicKey = util.B64Encode(ipkBytes)
-	info.IssuerRevocationPublicKey = util.B64Encode(rpkBytes)
+	info.RevocationPublicKey = util.B64Encode(rpkBytes)
 	return nil
 }
 
