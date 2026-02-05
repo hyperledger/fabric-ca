@@ -20,6 +20,7 @@ require (
 	github.com/grantae/certinfo v0.0.0-20170412194111-59d56a35515b
 	github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2
 	github.com/hyperledger/fabric-lib-go v1.1.2
+	github.com/hyperledger/fabric-protos-go-apiv2 v0.3.3
 	github.com/jinzhu/copier v0.3.5
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kisielk/sqlstruct v0.0.0-20201105191214-5f3e10d3ab46
@@ -37,6 +38,7 @@ require (
 	github.com/spf13/viper v1.7.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.45.0
+	google.golang.org/protobuf v1.36.7
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -83,7 +85,6 @@ require (
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
-	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

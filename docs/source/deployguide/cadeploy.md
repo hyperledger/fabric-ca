@@ -39,11 +39,10 @@ Because you will use a single CA client to submit register and enrollment reques
 
   ```
   fabric-ca-client
-    ├── int-ca
-    ├── org1-ca
-    ├── tls-ca
-    └── tls-root-cert
-
+  ├── int-ca
+  ├── org1-ca
+  ├── tls-ca
+  └── tls-root-cert
   ```
 
 **Important:** If your Fabric CA client will transact with CAs from multiple organizations that are secured by different TLS servers, then you would need to either create different `tls-root-cert` folders to hold the TLS CA root certificate for each organization or simply name them differently inside the folder to differentiate them. Since our Fabric CA client will only be transacting with CA servers in the same organization, all of which are secured by the same TLS CA, we will only have a single root certificate in this folder.
@@ -194,8 +193,8 @@ The folder structure that we are using for these Fabric CA client commands is:
 
 ```
 fabric-ca-client
-  └── tls-ca
-  └── tls-root-cert
+├── tls-ca
+└── tls-root-cert
 ```
 
 These folders are used by the Fabric CA client to:
@@ -293,15 +292,15 @@ The resulting folder structure resembles:
 
 ```
 fabric-ca-client
-  └── tls-ca
-    └── tlsadmin
-      └── msp
-    └── rcaadmin
-      └── msp
-    └── icaadmin
-      └── msp
+└── tls-ca
+    ├── tlsadmin
+    |   └── msp
+    ├── rcaadmin
+    |   └── msp
+    ├── icaadmin
+    |   └── msp
     └── tls-root-cert
-      └── tls-ca-cert.pem
+        └── tls-ca-cert.pem
 ```
 
 **Tip:** After you have registered all your nodes with the TLS CA, it can be safely turned off.
@@ -336,19 +335,19 @@ Because you've already registered and enrolled your organization CA bootstrap id
 
   ```
   fabric-ca-client
-    └── tls-ca
-          ├── rcaadmin
-            ├── msp
-               ├── IssuerPublicKey
-               ├── IssuerRevocationPublicKey
-               ├── cacerts
-               ├── keystore
-                   └── key.pem
-               ├── signcerts
-                   └── cert.pem
+  └── tls-ca
+      └── rcaadmin
+          └── msp
+              ├── IssuerPublicKey
+              ├── RevocationPublicKey
+              ├── cacerts
+              ├── keystore
+              |   └── key.pem
+              └── signcerts
+                  └── cert.pem
   fabric-ca-server-org1
-    └── tls
-      └── cert.pem
+  └── tls
+      ├── cert.pem
       └── key.pem
   ```
 
@@ -401,7 +400,7 @@ The folder structure we are using for these commands is:
 
 ```
 fabric-ca-client
-  └── org1-ca
+  ├── org1-ca
   └── tls-root-cert
 ```
 
@@ -443,14 +442,14 @@ These folders are used by the Fabric CA client to:
    ```
    └── msp
        ├── cacerts
-           └── my-machine-example-com-7055.pem
+       |   └── my-machine-example-com-7055.pem
        ├── keystore
-           └── 60b6a16b8b5ba3fc3113c522cce86a724d7eb92d6c3961cfd9afbd27bf11c37f_sk
+       |   └── 60b6a16b8b5ba3fc3113c522cce86a724d7eb92d6c3961cfd9afbd27bf11c37f_sk
        ├── signcerts
-           └── cert.pem
+       |   └── cert.pem
        ├── user
        ├── IssuerPublicKey
-       └── IssuerRevocationPublicKey
+       └── RevocationPublicKey
    ```
 
    Where:
@@ -504,22 +503,22 @@ The resulting folder structure is similar to the following structure. (Some fold
 
 ```
 fabric-ca-client
-  └── tls-ca
-        ├── icaadmin
-          ├── msp
-             ├── cacerts
-             ├── keystore
-                 └── key.pem
-             ├── signcerts
-                 └── cert.pem
-             ├── tlscacerts
-             ├── user
-             ├── IssuerPublicKey
-             └── IssuerRevocationPublicKey
+└── tls-ca
+    └── icaadmin
+        └── msp
+            ├── cacerts
+            ├── keystore
+            |   └── key.pem
+            ├── signcerts
+            |   └── cert.pem
+            ├── user
+            ├── tlscacerts
+            ├── IssuerPublicKey
+            └── RevocationPublicKey
 fabric-ca-server-int-ca
-  └── tls
-    └── tls-ca-cert.pem
-    └── cert.pem
+└── tls
+    ├── tls-ca-cert.pem
+    ├── cert.pem
     └── key.pem
 ```
 
@@ -560,8 +559,8 @@ The folder structure we are using for these commands is
 
 ```
 fabric-ca-client
-  └── int-ca
-  └── tls-root-cert
+├── int-ca
+└── tls-root-cert
 ```
 
 These folders are used by the Fabric CA client to:

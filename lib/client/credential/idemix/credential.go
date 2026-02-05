@@ -15,12 +15,14 @@ import (
 	"github.com/IBM/idemix/bccsp/types"
 	math "github.com/IBM/mathlib"
 	"github.com/cloudflare/cfssl/log"
-	"github.com/golang/protobuf/proto"
+	proto1 "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-ca/api"
 	idemix4 "github.com/hyperledger/fabric-ca/lib/common/idemix"
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric-lib-go/bccsp"
+	"github.com/hyperledger/fabric-protos-go-apiv2/msp"
 	"github.com/pkg/errors"
+	proto2 "google.golang.org/protobuf/proto"
 )
 
 const (
@@ -96,15 +98,29 @@ func (cred *Credential) Store() error {
 	if err != nil {
 		return err
 	}
-	signerConfigBytes, err := json.Marshal(val)
+	caSignerConfig := val.(*SignerConfig)
+
+	// Store the MSP signer config as Fabric expects
+	mspSignerConfig := &msp.IdemixMSPSignerConfig{
+		Cred:                            caSignerConfig.Cred,
+		Sk:                              caSignerConfig.Sk,
+		OrganizationalUnitIdentifier:    caSignerConfig.OrganizationalUnitIdentifier,
+		Role:                            int32(caSignerConfig.Role),
+		EnrollmentId:                    caSignerConfig.EnrollmentID,
+		CredentialRevocationInformation: caSignerConfig.CredentialRevocationInformation,
+	}
+
+	signerConfigBytes, err := proto2.Marshal(mspSignerConfig)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal SignerConfig")
 	}
-	err = util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0o644)
-	if err != nil {
+
+	if err := util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0o644); err != nil {
 		return errors.WithMessage(err, "Failed to store the Idemix credential")
 	}
+
 	log.Infof("Stored the Idemix credential at %s", cred.signerConfigFile)
+
 	return nil
 }
 
@@ -116,15 +132,28 @@ func (cred *Credential) Load() error {
 		log.Debugf("No credential found at %s: %s", cred.signerConfigFile, err.Error())
 		return err
 	}
-	val := SignerConfig{}
-	err = json.Unmarshal(signerConfigBytes, &val)
-	if err != nil {
+
+	// Load the MSP signer config
+	mspSignerConfig := &msp.IdemixMSPSignerConfig{}
+	if err := proto2.Unmarshal(signerConfigBytes, mspSignerConfig); err == nil {
+		cred.val = &SignerConfig{
+			Cred:                            mspSignerConfig.Cred,
+			Sk:                              mspSignerConfig.Sk,
+			OrganizationalUnitIdentifier:    mspSignerConfig.OrganizationalUnitIdentifier,
+			Role:                            int(mspSignerConfig.Role),
+			EnrollmentID:                    mspSignerConfig.EnrollmentId,
+			CredentialRevocationInformation: mspSignerConfig.CredentialRevocationInformation,
+		}
+		return nil
+	}
+
+	// try to unmarshal via json
+	val := new(SignerConfig)
+	if err := json.Unmarshal(signerConfigBytes, val); err != nil {
 		return errors.Wrapf(err, "Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile)
 	}
-	if val.CurveID == "" {
-		val.CurveID = idemix4.DefaultIdemixCurve
-	}
-	cred.val = &val
+
+	cred.val = val
 	return nil
 }
 
@@ -169,12 +198,12 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	disclosure := []byte{0, 0, 1, 0}
 
 	credential := scheme.Credential{}
-	err = proto.Unmarshal(cred.val.GetCred(), &credential)
+	err = proto1.Unmarshal(cred.val.GetCred(), &credential)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to unmarshal Idemix credential while creating token")
 	}
 	cri := scheme.CredentialRevocationInformation{}
-	err = proto.Unmarshal(cred.val.GetCredentialRevocationInformation(), &cri)
+	err = proto1.Unmarshal(cred.val.GetCredentialRevocationInformation(), &cri)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to unmarshal Idemix CRI while creating token")
 	}
@@ -183,7 +212,7 @@ func (cred *Credential) CreateToken(req *http.Request, reqBody []byte) (string, 
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to create signature while creating token")
 	}
-	sigBytes, err := proto.Marshal(sig)
+	sigBytes, err := proto1.Marshal(sig)
 	if err != nil {
 		return "", err
 	}
