@@ -53,7 +53,7 @@ type Client struct {
 	// Denotes if the client object is already initialized
 	initialized bool
 	// File and directory paths
-	keyFile, certFile, idemixCredFile, idemixCredsDir, ipkFile, caCertsDir string
+	keyFile, certFile, idemixCredFile, ipkFile, caCertsDir string
 	// The crypto service provider (BCCSP)
 	csp bccsp.BCCSP
 	// HTTP client associated with this Fabric CA client
@@ -126,12 +126,12 @@ func (c *Client) Init() error {
 		c.ipkFile = filepath.Join(mspDir, "IssuerPublicKey")
 
 		// Idemix credentials directory
-		c.idemixCredsDir = path.Join(c.HomeDir, "user")
-		err = os.MkdirAll(c.idemixCredsDir, 0o755)
+		idemixCredsDir := path.Join(mspDir, "user")
+		err = os.MkdirAll(idemixCredsDir, 0o755)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create Idemix credentials directory 'user'")
 		}
-		c.idemixCredFile = path.Join(c.idemixCredsDir, "SignerConfig")
+		c.idemixCredFile = path.Join(idemixCredsDir, "SignerConfig")
 
 		// Initialize BCCSP (the crypto layer)
 		c.csp, err = util.InitBCCSP(&cfg.CSP, mspDir, c.HomeDir)

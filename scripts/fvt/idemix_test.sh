@@ -40,7 +40,7 @@ function getIdemixCred() {
     $FABRIC_CA_CLIENTEXEC enroll -u "${PROTO}${USERNAME}:$USERPSWD@$CA_HOST_ADDRESS:$PROXY_PORT" -H $CA_CFG_PATH/$USERNAME --enrollment.type idemix -d $TLSOPT
     test $? -eq 0 || ErrorMsg "Failed to complete 'enroll' command"
 
-    CLIENTCERT="$CA_CFG_PATH/$USERNAME/user/SignerConfig"
+    CLIENTCERT="$CA_CFG_PATH/$USERNAME/msp/user/SignerConfig"
     if [ ! -f $CLIENTCERT ]; then
         ErrorMsg "Idemix credential was not stored in the correct location"
     fi

@@ -447,6 +447,7 @@ These folders are used by the Fabric CA client to:
        |   └── 60b6a16b8b5ba3fc3113c522cce86a724d7eb92d6c3961cfd9afbd27bf11c37f_sk
        ├── signcerts
        |   └── cert.pem
+       ├── user
        ├── IssuerPublicKey
        └── RevocationPublicKey
    ```
@@ -504,13 +505,13 @@ The resulting folder structure is similar to the following structure. (Some fold
 fabric-ca-client
 └── tls-ca
     └── icaadmin
-        ├── user
         └── msp
             ├── cacerts
             ├── keystore
             |   └── key.pem
             ├── signcerts
             |   └── cert.pem
+            ├── user
             ├── tlscacerts
             ├── IssuerPublicKey
             └── RevocationPublicKey

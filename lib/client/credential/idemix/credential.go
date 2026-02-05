@@ -109,15 +109,18 @@ func (cred *Credential) Store() error {
 		EnrollmentId:                    caSignerConfig.EnrollmentID,
 		CredentialRevocationInformation: caSignerConfig.CredentialRevocationInformation,
 	}
+
 	signerConfigBytes, err := proto2.Marshal(mspSignerConfig)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal SignerConfig")
 	}
-	err = util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0o644)
-	if err != nil {
+
+	if err := util.WriteFile(cred.signerConfigFile, signerConfigBytes, 0o644); err != nil {
 		return errors.WithMessage(err, "Failed to store the Idemix credential")
 	}
+
 	log.Infof("Stored the Idemix credential at %s", cred.signerConfigFile)
+
 	return nil
 }
 
@@ -131,11 +134,9 @@ func (cred *Credential) Load() error {
 	}
 
 	// Load the MSP signer config
-	var val SignerConfig
 	mspSignerConfig := &msp.IdemixMSPSignerConfig{}
-	err = proto2.Unmarshal(signerConfigBytes, mspSignerConfig)
-	if err == nil {
-		val = SignerConfig{
+	if err := proto2.Unmarshal(signerConfigBytes, mspSignerConfig); err == nil {
+		cred.val = &SignerConfig{
 			Cred:                            mspSignerConfig.Cred,
 			Sk:                              mspSignerConfig.Sk,
 			OrganizationalUnitIdentifier:    mspSignerConfig.OrganizationalUnitIdentifier,
@@ -143,18 +144,16 @@ func (cred *Credential) Load() error {
 			EnrollmentID:                    mspSignerConfig.EnrollmentId,
 			CredentialRevocationInformation: mspSignerConfig.CredentialRevocationInformation,
 		}
+		return nil
 	}
 
-	if err != nil {
-		// try to unmarshal via json
-		val = SignerConfig{}
-		err = json.Unmarshal(signerConfigBytes, &val)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile)
-		}
+	// try to unmarshal via json
+	val := new(SignerConfig)
+	if err := json.Unmarshal(signerConfigBytes, val); err != nil {
+		return errors.Wrapf(err, "Failed to unmarshal SignerConfig bytes from %s", cred.signerConfigFile)
 	}
 
-	cred.val = &val
+	cred.val = val
 	return nil
 }
 
