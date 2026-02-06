@@ -27,11 +27,11 @@ jobs:
             platform: linux-amd64
           - image: ubuntu-22.04
             platform: linux-arm64
-          - image: macos-14
+          - image: macos-latest
             platform: darwin-arm64
-          - image: macos-13
+          - image: macos-15-intel
             platform: darwin-amd64
-          - image: windows-2022
+          - image: windows-latest
             platform: windows-amd64
     runs-on: ${{ matrix.image }}
     steps:
