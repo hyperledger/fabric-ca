@@ -52,10 +52,10 @@ by the same alias, using the ColumnsAliased and ScanAliased functions:
     var user User
     var address Address
     sql := `
-SELECT %s, %s FROM users AS u
-INNER JOIN address AS a ON a.id = u.address_id
-WHERE u.username = ?
-`
+    SELECT %s, %s FROM users AS u
+    INNER JOIN address AS a ON a.id = u.address_id
+    WHERE u.username = ?
+    `
     sql = fmt.Sprintf(sql, sqlstruct.ColumnsAliased(*user, "u"), sqlstruct.ColumnsAliased(*address, "a"))
     rows, err := db.Query(sql, "gedi")
     if err != nil {
