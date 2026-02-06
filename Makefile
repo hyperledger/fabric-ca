@@ -32,7 +32,7 @@ PROJECT_NAME = fabric-ca
 GO_VER ?= 1.25.7
 UBUNTU_VER ?= 22.04
 DEBIAN_VER ?= stretch
-BASE_VERSION ?= v1.5.16
+BASE_VERSION ?= v1.5.17
 
 ARCH=$(shell go env GOARCH)
 PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
@@ -210,8 +210,8 @@ release/%/bin/fabric-ca-server: $(GO_SOURCE)
 # to the test target you are running i.e. (unit-tests, int-tests, all-tests).
 .PHONY: docker-thirdparty
 docker-thirdparty:
-	docker pull postgres:13.13
-	docker pull mysql:8.0
+	docker pull postgres:$(PG_VER)
+	docker pull mariadb:11
 
 .PHONY: dist
 dist: dist-clean release
