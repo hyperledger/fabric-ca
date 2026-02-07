@@ -226,7 +226,7 @@ func (c *ClientCmd) ConfigInit() error {
 	if logLevel != "" {
 		c.logLevel = logLevel
 	}
-	calog.SetLogLevel(c.logLevel, debug)
+	err = calog.SetLogLevel(c.logLevel, debug)
 	if err != nil {
 		return err
 	}
