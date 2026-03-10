@@ -1,8 +1,8 @@
 module github.com/hyperledger/fabric-ca
 
-go 1.24.0
+go 1.25.0
 
-toolchain go1.25.7
+toolchain go1.26.1
 
 require (
 	github.com/IBM/idemix v0.0.2-0.20240913182345-72941a5f41cd
