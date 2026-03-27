@@ -249,4 +249,4 @@ install-osv-scanner:
 
 .PHONY: scan
 scan: install-osv-scanner
-	osv-scanner scan --lockfile=go.mod
+	osv-scanner scan source --lockfile=go.mod

@@ -16,7 +16,7 @@ runs:
         docker run --rm \
           --volume "${SOURCE_PATH}/:/src" \
           ghcr.io/google/osv-scanner:latest \
-          scan \
+          scan source \
           --lockfile=/src/go.mod \
           --format=markdown > osv-scanner.md
     - name: Report failure

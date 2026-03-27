@@ -35,10 +35,10 @@ jobs:
             platform: windows-amd64
     runs-on: ${{ matrix.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         name: Checkout Fabric CA Code
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         name: Install Go
         with:
           go-version: ${{ env.GO_VER }}
@@ -55,7 +55,7 @@ jobs:
         env:
           BASE_VERSION: ${{ env.FABRIC_CA_VER }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         name: Publish Release Artifacts
         with:
           # <name> of the artifact must not collide between platform/arch builds
@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Login to the ${{ matrix.registry }} Container Registry
         uses: docker/login-action@v3
@@ -124,7 +124,7 @@ jobs:
           touch "${{ runner.temp }}/digests/${{ matrix.registry }}/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: digests-${{ matrix.registry }}-${{ matrix.runner }}
           path: ${{ runner.temp }}/digests/${{ matrix.registry }}/*
@@ -152,7 +152,7 @@ jobs:
 
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ${{ runner.temp }}/digests/${{ matrix.registry }}
           pattern: digests-${{ matrix.registry }}-*
@@ -198,11 +198,11 @@ jobs:
       contents: write
     steps:
       - name: Checkout Fabric CA Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Download Artifacts
         id: download
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: "release-*"
 
