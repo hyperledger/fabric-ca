@@ -9,6 +9,6 @@ export PATH="$PATH:$FABRIC_CA/build/tools"
 
 echo "Running integration tests ..."
 
-go test github.com/hyperledger/fabric-ca/test/integration/...
+go test -v github.com/hyperledger/fabric-ca/test/integration/...
 
 exit $?

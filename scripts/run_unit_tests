@@ -32,7 +32,7 @@ run_tests() {
     GO_TAGS=${GO_TAGS:-}
     [ -n "$GO_TAGS" ] && echo "Testing with $GO_TAGS..."
 
-    time go test -tags "$GO_TAGS" -cover -timeout 15m -p 1 "$@"
+    time go test -v -tags "$GO_TAGS" -cover -timeout 15m -p 1 "$@"
 }
 
 main() {
