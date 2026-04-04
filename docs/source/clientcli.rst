@@ -48,7 +48,10 @@ Fabric-CA Client's CLI
           --idemix.curve string          The identity mixer curve ID to use among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'} (default "amcl.Fp256bn")
           --loglevel string              Set logging level (info, warning, debug, error, fatal, critical)
       -M, --mspdir string                Membership Service Provider directory (default "msp")
+          --mycacertfile string          [Optional]: Path relative to the MSP directory where the CA certificate is written
+          --mycertfile string            [Optional]: Path relative to the MSP directory where the enrollment certificate is written
       -m, --myhost string                Hostname to include in the certificate signing request during enrollment (default "$HOSTNAME")
+          --myskfile string              [Optional]: Path relative to the MSP directory where the private key is written
       -a, --revoke.aki string            AKI (Authority Key Identifier) of the certificate to be revoked
       -e, --revoke.name string           Identity whose certificates should be revoked
       -r, --revoke.reason string         Reason for revocation

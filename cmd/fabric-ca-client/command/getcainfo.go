@@ -156,10 +156,16 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 		}
 	}
 
-	// Store the root certificates in the "cacerts" msp folder
+	// Store the root certificates in the "cacerts" msp folder, or at the custom path if set.
 	certBytes := bytes.Join(rootBlks, []byte(""))
 	if len(certBytes) > 0 {
-		if config.Enrollment.Profile == "tls" {
+		if config.MyCACertFile != "" {
+			dst := path.Join(mspDir, config.MyCACertFile)
+			err := storeToFile("CA certificate", path.Dir(dst), path.Base(dst), certBytes)
+			if err != nil {
+				return err
+			}
+		} else if config.Enrollment.Profile == "tls" {
 			err := storeToFile("TLS root CA certificate", tlsRootCACertsDir, tlsfname, certBytes)
 			if err != nil {
 				return err
