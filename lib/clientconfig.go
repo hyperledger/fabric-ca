@@ -31,19 +31,22 @@ import (
 
 // ClientConfig is the fabric-ca client's config
 type ClientConfig struct {
-	URL        string `def:"http://localhost:7054" opt:"u" help:"URL of fabric-ca-server"`
-	MSPDir     string `def:"msp" opt:"M" help:"Membership Service Provider directory"`
-	TLS        tls.ClientTLSConfig
-	Enrollment api.EnrollmentRequest
-	CSR        api.CSRInfo
-	ID         api.RegistrationRequest
-	Revoke     api.RevocationRequest
-	CAInfo     api.GetCAInfoRequest
-	CAName     string               `help:"Name of CA"`
-	CSP        *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
-	Debug      bool                 `opt:"d" help:"Enable debug level logging" hide:"true"`
-	LogLevel   string               `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
-	Idemix     api.Idemix
+	URL          string `def:"http://localhost:7054" opt:"u" help:"URL of fabric-ca-server"`
+	MSPDir       string `def:"msp" opt:"M" help:"Membership Service Provider directory"`
+	TLS          tls.ClientTLSConfig
+	Enrollment   api.EnrollmentRequest
+	CSR          api.CSRInfo
+	ID           api.RegistrationRequest
+	Revoke       api.RevocationRequest
+	CAInfo       api.GetCAInfoRequest
+	CAName       string               `help:"Name of CA"`
+	CSP          *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
+	Debug        bool                 `opt:"d" help:"Enable debug level logging" hide:"true"`
+	LogLevel     string               `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
+	Idemix       api.Idemix
+	MySkFile     string `help:"[Optional]: Path relative to the MSP directory where the private key is written"`
+	MyCertFile   string `help:"[Optional]: Path relative to the MSP directory where the enrollment certificate is written"`
+	MyCACertFile string `help:"[Optional]: Path relative to the MSP directory where the CA certificate is written"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.

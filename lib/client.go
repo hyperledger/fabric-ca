@@ -111,7 +111,15 @@ func (c *Client) Init() error {
 		if err != nil {
 			return errors.Wrap(err, "Failed to create signcerts directory")
 		}
-		c.certFile = path.Join(certDir, "cert.pem")
+		if cfg.MyCertFile != "" {
+			certFile := path.Join(mspDir, cfg.MyCertFile)
+			if err = os.MkdirAll(path.Dir(certFile), 0o755); err != nil {
+				return errors.Wrap(err, "Failed to create directory for cert file")
+			}
+			c.certFile = certFile
+		} else {
+			c.certFile = path.Join(certDir, "cert.pem")
+		}
 
 		// CA certs directory
 		c.caCertsDir = path.Join(mspDir, "cacerts")
@@ -321,11 +329,35 @@ func (c *Client) net2LocalCAInfo(net *api.CAInfoResponseNet, local *GetCAInfoRes
 	return nil
 }
 
+// storeCustomKeyFile moves the BCCSP-managed private key to a custom path relative to the MSP
+// directory, if MySkFile is configured.
+func (c *Client) storeCustomKeyFile(key bccsp.Key) error {
+	if c.Config.MySkFile == "" {
+		return nil
+	}
+	src := path.Join(c.Config.MSPDir, "keystore", hex.EncodeToString(key.SKI())+"_sk")
+	dst := path.Join(c.Config.MSPDir, c.Config.MySkFile)
+	if err := os.MkdirAll(path.Dir(dst), 0o700); err != nil {
+		return errors.Wrapf(err, "Failed to create directory for key file '%s'", dst)
+	}
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to read key file '%s'", src)
+	}
+	if err = util.WriteFile(dst, data, 0o600); err != nil {
+		return err
+	}
+	return os.Remove(src)
+}
+
 func (c *Client) handleX509Enroll(req *api.EnrollmentRequest) (*EnrollmentResponse, error) {
 	// Generate the CSR
 	csrPEM, key, err := c.GenCSR(req.CSR, req.Name)
 	if err != nil {
 		return nil, errors.WithMessage(err, "Failure generating CSR")
+	}
+	if err := c.storeCustomKeyFile(key); err != nil {
+		return nil, err
 	}
 
 	reqNet := &api.EnrollmentRequestNet{
@@ -446,7 +478,8 @@ func (c *Client) handleIdemixEnroll(req *api.EnrollmentRequest) (*EnrollmentResp
 // identity's X509 credential, and adds the token to the HTTP request. The loaded
 // identity is passed back to the caller.
 func (c *Client) addAuthHeaderForIdemixEnroll(req *api.EnrollmentRequest, id *Identity,
-	body []byte, post *http.Request) error {
+	body []byte, post *http.Request,
+) error {
 	if req.Name != "" && req.Secret != "" {
 		post.SetBasicAuth(req.Name, req.Secret)
 		return nil
@@ -499,7 +532,8 @@ func (c *Client) newEnrollmentResponse(result *api.EnrollmentResponseNet, id str
 
 // newIdemixEnrollmentResponse creates a client idemix enrollment response from a network response
 func (c *Client) newIdemixEnrollmentResponse(identity *Identity, result *api.IdemixEnrollmentResponseNet,
-	sk *math.Zr, id string) (*EnrollmentResponse, error) {
+	sk *math.Zr, id string,
+) (*EnrollmentResponse, error) {
 	log.Debugf("newIdemixEnrollmentResponse %s", id)
 	credBytes, err := util.B64Decode(result.Credential)
 	if err != nil {
