@@ -487,6 +487,22 @@ func MakeFileAbs(file, dir string) (string, error) {
 	return path, nil
 }
 
+// MakeFileAbsWithinDir makes 'file' absolute relative to 'dir' and ensures
+// that 'file' is a local path that does not escape 'dir'.
+func MakeFileAbsWithinDir(file, dir string) (string, error) {
+	if file == "" {
+		return "", nil
+	}
+	if !filepath.IsLocal(file) {
+		return "", errors.Errorf("file path '%s' must be relative and remain within '%s'", file, dir)
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", errors.Wrapf(err, "Failed making '%s' absolute", dir)
+	}
+	return filepath.Join(absDir, file), nil
+}
+
 // MakeFileNamesAbsolute makes all file names in the list absolute, relative to home
 func MakeFileNamesAbsolute(files []*string, home string) error {
 	for _, filePtr := range files {

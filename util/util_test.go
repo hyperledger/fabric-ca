@@ -317,6 +317,37 @@ func TestMakeFileAbs(t *testing.T) {
 	testMakeFileAbs(t, "../c", "/a/b", "/a/c")
 }
 
+func TestMakeFileAbsWithinDir(t *testing.T) {
+	baseDir := filepath.Join(string(filepath.Separator), "a", "b")
+
+	testcases := []struct {
+		name     string
+		file     string
+		expected string
+		err      bool
+	}{
+		{name: "empty", file: "", expected: ""},
+		{name: "file", file: "server.key", expected: filepath.Join(baseDir, "server.key")},
+		{name: "nested", file: "tls/server.key", expected: filepath.Join(baseDir, "tls", "server.key")},
+		{name: "deep nested", file: "nested/server.crt", expected: filepath.Join(baseDir, "nested", "server.crt")},
+		{name: "parent escape", file: "../server.key", err: true},
+		{name: "deep parent escape", file: "../../ca.crt", err: true},
+		{name: "absolute path", file: filepath.Join(string(filepath.Separator), "server.key"), err: true},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			path, err := MakeFileAbsWithinDir(testcase.file, baseDir)
+			if testcase.err {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, testcase.expected, path)
+		})
+	}
+}
+
 func TestMakeFilesAbs(t *testing.T) {
 	file1 := "a"
 	file2 := "a/b"

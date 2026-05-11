@@ -98,12 +98,20 @@ func (c *Client) Init() error {
 		}
 		cfg.MSPDir = mspDir
 		// Key directory and file
-		keyDir := path.Join(mspDir, "keystore")
+		keyDir := mspKeystoreDir(mspDir)
 		err = os.MkdirAll(keyDir, 0o700)
 		if err != nil {
 			return errors.Wrap(err, "Failed to create keystore directory")
 		}
-		c.keyFile = path.Join(keyDir, "key.pem")
+		if cfg.MySkFile != "" {
+			// Use the custom key path when loading this identity for later commands (e.g. reenroll)
+			c.keyFile, err = util.MakeFileAbsWithinDir(cfg.MySkFile, mspDir)
+			if err != nil {
+				return err
+			}
+		} else {
+			c.keyFile = filepath.Join(keyDir, "key.pem")
+		}
 
 		// Cert directory and file
 		certDir := path.Join(mspDir, "signcerts")
@@ -112,8 +120,11 @@ func (c *Client) Init() error {
 			return errors.Wrap(err, "Failed to create signcerts directory")
 		}
 		if cfg.MyCertFile != "" {
-			certFile := path.Join(mspDir, cfg.MyCertFile)
-			if err = os.MkdirAll(path.Dir(certFile), 0o755); err != nil {
+			certFile, err := util.MakeFileAbsWithinDir(cfg.MyCertFile, mspDir)
+			if err != nil {
+				return err
+			}
+			if err = os.MkdirAll(filepath.Dir(certFile), 0o755); err != nil {
 				return errors.Wrap(err, "Failed to create directory for cert file")
 			}
 			c.certFile = certFile
@@ -329,15 +340,26 @@ func (c *Client) net2LocalCAInfo(net *api.CAInfoResponseNet, local *GetCAInfoRes
 	return nil
 }
 
+func mspKeystoreDir(mspDir string) string {
+	return filepath.Join(mspDir, "keystore")
+}
+
+func bccspKeyFile(mspDir string, key bccsp.Key) string {
+	return filepath.Join(mspKeystoreDir(mspDir), hex.EncodeToString(key.SKI())+"_sk")
+}
+
 // storeCustomKeyFile moves the BCCSP-managed private key to a custom path relative to the MSP
 // directory, if MySkFile is configured.
 func (c *Client) storeCustomKeyFile(key bccsp.Key) error {
 	if c.Config.MySkFile == "" {
 		return nil
 	}
-	src := path.Join(c.Config.MSPDir, "keystore", hex.EncodeToString(key.SKI())+"_sk")
-	dst := path.Join(c.Config.MSPDir, c.Config.MySkFile)
-	if err := os.MkdirAll(path.Dir(dst), 0o700); err != nil {
+	src := bccspKeyFile(c.Config.MSPDir, key)
+	dst, err := util.MakeFileAbsWithinDir(c.Config.MySkFile, c.Config.MSPDir)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o700); err != nil {
 		return errors.Wrapf(err, "Failed to create directory for key file '%s'", dst)
 	}
 	data, err := os.ReadFile(src)

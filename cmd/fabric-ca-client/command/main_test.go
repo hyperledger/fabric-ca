@@ -283,6 +283,109 @@ func TestEnroll(t *testing.T) {
 	}
 }
 
+func TestEnrollCustomOutputFiles(t *testing.T) {
+	adminHome := filepath.Join(tdDir, "customoutputhome")
+	err := os.RemoveAll(adminHome)
+	if err != nil {
+		t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+	}
+	defer os.RemoveAll(adminHome)
+
+	srv := setupEnrollTest(t)
+	defer stopAndCleanupServer(t, srv)
+
+	err = RunMain([]string{
+		cmdName, "enroll", "-d", "-u", enrollURL, "-H", adminHome,
+		"--myskfile", "server.key",
+		"--mycertfile", "server.crt",
+		"--mycacertfile", "ca.crt",
+	})
+	if err != nil {
+		t.Fatalf("client enroll with custom output files failed: %s", err)
+	}
+
+	mspDir := filepath.Join(adminHome, "msp")
+	keyFile := filepath.Join(mspDir, "server.key")
+	certFile := filepath.Join(mspDir, "server.crt")
+	caCertFile := filepath.Join(mspDir, "ca.crt")
+
+	keyBytes, err := os.ReadFile(keyFile)
+	assert.NoError(t, err, "Failed to read custom private key")
+	assert.NotEmpty(t, keyBytes, "Custom private key file should not be empty")
+
+	_, err = util.GetX509CertificateFromPEMFile(certFile)
+	assert.NoError(t, err, "Failed to parse custom enrollment certificate")
+
+	caCert, err := util.GetX509CertificateFromPEMFile(caCertFile)
+	if assert.NoError(t, err, "Failed to parse custom CA certificate") {
+		assert.True(t, caCert.IsCA, "Custom CA certificate should be a CA certificate")
+	}
+
+	_, err = os.Stat(filepath.Join(mspDir, "signcerts", "cert.pem"))
+	assert.True(t, os.IsNotExist(err), "Default enrollment certificate should not be written")
+	assertFilesInDir(filepath.Join(mspDir, "keystore"), 0, t)
+	assertFilesInDir(filepath.Join(mspDir, "cacerts"), 0, t)
+
+	err = RunMain([]string{
+		cmdName, "reenroll", "-d", "-u", serverURL, "-H", adminHome,
+		"--myskfile", "server.key",
+		"--mycertfile", "server.crt",
+		"--mycacertfile", "ca.crt",
+		"--csr.hosts", "custom-host",
+	})
+	if err != nil {
+		t.Fatalf("client reenroll with custom output files failed: %s", err)
+	}
+
+	renewedKeyBytes, err := os.ReadFile(keyFile)
+	assert.NoError(t, err, "Failed to read renewed custom private key")
+	assert.NotEmpty(t, renewedKeyBytes, "Renewed custom private key file should not be empty")
+	err = util.CheckHostsInCert(certFile, "custom-host")
+	assert.NoError(t, err, "Renewed custom enrollment certificate should include requested host")
+	renewedCACert, err := util.GetX509CertificateFromPEMFile(caCertFile)
+	if assert.NoError(t, err, "Failed to parse renewed custom CA certificate") {
+		assert.True(t, renewedCACert.IsCA, "Renewed custom CA certificate should be a CA certificate")
+	}
+}
+
+func TestEnrollCustomOutputFilesRejectPathEscapes(t *testing.T) {
+	defer os.RemoveAll(filepath.Join(tdDir, "customoutputescape"))
+
+	srv := setupEnrollTest(t)
+	defer stopAndCleanupServer(t, srv)
+
+	testcases := []struct {
+		name string
+		flag string
+		file string
+	}{
+		{name: "private key", flag: "--myskfile", file: "../key.pem"},
+		{name: "enrollment certificate", flag: "--mycertfile", file: "../cert.pem"},
+		{name: "CA certificate", flag: "--mycacertfile", file: "../ca.pem"},
+	}
+
+	for _, testcase := range testcases {
+		t.Run(testcase.name, func(t *testing.T) {
+			adminHome := filepath.Join(tdDir, "customoutputescape", strings.ReplaceAll(testcase.name, " ", "-"))
+			err := os.RemoveAll(adminHome)
+			if err != nil {
+				t.Fatalf("Failed to remove directory %s: %s", adminHome, err)
+			}
+			defer os.RemoveAll(adminHome)
+
+			err = RunMain([]string{
+				cmdName, "enroll", "-d", "-u", enrollURL, "-H", adminHome,
+				testcase.flag, testcase.file,
+			})
+			assert.Error(t, err, "enroll should reject path escape for %s", testcase.name)
+
+			escapedFile := filepath.Join(filepath.Dir(filepath.Join(adminHome, "msp")), filepath.Base(testcase.file))
+			_, statErr := os.Stat(escapedFile)
+			assert.True(t, os.IsNotExist(statErr), "Path escape should not write %s", escapedFile)
+		})
+	}
+}
+
 // Tests expiration of enrollment certificate is not after the expiration
 // of the CA certificate that issued the enrollment certificate.
 func TestEnrollmentCertExpiry(t *testing.T) {

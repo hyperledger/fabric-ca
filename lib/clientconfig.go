@@ -44,9 +44,9 @@ type ClientConfig struct {
 	Debug        bool                 `opt:"d" help:"Enable debug level logging" hide:"true"`
 	LogLevel     string               `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
 	Idemix       api.Idemix
-	MySkFile     string `help:"[Optional]: Path relative to the MSP directory where the private key is written"`
-	MyCertFile   string `help:"[Optional]: Path relative to the MSP directory where the enrollment certificate is written"`
-	MyCACertFile string `help:"[Optional]: Path relative to the MSP directory where the CA certificate is written"`
+	MySkFile     string `help:"[Optional]: Path within the MSP directory where the private key is written"`
+	MyCertFile   string `help:"[Optional]: Path within the MSP directory where the enrollment certificate is written"`
+	MyCACertFile string `help:"[Optional]: Path within the MSP directory where the root CA certificate is written"`
 }
 
 // Enroll a client given the server's URL and the client's home directory.

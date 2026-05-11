@@ -160,8 +160,15 @@ func storeCAChain(config *lib.ClientConfig, si *lib.GetCAInfoResponse) error {
 	certBytes := bytes.Join(rootBlks, []byte(""))
 	if len(certBytes) > 0 {
 		if config.MyCACertFile != "" {
-			dst := path.Join(mspDir, config.MyCACertFile)
-			err := storeToFile("CA certificate", path.Dir(dst), path.Base(dst), certBytes)
+			dst, err := util.MakeFileAbsWithinDir(config.MyCACertFile, mspDir)
+			if err != nil {
+				return err
+			}
+			desc := "root CA certificate"
+			if config.Enrollment.Profile == "tls" {
+				desc = "TLS root CA certificate"
+			}
+			err = storeToFile(desc, filepath.Dir(dst), filepath.Base(dst), certBytes)
 			if err != nil {
 				return err
 			}
