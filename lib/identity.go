@@ -155,6 +155,9 @@ func (i *Identity) Reenroll(req *api.ReenrollmentRequest) (*EnrollmentResponse, 
 		if err != nil {
 			return nil, err
 		}
+		if err := i.client.storeCustomKeyFile(key); err != nil {
+			return nil, err
+		}
 	}
 
 	reqNet := &api.ReenrollmentRequestNet{
