@@ -36,7 +36,10 @@ type FabricCADB interface {
 	Rebind(query string) string
 	MustBegin() *sqlx.Tx
 	Close() error
+	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
+	SetConnMaxLifetime(d time.Duration)
+	SetConnMaxIdleTime(d time.Duration)
 	PingContext(ctx context.Context) error
 }
 
@@ -54,7 +57,10 @@ type SqlxDB interface {
 	Rebind(query string) string
 	MustBegin() *sqlx.Tx
 	Close() error
+	SetMaxIdleConns(n int)
 	SetMaxOpenConns(n int)
+	SetConnMaxIdleTime(d time.Duration)
+	SetConnMaxLifetime(d time.Duration)
 	PingContext(ctx context.Context) error
 }
 
@@ -169,9 +175,32 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 
+// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+// The default is 2
+// See database/sql/sql.go:SetMaxIdleConns for further information
+func (db *DB) SetMaxIdleConns(n int) {
+	db.DB.SetMaxIdleConns(n)
+}
+
 // SetMaxOpenConns sets number of max open connections
 func (db *DB) SetMaxOpenConns(n int) {
 	db.DB.SetMaxOpenConns(n)
+}
+
+// SetConnMaxIdleTime defines the maximum length of time a connection can be idle for before being
+// optionally closed lazily before reuse.
+func (db *DB) SetConnMaxIdleTime(d time.Duration) {
+	db.DB.SetConnMaxIdleTime(d)
+}
+
+// SetConnMaxLifetime sets the lifetime of the open connections.
+// 0 is the default duration set in the underlying database/sql library meaning
+// connections have an infinite life and are not closed based on a connection's age.
+// Setting this to a non-zero value is useful for recycling connections
+//
+// Works for each Postgres, MySQL, and SQLite since they all use sqlx and database/sql
+func (db *DB) SetConnMaxLifetime(d time.Duration) {
+	db.DB.SetConnMaxLifetime(d)
 }
 
 // PingContext pings the database

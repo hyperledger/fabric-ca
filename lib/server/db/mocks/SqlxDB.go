@@ -5,6 +5,7 @@ import (
 	context "context"
 	sql "database/sql"
 	sync "sync"
+	"time"
 
 	db "github.com/hyperledger/fabric-ca/lib/server/db"
 	sqlx "github.com/jmoiron/sqlx"
@@ -131,10 +132,25 @@ type SqlxDB struct {
 	selectReturnsOnCall map[int]struct {
 		result1 error
 	}
+	SetMaxIdleConnsStub        func(int)
+	setMaxIdleConnsMutex       sync.RWMutex
+	setMaxIdleConnsArgsForCall []struct {
+		arg1 int
+	}
 	SetMaxOpenConnsStub        func(int)
 	setMaxOpenConnsMutex       sync.RWMutex
 	setMaxOpenConnsArgsForCall []struct {
 		arg1 int
+	}
+	SetConnMaxIdleTimeStub        func(time.Duration)
+	setConnMaxIdleTimeMutex       sync.RWMutex
+	setConnMaxIdleTimeArgsForCall []struct {
+		arg1 time.Duration
+	}
+	SetConnMaxLifetimeStub        func(time.Duration)
+	setConnMaxLifetimeMutex       sync.RWMutex
+	setConnMaxLifetimeArgsForCall []struct {
+		arg1 time.Duration
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -732,6 +748,37 @@ func (fake *SqlxDB) SelectReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *SqlxDB) SetMaxIdleConns(arg1 int) {
+	fake.setMaxIdleConnsMutex.Lock()
+	fake.setMaxIdleConnsArgsForCall = append(fake.setMaxIdleConnsArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("SetMaxIdleConns", []interface{}{arg1})
+	fake.setMaxIdleConnsMutex.Unlock()
+	if fake.SetMaxIdleConnsStub != nil {
+		fake.SetMaxIdleConnsStub(arg1)
+	}
+}
+
+func (fake *SqlxDB) SetMaxIdleConnsCallCount() int {
+	fake.setMaxIdleConnsMutex.RLock()
+	defer fake.setMaxIdleConnsMutex.RUnlock()
+	return len(fake.setMaxIdleConnsArgsForCall)
+}
+
+func (fake *SqlxDB) SetMaxIdleConnsCalls(stub func(int)) {
+	fake.setMaxIdleConnsMutex.Lock()
+	defer fake.setMaxIdleConnsMutex.Unlock()
+	fake.SetMaxIdleConnsStub = stub
+}
+
+func (fake *SqlxDB) SetMaxIdleConnsArgsForCall(i int) int {
+	fake.setMaxIdleConnsMutex.RLock()
+	defer fake.setMaxIdleConnsMutex.RUnlock()
+	argsForCall := fake.setMaxIdleConnsArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *SqlxDB) SetMaxOpenConns(arg1 int) {
 	fake.setMaxOpenConnsMutex.Lock()
 	fake.setMaxOpenConnsArgsForCall = append(fake.setMaxOpenConnsArgsForCall, struct {
@@ -760,6 +807,68 @@ func (fake *SqlxDB) SetMaxOpenConnsArgsForCall(i int) int {
 	fake.setMaxOpenConnsMutex.RLock()
 	defer fake.setMaxOpenConnsMutex.RUnlock()
 	argsForCall := fake.setMaxOpenConnsArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *SqlxDB) SetConnMaxIdleTime(arg1 time.Duration) {
+	fake.setConnMaxIdleTimeMutex.Lock()
+	fake.setConnMaxIdleTimeArgsForCall = append(fake.setConnMaxIdleTimeArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("SetConnMaxIdleTime", []interface{}{arg1})
+	fake.setConnMaxIdleTimeMutex.Unlock()
+	if fake.SetConnMaxIdleTimeStub != nil {
+		fake.SetConnMaxIdleTimeStub(arg1)
+	}
+}
+
+func (fake *SqlxDB) SetConnMaxIdleTimeCallCount() int {
+	fake.setConnMaxIdleTimeMutex.RLock()
+	defer fake.setConnMaxIdleTimeMutex.RUnlock()
+	return len(fake.setConnMaxIdleTimeArgsForCall)
+}
+
+func (fake *SqlxDB) SetConnMaxIdleTimeCalls(stub func(time.Duration)) {
+	fake.setConnMaxIdleTimeMutex.Lock()
+	defer fake.setConnMaxIdleTimeMutex.Unlock()
+	fake.SetConnMaxIdleTimeStub = stub
+}
+
+func (fake *SqlxDB) SetConnMaxIdleTimeArgsForCall(i int) time.Duration {
+	fake.setConnMaxIdleTimeMutex.RLock()
+	defer fake.setConnMaxIdleTimeMutex.RUnlock()
+	argsForCall := fake.setConnMaxIdleTimeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *SqlxDB) SetConnMaxLifetime(arg1 time.Duration) {
+	fake.setConnMaxLifetimeMutex.Lock()
+	fake.setConnMaxLifetimeArgsForCall = append(fake.setConnMaxLifetimeArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("SetConnMaxLifetime", []interface{}{arg1})
+	fake.setConnMaxLifetimeMutex.Unlock()
+	if fake.SetConnMaxLifetimeStub != nil {
+		fake.SetConnMaxLifetimeStub(arg1)
+	}
+}
+
+func (fake *SqlxDB) SetConnMaxLifetimeCallCount() int {
+	fake.setConnMaxLifetimeMutex.RLock()
+	defer fake.setConnMaxLifetimeMutex.RUnlock()
+	return len(fake.setConnMaxLifetimeArgsForCall)
+}
+
+func (fake *SqlxDB) SetConnMaxLifetimeCalls(stub func(time.Duration)) {
+	fake.setConnMaxLifetimeMutex.Lock()
+	defer fake.setConnMaxLifetimeMutex.Unlock()
+	fake.SetConnMaxLifetimeStub = stub
+}
+
+func (fake *SqlxDB) SetConnMaxLifetimeArgsForCall(i int) time.Duration {
+	fake.setConnMaxLifetimeMutex.RLock()
+	defer fake.setConnMaxLifetimeMutex.RUnlock()
+	argsForCall := fake.setConnMaxLifetimeArgsForCall[i]
 	return argsForCall.arg1
 }
 
