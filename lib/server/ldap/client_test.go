@@ -8,19 +8,19 @@ package ldap
 
 import (
 	"fmt"
-	"path/filepath"
 	"testing"
 
+	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
+/*
 func TestLDAP(t *testing.T) {
-	testLDAP("ldap", 10389, t)
-	//testLDAP("ldaps", 10636, t)
-	testLDAPNegative(t)
-}
+	proto := "ldap"
+	port := 10389
 
-func testLDAP(proto string, port int, t *testing.T) {
 	//dn := "uid=admin,ou=system"
 	//pwd := "secret"
 	dn := "cn=admin,dc=example,dc=org"
@@ -63,8 +63,9 @@ func testLDAP(proto string, port int, t *testing.T) {
 		assert.EqualValues(t, "jsmith", email.Value)
 	}
 }
+*/
 
-func testLDAPNegative(t *testing.T) {
+func TestLDAPNegative(t *testing.T) {
 	_, err := NewClient(nil, nil)
 	if err == nil {
 		t.Errorf("ldap.NewClient(nil) passed but should have failed")
@@ -83,6 +84,7 @@ func testLDAPNegative(t *testing.T) {
 	}
 }
 
+/*
 func TestLDAPTLS(t *testing.T) {
 	proto := "ldaps"
 	dn := "cn=admin,dc=example,dc=org"
@@ -125,6 +127,7 @@ func TestLDAPTLS(t *testing.T) {
 		assert.EqualValues(t, "jsmith", email.Value)
 	}
 }
+*/
 
 // Tests String method of ldap.Config
 func TestLDAPConfigStringer(t *testing.T) {
@@ -149,4 +152,70 @@ func TestLDAPConfigStringer(t *testing.T) {
 	t.Logf("Stringified LDAP Config: %s", str)
 	assert.NotContains(t, str, "admin", "Username is not masked in the ldap URL")
 	assert.NotContains(t, str, "adminpwd", "Password is not masked in the ldap URL")
+}
+
+func TestUsernameEscape(t *testing.T) {
+	for testName, testCase := range map[string]struct {
+		Username string
+		Expected string
+	}{
+		"wildcard":     {Username: "*", Expected: "\\2a"},
+		"right parens": {Username: ")", Expected: "\\29"},
+		"left parens":  {Username: "(", Expected: "\\28"},
+		"backslash":    {Username: "\\", Expected: "\\5c"},
+	} {
+		t.Run(testName, func(t *testing.T) {
+			proto := "ldap"
+			dn := "cn=admin,dc=example,dc=org"
+			pwd := "admin"
+			host := "localhost"
+			port := 10389
+			base := "dc=example,dc=org"
+			url := fmt.Sprintf("%s://%s:%s@%s:%d/%s", proto, dn, pwd, host, port, base)
+
+			client, err := NewClient(&Config{URL: url}, nil)
+			require.NoError(t, err, "NewClient")
+
+			connection := NewConnectionStub(t)
+			client.AdminConn = connection
+
+			expectedFilter := fmt.Sprintf(client.UserFilter, testCase.Expected)
+			searchRequestMatcher := func(req *ldap.SearchRequest) bool {
+				return req.Filter == expectedFilter
+			}
+			searchResult := &ldap.SearchResult{
+				Entries: []*ldap.Entry{
+					new(ldap.Entry),
+				},
+			}
+			connection.mock.On("Search", mock.MatchedBy(searchRequestMatcher)).Return(searchResult, nil)
+			connection.mock.On("Close").Maybe().Return(nil)
+
+			_, err = client.GetUser(testCase.Username, nil)
+			require.NoError(t, err, "GetUser")
+
+			connection.mock.AssertExpectations(t)
+		})
+	}
+}
+
+func NewConnectionStub(t *testing.T) *ConnectionStub {
+	result := new(ConnectionStub)
+	result.mock.Test(t)
+	return result
+}
+
+type ConnectionStub struct {
+	mock mock.Mock
+}
+
+func (c *ConnectionStub) Search(searchRequest *ldap.SearchRequest) (*ldap.SearchResult, error) {
+	args := c.mock.MethodCalled("Search", searchRequest)
+	result, _ := args.Get(0).(*ldap.SearchResult)
+	return result, args.Error(1)
+}
+
+func (c *ConnectionStub) Close() error {
+	args := c.mock.MethodCalled("Close")
+	return args.Error(0)
 }

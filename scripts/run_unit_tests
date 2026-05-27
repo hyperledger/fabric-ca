@@ -8,7 +8,6 @@ set -euo pipefail
 
 excluded=(
     "/integration"
-    "/ldap"
 )
 
 # join array elements by the specified string

@@ -141,6 +141,14 @@ func cfgVal(val1, val2 string) string {
 	return val2
 }
 
+// Connection to an LDAP server.
+type Connection interface {
+	// Search using the given search request.
+	Search(searchRequest *ldap.SearchRequest) (*ldap.SearchResult, error)
+	// Close the connection.
+	Close() error
+}
+
 // Client is an LDAP client
 type Client struct {
 	Host          string
@@ -154,7 +162,7 @@ type Client struct {
 	attrNames     []string             // Names of attributes to request on an LDAP search
 	attrExprs     map[string]*userExpr // Expressions to evaluate to get attribute value
 	attrMaps      map[string]map[string]string
-	AdminConn     *ldap.Conn
+	AdminConn     Connection
 	TLS           *ctls.ClientTLSConfig
 	CSP           bccsp.BCCSP
 }
@@ -169,10 +177,11 @@ func (lc *Client) GetUser(username string, attrNames []string) (causer.User, err
 	log.Debugf("Getting user '%s'", username)
 
 	// Search for the given username
+	escapedUsername := ldap.EscapeFilter(username)
 	sreq := ldap.NewSearchRequest(
 		lc.Base, ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf(lc.UserFilter, username),
+		fmt.Sprintf(lc.UserFilter, escapedUsername),
 		lc.attrNames,
 		nil,
 	)
@@ -297,7 +306,7 @@ func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 	address := fmt.Sprintf("%s:%d", lc.Host, lc.Port)
 	if !lc.UseSSL {
 		log.Debug("Connecting to LDAP server over TCP")
-		conn, err = ldap.Dial("tcp", address)
+		conn, err = ldap.DialURL("ldap://" + address)
 		if err != nil {
 			return conn, errors.Wrapf(err, "Failed to connect to LDAP server over TCP at %s", address)
 		}
@@ -310,7 +319,7 @@ func (lc *Client) newConnection() (conn *ldap.Conn, err error) {
 
 		tlsConfig.ServerName = lc.Host
 
-		conn, err = ldap.DialTLS("tcp", address, tlsConfig)
+		conn, err = ldap.DialURL("ldaps://"+address, ldap.DialWithTLSConfig(tlsConfig))
 		if err != nil {
 			return conn, errors.Wrapf(err, "Failed to connect to LDAP server over TLS at %s", address)
 		}
