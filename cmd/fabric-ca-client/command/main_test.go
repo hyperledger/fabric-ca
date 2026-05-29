@@ -377,7 +377,7 @@ func TestEnrollCustomOutputFilesRejectPathEscapes(t *testing.T) {
 				cmdName, "enroll", "-d", "-u", enrollURL, "-H", adminHome,
 				testcase.flag, testcase.file,
 			})
-			assert.Error(t, err, "enroll should reject path escape for %s", testcase.name)
+			assert.Errorf(t, err, "enroll should reject path escape for %s", testcase.name)
 
 			escapedFile := filepath.Join(filepath.Dir(filepath.Join(adminHome, "msp")), filepath.Base(testcase.file))
 			_, statErr := os.Stat(escapedFile)

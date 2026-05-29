@@ -1377,7 +1377,7 @@ func TestNormalizeURL(t *testing.T) {
 
 	t.Run("invalid scheme fails", func(t *testing.T) {
 		u, err := NormalizeURL("ftp://host:9876")
-		require.ErrorContains(t, err, "ftp", "URL: %s", u)
+		require.ErrorContainsf(t, err, "ftp", "URL: %s", u)
 	})
 
 	for testName, input := range map[string]string{
@@ -1388,7 +1388,7 @@ func TestNormalizeURL(t *testing.T) {
 	} {
 		t.Run(testName, func(t *testing.T) {
 			u, err := NormalizeURL(input)
-			require.Error(t, err, "expected error, got: %s", u)
+			require.Errorf(t, err, "expected error, got: %s", u)
 		})
 	}
 }
