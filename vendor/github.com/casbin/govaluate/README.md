@@ -1,10 +1,9 @@
 govaluate
 ====
 
-[![Build Status](https://travis-ci.org/Knetic/govaluate.svg?branch=master)](https://travis-ci.org/Knetic/govaluate)
-[![Godoc](https://img.shields.io/badge/godoc-reference-5272B4.svg)](https://godoc.org/github.com/Knetic/govaluate)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Knetic/govaluate)](https://goreportcard.com/report/github.com/Knetic/govaluate) 
-[![Gocover](https://gocover.io/_badge/github.com/Knetic/govaluate)](https://gocover.io/github.com/Knetic/govaluate)
+[![Build Status](https://github.com/casbin/govaluate/actions/workflows/build.yml/badge.svg)](https://github.com/casbin/govaluate/actions/workflows/build.yml)
+[![Godoc](https://godoc.org/github.com/casbin/govaluate?status.svg)](https://pkg.go.dev/github.com/casbin/govaluate)
+[![Go Report Card](https://goreportcard.com/badge/github.com/casbin/govaluate)](https://goreportcard.com/report/github.com/casbin/govaluate) 
 
 Provides support for evaluating arbitrary C-like artithmetic/string expressions.
 
@@ -77,7 +76,7 @@ These examples have all returned boolean values, but it's equally possible to re
 	// result is now set to "50.0", the float64 value.
 ```
 
-You can also do date parsing, though the formats are somewhat limited. Stick to RF3339, ISO8061, unix date, or ruby date formats. If you're having trouble getting a date string to parse, check the list of formats actually used: [parsing.go:248](https://github.com/Knetic/govaluate/blob/0580e9b47a69125afa0e4ebd1cf93c49eb5a43ec/parsing.go#L258).
+You can also do date parsing, though the formats are somewhat limited. Stick to RF3339, ISO8061, unix date, or ruby date formats. If you're having trouble getting a date string to parse, check the list of formats actually used: [parsing.go:248](https://github.com/casbin/govaluate/blob/0580e9b47a69125afa0e4ebd1cf93c49eb5a43ec/parsing.go#L258).
 
 ```go
 	expression, err := govaluate.NewEvaluableExpression("'2014-01-02' > '2014-01-01 23:59:59'");
@@ -162,13 +161,13 @@ Fields are accessed in a similar way. Assuming `foo` has a field called "Length"
 
 	"foo.Length > 9000"
 
+The values of a `map` are accessed in the same way. Assuming the parameter `foo` is `map[string]int{ "bar": 1 }`
+
+	"foo.bar == 1"
+
 Accessors can be nested to any depth, like the following
 
 	"foo.Bar.Baz.SomeFunction()"
-
-However it is not _currently_ supported to access values in `map`s. So the following will not work
-
-	"foo.SomeMap['key']"
 
 This may be convenient, but note that using accessors involves a _lot_ of reflection. This makes the expression about four times slower than just using a parameter (consult the benchmarks for more precise measurements on your system).
 If at all reasonable, the author recommends extracting the values you care about into a parameter map beforehand, or defining a struct that implements the `Parameters` interface, and which grabs fields as required. If there are functions you want to use, it's better to pass them as expression functions (see the above section). These approaches use no reflection, and are designed to be fast and clean.
@@ -189,14 +188,14 @@ What operators and types does this support?
 * Ternary conditional: `?` `:`
 * Null coalescence: `??`
 
-See [MANUAL.md](https://github.com/Knetic/govaluate/blob/master/MANUAL.md) for exacting details on what types each operator supports.
+See [MANUAL.md](https://github.com/casbin/govaluate/blob/master/MANUAL.md) for exacting details on what types each operator supports.
 
 Types
 --
 
 Some operators don't make sense when used with some types. For instance, what does it mean to get the modulo of a string? What happens if you check to see if two numbers are logically AND'ed together?
 
-Everyone has a different intuition about the answers to these questions. To prevent confusion, this library will _refuse to operate_ upon types for which there is not an unambiguous meaning for the operation. See [MANUAL.md](https://github.com/Knetic/govaluate/blob/master/MANUAL.md) for details about what operators are valid for which types.
+Everyone has a different intuition about the answers to these questions. To prevent confusion, this library will _refuse to operate_ upon types for which there is not an unambiguous meaning for the operation. See [MANUAL.md](https://github.com/casbin/govaluate/blob/master/MANUAL.md) for details about what operators are valid for which types.
 
 Benchmarks
 --
@@ -223,7 +222,7 @@ ok
 API Breaks
 --
 
-While this library has very few cases which will ever result in an API break, it can (and [has](https://github.com/Knetic/govaluate/releases/tag/v2.0.0)) happened. If you are using this in production, vendor the commit you've tested against, or use gopkg.in to redirect your import (e.g., `import "gopkg.in/Knetic/govaluate.v2"`). Master branch (while infrequent) _may_ at some point contain API breaking changes, and the author will have no way to communicate these to downstreams, other than creating a new major release.
+While this library has very few cases which will ever result in an API break, it can happen. If you are using this in production, vendor the commit you've tested against, or use gopkg.in to redirect your import (e.g., `import "gopkg.in/casbin/govaluate.v1"`). Master branch (while infrequent) _may_ at some point contain API breaking changes, and the author will have no way to communicate these to downstreams, other than creating a new major release.
 
 Releases will explicitly state when an API break happens, and if they do not specify an API break it should be safe to upgrade.
 

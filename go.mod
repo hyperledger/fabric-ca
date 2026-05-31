@@ -8,7 +8,7 @@ require (
 	github.com/IBM/idemix v0.0.2-0.20240913182345-72941a5f41cd
 	github.com/IBM/idemix/bccsp/types v0.0.0-20240913182345-72941a5f41cd
 	github.com/IBM/mathlib v0.0.3-0.20250709075152-a138079496c3
-	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
+	github.com/casbin/govaluate v1.10.0
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/go-kit/kit v0.13.0

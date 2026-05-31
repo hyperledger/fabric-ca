@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -47,26 +48,26 @@ var (
 	_false = interface{}(false)
 )
 
-func (this *evaluationStage) swapWith(other *evaluationStage) {
+func (e *evaluationStage) swapWith(other *evaluationStage) {
 
 	temp := *other
-	other.setToNonStage(*this)
-	this.setToNonStage(temp)
+	other.setToNonStage(*e)
+	e.setToNonStage(temp)
 }
 
-func (this *evaluationStage) setToNonStage(other evaluationStage) {
+func (e *evaluationStage) setToNonStage(other evaluationStage) {
 
-	this.symbol = other.symbol
-	this.operator = other.operator
-	this.leftTypeCheck = other.leftTypeCheck
-	this.rightTypeCheck = other.rightTypeCheck
-	this.typeCheck = other.typeCheck
-	this.typeErrorFormat = other.typeErrorFormat
+	e.symbol = other.symbol
+	e.operator = other.operator
+	e.leftTypeCheck = other.leftTypeCheck
+	e.rightTypeCheck = other.rightTypeCheck
+	e.typeCheck = other.typeCheck
+	e.typeErrorFormat = other.typeErrorFormat
 }
 
-func (this *evaluationStage) isShortCircuitable() bool {
+func (e *evaluationStage) isShortCircuitable() bool {
 
-	switch this.symbol {
+	switch e.symbol {
 	case AND:
 		fallthrough
 	case OR:
@@ -173,17 +174,17 @@ func regexStage(left interface{}, right interface{}, parameters Parameters) (int
 	var pattern *regexp.Regexp
 	var err error
 
-	switch right.(type) {
+	switch right := right.(type) {
 	case string:
-		pattern, err = regexp.Compile(right.(string))
+		pattern, err = regexp.Compile(right)
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("Unable to compile regexp pattern '%v': %v", right, err))
+			return nil, fmt.Errorf("unable to compile regexp pattern '%v': %w", right, err)
 		}
 	case *regexp.Regexp:
-		pattern = right.(*regexp.Regexp)
+		pattern = right
 	}
 
-	return pattern.Match([]byte(left.(string))), nil
+	return pattern.MatchString(left.(string)), nil
 }
 
 func notRegexStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
@@ -238,9 +239,9 @@ func makeFunctionStage(function ExpressionFunction) evaluationOperator {
 			return function()
 		}
 
-		switch right.(type) {
+		switch right := right.(type) {
 		case []interface{}:
-			return function(right.([]interface{})...)
+			return function(right...)
 		default:
 			return function(right)
 		}
@@ -267,9 +268,9 @@ func typeConvertParams(method reflect.Value, params []reflect.Value) ([]reflect.
 
 	if numIn != numParams {
 		if numIn > numParams {
-			return nil, fmt.Errorf("Too few arguments to parameter call: got %d arguments, expected %d", len(params), numIn)
+			return nil, fmt.Errorf("too few arguments to parameter call: got %d arguments, expected %d", len(params), numIn)
 		}
-		return nil, fmt.Errorf("Too many arguments to parameter call: got %d arguments, expected %d", len(params), numIn)
+		return nil, fmt.Errorf("too many arguments to parameter call: got %d arguments, expected %d", len(params), numIn)
 	}
 
 	for i := 0; i < numIn; i++ {
@@ -313,6 +314,7 @@ func makeAccessorStage(pair []string) evaluationOperator {
 			}
 		}()
 
+	LOOP:
 		for i := 1; i < len(pair); i++ {
 
 			coreValue := reflect.ValueOf(value)
@@ -325,32 +327,55 @@ func makeAccessorStage(pair []string) evaluationOperator {
 				coreValue = coreValue.Elem()
 			}
 
-			if coreValue.Kind() != reflect.Struct {
-				return nil, errors.New("Unable to access '" + pair[i] + "', '" + pair[i-1] + "' is not a struct")
-			}
+			var field reflect.Value
+			var method reflect.Value
 
-			field := coreValue.FieldByName(pair[i])
-			if field != (reflect.Value{}) {
-				value = field.Interface()
-				continue
-			}
-
-			method := coreValue.MethodByName(pair[i])
-			if method == (reflect.Value{}) {
-				if corePtrVal.IsValid() {
-					method = corePtrVal.MethodByName(pair[i])
+			switch coreValue.Kind() {
+			case reflect.Struct:
+				// check if field is exported
+				firstCharacter := getFirstRune(pair[i])
+				if unicode.ToUpper(firstCharacter) != firstCharacter {
+					errorMsg := fmt.Sprintf("Unable to access unexported field '%s' in '%s'", pair[i], pair[i-1])
+					return nil, errors.New(errorMsg)
 				}
+
+				field = coreValue.FieldByName(pair[i])
+				if field != (reflect.Value{}) {
+					value = field.Interface()
+					continue LOOP
+				}
+
+				method = coreValue.MethodByName(pair[i])
 				if method == (reflect.Value{}) {
-					return nil, errors.New("No method or field '" + pair[i] + "' present on parameter '" + pair[i-1] + "'")
+					if corePtrVal.IsValid() {
+						method = corePtrVal.MethodByName(pair[i])
+					}
 				}
+			case reflect.Map:
+				field = coreValue.MapIndex(reflect.ValueOf(pair[i]))
+				if field != (reflect.Value{}) {
+					inter := field.Interface()
+					if inter != nil && reflect.TypeOf(inter).Kind() == reflect.Func {
+						method = reflect.ValueOf(inter)
+					} else {
+						value = inter
+						continue LOOP
+					}
+				}
+			default:
+				return nil, errors.New("Unable to access '" + pair[i] + "', '" + pair[i-1] + "' is not a struct or map")
 			}
 
-			switch right.(type) {
+			if method == (reflect.Value{}) {
+				return nil, errors.New("No method or field '" + pair[i] + "' present on parameter '" + pair[i-1] + "'")
+			}
+
+			switch right := right.(type) {
 			case []interface{}:
 
-				givenParams := right.([]interface{})
+				givenParams := right
 				params = make([]reflect.Value, len(givenParams))
-				for idx, _ := range givenParams {
+				for idx := range givenParams {
 					params[idx] = reflect.ValueOf(givenParams[idx])
 				}
 
@@ -361,7 +386,7 @@ func makeAccessorStage(pair []string) evaluationOperator {
 					break
 				}
 
-				params = []reflect.Value{reflect.ValueOf(right.(interface{}))}
+				params = []reflect.Value{reflect.ValueOf(right)}
 			}
 
 			params, err = typeConvertParams(method, params)
@@ -404,13 +429,23 @@ func makeAccessorStage(pair []string) evaluationOperator {
 	}
 }
 
+func ensureSliceStage(op evaluationOperator) evaluationOperator {
+	return func(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+		orig, err := op(left, right, parameters)
+		if err != nil {
+			return orig, err
+		}
+		return []interface{}{orig}, nil
+	}
+}
+
 func separatorStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 
 	var ret []interface{}
 
-	switch left.(type) {
+	switch left := left.(type) {
 	case []interface{}:
-		ret = append(left.([]interface{}), right)
+		ret = append(left, right)
 	default:
 		ret = []interface{}{left, right}
 	}
@@ -421,6 +456,7 @@ func separatorStage(left interface{}, right interface{}, parameters Parameters) 
 func inStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 
 	for _, value := range right.([]interface{}) {
+		value = castToFloat64(value)
 		if left == value {
 			return true, nil
 		}
@@ -467,8 +503,8 @@ func isFloat64(value interface{}) bool {
 }
 
 /*
-	Addition usually means between numbers, but can also mean string concat.
-	String concat needs one (or both) of the sides to be a string.
+Addition usually means between numbers, but can also mean string concat.
+String concat needs one (or both) of the sides to be a string.
 */
 func additionTypeCheck(left interface{}, right interface{}) bool {
 
@@ -482,8 +518,8 @@ func additionTypeCheck(left interface{}, right interface{}) bool {
 }
 
 /*
-	Comparison can either be between numbers, or lexicographic between two strings,
-	but never between the two.
+Comparison can either be between numbers, or lexicographic between two strings,
+but never between the two.
 */
 func comparatorTypeCheck(left interface{}, right interface{}) bool {
 
@@ -505,8 +541,8 @@ func isArray(value interface{}) bool {
 }
 
 /*
-	Converting a boolean to an interface{} requires an allocation.
-	We can use interned bools to avoid this cost.
+Converting a boolean to an interface{} requires an allocation.
+We can use interned bools to avoid this cost.
 */
 func boolIface(b bool) interface{} {
 	if b {

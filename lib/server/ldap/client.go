@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Knetic/govaluate"
+	"github.com/casbin/govaluate"
 	"github.com/cloudflare/cfssl/log"
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/hyperledger/fabric-ca/api"
