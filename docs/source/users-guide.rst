@@ -804,7 +804,7 @@ Where:
     identity type.
 
 The LDAP expression language uses the govaluate package as described at
-https://github.com/Knetic/govaluate/blob/master/MANUAL.md.  This defines
+https://github.com/casbin/govaluate/blob/master/MANUAL.md.  This defines
 operators such as "=~" and literals such as "revoker*", which is a regular
 expression.  The LDAP-specific variables and functions which extend the
 base govaluate language are as follows:
