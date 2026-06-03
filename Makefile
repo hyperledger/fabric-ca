@@ -29,7 +29,7 @@
 
 PROJECT_NAME = fabric-ca
 
-GO_VER ?= 1.26.3
+GO_VER ?= $(shell go list -m toolchain | cut -c13-)
 UBUNTU_VER ?= 22.04
 DEBIAN_VER ?= stretch
 BASE_VERSION ?= v1.5.20
@@ -39,7 +39,7 @@ PLATFORM=$(shell go env GOOS)-$(shell go env GOARCH)
 
 # For compatibility with legacy install-fabric.sh conventions, strip the
 # leading semrev 'v' character when preparing dist and release artifacts.
-RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed -e  's/^v\(.*\)/\1/')
+RELEASE_VERSION=$(shell echo $(BASE_VERSION) | sed 's/^v//')
 PROJECT_VERSION=${RELEASE_VERSION}
 
 PG_VER=17
