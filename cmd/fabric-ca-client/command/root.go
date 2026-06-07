@@ -16,7 +16,12 @@ limitations under the License.
 
 package command
 
-import "os"
+import (
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+)
 
 // RunMain is the fabric-ca client main
 func RunMain(args []string) error {
@@ -24,16 +29,28 @@ func RunMain(args []string) error {
 	saveOsArgs := os.Args
 	os.Args = args
 
-	// Execute the command
-	cmdName := ""
+	ccmd := NewCommand("")
 	if len(args) > 1 {
-		cmdName = args[1]
+		ccmd.name = strings.ToLower(resolveCommandName(ccmd.rootCmd, args[1:]))
 	}
-	ccmd := NewCommand(cmdName)
 	err := ccmd.Execute()
 
 	// Restore original os.Args
 	os.Args = saveOsArgs
 
 	return err
+}
+
+// resolveCommandName returns the top-level subcommand selected by args using
+// the same parsing rules as cobra, so global flags may appear before the
+// subcommand name.
+func resolveCommandName(root *cobra.Command, args []string) string {
+	cmd, _, err := root.Find(args)
+	if err != nil || cmd == nil || cmd == root {
+		return ""
+	}
+	for cmd.Parent() != nil && cmd.Parent() != root {
+		cmd = cmd.Parent()
+	}
+	return cmd.Name()
 }
