@@ -122,6 +122,10 @@ github.com/go-logfmt/logfmt
 # github.com/go-sql-driver/mysql v1.10.0
 ## explicit; go 1.24.0
 github.com/go-sql-driver/mysql
+# github.com/go-viper/mapstructure/v2 v2.5.0
+## explicit; go 1.18
+github.com/go-viper/mapstructure/v2
+github.com/go-viper/mapstructure/v2/internal/errors
 # github.com/golang/protobuf v1.5.4
 ## explicit; go 1.17
 github.com/golang/protobuf/proto

@@ -26,6 +26,7 @@ import (
 	cfsslapi "github.com/cloudflare/cfssl/api"
 	"github.com/cloudflare/cfssl/csr"
 	"github.com/cloudflare/cfssl/log"
+	"github.com/go-viper/mapstructure/v2"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/client/credential"
@@ -38,7 +39,6 @@ import (
 	"github.com/hyperledger/fabric-ca/util"
 	"github.com/hyperledger/fabric-lib-go/bccsp"
 	cspsigner "github.com/hyperledger/fabric-lib-go/bccsp/signer"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
