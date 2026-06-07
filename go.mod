@@ -14,6 +14,7 @@ require (
 	github.com/go-kit/kit v0.13.0
 	github.com/go-ldap/ldap/v3 v3.4.13
 	github.com/go-sql-driver/mysql v1.10.0
+	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
@@ -25,7 +26,6 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20210630145711-dae28ed37023
 	github.com/lib/pq v1.12.3
 	github.com/mattn/go-sqlite3 v1.14.44
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.41.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
@@ -64,6 +64,7 @@ require (
 	github.com/kilic/bls12-381 v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
