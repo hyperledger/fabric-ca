@@ -47,6 +47,7 @@ Fabric-CA Client's CLI
           --id.type string               Type of identity being registered (e.g. 'peer, app, user') (default "client")
           --idemix.curve string          The identity mixer curve ID to use among {'amcl.Fp256bn', 'gurvy.Bn254', 'amcl.Fp256Miraclbn'} (default "amcl.Fp256bn")
           --loglevel string              Set logging level (info, warning, debug, error, fatal, critical)
+      -d, --debug                        Enable debug level logging
       -M, --mspdir string                Membership Service Provider directory (default "msp")
           --mycacertfile string          [Optional]: Path within the MSP directory where the root CA certificate is written
           --mycertfile string            [Optional]: Path within the MSP directory where the enrollment certificate is written
