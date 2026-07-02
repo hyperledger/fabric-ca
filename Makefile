@@ -55,7 +55,7 @@ export GO_LDFLAGS
 IMAGES = $(PROJECT_NAME)
 FVTIMAGE = $(PROJECT_NAME)-fvt
 
-RELEASE_PLATFORMS = linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
+RELEASE_PLATFORMS = linux-amd64 linux-arm64 linux-s390x darwin-amd64 darwin-arm64 windows-amd64
 RELEASE_PKGS = fabric-ca-server fabric-ca-client
 
 TOOLS = build/tools
@@ -174,6 +174,7 @@ release/darwin-%:	GOOS=darwin
 
 release/%-amd64: 	GOARCH=amd64
 release/%-arm64: 	GOARCH=arm64
+release/%-s390x: 	GOARCH=s390x
 
 release/windows-amd64: CC=x86_64-w64-mingw32-gcc
 release/windows-amd64: $(patsubst %,release/windows-amd64/bin/%, $(RELEASE_PKGS))
@@ -192,6 +193,9 @@ release/linux-amd64: $(patsubst %,release/linux-amd64/bin/%, $(RELEASE_PKGS))
 
 release/linux-arm64: CC=aarch64-linux-gnu-gcc
 release/linux-arm64: $(patsubst %,release/linux-arm64/bin/%, $(RELEASE_PKGS))
+
+release/linux-s390x: CC=s390x-linux-gnu-gcc
+release/linux-s390x: $(patsubst %,release/linux-s390x/bin/%, $(RELEASE_PKGS))
 
 release/%/bin/fabric-ca-client: GO_TAGS+= caclient
 release/%/bin/fabric-ca-client: $(GO_SOURCE)
@@ -240,6 +244,7 @@ dist-clean:
 	-@rm -rf release/linux-amd64/hyperledger-fabric-ca-linux-amd64-$(RELEASE_VERSION).tar.gz ||:
 	-@rm -rf release/darwin-arm64/hyperledger-fabric-ca-darwin-arm64-$(RELEASE_VERSION).tar.gz ||:
 	-@rm -rf release/linux-arm64/hyperledger-fabric-ca-linux-arm64-$(RELEASE_VERSION).tar.gz ||:
+	-@rm -rf release/linux-s390x/hyperledger-fabric-ca-linux-s390x-$(RELEASE_VERSION).tar.gz ||:
 
 .FORCE:
 

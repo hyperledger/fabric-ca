@@ -26,6 +26,8 @@ jobs:
             platform: linux-amd64
           - image: ubuntu-22.04
             platform: linux-arm64
+          - image: ubuntu-22.04
+            platform: linux-s390x
           - image: macos-latest
             platform: darwin-arm64
           - image: macos-15-intel
@@ -48,6 +50,7 @@ jobs:
           sudo apt-get update
           sudo apt-get -y install gcc-aarch64-linux-gnu
           sudo apt-get -y install gcc-x86-64-linux-gnu
+          sudo apt-get -y install gcc-s390x-linux-gnu
 
       - run: make dist/${{ matrix.platform }}
         name: Compile Binary and Create Tarball
@@ -62,10 +65,11 @@ jobs:
           # <path> of the artifact may include multiple files.
           path: release/${{ matrix.platform }}/*.tar.gz
 
-  # build native image using a different runner for each architecture (faster and more reliable than using qemu to build multi-architecture images on ubuntu-22.04)
-  build-and-push-native-docker-images:
-    name: Build and Push native image
-    runs-on: ${{ matrix.runner }}
+  # build a multi-architecture image (linux/amd64, linux/arm64, linux/s390x) in a single job using
+  # Buildx + QEMU emulation, and push it directly as a multi-arch manifest list.
+  build-and-push-docker-image:
+    name: Build and Push multi-arch image
+    runs-on: ubuntu-22.04
 
     permissions:
       contents: read
@@ -74,10 +78,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner:
-          - ubuntu-22.04 # creates linux-amd64 images
-          - ubuntu-22.04-arm # creates linux-arm64 images
-
         # Dynamic matrix
         # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
         registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
@@ -91,76 +91,11 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Login to the ${{ matrix.registry }} Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ matrix.registry }}
-          username: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
-          password: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_TOKEN    || secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU (for cross-platform builds)
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ matrix.registry }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push
-        id: build-and-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: images/fabric-ca/Dockerfile
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            UBUNTU_VER=${{ env.UBUNTU_VER }}
-            GO_VER=${{ steps.setup-go.outputs.go-version }}
-            GO_TAGS=pkcs11
-            GO_LDFLAGS=-X github.com/hyperledger/fabric-ca/lib/metadata.Version=${{ env.FABRIC_CA_VER }}
-          outputs: type=image,"name=${{ matrix.registry }}/${{ env.IMAGE_NAME }}",push-by-digest=true,name-canonical=true,push=true
-
-      - name: Export digest
-        run: |
-          mkdir -p ${{ runner.temp }}/digests/${{ matrix.registry }}
-          digest="${{ steps.build-and-push.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${{ matrix.registry }}/${digest#sha256:}"
-
-      - name: Upload digest
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: digests-${{ matrix.registry }}-${{ matrix.runner }}
-          path: ${{ runner.temp }}/digests/${{ matrix.registry }}/*
-          if-no-files-found: error
-          retention-days: 1
-
-  # This job merges the architecture-specific digests for the images created above
-  # and creates a multi-architecture image manifest with user-friendly tags
-  merge-and-push-multi-arch-image:
-    name: Merge and Push multi-arch image
-    runs-on: ubuntu-22.04
-    needs:
-      - build-and-push-native-docker-images
-
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        # Dynamic matrix
-        # If owner is 'hyperledger' run job for Docker Hub and ghcr, otherwise for personal forks just run job for ghcr
-        registry: ${{ fromJSON(github.repository_owner == 'hyperledger' && '["docker.io", "ghcr.io"]' || '["ghcr.io"]') }}
-
-    steps:
-      - name: Download digests
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          path: ${{ runner.temp }}/digests/${{ matrix.registry }}
-          pattern: digests-${{ matrix.registry }}-*
-          merge-multiple: true
 
       - name: Login to the ${{ matrix.registry }} Container Registry
         uses: docker/login-action@v3
@@ -168,9 +103,6 @@ jobs:
           registry: ${{ matrix.registry }}
           username: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_USERNAME || github.actor }}
           password: ${{ matrix.registry == 'docker.io' && secrets.DOCKERHUB_TOKEN    || secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Docker meta
         id: meta
@@ -182,11 +114,20 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}.{{minor}}.{{patch}}
 
-      - name: Create manifest list and push # combines the downloaded amd64 and arm64 digests and pushes multi-architecture manifest with the tags specified above
-        working-directory: ${{ runner.temp }}/digests/${{ matrix.registry }}
-        run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ matrix.registry }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: images/fabric-ca/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/s390x
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            UBUNTU_VER=${{ env.UBUNTU_VER }}
+            GO_VER=${{ steps.setup-go.outputs.go-version }}
+            GO_TAGS=pkcs11
+            GO_LDFLAGS=-X github.com/hyperledger/fabric-ca/lib/metadata.Version=${{ env.FABRIC_CA_VER }}
+          push: true
 
       - name: Inspect image
         run: |
@@ -196,7 +137,7 @@ jobs:
     name: Create GitHub Release
     needs:
       - build-binaries
-      - merge-and-push-multi-arch-image
+      - build-and-push-docker-image
     runs-on: ubuntu-22.04
     permissions:
       contents: write
