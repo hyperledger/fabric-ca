@@ -6,28 +6,24 @@ filippo.io/edwards25519/field
 ## explicit; go 1.24
 github.com/Azure/go-ntlmssp
 github.com/Azure/go-ntlmssp/internal/md4
-# github.com/IBM/idemix v0.0.2-0.20240913182345-72941a5f41cd
-## explicit; go 1.22.6
+# github.com/IBM/idemix v0.2.0
+## explicit; go 1.26.3
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto
 github.com/IBM/idemix/bccsp/schemes/dlog/crypto/translator/amcl
-# github.com/IBM/idemix/bccsp/schemes/weak-bb v0.0.0-20240612072411-114d281b442d
-## explicit; go 1.19
 github.com/IBM/idemix/bccsp/schemes/weak-bb
-# github.com/IBM/idemix/bccsp/types v0.0.0-20240913182345-72941a5f41cd
-## explicit; go 1.22.6
 github.com/IBM/idemix/bccsp/types
-# github.com/IBM/mathlib v0.0.3-0.20250709075152-a138079496c3
-## explicit; go 1.23.0
+# github.com/IBM/mathlib v0.3.0
+## explicit; go 1.26.3
 github.com/IBM/mathlib
 github.com/IBM/mathlib/driver
 github.com/IBM/mathlib/driver/amcl
 github.com/IBM/mathlib/driver/common
 github.com/IBM/mathlib/driver/gurvy
-github.com/IBM/mathlib/driver/kilic
+github.com/IBM/mathlib/driver/gurvy/bls12381
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
-# github.com/bits-and-blooms/bitset v1.20.0
+# github.com/bits-and-blooms/bitset v1.24.4
 ## explicit; go 1.16
 github.com/bits-and-blooms/bitset
 # github.com/casbin/govaluate v1.10.0
@@ -62,8 +58,8 @@ github.com/cloudflare/cfssl/signer
 github.com/cloudflare/cfssl/signer/local
 github.com/cloudflare/cfssl/signer/remote
 github.com/cloudflare/cfssl/signer/universal
-# github.com/consensys/gnark-crypto v0.19.2
-## explicit; go 1.23.0
+# github.com/consensys/gnark-crypto v0.20.1
+## explicit; go 1.25.7
 github.com/consensys/gnark-crypto/ecc
 github.com/consensys/gnark-crypto/ecc/bls12-377
 github.com/consensys/gnark-crypto/ecc/bls12-377/fp
@@ -150,7 +146,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83
+# github.com/google/pprof v0.0.0-20260604005048-7023385849c0
 ## explicit; go 1.24.0
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
@@ -213,9 +209,6 @@ github.com/jmhodges/clock
 ## explicit; go 1.10
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
-# github.com/kilic/bls12-381 v0.1.0
-## explicit; go 1.13
-github.com/kilic/bls12-381
 # github.com/kisielk/sqlstruct v0.0.0-20210630145711-dae28ed37023
 ## explicit
 github.com/kisielk/sqlstruct
@@ -275,8 +268,8 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.41.0
-## explicit; go 1.24.0
+# github.com/onsi/gomega v1.42.1
+## explicit; go 1.25.0
 github.com/onsi/gomega
 github.com/onsi/gomega/format
 github.com/onsi/gomega/gbytes
@@ -393,7 +386,7 @@ github.com/zmap/zlint/util
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
-# go.uber.org/zap v1.27.0
+# go.uber.org/zap v1.28.0
 ## explicit; go 1.19
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -415,7 +408,7 @@ go.yaml.in/yaml/v3
 ## explicit; go 1.18
 go.yaml.in/yaml/v4
 go.yaml.in/yaml/v4/internal/libyaml
-# golang.org/x/crypto v0.52.0
+# golang.org/x/crypto v0.53.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
@@ -427,7 +420,7 @@ golang.org/x/crypto/md4
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
-# golang.org/x/net v0.55.0
+# golang.org/x/net v0.56.0
 ## explicit; go 1.25.0
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -435,12 +428,12 @@ golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/idna
-# golang.org/x/sys v0.45.0
+# golang.org/x/sys v0.46.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.37.0
+# golang.org/x/text v0.38.0
 ## explicit; go 1.25.0
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -466,7 +459,7 @@ golang.org/x/text/unicode/norm
 ## explicit; go 1.24.0
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/grpclog/internal
-# google.golang.org/protobuf v1.36.10
+# google.golang.org/protobuf v1.36.11
 ## explicit; go 1.23
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/prototext

@@ -1,13 +1,12 @@
 module github.com/hyperledger/fabric-ca
 
-go 1.25.0
+go 1.26.3
 
 toolchain go1.26.4
 
 require (
-	github.com/IBM/idemix v0.0.2-0.20240913182345-72941a5f41cd
-	github.com/IBM/idemix/bccsp/types v0.0.0-20240913182345-72941a5f41cd
-	github.com/IBM/mathlib v0.0.3-0.20250709075152-a138079496c3
+	github.com/IBM/idemix v0.2.0
+	github.com/IBM/mathlib v0.3.0
 	github.com/casbin/govaluate v1.10.0
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/felixge/httpsnoop v1.0.4
@@ -27,7 +26,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/mattn/go-sqlite3 v1.14.44
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/gomega v1.42.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.7.0
@@ -37,17 +36,16 @@ require (
 	github.com/spf13/viper v1.11.0
 	github.com/stretchr/testify v1.11.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
-	golang.org/x/crypto v0.52.0
+	golang.org/x/crypto v0.53.0
 )
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
-	github.com/IBM/idemix/bccsp/schemes/weak-bb v0.0.0-20240612072411-114d281b442d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.20.0 // indirect
+	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/consensys/gnark-crypto v0.19.2 // indirect
+	github.com/consensys/gnark-crypto v0.20.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -56,12 +54,11 @@ require (
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/certificate-transparency-go v1.0.21 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
+	github.com/google/pprof v0.0.0-20260604005048-7023385849c0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmhodges/clock v0.0.0-20160418191101-880ee4c33548 // indirect
-	github.com/kilic/bls12-381 v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -83,14 +80,14 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e // indirect
 	github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
+	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

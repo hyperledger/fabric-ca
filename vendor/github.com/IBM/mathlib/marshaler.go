@@ -9,7 +9,7 @@ package math
 import "encoding/json"
 
 type curveElement struct {
-	CurveID      CurveID `json:"curve" validate:"required"`
+	CurveID      CurveID `json:"curve"   validate:"required"`
 	ElementBytes []byte  `json:"element" validate:"required"`
 }
 
@@ -47,6 +47,7 @@ func (g *G1) UnmarshalJSON(raw []byte) error {
 	}
 
 	g.g1 = g1.g1
+
 	return nil
 }
 
@@ -71,6 +72,7 @@ func (g *G2) UnmarshalJSON(raw []byte) error {
 	}
 
 	g.g2 = g2.g2
+
 	return nil
 }
 
@@ -95,6 +97,7 @@ func (g *Gt) UnmarshalJSON(raw []byte) error {
 	}
 
 	g.gt = gt.gt
+
 	return nil
 }
 
