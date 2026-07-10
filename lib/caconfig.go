@@ -125,9 +125,13 @@ type CAInfo struct {
 
 // CAConfigDB is the database part of the server's config
 type CAConfigDB struct {
-	Type       string `def:"sqlite3" help:"Type of database; one of: sqlite3, postgres, mysql"`
-	Datasource string `def:"fabric-ca-server.db" help:"Data source which is database specific"`
-	TLS        tls.ClientTLSConfig
+	Type            string `def:"sqlite3" help:"Type of database; one of: sqlite3, postgres, mysql"`
+	Datasource      string `def:"fabric-ca-server.db" help:"Data source which is database specific"`
+	TLS             tls.ClientTLSConfig
+	MaxIdleConns    int           `def:"2" help:"Maximum number of connections in the idle pool; default is 2"`
+	MaxOpenConns    int           `def:"0" help:"Maximum number of open database connections; default is infinite or zero"`
+	ConnMaxIdleTime time.Duration `def:"15m" help:"Maximum amount of time a connection may be idle; default is infinite or zero"`
+	ConnMaxLifetime time.Duration `def:"30m" help:"Maximum amount of time a connection may be reused; default is infinite or zero"`
 }
 
 // Implements Stringer interface for CAConfigDB
