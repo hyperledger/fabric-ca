@@ -26,6 +26,7 @@ Fabric-CA Client's CLI
     
     Flags:
           --caname string                Name of CA
+      -d, --debug                        Enable debug level logging
           --csr.cn string                The common name field of the certificate signing request
           --csr.hosts strings            A list of comma-separated host names in a certificate signing request
           --csr.keyrequest.algo string   Specify key algorithm
