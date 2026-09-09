@@ -1,3 +1,15 @@
 [[IgnoredVulns]]
 id = "CVE-2026-33186"
 reason = "Only affects gRPC servers"
+
+[[IgnoredVulns]]
+id = "CVE-2026-84445"
+reason = "Only affects gRPC servers"
+
+[[IgnoredVulns]]
+id = "CVE-2026-84303"
+reason = "Only affects gRPC servers"
+
+[[IgnoredVulns]]
+id = "CVE-2026-84304"
+reason = "Only affects gRPC client/server communication"
