@@ -10,6 +10,7 @@
 /build
 /release
 coverage.xml
+fabric-ca-server
 fabric-ca-server-config.yaml
 profile.cov
 report.xml

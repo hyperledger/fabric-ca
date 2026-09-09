@@ -46,6 +46,7 @@ function verifyTotals() {
 
 function genAffYaml() {
    export FABRIC_CA_CLIENT_HOME=$TESTDIR/admin
+   local indent=""
    local Planet=(0 1 2)
    local Landmass=(0 1)
    local Country=(0 1)
@@ -55,6 +56,12 @@ function genAffYaml() {
    local Hood=(0 1 2 3)
    echo "affiliations:"
    indent="${indent}  "
+   echo "${indent}bank_a:"
+   echo "${indent}  - department1"
+   echo "${indent}bank_b:"
+   echo "${indent}  - department1"
+   echo "${indent}bank_c:"
+   echo "${indent}  - department1"
    echo "${indent}org1:"
    echo "${indent}  - department1"
    echo "${indent}  - department2"
@@ -107,7 +114,21 @@ function setupServerEnv() {
 
    # Generate a large affinity tree for testing;
    # this is way faster than adding with the cmd-line client
-   genAffYaml >> $CA_CFG_PATH/runFabricCaFvt.yaml
+   # genRunconfig already wrote an affiliations: block; appending genAffYaml would create a
+   # duplicate top-level key, which go.yaml.in/yaml/v3 (viper v1.21+) rejects as an error.
+   # Use awk to replace the existing affiliations: block in-place, preserving all other keys.
+   AFFTMP=$(mktemp)
+   genAffYaml > "$AFFTMP"
+   awk -v afffile="$AFFTMP" '
+     /^affiliations:/ {
+       while ((getline line < afffile) > 0) print line
+       skip=1; next
+     }
+     skip && /^[a-zA-Z]/ { skip=0 }
+     !skip { print }
+   ' "$CA_CFG_PATH/runFabricCaFvt.yaml" > "$CA_CFG_PATH/runFabricCaFvt.yaml.tmp"
+   mv "$CA_CFG_PATH/runFabricCaFvt.yaml.tmp" "$CA_CFG_PATH/runFabricCaFvt.yaml"
+   rm -f "$AFFTMP"
    $SCRIPTDIR/fabric-ca_setup.sh -d $dbDriver -S -X -n1 -D -x $TESTDIR -- \
                     --cfg.affiliations.allowremove > $TESTDIR/server.log 2>&1
    # Sanity check the number of affilitations

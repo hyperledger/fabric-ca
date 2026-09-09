@@ -27,6 +27,7 @@ genAffYaml() {
    local Locale=(0)
    local City=(0 1)
    local Hood=(0 1 2 3 4 5 6)
+   local indent=""
    echo "affiliations:"
    indent="${indent}  "
    for P in ${Planet[@]}; do
@@ -62,7 +63,6 @@ genAffYaml() {
      done
      indent="${indent#  }"
    done
-   indent="${indent}  "
 }
 
 # Expected codes
@@ -91,7 +91,21 @@ for driver in mysql postgres sqlite3; do
 
    # Setup CA server
    $SCRIPTDIR/fabric-ca_setup.sh -D -I -d $driver
-   genAffYaml >> $CA_CFG_PATH/runFabricCaFvt.yaml
+   # genRunconfig already wrote an affiliations: block; appending genAffYaml would create a
+   # duplicate top-level key, which go.yaml.in/yaml/v3 (viper v1.21+) rejects as an error.
+   # Use awk to replace the existing affiliations: block in-place, preserving all other keys.
+   AFFTMP=$(mktemp)
+   genAffYaml > "$AFFTMP"
+   awk -v afffile="$AFFTMP" '
+     /^affiliations:/ {
+       while ((getline line < afffile) > 0) print line
+       skip=1; next
+     }
+     skip && /^[a-zA-Z]/ { skip=0 }
+     !skip { print }
+   ' "$CA_CFG_PATH/runFabricCaFvt.yaml" > "$CA_CFG_PATH/runFabricCaFvt.yaml.tmp"
+   mv "$CA_CFG_PATH/runFabricCaFvt.yaml.tmp" "$CA_CFG_PATH/runFabricCaFvt.yaml"
+   rm -f "$AFFTMP"
    $SCRIPTDIR/fabric-ca_setup.sh -D -S -X -d $driver -x $CA_CFG_PATH
    if test "$?" -ne 0; then
       kill $HTTP_PID
