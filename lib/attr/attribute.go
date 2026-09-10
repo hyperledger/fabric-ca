@@ -50,6 +50,33 @@ const (
 	Affiliation    = "hf.Affiliation"
 )
 
+// canonicalAttrNames maps the lowercased form of each known hf.* attribute
+// name to its canonical mixed-case form. Viper lowercases all map keys when
+// reading YAML, so attribute names written in config files arrive here in
+// lowercase and must be restored before being stored in the database.
+// Keys are derived from the constants at startup so a rename stays in sync.
+var canonicalAttrNames = func() map[string]string {
+	known := []string{
+		Roles, DelegateRoles, Revoker, IntermediateCA, GenCRL,
+		RegistrarAttr, AffiliationMgr, EnrollmentID, Type, Affiliation,
+	}
+	m := make(map[string]string, len(known))
+	for _, n := range known {
+		m[strings.ToLower(n)] = n
+	}
+	return m
+}()
+
+// canonicalAttrName returns the canonical mixed-case form of a known hf.*
+// attribute name, given any casing of that name. Returns the input unchanged
+// if it is not a known reserved attribute.
+func canonicalAttrName(name string) string {
+	if canonical, ok := canonicalAttrNames[strings.ToLower(name)]; ok {
+		return canonical
+	}
+	return name
+}
+
 // CanRegisterRequestedAttributes validates that the registrar can register the requested attributes
 func CanRegisterRequestedAttributes(reqAttrs []api.Attribute, user, registrar AttributeControl) error {
 	if len(reqAttrs) == 0 {
@@ -276,7 +303,7 @@ func isSubsetOf(small, big string) error {
 // strContained returns true if 'str' is in 'strs'; otherwise return false
 func strContained(str string, strs []string) bool {
 	for _, s := range strs {
-		if strings.ToLower(s) == strings.ToLower(str) {
+		if strings.EqualFold(s, str) {
 			return true
 		}
 	}
@@ -398,6 +425,7 @@ func GetAttrValue(attrs []api.Attribute, name string) string {
 func ConvertAttrs(inAttrs map[string]string) ([]api.Attribute, error) {
 	var outAttrs []api.Attribute
 	for name, value := range inAttrs {
+		name = canonicalAttrName(name)
 		sattr := strings.Split(value, ":")
 		if len(sattr) > 2 {
 			return []api.Attribute{}, errors.Errorf("Multiple ':' characters not allowed "+
