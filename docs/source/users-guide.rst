@@ -245,6 +245,13 @@ for convenience.  Additional usage information is provided in following sections
 The following links shows the :doc:`Server Command Line <servercli>` and
 :doc:`Client Command Line <clientcli>`.
 
+Both the Fabric CA server and client support ``-d``/``--debug`` to enable debug
+level logging. The client also supports ``--loglevel`` to set a specific log
+level. Do not use ``-d`` together with ``--loglevel`` on the same command; if
+both are specified, the command fails. To reduce verbosity, omit ``-d`` from
+example commands and use ``--loglevel`` instead (for example,
+``--loglevel warning``).
+
 .. note:: Note that command line options that are string slices (lists) can be
           specified either by specifying the option with comma-separated list
           elements or by specifying the option multiple times, each with a
