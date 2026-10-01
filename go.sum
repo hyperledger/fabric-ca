@@ -108,6 +108,8 @@ github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2 h1:B1Nt8hK
 github.com/hyperledger/fabric-amcl v0.0.0-20230602173724-9e02669dceb2/go.mod h1:X+DIyUsaTmalOpmpQfIvFZjKHQedrURQ5t4YqquX7lE=
 github.com/hyperledger/fabric-lib-go v1.1.5-0.20260906161142-7115668d4d00 h1:97IXd+kwsDz3eiHLE8vO50M0mzL0AP+q5VNNiDM3VG4=
 github.com/hyperledger/fabric-lib-go v1.1.5-0.20260906161142-7115668d4d00/go.mod h1:H30DO/EzSAtSIIzWZGXotV/M+RN0xIjFv22dPgtk4bc=
+github.com/hyperledger/fabric-lib-go v1.1.5 h1:9GY8NEqyuRlJRDVgFRTcpSad/q7yiJD8+xNsAoKGmTk=
+github.com/hyperledger/fabric-lib-go v1.1.5/go.mod h1:H30DO/EzSAtSIIzWZGXotV/M+RN0xIjFv22dPgtk4bc=
 github.com/ianlancetaylor/demangle v0.0.0-20210905161508-09a460cdf81d/go.mod h1:aYm2/VgdVmcIU8iMfdMvDMsRAQjcfZSKFby6HOFvi/w=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
