@@ -243,7 +243,7 @@ func (i *issuer) VerifyToken(authHdr, method, uri string, body []byte) (string, 
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to unmarshal signature bytes specified in the token")
 	}
-	err = sig.Ver(disclosure, issuerKey.Ipk, digest, attrs, 3, 0, ra.PublicKey(), epoch, i.curve, i.t, types.BestEffort, nil)
+	err = sig.Ver(disclosure, issuerKey.Ipk, digest, nil, attrs, 3, 0, ra.PublicKey(), epoch, i.curve, i.t, types.BestEffort, nil)
 	if err != nil {
 		return "", errors.WithMessage(err, "Failed to verify the token")
 	}

@@ -46,6 +46,16 @@ func init() {
 // The rawBigInt field is non-nil only for special values like GroupOrder
 // (which equals p and is 0 in the field but needs its actual big.Int value
 // for operations like Mod and InvModP).
+//
+// Only methods that explicitly branch on rawBigInt (IsZero, IsOne, Bytes, Equals,
+// Copy, Clone, String, Mod, InvModP, InvModOrder, PowMod, toBigInt) preserve the
+// true big-int value. Plus/Minus/Mul operate on val directly (val == 0 whenever
+// rawBigInt != nil, since p mod p == 0), so arithmetic combining a rawBigInt-backed
+// Zr with another Zr via Plus/Minus/Mul silently ignores the raw value. This is safe
+// today because GroupOrder is only ever used as a PowMod exponent (where the result
+// is invariant to the field reduction by Fermat's little theorem) or passed to the
+// rawBigInt-aware methods above — do not add a new arithmetic use of GroupOrder via
+// Plus/Minus/Mul without accounting for this.
 type Zr struct {
 	val       fr.Element
 	rawBigInt *big.Int // non-nil only for GroupOrder
@@ -246,6 +256,11 @@ func (g *G1) Mul(a driver.Zr) driver.G1 {
 	return gc
 }
 
+// Mul2 computes [e]g + [f]Q via a joint Strauss-Shamir scalar multiplication.
+// Benchmarked against two independent Mul calls plus an Add: allocates far less
+// (1 vs ~26 allocs) but is not faster in wall-clock time, because — unlike Mul —
+// it does not use the GLV endomorphism speedup, so it forgoes the ~2x speedup that
+// GLV gives each individual scalar multiplication.
 func (g *G1) Mul2(e driver.Zr, Q driver.G1, f driver.Zr) driver.G1 {
 	bi1 := bigIntPool.Get()
 	defer bigIntPool.Put(bi1)
@@ -624,14 +639,29 @@ func (c *Curve) NewZrFromBigInt(i *big.Int) driver.Zr {
 	return res
 }
 
+// NewRandomZr draws a uniformly random scalar using rng as the exclusive source of entropy
+// (so the same reader/seed always produces the same scalar), via rejection sampling on a
+// stack buffer - the same strategy fr.Element.SetRandom uses internally, but reading from
+// the caller's reader instead of crypto/rand. Acceptance probability is q/2^255 ~= 0.90,
+// i.e. ~1.1 iterations expected. Allocation-free, unlike a rand.Int-based implementation.
 func (c *Curve) NewRandomZr(rng io.Reader) driver.Zr {
-	res := &Zr{}
-	_, err := res.val.SetRandom()
-	if err != nil {
-		panic(err)
+	var buf [fr.Bytes]byte
+
+	z := &Zr{}
+
+	for {
+		if _, err := io.ReadFull(rng, buf[:]); err != nil {
+			panic(err)
+		}
+
+		buf[0] &= 0x7f // fr's modulus is 255 bits (top byte 0x73)
+
+		if err := z.val.SetBytesCanonical(buf[:]); err == nil {
+			break
+		}
 	}
 
-	return res
+	return z
 }
 
 func (c *Curve) HashToZr(data []byte) driver.Zr {
@@ -763,13 +793,30 @@ func (c *Curve) ModAdd2(a1, b1, c1, m driver.Zr) {
 	a.rawBigInt = nil
 }
 
+// MultiScalarMul computes the sum of the scalar multiplications of the given bases by the
+// given scalars via gnark's bucket-method MultiExp. MultiExp carries a fixed cost (window
+// and chunk setup, goroutine fan-out) that a pairwise Mul2+Add loop does not, so for very
+// small n a caller that knows its sizes may be better served by Mul/Mul2 directly; callers
+// that care make that choice themselves, and this method does not second-guess them beyond
+// the trivial n==0 and n==1 cases.
 func (c *Curve) MultiScalarMul(a []driver.G1, b []driver.Zr) driver.G1 {
+	switch n := len(a); n {
+	case 0:
+		return &G1{}
+	case 1:
+		return a[0].(*G1).Mul(b[0])
+	}
+
 	affinePoints := make([]bls12381.G1Affine, len(a))
 	scalars := make([]fr.Element, len(b))
 
+	bi := bigIntPool.Get()
+	defer bigIntPool.Put(bi)
+
 	for i := range a {
 		affinePoints[i] = a[i].(*G1).G1Affine
-		scalars[i] = b[i].(*Zr).val // Direct fr.Element copy — no SetBigInt!
+		b[i].(*Zr).toBigInt(bi)
+		scalars[i].SetBigInt(bi)
 	}
 
 	first := G1Jacs.Get()
@@ -867,7 +914,9 @@ func (c *BBSCurve) HashToG2WithDomain(data, domain []byte) driver.G2 {
 }
 
 // JointScalarMultiplication computes [s1]a1+[s2]a2 using Strauss-Shamir technique
-// where a1 and a2 are affine points.
+// where a1 and a2 are affine points. This does not use the GLV endomorphism (unlike
+// G1Jac.ScalarMultiplication), so it is an allocation optimization over two independent
+// scalar multiplications plus an addition, not a wall-clock optimization.
 func JointScalarMultiplication(p *bls12381.G1Jac, a1, a2 *bls12381.G1Affine, s1, s2 *big.Int) *bls12381.G1Jac {
 	var res, p1, p2 bls12381.G1Jac
 	res.Set(&g1Infinity)

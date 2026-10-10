@@ -130,7 +130,7 @@ func (z *Element) Set(x *Element) *Element {
 //	*big.Int
 //	big.Int
 //	[]byte
-func (z *Element) SetInterface(i1 interface{}) (*Element, error) {
+func (z *Element) SetInterface(i1 any) (*Element, error) {
 	if i1 == nil {
 		return nil, errors.New("can't set fr.Element with <nil>")
 	}
@@ -672,7 +672,7 @@ func BatchInvert(a []Element) []Element {
 	zeroes := bitset.New(uint(len(a)))
 	accumulator := One()
 
-	for i := 0; i < len(a); i++ {
+	for i := range len(a) {
 		if a[i].IsZero() {
 			zeroes.Set(uint(i))
 			continue
@@ -733,7 +733,7 @@ func Hash(msg, dst []byte, count int) ([]Element, error) {
 	vv := pool.BigInt.Get()
 
 	res := make([]Element, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		vv.SetBytes(pseudoRandomBytes[i*L : (i+1)*L])
 		res[i].SetBigInt(vv)
 	}
@@ -746,8 +746,8 @@ func Hash(msg, dst []byte, count int) ([]Element, error) {
 
 // Exp z = xᵏ (mod q)
 func (z *Element) Exp(x Element, k *big.Int) *Element {
-	if k.IsUint64() && k.Uint64() == 0 {
-		return z.SetOne()
+	if k.IsUint64() {
+		return z.expUint64(x, k.Uint64())
 	}
 
 	e := k
@@ -762,14 +762,144 @@ func (z *Element) Exp(x Element, k *big.Int) *Element {
 		defer pool.BigInt.Put(e)
 		e.Neg(k)
 	}
+	return z.expWindowed(x, e)
+}
 
-	z.Set(&x)
+// getBitUint extracts bit at position pos from a little-endian word slice.
+func getBitUint(words []big.Word, pos int) uint {
+	return uint(words[pos/bits.UintSize]>>(uint(pos)%bits.UintSize)) & 1
+}
 
-	for i := e.BitLen() - 2; i >= 0; i-- {
-		z.Square(z)
-		if e.Bit(i) == 1 {
-			z.Mul(z, &x)
+// getWindowUint extracts a window of windowSize bits starting at position pos (MSB)
+// down to pos-windowSize+1 (LSB) from a little-endian word slice.
+// windowSize must be between 1 and bits.UintSize.
+func getWindowUint(words []big.Word, pos, windowSize int) uint {
+	low := pos - windowSize + 1
+	wIdx := low / bits.UintSize
+	bIdx := uint(low) % bits.UintSize
+
+	// extract from one word
+	win := uint(words[wIdx] >> bIdx)
+
+	// if the window spans two words, include bits from the next word
+	if bIdx+uint(windowSize) > uint(bits.UintSize) {
+		win |= uint(words[wIdx+1]) << (uint(bits.UintSize) - bIdx)
+	}
+
+	return win & ((1 << windowSize) - 1)
+}
+
+// expWindowed computes z = xᵏ (mod q) using a 4-bit sliding window method.
+// It accesses the exponent via big.Int.Bits() for direct word-level access.
+func (z *Element) expWindowed(x Element, k *big.Int) *Element {
+	el := k.BitLen()
+	if el == 0 {
+		return z.SetOne()
+	}
+	if el == 1 {
+		z.Set(&x)
+		return z
+	}
+
+	// precompute table: table[i] = x^(2i+1) for i = 0..7
+	// i.e., odd powers x^1, x^3, x^5, ..., x^15
+	const w = 4 // window size
+	var table [1 << (w - 1)]Element
+	var x2 Element
+	table[0].Set(&x)
+	x2.Square(&x)
+	for i := 1; i < len(table); i++ {
+		table[i].Mul(&table[i-1], &x2)
+	}
+
+	words := k.Bits()
+	z.SetOne()
+
+	for i := el - 1; i >= 0; {
+		if getBitUint(words, i) == 0 {
+			z.Square(z)
+			i--
+			continue
 		}
+		// collect up to w bits starting from position i (MSB), ending at a 1-bit
+		windowSize := w
+		if i+1 < windowSize {
+			windowSize = i + 1
+		}
+		winVal := getWindowUint(words, i, windowSize)
+
+		// trim trailing zeros to get an odd lookup value
+		trailingZeros := bits.TrailingZeros(winVal)
+		winVal >>= trailingZeros
+		effectiveSize := windowSize - trailingZeros
+
+		for j := 0; j < effectiveSize; j++ {
+			z.Square(z)
+		}
+		z.Mul(z, &table[(winVal-1)>>1])
+		for j := 0; j < trailingZeros; j++ {
+			z.Square(z)
+		}
+		i -= windowSize
+	}
+
+	return z
+}
+
+// expUint64 computes z = xᵏ (mod q) for a uint64 exponent.
+// Uses binary method for small exponents and 4-bit windowed method for larger ones.
+func (z *Element) expUint64(x Element, k uint64) *Element {
+	if k == 0 {
+		return z.SetOne()
+	}
+	el := bits.Len64(k)
+	if el <= 8 {
+		// small exponent: binary method avoids precompute overhead
+		z.Set(&x)
+		for i := el - 2; i >= 0; i-- {
+			z.Square(z)
+			if (k>>i)&1 == 1 {
+				z.Mul(z, &x)
+			}
+		}
+		return z
+	}
+
+	const w = 4
+	var table [1 << (w - 1)]Element
+	var x2 Element
+	table[0].Set(&x)
+	x2.Square(&x)
+	for i := 1; i < len(table); i++ {
+		table[i].Mul(&table[i-1], &x2)
+	}
+
+	z.SetOne()
+
+	for i := el - 1; i >= 0; {
+		if (k>>i)&1 == 0 {
+			z.Square(z)
+			i--
+			continue
+		}
+		windowSize := w
+		if i+1 < windowSize {
+			windowSize = i + 1
+		}
+		winVal := uint((k >> (i - windowSize + 1)) & ((1 << windowSize) - 1))
+
+		trailingZeros := bits.TrailingZeros(winVal)
+		winVal >>= trailingZeros
+		effectiveSize := windowSize - trailingZeros
+
+		for j := 0; j < effectiveSize; j++ {
+			z.Square(z)
+		}
+		z.Mul(z, &table[(winVal-1)>>1])
+		for j := 0; j < trailingZeros; j++ {
+			z.Square(z)
+		}
+		i -= windowSize
 	}
 
 	return z
@@ -959,11 +1089,11 @@ func (z *Element) setBigInt(v *big.Int) *Element {
 	vBits := v.Bits()
 
 	if bits.UintSize == 64 {
-		for i := 0; i < len(vBits); i++ {
+		for i := range len(vBits) {
 			z[i] = uint64(vBits[i])
 		}
 	} else {
-		for i := 0; i < len(vBits); i++ {
+		for i := range len(vBits) {
 			if i%2 == 0 {
 				z[i/2] = uint64(vBits[i])
 			} else {
@@ -1404,7 +1534,7 @@ func (z *Element) SqrtSarkar(x *Element) *Element {
 
 	// compute Legendre symbol: xM^(2^(sarkarN-1)) should be 1 for squares
 	t := xM
-	for i := 0; i < sarkarN-1; i++ {
+	for range sarkarN - 1 {
 		t.Square(&t)
 	}
 	if t.IsZero() {
@@ -1425,13 +1555,13 @@ func (z *Element) SqrtSarkar(x *Element) *Element {
 	// compute xi = xM^(2^(sarkarN-1-(l0+...+li)))
 	var xis [sarkarK]Element
 	var sumL uint64
-	for i := 0; i < sarkarK; i++ {
+	for i := range sarkarK {
 		sumL += sarkarL[i]
 		idx := sarkarN - 1 - int(sumL)
 		xis[i] = xPow[idx]
 	}
 	var s, tt uint64
-	for i := 0; i < sarkarK; i++ {
+	for i := range sarkarK {
 		tt = (s + tt) >> sarkarL[i]
 		var gamma Element
 		sarkarPowG(&gamma, tt)
@@ -1478,7 +1608,7 @@ func (z *Element) SqrtTonelliShanks(x *Element) *Element {
 	// compute legendre symbol
 	// t = x^((q-1)/2) = r-1 squaring of xˢ
 	t = b
-	for i := uint64(0); i < r-1; i++ {
+	for range r - 1 {
 		t.Square(&t)
 	}
 	if t.IsZero() {
@@ -1514,6 +1644,84 @@ func (z *Element) SqrtTonelliShanks(x *Element) *Element {
 		b.Mul(&b, &g)
 		r = m
 	}
+}
+
+// Cbrt z = ∛x (mod q)
+// if the cube root doesn't exist (x is not a cube mod q)
+// Cbrt leaves z unchanged and returns nil
+func (z *Element) Cbrt(x *Element) *Element {
+	// q ≡ 1 (mod 3)
+	// Reference: Lemma 3 of https://eprint.iacr.org/2021/1446.pdf
+	// q ≡ 19 (mod 27): cbrt(x) = x^((q+8)/27) * ζ^k
+	var y Element
+	y.ExpByCbrtQPlus8Div27(*x)
+
+	// c = y³
+	var c Element
+	c.Cube(&y)
+
+	// Check if y is already the cube root
+	if c.Equal(x) {
+		return z.Set(&y)
+	}
+
+	// Precomputed constants:
+	// ζ = primitive 9th root of unity
+	// ζ² for adjustment
+	// ω = ζ³ = primitive 3rd root of unity
+	// ω² = ζ⁶
+	var zeta = Element{
+		2334652412973263150,
+		11279232346535882055,
+		7276793036509390088,
+		1261278247373954491,
+	}
+	var zeta2 = Element{
+		2646941981390288010,
+		16500995867564677708,
+		15734335149907747659,
+		3321150998790373310,
+	}
+	var omega = Element{
+		244305545194690131,
+		8351807910065594880,
+		14266533074055306532,
+		404339206190769364,
+	}
+	var omega2 = Element{
+		10657714497315350963,
+		9029678389775483239,
+		10080386412464207114,
+		2070906320917503013,
+	}
+
+	// Check if c/x = ω (i.e., c * ω² = x)
+	// With our convention: omega = ζ⁶, omega2 = ζ³
+	// If c * ζ³ = x, then c = x*ζ⁶, and (y*ζ)³ = y³*ζ³ = c*ζ³ = x ✓
+	var cw2 Element
+	cw2.Mul(&c, &omega2)
+	if cw2.Equal(x) {
+		return z.Mul(&y, &zeta)
+	}
+
+	// Check if c/x = ω² (i.e., c * ω = x)
+	// If c * ζ⁶ = x, then c = x*ζ³, and (y*ζ²)³ = y³*ζ⁶ = c*ζ⁶ = x ✓
+	var cw Element
+	cw.Mul(&c, &omega)
+	if cw.Equal(x) {
+		return z.Mul(&y, &zeta2)
+	}
+
+	// x is not a cubic residue
+	return nil
+}
+
+// Cube sets z to x^3 and returns z
+func (z *Element) Cube(x *Element) *Element {
+	var t Element
+	t.Square(x).Mul(&t, x)
+	z.Set(&t)
+	return z
 }
 
 const (
@@ -1569,7 +1777,7 @@ func (z *Element) Inverse(x *Element) *Element {
 		// f₀, g₀, f₁, g₁ = 1, 0, 0, 1
 		c0, c1 = updateFactorIdentityMatrixRow0, updateFactorIdentityMatrixRow1
 
-		for j := 0; j < approxLowBitsN; j++ {
+		for range approxLowBitsN {
 
 			// -2ʲ < f₀, f₁ ≤ 2ʲ
 			// |f₀| + |f₁| < 2ʲ⁺¹

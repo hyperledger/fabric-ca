@@ -5,15 +5,15 @@
 
 package fptower
 
-import "github.com/consensys/gnark-crypto/ecc/bn254/fp"
+import "github.com/consensys/gnark-crypto/ecc/bls12-377/fp"
 
-// MulByNonResidue multiplies a E2 by (9,1)
+// MulByNonResidue multiplies a E2 by (0,1)
 func (z *E2) MulByNonResidue(x *E2) *E2 {
-	var a, b fp.Element
-	a.Double(&x.A0).Double(&a).Double(&a).Add(&a, &x.A0).Sub(&a, &x.A1)
-	b.Double(&x.A1).Double(&b).Double(&b).Add(&b, &x.A1).Add(&b, &x.A0)
-	z.A0.Set(&a)
-	z.A1.Set(&b)
+	a := x.A0
+	b := x.A1 // fetching x.A1 in the function below is slower
+	fp.MulBy5(&b)
+	z.A0.Neg(&b)
+	z.A1 = a
 	return z
 }
 

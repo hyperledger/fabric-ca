@@ -450,7 +450,10 @@ func (g *G1) Mul(a *Zr) *G1 {
 }
 
 // Mul2 computes [e]g + [f]Q and returns the result as a new G1 point.
-// This is more efficient than computing the two scalar multiplications separately.
+// On the gnark-backed curves this allocates far less than two separate Mul calls
+// plus an Add, but it is not necessarily faster: the joint Strauss-Shamir technique
+// used here forgoes the GLV endomorphism speedup that Mul benefits from, so wall-clock
+// time is comparable to (not better than) the naive two-Mul-plus-Add approach.
 func (g *G1) Mul2(e *Zr, Q *G1, f *Zr) *G1 {
 	return &G1{g1: g.g1.Mul2(e.zr, Q.g1, f.zr), curveID: g.curveID}
 }
@@ -745,7 +748,9 @@ func (c *Curve) Rand() (io.Reader, error) {
 }
 
 // NewRandomZr generates a random scalar using the provided random number generator.
-// The scalar is uniformly distributed in the range [0, group order).
+// The scalar is uniformly distributed in the range [0, group order). rng is the exclusive
+// source of entropy: passing a deterministic reader (e.g. seeded from a fixed value) always
+// yields the same scalar, and implementations must not fall back to any other source.
 func (c *Curve) NewRandomZr(rng io.Reader) *Zr {
 	return &Zr{zr: c.c.NewRandomZr(rng), curveID: c.curveID}
 }
@@ -890,8 +895,18 @@ func (c *Curve) HashToG1(data []byte) *G1 {
 
 // HashToG1WithDomain hashes data to a G1 point with domain separation.
 // The domain parameter prevents hash collisions across different protocols or contexts.
-func (c *Curve) HashToG1WithDomain(data, domain []byte) *G1 {
-	return &G1{g1: c.c.HashToG1WithDomain(data, domain), curveID: c.curveID}
+// Returns nil if the underlying hash-to-curve algorithm rejects the input (e.g. a domain
+// longer than 255 bytes), rather than panicking.
+func (c *Curve) HashToG1WithDomain(data, domain []byte) (p *G1) {
+	defer func() {
+		if r := recover(); r != nil {
+			p = nil
+		}
+	}()
+
+	p = &G1{g1: c.c.HashToG1WithDomain(data, domain), curveID: c.curveID}
+
+	return
 }
 
 // HashToG2 hashes arbitrary data to a point in G2 using a hash-to-curve algorithm.
@@ -901,8 +916,18 @@ func (c *Curve) HashToG2(data []byte) *G2 {
 
 // HashToG2WithDomain hashes data to a G2 point with domain separation.
 // The domain parameter prevents hash collisions across different protocols or contexts.
-func (c *Curve) HashToG2WithDomain(data, domain []byte) *G2 {
-	return &G2{g2: c.c.HashToG2WithDomain(data, domain), curveID: c.curveID}
+// Returns nil if the underlying hash-to-curve algorithm rejects the input (e.g. a domain
+// longer than 255 bytes), rather than panicking.
+func (c *Curve) HashToG2WithDomain(data, domain []byte) (p *G2) {
+	defer func() {
+		if r := recover(); r != nil {
+			p = nil
+		}
+	}()
+
+	p = &G2{g2: c.c.HashToG2WithDomain(data, domain), curveID: c.curveID}
+
+	return
 }
 
 // ModSub computes (a - b) mod m.

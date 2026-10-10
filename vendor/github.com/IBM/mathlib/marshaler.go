@@ -6,17 +6,33 @@ SPDX-License-Identifier: Apache-2.0
 
 package math
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type curveElement struct {
 	CurveID      CurveID `json:"curve"   validate:"required"`
 	ElementBytes []byte  `json:"element" validate:"required"`
 }
 
+// validCurveID reports whether id can be safely used to index Curves.
+func validCurveID(id CurveID) error {
+	if id < 0 || int(id) >= len(Curves) || Curves[id] == nil {
+		return fmt.Errorf("invalid curve id [%d]", id)
+	}
+
+	return nil
+}
+
 func (z *Zr) UnmarshalJSON(raw []byte) error {
 	ce := &curveElement{}
 	err := json.Unmarshal(raw, ce)
 	if err != nil {
+		return err
+	}
+
+	if err := validCurveID(ce.CurveID); err != nil {
 		return err
 	}
 
@@ -37,6 +53,10 @@ func (g *G1) UnmarshalJSON(raw []byte) error {
 	ce := &curveElement{}
 	err := json.Unmarshal(raw, ce)
 	if err != nil {
+		return err
+	}
+
+	if err := validCurveID(ce.CurveID); err != nil {
 		return err
 	}
 
@@ -65,6 +85,10 @@ func (g *G2) UnmarshalJSON(raw []byte) error {
 		return err
 	}
 
+	if err := validCurveID(ce.CurveID); err != nil {
+		return err
+	}
+
 	g.curveID = ce.CurveID
 	g2, err := Curves[g.curveID].NewG2FromBytes(ce.ElementBytes)
 	if err != nil {
@@ -87,6 +111,10 @@ func (g *Gt) UnmarshalJSON(raw []byte) error {
 	ce := &curveElement{}
 	err := json.Unmarshal(raw, ce)
 	if err != nil {
+		return err
+	}
+
+	if err := validCurveID(ce.CurveID); err != nil {
 		return err
 	}
 

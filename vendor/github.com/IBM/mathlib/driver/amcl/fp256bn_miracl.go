@@ -178,12 +178,16 @@ func (p *Fp256Miraclbn) HashToG1WithDomain(data, domain []byte) driver.G1 {
 	return &fp256bnMiraclG1{*bls_hash_to_point_miracl(data, domain)}
 }
 
+// HashToG2 always panics: FP256BN has no supported hash-to-G2 map. Use a curve
+// with native G2 hashing support (e.g. BLS12-381, BN254) if G2 hashing is required.
 func (p *Fp256Miraclbn) HashToG2(data []byte) driver.G2 {
-	panic("HashToG2 is not available for this curve")
+	panic("driver/amcl: HashToG2 is not implemented for FP256BN — use a curve with native G2 hashing support (e.g. BLS12-381, BN254)")
 }
 
+// HashToG2WithDomain always panics: FP256BN has no supported hash-to-G2 map. Use a curve
+// with native G2 hashing support (e.g. BLS12-381, BN254) if G2 hashing is required.
 func (p *Fp256Miraclbn) HashToG2WithDomain(data, domain []byte) driver.G2 {
-	panic("HashToG2WithDomain is not available for this curve")
+	panic("driver/amcl: HashToG2WithDomain is not implemented for FP256BN — use a curve with native G2 hashing support (e.g. BLS12-381, BN254)")
 }
 
 /*********************************************************************/
