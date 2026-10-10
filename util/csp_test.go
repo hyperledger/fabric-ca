@@ -51,6 +51,22 @@ func testMain(m *testing.M) int {
 	return m.Run()
 }
 
+func TestConfigureBCCSPKeepsCustomKeyStorePath(t *testing.T) {
+	opts := &factory.FactoryOpts{
+		Default: "SW",
+		SW: &factory.SwOpts{
+			Hash:     "SHA2",
+			Security: 256,
+			FileKeystore: &factory.FileKeystoreOpts{
+				KeyStorePath: "/custom/keys",
+			},
+		},
+	}
+	err := ConfigureBCCSP(&opts, "", t.TempDir())
+	assert.NoError(t, err)
+	assert.Equal(t, "/custom/keys", opts.SW.FileKeystore.KeyStorePath)
+}
+
 func TestInitBCCSP(t *testing.T) {
 	mspDir := t.TempDir()
 
