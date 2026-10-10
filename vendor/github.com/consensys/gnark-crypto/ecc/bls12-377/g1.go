@@ -14,7 +14,7 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bls12-377/fp"
 	"github.com/consensys/gnark-crypto/ecc/bls12-377/fr"
-	"github.com/consensys/gnark-crypto/internal/parallel"
+	"github.com/consensys/gnark-crypto/parallel"
 )
 
 // G1Affine is a point in affine coordinates (x,y)
@@ -407,7 +407,7 @@ func (p *G1Jac) DoubleMixed(a *G1Affine) *G1Jac {
 		Sub(&S, &YYYY).
 		Double(&S)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + A, but A=0 here
+		Add(&M, &XX) // M = 3*XX
 	T.Square(&M).
 		Sub(&T, &S).
 		Sub(&T, &S)
@@ -499,7 +499,7 @@ func (p *G1Jac) DoubleAssign() *G1Jac {
 		Sub(&D, &C).
 		Double(&D)
 	E.Double(&A).
-		Add(&E, &A)
+		Add(&E, &A) // E = 3*A = 3*X²
 	F.Square(&E)
 	t.Double(&D)
 	p.Z.Mul(&p.Y, &p.Z).
@@ -515,9 +515,9 @@ func (p *G1Jac) DoubleAssign() *G1Jac {
 	return p
 }
 
-// Triple sets p to [3]q in Jacobian coordinates for j=0 curves.
+// Triple sets p to [3]q in Jacobian coordinates.
 //
-// https://eprint.iacr.org/2024/1906.pdf, Proposition 2.1
+// https://eprint.iacr.org/2024/1906.pdf, Proposition 2.1 (optimized for j=0 curves)
 func (p *G1Jac) Triple(q *G1Jac) *G1Jac {
 	// Helper functions for multiplication by 3 and 4.
 	mulBy3 := func(v *fp.Element) {
@@ -729,15 +729,15 @@ func (p *G1Jac) mulBySeed(q *G1Jac) *G1Jac {
 	t0.Triple(z)
 	t0.AddAssign(t1)
 	t1.Double(t0)
-	for s := 0; s < 6; s++ {
+	for range 6 {
 		t1.Double(t1)
 	}
 	t0.AddAssign(t1)
-	for s := 0; s < 5; s++ {
+	for range 5 {
 		t0.Double(t0)
 	}
 	z.AddAssign(t0)
-	for s := 0; s < 46; s++ {
+	for range 46 {
 		z.Double(z)
 	}
 	z.AddAssign(q)
@@ -785,10 +785,7 @@ func (p *G1Jac) mulGLV(q *G1Jac, s *big.Int) *G1Jac {
 	var naf2 [fr.Bits + 1]int8
 	nafLen1 := ecc.WnafDecomposition(&k[0], wnafWindow, naf1[:])
 	nafLen2 := ecc.WnafDecomposition(&k[1], wnafWindow, naf2[:])
-	maxLen := nafLen1
-	if nafLen2 > maxLen {
-		maxLen = nafLen2
-	}
+	maxLen := max(nafLen2, nafLen1)
 	if maxLen == 0 {
 		p.Set(&g1Infinity)
 		return p
@@ -899,15 +896,12 @@ func (p *G1Jac) JointScalarMultiplication(a1, a2 *G1Affine, s1, s2 *big.Int) *G1
 	s[0] = s[0].SetBigInt(&k1).Bits()
 	s[1] = s[1].SetBigInt(&k2).Bits()
 
-	maxBit := k1.BitLen()
-	if k2.BitLen() > maxBit {
-		maxBit = k2.BitLen()
-	}
+	maxBit := max(k1.BitLen(), k2.BitLen())
 	hiWordIndex := (maxBit - 1) / 64
 
 	for i := hiWordIndex; i >= 0; i-- {
 		mask := uint64(3) << 62
-		for j := 0; j < 32; j++ {
+		for j := range 32 {
 			res.Double(&res).Double(&res)
 			b1 := (s[0][i] & mask) >> (62 - 2*j)
 			b2 := (s[1][i] & mask) >> (62 - 2*j)
@@ -1047,20 +1041,22 @@ func (p *g1JacExtended) add(q *g1JacExtended) *g1JacExtended {
 // double sets p to [2]q in Jacobian extended coordinates.
 //
 // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
-// ~Cost: 6M + 3S
 //
 // N.B.: since we consider any point on Z=0 as the point at infinity
 // this doubling formula works for infinity points as well.
 func (p *g1JacExtended) double(q *g1JacExtended) *g1JacExtended {
-	var U, V, W, S, XX, M fp.Element
+	var U, V, W, S, M fp.Element
 
 	U.Double(&q.Y)
 	V.Square(&U)
 	W.Mul(&U, &V)
 	S.Mul(&q.X, &V)
-	XX.Square(&q.X)
-	M.Double(&XX).
-		Add(&M, &XX) // -> + A, but A=0 here
+	{
+		var XX fp.Element
+		XX.Square(&q.X)
+		M.Double(&XX).
+			Add(&M, &XX) // M = 3*XX
+	}
 	U.Mul(&W, &q.Y)
 
 	p.X.Square(&M).
@@ -1205,7 +1201,7 @@ func (p *g1JacExtended) doubleNegMixed(a *G1Affine) *g1JacExtended {
 	S.Mul(&a.X, &V)
 	t.Square(&a.X)
 	M.Double(&t).
-		Add(&M, &t) // -> + A, but A=0 here
+		Add(&M, &t) // M = 3*X²
 	p.X.Square(&M)
 	t.Double(&S)
 	p.X.Sub(&p.X, &t)
@@ -1233,7 +1229,7 @@ func (p *g1JacExtended) doubleMixed(a *G1Affine) *g1JacExtended {
 	S.Mul(&a.X, &V)
 	t.Square(&a.X)
 	M.Double(&t).
-		Add(&M, &t) // -> + A, but A=0 here
+		Add(&M, &t) // M = 3*X²
 	p.X.Square(&M)
 	t.Double(&S)
 	p.X.Sub(&p.X, &t)
@@ -1256,7 +1252,7 @@ func BatchJacobianToAffineG1(points []G1Jac) []G1Affine {
 
 	// batch invert all points[].Z coordinates with Montgomery batch inversion trick
 	// (stores points[].Z^-1 in result[i].X to avoid allocating a slice of fr.Elements)
-	for i := 0; i < len(points); i++ {
+	for i := range len(points) {
 		if points[i].Z.IsZero() {
 			zeroes[i] = true
 			continue
@@ -1320,10 +1316,7 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 
 	// last window may be slightly larger than c; in which case we need to compute one
 	// extra element in the baseTable
-	maxC := lastC(c)
-	if c > maxC {
-		maxC = c
-	}
+	maxC := max(c, lastC(c))
 
 	// precompute all powers of base for our window
 	// note here that if performance is critical, we can implement as in the msmX methods
@@ -1348,7 +1341,7 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 			p.Set(&g1Infinity)
 			for chunk := nbChunks - 1; chunk >= 0; chunk-- {
 				if chunk != nbChunks-1 {
-					for j := uint64(0); j < c; j++ {
+					for range c {
 						p.DoubleAssign()
 					}
 				}
@@ -1395,7 +1388,7 @@ func batchAddG1Affine[TP pG1Affine, TPP ppG1Affine, TC cG1Affine](R *TPP, P *TP,
 	// first we compute the 1 / (X2 - X1) for all points using Montgomery batch inversion trick
 
 	// X2 - X1
-	for j := 0; j < batchSize; j++ {
+	for j := range batchSize {
 		lambdain[j].Sub(&(*P)[j].X, &(*R)[j].X)
 	}
 
@@ -1425,7 +1418,7 @@ func batchAddG1Affine[TP pG1Affine, TPP ppG1Affine, TC cG1Affine](R *TPP, P *TP,
 	var t fp.Element
 	var Q G1Affine
 
-	for j := 0; j < batchSize; j++ {
+	for j := range batchSize {
 		// λ  = (Y2 - Y1) / (X2 - X1)
 		t.Sub(&(*P)[j].Y, &(*R)[j].Y)
 		lambda[j].Mul(&lambda[j], &t)

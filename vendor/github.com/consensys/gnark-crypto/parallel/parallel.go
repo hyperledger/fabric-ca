@@ -1,3 +1,5 @@
+// Package parallel provides shared parallel execution primitives used
+// throughout gnark-crypto, including generated code.
 package parallel
 
 import (
@@ -37,7 +39,7 @@ func Execute(nbIterations int, work func(int, int), maxCpus ...int) {
 	extraTasks := nbIterations - (nbTasks * nbIterationsPerCpus)
 	extraTasksOffset := 0
 
-	for i := 0; i < nbTasks; i++ {
+	for i := range nbTasks {
 		_start := i*nbIterationsPerCpus + extraTasksOffset
 		_end := _start + nbIterationsPerCpus
 		if extraTasks > 0 {
@@ -53,14 +55,8 @@ func Execute(nbIterations int, work func(int, int), maxCpus ...int) {
 	wg.Wait()
 }
 
-// ExecuteAligned is like Execute but ensures that chunk boundaries are aligned to
-// the given alignment value (except possibly the last chunk).
-// This is useful when work functions use SIMD operations that process elements
-// in fixed-size blocks (e.g., 16 for AVX512), to avoid per-chunk tail handling.
-//
-// Work is distributed evenly: tasks receive either k or k+alignment elements,
-// where k is the largest multiple of alignment that fits. Any unaligned tail
-// (nbIterations % alignment) is absorbed by the last task.
+// ExecuteAligned is like Execute but keeps chunk boundaries aligned to the
+// provided alignment, except for a possible tail on the last chunk.
 func ExecuteAligned(nbIterations, alignment int, work func(int, int), maxCpus ...int) {
 	nbTasks := runtime.NumCPU()
 	if len(maxCpus) == 1 {
@@ -77,11 +73,9 @@ func ExecuteAligned(nbIterations, alignment int, work func(int, int), maxCpus ..
 		return
 	}
 
-	// Distribute aligned units across tasks evenly.
 	totalUnits := nbIterations / alignment
-	leftover := nbIterations % alignment // unaligned tail (usually 0 for FFT)
+	leftover := nbIterations % alignment
 
-	// Don't spawn more tasks than aligned units.
 	if nbTasks > totalUnits {
 		nbTasks = totalUnits
 	}
@@ -89,12 +83,13 @@ func ExecuteAligned(nbIterations, alignment int, work func(int, int), maxCpus ..
 		work(0, nbIterations)
 		return
 	}
+
 	unitsPerTask := totalUnits / nbTasks
 	extraUnits := totalUnits % nbTasks
 
 	var wg sync.WaitGroup
 	start := 0
-	for i := 0; i < nbTasks; i++ {
+	for i := range nbTasks {
 		units := unitsPerTask
 		if i < extraUnits {
 			units++
@@ -145,7 +140,7 @@ func Chunks(nbIterations int, maxCpus ...int) [][2]int {
 	extraTasks := nbIterations - (nbTasks * nbIterationsPerCpus)
 	extraTasksOffset := 0
 
-	for i := 0; i < nbTasks; i++ {
+	for i := range nbTasks {
 		_start := i*nbIterationsPerCpus + extraTasksOffset
 		_end := _start + nbIterationsPerCpus
 		if extraTasks > 0 {

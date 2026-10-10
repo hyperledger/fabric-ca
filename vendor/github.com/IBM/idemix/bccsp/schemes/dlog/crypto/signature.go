@@ -35,6 +35,20 @@ const signWithEidNymRhNymLabel = "signWithEidNymRhNym" // When the revocation ha
 //  - Unlinkability of the signatures produced with the same credential
 //  - Selective attribute disclosure and predicates over attributes
 
+// searchHiddenIndex returns the position of target within the sorted HiddenIndices slice,
+// failing if target is not actually a hidden attribute index. sort.SearchInts alone cannot
+// distinguish "found" from "not found, would be inserted here" and can return an index equal
+// to len(HiddenIndices), so callers must not use its result directly to index into a
+// parallel per-hidden-attribute slice such as ProofSAttrs.
+func searchHiddenIndex(HiddenIndices []int, target int) (int, error) {
+	i := sort.SearchInts(HiddenIndices, target)
+	if i >= len(HiddenIndices) || HiddenIndices[i] != target {
+		return 0, fmt.Errorf("attribute index %d is not hidden", target)
+	}
+
+	return i, nil
+}
+
 // Make a slice of all the attribute indices that will not be disclosed
 func hiddenIndices(Disclosure []byte) []int {
 	HiddenIndices := make([]int, 0)
@@ -806,6 +820,7 @@ func (sig *Signature) Ver(
 	Disclosure []byte,
 	ipk *IssuerPublicKey,
 	msg []byte,
+	expectedNym *math.G1,
 	attributeValues []*math.Zr,
 	rhIndex, eidIndex int,
 	revPk *ecdsa.PublicKey,
@@ -879,6 +894,9 @@ func (sig *Signature) Ver(
 	Nym, err := t.G1FromProto(sig.GetNym())
 	if err != nil {
 		return err
+	}
+	if expectedNym != nil && !expectedNym.Equals(Nym) {
+		return errors.New("invalid nym, does not match the nym bound to the signature")
 	}
 	ProofC := curve.NewZrFromBytes(sig.GetProofC())
 	ProofSSk := curve.NewZrFromBytes(sig.GetProofSSk())
@@ -977,7 +995,11 @@ func (sig *Signature) Ver(
 
 		v := curve.NewZrFromBytes(sig.EidNym.ProofSEid)
 		v.Mod(curve.GroupOrder)
-		t4_eid = H_a_eid.Mul2(ProofSAttrs[sort.SearchInts(HiddenIndices, eidIndex)], HRand, v)
+		eidHiddenIdx, err := searchHiddenIndex(HiddenIndices, eidIndex)
+		if err != nil {
+			return fmt.Errorf("signature invalid: %w", err)
+		}
+		t4_eid = H_a_eid.Mul2(ProofSAttrs[eidHiddenIdx], HRand, v)
 		EidNym, err := t.G1FromProto(sig.EidNym.Nym)
 		if err != nil {
 			return err
@@ -991,7 +1013,11 @@ func (sig *Signature) Ver(
 			return err
 		}
 
-		t4_rh = H_a_rh.Mul2(ProofSAttrs[sort.SearchInts(HiddenIndices, rhIndex)], HRand, curve.NewZrFromBytes(sig.RhNym.ProofSRh))
+		rhHiddenIdx, err := searchHiddenIndex(HiddenIndices, rhIndex)
+		if err != nil {
+			return fmt.Errorf("signature invalid: %w", err)
+		}
+		t4_rh = H_a_rh.Mul2(ProofSAttrs[rhHiddenIdx], HRand, curve.NewZrFromBytes(sig.RhNym.ProofSRh))
 		RhNym, err := t.G1FromProto(sig.RhNym.Nym)
 		if err != nil {
 			return err
@@ -1004,7 +1030,10 @@ func (sig *Signature) Ver(
 		return err
 	}
 
-	i := sort.SearchInts(HiddenIndices, rhIndex)
+	i, err := searchHiddenIndex(HiddenIndices, rhIndex)
+	if err != nil {
+		return fmt.Errorf("signature invalid: %w", err)
+	}
 	proofSRh := ProofSAttrs[i]
 	RevocationEpochPk, err := t.G2FromProto(sig.RevocationEpochPk)
 	if err != nil {

@@ -5,8 +5,8 @@ go 1.26.3
 toolchain go1.26.4
 
 require (
-	github.com/IBM/idemix v0.2.1
-	github.com/IBM/mathlib v0.3.0
+	github.com/IBM/idemix v0.3.1
+	github.com/IBM/mathlib v0.3.2
 	github.com/casbin/govaluate v1.10.0
 	github.com/cloudflare/cfssl v1.4.1
 	github.com/felixge/httpsnoop v1.1.0
@@ -43,9 +43,9 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.6 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/consensys/gnark-crypto v0.20.1 // indirect
+	github.com/consensys/gnark-crypto v0.21.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.8 // indirect
