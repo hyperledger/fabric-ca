@@ -40,6 +40,10 @@ function generateGlobalCLI {
     fabric-ca-server > servercli_temp.rst
     fabric-ca-client > clientcli_temp.rst
 
+    # The client keeps -d hidden from interactive help, but it is a supported flag used by examples.
+    # Keep the generated reference documentation aligned with the documented hidden option.
+    sed -i -e '/--caname string/a\  -d, --debug                        Enable debug level logging' clientcli_temp.rst
+
     # Sanitize the CLI file to remove any machine specific information and provide a generic CLI
     sed -i -e 's/home directory (default.*/home directory (default "$HOME\/.fabric-ca-client")/' clientcli_temp.rst
     sed -i -e 's/enrollment (default.*/enrollment (default "$HOSTNAME")/' clientcli_temp.rst
