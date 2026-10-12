@@ -164,7 +164,7 @@ github.com/hyperledger/fabric-amcl/amcl
 github.com/hyperledger/fabric-amcl/amcl/FP256BN
 github.com/hyperledger/fabric-amcl/core
 github.com/hyperledger/fabric-amcl/core/FP256BN
-# github.com/hyperledger/fabric-lib-go v1.1.5-0.20260906161142-7115668d4d00
+# github.com/hyperledger/fabric-lib-go v1.1.5
 ## explicit; go 1.25.10
 github.com/hyperledger/fabric-lib-go/bccsp
 github.com/hyperledger/fabric-lib-go/bccsp/factory
