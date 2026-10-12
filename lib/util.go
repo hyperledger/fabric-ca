@@ -20,6 +20,7 @@ import (
 	"github.com/grantae/certinfo"
 	"github.com/hyperledger/fabric-ca/api"
 	"github.com/hyperledger/fabric-ca/lib/caerrors"
+	"github.com/hyperledger/fabric-lib-go/bccsp/factory"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -87,8 +88,35 @@ func UnmarshalConfig(config interface{}, vp *viper.Viper, configFile string,
 		if err != nil {
 			return errors.Wrapf(err, "Incorrect format in file '%s'", configFile)
 		}
+		applySWFileKeystoreFromViper(serverCfg.CAcfg.CSP, vp)
+	} else if caCfg, ok := config.(*CAConfig); ok {
+		applySWFileKeystoreFromViper(caCfg.CSP, vp)
 	}
 	return nil
+}
+
+// applySWFileKeystoreFromViper copies bccsp.sw.filekeystore.keystore from the
+// YAML (the documented template key) onto FileKeystoreOpts.KeyStorePath.
+// Viper/mapstructure matches the struct field name KeyStorePath, so the
+// documented "keystore" key is otherwise ignored and ConfigureBCCSP falls
+// back to msp/keystore.
+func applySWFileKeystoreFromViper(opts *factory.FactoryOpts, vp *viper.Viper) {
+	if opts == nil {
+		return
+	}
+	path := vp.GetString("bccsp.sw.filekeystore.keystore")
+	if path == "" {
+		return
+	}
+	if opts.SW == nil {
+		opts.SW = &factory.SwOpts{}
+	}
+	if opts.SW.FileKeystore == nil {
+		opts.SW.FileKeystore = &factory.FileKeystoreOpts{}
+	}
+	if opts.SW.FileKeystore.KeyStorePath == "" {
+		opts.SW.FileKeystore.KeyStorePath = path
+	}
 }
 
 func getMaxEnrollments(userMaxEnrollments int, caMaxEnrollments int) (int, error) {
