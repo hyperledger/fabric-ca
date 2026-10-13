@@ -41,7 +41,7 @@ type ClientConfig struct {
 	CAInfo       api.GetCAInfoRequest
 	CAName       string               `help:"Name of CA"`
 	CSP          *factory.FactoryOpts `mapstructure:"bccsp" hide:"true"`
-	Debug        bool                 `opt:"d" help:"Enable debug level logging" hide:"true"`
+	Debug        bool                 `opt:"d" help:"Enable debug level logging"`
 	LogLevel     string               `help:"Set logging level (info, warning, debug, error, fatal, critical)"`
 	Idemix       api.Idemix
 	MySkFile     string `help:"[Optional]: Path within the MSP directory where the private key is written"`
